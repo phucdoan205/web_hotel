@@ -1,0 +1,39 @@
+####################################
+# OS / Editor
+####################################
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+.vs/
+
+####################################
+# .NET (Backend)
+####################################
+bin/
+obj/
+*.user
+*.suo
+*.log
+
+# Config môi trường (không commit secret)
+appsettings.Development.json
+appsettings.*.json
+!appsettings.json
+
+####################################
+# Node / React / Vite (Frontend)
+####################################
+node_modules/
+dist/
+.vite/
+
+# Environment variables
+.env
+.env.*
+
+####################################
+# Logs / Coverage
+####################################
+logs/
+coverage/
