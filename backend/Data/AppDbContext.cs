@@ -28,6 +28,7 @@ namespace backend.Data
         public DbSet<AuditLog> AuditLogs { get; set; }
 
         public DbSet<Booking> Bookings { get; set; }
+        public DbSet<Guest> Guests { get; set; }
         public DbSet<BookingDetail> BookingDetails { get; set; }
         public DbSet<Invoice> Invoices { get; set; }
         public DbSet<LossAndDamage> LossAndDamages { get; set; }
@@ -35,6 +36,7 @@ namespace backend.Data
         public DbSet<OrderService> OrderServices { get; set; }
         public DbSet<OrderServiceDetail> OrderServiceDetails { get; set; }
         public DbSet<Payment> Payments { get; set; }
+        public DbSet<PaymentMethod> PaymentMethods { get; set; }
         public DbSet<Review> Reviews { get; set; }
 
         public DbSet<ServiceCategory> ServiceCategories { get; set; }
