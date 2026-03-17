@@ -27,6 +27,7 @@ namespace backend.Models
         public DateTime? ValidTo { get; set; }
 
         public int? UsageLimit { get; set; }
+        public int UsageCount { get; set; }
 
         public ICollection<Booking> Bookings { get; set; } = new List<Booking>();
     }

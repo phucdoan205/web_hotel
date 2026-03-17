@@ -19,6 +19,10 @@ namespace backend.Models
 
        
         public string? MapEmbedLink { get; set; }
+        public decimal? Latitude { get; set; }
+        public decimal? Longitude { get; set; }
+        public string? Address { get; set; }
+        public bool IsActive { get; set; } = true;
     }
 }
 

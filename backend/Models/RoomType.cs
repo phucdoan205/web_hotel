@@ -21,6 +21,8 @@ namespace backend.Models
         public int CapacityChildren { get; set; }
 
         
+        public decimal? Size { get; set; }
+        public string? BedType { get; set; }
         public string? Description { get; set; }
 
         public ICollection<Room> Rooms { get; set; } = new List<Room>();

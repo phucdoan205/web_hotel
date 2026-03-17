@@ -19,6 +19,7 @@ namespace backend.Models
 
        
         public string? Unit { get; set; }
+        public bool Status { get; set; } = true;
 
         public ServiceCategory? Category { get; set; }
         public ICollection<OrderServiceDetail> OrderServiceDetails { get; set; } = new List<OrderServiceDetail>();

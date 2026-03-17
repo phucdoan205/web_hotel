@@ -21,7 +21,10 @@ namespace backend.Models
 
         public string? Phone { get; set; }
 
-        
+        public string? GoogleId { get; set; }
+        public string? AvatarUrl { get; set; }
+        public DateTime? DateOfBirth { get; set; }
+
         public string PasswordHash { get; set; } = null!;
 
        

@@ -28,6 +28,7 @@ namespace backend.Models
 
         
         public DateTime? PublishedAt { get; set; }
+        public bool Status { get; set; } = true;
 
         public ArticleCategory? Category { get; set; }
         public User? Author { get; set; }

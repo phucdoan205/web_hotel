@@ -25,6 +25,8 @@ namespace backend.Models
 
        
         public DateTime? CreatedAt { get; set; }
+        public bool Status { get; set; } = false;
+        public DateTime? ResolvedAt { get; set; }
 
         public BookingDetail? BookingDetail { get; set; }
         public RoomInventory? RoomInventory { get; set; }

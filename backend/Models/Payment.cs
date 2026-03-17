@@ -22,6 +22,7 @@ namespace backend.Models
 
        
         public DateTime? PaymentDate { get; set; }
+        public string? Status { get; set; }
 
         public Invoice? Invoice { get; set; }
     }

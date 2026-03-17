@@ -22,6 +22,7 @@ namespace backend.Models
 
       
         public DateTime? CreatedAt { get; set; }
+        public bool Status { get; set; } = true;
 
         public User? User { get; set; }
         public RoomType? RoomType { get; set; }
