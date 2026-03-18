@@ -10,7 +10,7 @@ namespace backend.Models
         public string Name { get; set; } = null!;
         public decimal Price { get; set; }
         public string? Unit { get; set; }
-        public bool Status { get; set; } = true;
+        public bool? Status { get; set; } = true;
 
         public ServiceCategory? Category { get; set; }
         public ICollection<OrderServiceDetail> OrderServiceDetails { get; set; } = new List<OrderServiceDetail>();

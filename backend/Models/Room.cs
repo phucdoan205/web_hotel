@@ -12,6 +12,6 @@ namespace backend.Models
         public string? Status { get; set; }
         public RoomType? RoomType { get; set; }
         public ICollection<BookingDetail> BookingDetails { get; set; } = new List<BookingDetail>();
-        public ICollection<RoomInventory> RoomInventories { get; set; } = new List<RoomInventory>();
+        public ICollection<RoomInventory> RoomInventory{ get; set; } = new List<RoomInventory>();
     }
 }

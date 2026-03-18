@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using backend.Data;
 
@@ -11,9 +12,11 @@ using backend.Data;
 namespace backend.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260318145057_ChangeStatusOfArticles")]
+    partial class ChangeStatusOfArticles
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -118,7 +121,7 @@ namespace backend.Migrations
                     b.Property<decimal?>("DistanceKm")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<bool?>("IsActive")
+                    b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
                     b.Property<decimal?>("Latitude")
@@ -189,17 +192,8 @@ namespace backend.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("GuestEmail")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<int?>("GuestId")
                         .HasColumnType("int");
-
-                    b.Property<string>("GuestName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("GuestPhone")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Status")
                         .HasColumnType("nvarchar(max)");
@@ -531,7 +525,7 @@ namespace backend.Migrations
                     b.Property<int?>("RoomTypeId")
                         .HasColumnType("int");
 
-                    b.Property<bool?>("Status")
+                    b.Property<bool>("Status")
                         .HasColumnType("bit");
 
                     b.Property<int?>("UserId")
@@ -659,7 +653,7 @@ namespace backend.Migrations
 
                     b.HasIndex("RoomId");
 
-                    b.ToTable("RoomInventory");
+                    b.ToTable("RoomInventories");
                 });
 
             modelBuilder.Entity("backend.Models.RoomType", b =>
@@ -730,7 +724,7 @@ namespace backend.Migrations
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<bool?>("Status")
+                    b.Property<bool>("Status")
                         .HasColumnType("bit");
 
                     b.Property<string>("Unit")
@@ -755,7 +749,7 @@ namespace backend.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<bool?>("Status")
+                    b.Property<bool>("Status")
                         .HasColumnType("bit");
 
                     b.HasKey("Id");
@@ -835,7 +829,7 @@ namespace backend.Migrations
                     b.Property<decimal?>("MinBookingValue")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<int?>("UsageCount")
+                    b.Property<int>("UsageCount")
                         .HasColumnType("int");
 
                     b.Property<int?>("UsageLimit")
@@ -1036,7 +1030,7 @@ namespace backend.Migrations
             modelBuilder.Entity("backend.Models.RoomInventory", b =>
                 {
                     b.HasOne("backend.Models.Room", "Room")
-                        .WithMany("RoomInventory")
+                        .WithMany("RoomInventories")
                         .HasForeignKey("RoomId");
 
                     b.Navigation("Room");
@@ -1150,7 +1144,7 @@ namespace backend.Migrations
                 {
                     b.Navigation("BookingDetails");
 
-                    b.Navigation("RoomInventory");
+                    b.Navigation("RoomInventories");
                 });
 
             modelBuilder.Entity("backend.Models.RoomInventory", b =>

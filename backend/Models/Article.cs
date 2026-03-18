@@ -13,7 +13,7 @@ namespace backend.Models
         public string? Content { get; set; }
         public string? ThumbnailUrl { get; set; }
         public DateTime? PublishedAt { get; set; }
-        public bool Status { get; set; } = true;
+        public bool? Status { get; set; } = true;
         public ArticleCategory? Category { get; set; }
         public User? Author { get; set; }
     }

@@ -8,6 +8,9 @@ namespace backend.Models
        
         public int Id { get; set; }
         public int? UserId { get; set; }
+        public string? GuestName { get; set; }
+        public string? GuestPhone { get; set; }
+        public string? GuestEmail {  get; set; }
         public int? GuestId { get; set; }
         public string BookingCode { get; set; } = null!;
         public int? VoucherId { get; set; }

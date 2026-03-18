@@ -12,7 +12,7 @@ namespace backend.Models
         public int? Rating { get; set; }
         public string? Comment { get; set; }
         public DateTime? CreatedAt { get; set; }
-        public bool Status { get; set; } = true;
+        public bool? Status { get; set; } = true;
         public User? User { get; set; }
         public RoomType? RoomType { get; set; }
     }

@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using backend.Data;
 
@@ -11,9 +12,11 @@ using backend.Data;
 namespace backend.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260318150416_ChangeVouchersModel")]
+    partial class ChangeVouchersModel
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -531,7 +534,7 @@ namespace backend.Migrations
                     b.Property<int?>("RoomTypeId")
                         .HasColumnType("int");
 
-                    b.Property<bool?>("Status")
+                    b.Property<bool>("Status")
                         .HasColumnType("bit");
 
                     b.Property<int?>("UserId")
@@ -659,7 +662,7 @@ namespace backend.Migrations
 
                     b.HasIndex("RoomId");
 
-                    b.ToTable("RoomInventory");
+                    b.ToTable("RoomInventories");
                 });
 
             modelBuilder.Entity("backend.Models.RoomType", b =>
@@ -730,7 +733,7 @@ namespace backend.Migrations
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<bool?>("Status")
+                    b.Property<bool>("Status")
                         .HasColumnType("bit");
 
                     b.Property<string>("Unit")
@@ -755,7 +758,7 @@ namespace backend.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<bool?>("Status")
+                    b.Property<bool>("Status")
                         .HasColumnType("bit");
 
                     b.HasKey("Id");
@@ -1036,7 +1039,7 @@ namespace backend.Migrations
             modelBuilder.Entity("backend.Models.RoomInventory", b =>
                 {
                     b.HasOne("backend.Models.Room", "Room")
-                        .WithMany("RoomInventory")
+                        .WithMany("RoomInventories")
                         .HasForeignKey("RoomId");
 
                     b.Navigation("Room");
@@ -1150,7 +1153,7 @@ namespace backend.Migrations
                 {
                     b.Navigation("BookingDetails");
 
-                    b.Navigation("RoomInventory");
+                    b.Navigation("RoomInventories");
                 });
 
             modelBuilder.Entity("backend.Models.RoomInventory", b =>

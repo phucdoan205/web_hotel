@@ -1,6 +1,8 @@
-using Microsoft.EntityFrameworkCore;
 using backend.Data;
 using backend.Mappers;
+using backend.Validators;
+using FluentValidation;
+using Microsoft.EntityFrameworkCore;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -16,6 +18,8 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddAutoMapper(typeof(AutoMapperProfile));
+
+builder.Services.AddValidatorsFromAssemblyContaining<CreateRoomDtoValidator>();
 
 var app = builder.Build();
 
