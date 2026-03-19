@@ -43,6 +43,7 @@ namespace backend.Mappers
                     ? s.RoomType.RoomTypeAmenities.Select(a => a.Amenity.Name).ToList()
                     : new List<string>()))
                 .ForMember(d => d.Inventory, opt => opt.MapFrom(s => s.RoomInventory ?? new List<RoomInventory>()))
+                .ForMember(d => d.Status, opt => opt.MapFrom(s => s.Status))
                 .ForMember(d => d.CleaningStatus, opt => opt.MapFrom(s => s.CleaningStatus))
                 .ForMember(d => d.LastCleaningUpdatedAt, opt => opt.MapFrom(s => s.LastCleaningUpdatedAt));
 
