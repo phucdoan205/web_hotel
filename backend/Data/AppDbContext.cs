@@ -43,6 +43,43 @@ namespace backend.Data
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            foreach (var entity in modelBuilder.Model.GetEntityTypes())
+            {
+                // Replace table names
+                var tableName = entity.GetTableName();
+                if (tableName != null)
+                {
+                    entity.SetTableName(ToSnakeCase(tableName));
+                }
+
+                // Replace column names            
+                foreach (var property in entity.GetProperties())
+                {
+                    property.SetColumnName(ToSnakeCase(property.Name));
+                }
+
+                // Replace primary key names
+                foreach (var key in entity.GetKeys())
+                {
+                    key.SetName(ToSnakeCase(key.GetName()!));
+                }
+
+                // Replace foreign key names
+                foreach (var key in entity.GetForeignKeys())
+                {
+                    key.SetConstraintName(ToSnakeCase(key.GetConstraintName()!));
+                }
+
+                // Replace index names
+                foreach (var index in entity.GetIndexes())
+                {
+                    index.SetDatabaseName(ToSnakeCase(index.GetDatabaseName()!));
+                }
+            }
+
+            // Special case for some tables that don't follow the exact snake_case pluralization
+            modelBuilder.Entity<RoomInventory>().ToTable("Room_Inventory");
+
             // Composite keys for join tables
             modelBuilder.Entity<RolePermission>()
                 .HasKey(rp => new { rp.RoleId, rp.PermissionId });
@@ -51,6 +88,19 @@ namespace backend.Data
                 .HasKey(rta => new { rta.RoomTypeId, rta.AmenityId });
 
             base.OnModelCreating(modelBuilder);
+        }
+
+        private string ToSnakeCase(string input)
+        {
+            if (string.IsNullOrEmpty(input)) return input;
+
+            var startUnderscore = input.StartsWith("_");
+            if (startUnderscore) return input; // Don't process internal EF names
+
+            return System.Text.RegularExpressions.Regex.Replace(
+                input,
+                "([a-z0-9])([A-Z])",
+                "$1_$2").ToLower();
         }
     }
 }
