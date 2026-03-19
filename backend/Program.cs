@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using backend.Data;
+using backend.Models;
 using backend.Mappers;
 using System.Text.Json.Serialization;
 
