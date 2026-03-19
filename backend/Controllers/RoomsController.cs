@@ -143,6 +143,7 @@ namespace backend.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateRoomDTO dto)
         {
+            dto.ID = id;
             var validation = await _updateValidator.ValidateAsync(dto);
             if (!validation.IsValid) return BadRequest(validation.Errors);
 
