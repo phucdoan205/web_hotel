@@ -36,17 +36,18 @@ namespace backend.Mappers
             // ROOM
             CreateMap<Room, RoomDTO>()
                 .ForMember(dest => dest.RoomTypeId, opt => opt.MapFrom(src => src.RoomTypeId != null ? src.RoomTypeId : null));
+            
             CreateMap<Room, RoomDetailDTO>()
                 .ForMember(d => d.RoomTypeName, opt => opt.MapFrom(s => s.RoomType != null ? s.RoomType.Name : ""))
                 .ForMember(d => d.BasePrice, opt => opt.MapFrom(s => s.RoomType != null ? s.RoomType.BasePrice : 0))
                 .ForMember(d => d.CapacityAdults, opt => opt.MapFrom(s => s.RoomType != null ? s.RoomType.CapacityAdults : 0))
-                .ForMember(d => d.Amenities, opt => opt.MapFrom(s => s.RoomType != null
-                    ? s.RoomType.RoomTypeAmenities.Select(a => a.Amenity.Name).ToList()
-                    : new List<string>()))
+                .ForMember(d => d.Amenities, opt => opt.MapFrom(s => s.RoomType != null ? s.RoomType.RoomTypeAmenities.Select(a => a.Amenity.Name).ToList() : new List<string>()))
                 .ForMember(d => d.Inventory, opt => opt.MapFrom(s => s.RoomInventory ?? new List<RoomInventory>()))
                 .ForMember(d => d.Status, opt => opt.MapFrom(s => s.Status))
                 .ForMember(d => d.CleaningStatus, opt => opt.MapFrom(s => s.CleaningStatus))
-                .ForMember(d => d.LastCleaningUpdatedAt, opt => opt.MapFrom(s => s.LastCleaningUpdatedAt));
+                .ForMember(d => d.LastCleaningUpdatedAt, opt => opt.MapFrom(s => s.LastCleaningUpdatedAt))
+                .ForMember(dest => dest.IsDeleted, opt => opt.MapFrom(src => src.IsDeleted))
+                .ForMember(dest => dest.DeletedAt, opt => opt.MapFrom(src => src.DeletedAt));
 
             CreateMap<CreateRoomDTO, Room>()
                 .ForMember(dest => dest.RoomTypeId, opt => opt.MapFrom(src => src.RoomTypeId))

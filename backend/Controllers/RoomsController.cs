@@ -168,7 +168,7 @@ namespace backend.Controllers
             return NoContent();
         }
 
-        // DELETE: api/rooms/5
+        // DELETE: api/rooms/5 (soft-delete)
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
@@ -197,6 +197,71 @@ namespace backend.Controllers
             return NoContent();
         }
 
+        // POST: api/rooms/5/restore
+        [HttpPost("{id}/restore")]
+        public async Task<IActionResult> RestoreRoom(int id)
+        {
+            var room = await _context.Rooms
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(r => r.Id == id);
+
+            if (room == null || !room.IsDeleted)
+                return NotFound();
+
+            room.IsDeleted = false;
+            room.DeletedAt = null;
+
+            await _context.SaveChangesAsync();
+            return NoContent();
+        }
+
+        // GET: api/rooms/deleted
+        [HttpGet("deleted")]
+        public async Task<ActionResult<PagedResult<RoomDetailDTO>>> GetDeletedRooms(
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 15,
+            [FromQuery] string? searchRoomNumber = null)
+        {
+            // Bắt buộc IgnoreQueryFilters để thấy các bản ghi đã soft-delete
+            var query = _context.Rooms
+                .IgnoreQueryFilters()
+                .Where(r => r.IsDeleted == true);
+
+            // Optional: tìm kiếm theo số phòng (nếu client gửi)
+            if (!string.IsNullOrWhiteSpace(searchRoomNumber))
+            {
+                query = query.Where(r => r.RoomNumber.Contains(searchRoomNumber.Trim()));
+            }
+
+            // Sắp xếp mặc định
+            query = query.OrderByDescending(r => r.DeletedAt);
+
+            // Đếm tổng trước khi phân trang
+            var totalCount = await query.CountAsync();
+
+            // Phân trang
+            var rooms = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Include(r => r.RoomType)
+                    .ThenInclude(rt => rt!.RoomTypeAmenities)
+                    .ThenInclude(rta => rta.Amenity)
+                .Include(r => r.RoomInventory)
+                .AsNoTracking()
+                .ToListAsync();
+
+            var dtos = _mapper.Map<List<RoomDetailDTO>>(rooms);
+
+            var pagedResult = new PagedResponse<RoomDetailDTO>(
+                dtos,
+                totalCount,
+                page,
+                pageSize);
+
+            return Ok(pagedResult);
+        }
+
+        // GET: api/rooms/available
         [HttpGet("available")]
         public async Task<ActionResult<List<RoomDetailDTO>>> GetAvailableRooms(
             [FromQuery] DateTime checkIn,
