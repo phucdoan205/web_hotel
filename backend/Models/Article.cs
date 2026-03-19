@@ -1,21 +1,19 @@
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace backend.Models
 {
-   
     public class Article
     {
+        [Key]
         public int Id { get; set; }
-        public int? CategoryId { get; set; }
-        public int? AuthorId { get; set; }
         public string Title { get; set; } = null!;
-        public string? Slug { get; set; }
-        public string? Content { get; set; }
-        public string? ThumbnailUrl { get; set; }
-        public DateTime? PublishedAt { get; set; }
-        public bool Status { get; set; } = true;
-        public ArticleCategory? Category { get; set; }
-        public User? Author { get; set; }
+        public string Slug { get; set; } = null!; // Sinh ra để chạy API GET /api/Articles/{slug}
+        public string Content { get; set; } = null!;
+        public string? Thumbnail { get; set; } // Sinh ra để chạy API POST thumbnail
+
+        public int ArticleCategoryId { get; set; }
+        [ForeignKey("ArticleCategoryId")]
+        public virtual ArticleCategory ArticleCategory { get; set; } = null!;
     }
 }
-
