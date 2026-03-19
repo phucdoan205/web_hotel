@@ -1,9 +1,10 @@
+using backend.Common;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace backend.Models
 {
     [Table("RoomTypes")]
-    public class RoomType
+    public class RoomType : ISoftDelete
     {
         public int Id { get; set; }
         public string Name { get; set; } = null!;
@@ -13,6 +14,8 @@ namespace backend.Models
         public decimal? Size { get; set; }
         public string? BedType { get; set; }
         public string? Description { get; set; }
+        public bool IsDeleted { get; set; } = false;
+        public DateTime? DeletedAt { get; set; }
 
         public ICollection<Room> Rooms { get; set; } = new List<Room>();
         public ICollection<RoomTypeAmenity> RoomTypeAmenities { get; set; } = new List<RoomTypeAmenity>();

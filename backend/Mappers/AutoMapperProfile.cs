@@ -2,6 +2,7 @@ using AutoMapper;
 using backend.Common;
 using backend.DTOs;
 using backend.DTOs.Room;
+using backend.DTOs.RoomType;
 using backend.Models;
 
 namespace backend.Mappers
@@ -36,7 +37,7 @@ namespace backend.Mappers
             // ROOM
             CreateMap<Room, RoomDTO>()
                 .ForMember(dest => dest.RoomTypeId, opt => opt.MapFrom(src => src.RoomTypeId != null ? src.RoomTypeId : null));
-            
+
             CreateMap<Room, RoomDetailDTO>()
                 .ForMember(d => d.RoomTypeName, opt => opt.MapFrom(s => s.RoomType != null ? s.RoomType.Name : ""))
                 .ForMember(d => d.BasePrice, opt => opt.MapFrom(s => s.RoomType != null ? s.RoomType.BasePrice : 0))
@@ -67,6 +68,25 @@ namespace backend.Mappers
                 .ForMember(dest => dest.PriceIfLost, opt => opt.MapFrom(src => src.PriceIfLost));
             CreateMap<CreateRoomInventoryDTO, RoomInventory>();
             CreateMap<RoomInventoryDTO, RoomInventory>();
+
+            // ROOMTYPE
+            CreateMap<RoomType, RoomTypeDTO>()
+                .ForMember(dest => dest.RoomCount, opt => opt.MapFrom(src => src.Rooms.Count));
+
+            CreateMap<RoomType, RoomTypeDetailDTO>()
+                .ForMember(dest => dest.Amenities, opt => opt.MapFrom(src =>
+                    src.RoomTypeAmenities.Select(a => a.Amenity.Name).ToList()))
+                .ForMember(dest => dest.ImageUrls, opt => opt.MapFrom(src =>
+                    src.RoomImages.Select(i => i.ImageUrl).ToList()))
+                .ForMember(dest => dest.RoomCount, opt => opt.MapFrom(src => src.Rooms.Count))
+                .ForMember(dest => dest.IsDeleted, opt => opt.MapFrom(src => src.IsDeleted))
+                .ForMember(dest => dest.DeletedAt, opt => opt.MapFrom(src => src.DeletedAt));
+
+            CreateMap<CreateRoomTypeDTO, RoomType>()
+                .ForMember(dest => dest.RoomTypeAmenities, opt => opt.Ignore());
+
+            CreateMap<UpdateRoomTypeDTO, RoomType>()
+                .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
         }
     }
 }
