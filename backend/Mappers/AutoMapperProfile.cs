@@ -93,11 +93,10 @@ namespace backend.Mappers
             // ROOMINVENTORY
             CreateMap<RoomInventory, RoomInventoryDTO>()
                 .ForMember(dest => dest.RoomNumber, opt => opt.MapFrom(src => src.Room != null ? src.Room.RoomNumber : null));
-
             CreateMap<CreateRoomInventoryDTO, RoomInventory>();
-
             CreateMap<UpdateRoomInventoryDTO, RoomInventory>()
                 .ForAllMembers(opt => opt.Condition((src, dest, srcValue) => srcValue != null));
+            CreateMap<RoomInventory, RoomInventoryDTO>();
 
             // ATTRACTIONS
             CreateMap<Attraction, AttractionDTO>();

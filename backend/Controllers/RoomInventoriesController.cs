@@ -17,17 +17,20 @@ namespace backend.Controllers
         private readonly IMapper _mapper;
         private readonly IValidator<CreateRoomInventoryDTO> _createValidator;
         private readonly IValidator<UpdateRoomInventoryDTO> _updateValidator;
+        private readonly IValidator<CloneRoomInventoryDTO> _cloneValidator;
 
         public RoomInventoriesController(
             AppDbContext context,
             IMapper mapper,
             IValidator<CreateRoomInventoryDTO> createValidator,
-            IValidator<UpdateRoomInventoryDTO> updateValidator)
+            IValidator<UpdateRoomInventoryDTO> updateValidator,
+            IValidator<CloneRoomInventoryDTO> cloneValidator)
         {
             _context = context;
             _mapper = mapper;
             _createValidator = createValidator;
             _updateValidator = updateValidator;
+            _cloneValidator = cloneValidator;
         }
 
         // GET: api/RoomInventories/room/{roomId}
@@ -105,6 +108,52 @@ namespace backend.Controllers
             await _context.SaveChangesAsync();
 
             return NoContent();
+        }
+
+        // POST: api/RoomInventories/clone
+        [HttpPost("clone")]
+        public async Task<ActionResult<RoomInventoryDTO>> Clone([FromBody] CloneRoomInventoryDTO dto)
+        {
+            var validation = await _cloneValidator.ValidateAsync(dto);
+            if (!validation.IsValid)
+                return BadRequest(validation.Errors);
+
+            var source = await _context.RoomInventory
+                .AsNoTracking()
+                .FirstOrDefaultAsync(ri => ri.Id == dto.SourceInventoryId);
+
+            if (source == null)
+                return NotFound("Không tìm thấy vật dụng nguồn");
+
+            int targetRoomId = dto.TargetRoomId ?? source.RoomId!.Value;
+
+            // Xác định giá trị cuối cùng
+            string finalItemName = !string.IsNullOrWhiteSpace(dto.NewItemName)
+                ? dto.NewItemName.Trim()
+                : source.ItemName;
+
+            int finalQuantity = dto.NewQuantity ?? source.Quantity ?? 0;
+
+            var clone = new RoomInventory
+            {
+                RoomId = targetRoomId,
+                ItemName = finalItemName,
+                Quantity = finalQuantity,
+                PriceIfLost = source.PriceIfLost   // giữ nguyên, không override
+            };
+
+            _context.RoomInventory.Add(clone);
+            await _context.SaveChangesAsync();
+
+            var result = _mapper.Map<RoomInventoryDTO>(clone);
+
+            // Bổ sung RoomNumber cho response (nếu cần)
+            result.RoomNumber = await _context.Rooms
+                .Where(r => r.Id == targetRoomId)
+                .Select(r => r.RoomNumber)
+                .FirstOrDefaultAsync();
+
+            return CreatedAtAction(nameof(GetByRoom), new { roomId = targetRoomId }, result);
         }
     }
 }

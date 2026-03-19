@@ -441,6 +441,6 @@ namespace backend.Controllers
                 CreatedCount = createdDtos.Count,
                 Rooms = createdDtos
             });
-        }
+        } 
     }
 }

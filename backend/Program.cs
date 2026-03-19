@@ -1,6 +1,7 @@
 using backend.Data;
 using backend.Data.Interceptors;
 using backend.DTOs.Room;
+using backend.DTOs.RoomInventory;
 using backend.Mappers;
 using backend.Validators;
 using FluentValidation;
@@ -24,6 +25,7 @@ builder.Services.AddAutoMapper(typeof(AutoMapperProfile));
 
 builder.Services.AddValidatorsFromAssemblyContaining<CreateRoomDtoValidator>();
 builder.Services.AddScoped<IValidator<BulkCreateRoomDTO>, BulkCreateRoomDtoValidator>();
+builder.Services.AddScoped<IValidator<CloneRoomInventoryDTO>, CloneRoomInventoryDtoValidator>();
 
 var app = builder.Build();
 
