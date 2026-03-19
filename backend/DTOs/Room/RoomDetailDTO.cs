@@ -1,4 +1,6 @@
-﻿namespace backend.DTOs.Room
+﻿using backend.DTOs.RoomInventory;
+
+namespace backend.DTOs.Room
 {
     public class RoomDetailDTO
     {

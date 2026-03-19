@@ -3,6 +3,7 @@ using backend.DTOs.Room;
 using FluentValidation;
 using backend.Models;
 using Microsoft.EntityFrameworkCore;
+using backend.DTOs.RoomInventory;
 
 namespace backend.Validators
 {
