@@ -74,7 +74,6 @@ namespace backend.Controllers
                 .Take(pageSize)
                 .ToListAsync();
 
-            // Map sang DTO (ở đây là List, không phải IQueryable)
             try
             {
                 var dtos = _mapper.Map<List<RoomDetailDTO>>(rooms);
