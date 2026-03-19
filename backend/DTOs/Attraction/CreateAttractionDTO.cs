@@ -1,13 +1,7 @@
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
-
-namespace backend.Models
+﻿namespace backend.DTOs.Attraction
 {
-    [Table("Attractions")]
-    public class Attraction
+    public class CreateAttractionDTO
     {
-        public int Id { get; set; }
-        [Required, MaxLength(150)]
         public string Name { get; set; } = null!;
         public decimal? DistanceKm { get; set; }
         public string? Description { get; set; }
@@ -16,6 +10,6 @@ namespace backend.Models
         public decimal? Longitude { get; set; }
         public string? Address { get; set; }
         public bool IsActive { get; set; } = true;
+        public string? ImageUrl { get; set; }
     }
 }
-

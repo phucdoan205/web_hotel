@@ -1,6 +1,7 @@
 using AutoMapper;
 using backend.Common;
 using backend.DTOs;
+using backend.DTOs.Attraction;
 using backend.DTOs.Room;
 using backend.DTOs.RoomInventory;
 using backend.DTOs.RoomType;
@@ -96,6 +97,12 @@ namespace backend.Mappers
             CreateMap<CreateRoomInventoryDTO, RoomInventory>();
 
             CreateMap<UpdateRoomInventoryDTO, RoomInventory>()
+                .ForAllMembers(opt => opt.Condition((src, dest, srcValue) => srcValue != null));
+
+            // ATTRACTIONS
+            CreateMap<Attraction, AttractionDTO>();
+            CreateMap<CreateAttractionDTO, Attraction>();
+            CreateMap<UpdateAttractionDTO, Attraction>()
                 .ForAllMembers(opt => opt.Condition((src, dest, srcValue) => srcValue != null));
 
         }
