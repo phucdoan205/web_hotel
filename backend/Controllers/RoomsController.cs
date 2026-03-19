@@ -22,6 +22,7 @@ namespace backend.Controllers
         private readonly IValidator<PatchRoomCleaningStatusDTO> _patchCleaningValidator;
         private readonly IValidator<PatchRoomStatusDTO> _patchStatusValidator;
         private readonly IValidator<BulkCreateRoomDTO> _bulkCreateValidator;
+        private readonly IValidator<GetAvailableRoomsQuery> _queryValidator;
 
         public RoomsController(
             AppDbContext context,
@@ -30,7 +31,8 @@ namespace backend.Controllers
             IValidator<UpdateRoomDTO> updateValidator,
             IValidator<PatchRoomCleaningStatusDTO> patchCleaningValidator,
             IValidator<PatchRoomStatusDTO> patchStatusValidator,
-            IValidator<BulkCreateRoomDTO> bulkCreateValidator)
+            IValidator<BulkCreateRoomDTO> bulkCreateValidator,
+            IValidator<GetAvailableRoomsQuery> queryValidator)
         {
             _context = context;
             _mapper = mapper;
@@ -39,9 +41,10 @@ namespace backend.Controllers
             _patchCleaningValidator = patchCleaningValidator;
             _patchStatusValidator = patchStatusValidator;
             _bulkCreateValidator = bulkCreateValidator;
+            _queryValidator = queryValidator;
         }
 
-        // GET: api/rooms (có filter + pagination)
+        // GET: api/rooms
         [HttpGet]
         public async Task<ActionResult<PagedResult<RoomDetailDTO>>> GetRooms(
         [FromQuery] string? status = null,
@@ -80,7 +83,6 @@ namespace backend.Controllers
             try
             {
                 var dtos = _mapper.Map<List<RoomDetailDTO>>(rooms);
-                // Tạo PagedResult
                 var result = new PagedResponse<RoomDetailDTO>(
                     items: dtos,
                     totalCount: totalCount,
@@ -146,7 +148,7 @@ namespace backend.Controllers
             return CreatedAtAction(nameof(GetRoom), new { id = room.Id }, createdDto);
         }
 
-        // PUT: api/rooms/5 (partial update)
+        // PUT: api/rooms/5
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateRoomDTO dto)
         {
@@ -264,36 +266,71 @@ namespace backend.Controllers
             return Ok(pagedResult);
         }
 
-        // GET: api/rooms/available
+        // GET: api/Rooms/available
         [HttpGet("available")]
-        public async Task<ActionResult<List<RoomDetailDTO>>> GetAvailableRooms(
-            [FromQuery] DateTime checkIn,
-            [FromQuery] DateTime checkOut,
-            [FromQuery] int? adults = null,
-            [FromQuery] int? children = null)
+        public async Task<ActionResult<PagedResult<RoomDetailDTO>>> GetAvailableRooms([FromQuery] GetAvailableRoomsQuery query)
         {
-            if (checkOut <= checkIn) return BadRequest("Check-out phải sau check-in");
+            var validationResult = await _queryValidator.ValidateAsync(query);
+            if (!validationResult.IsValid)
+                return BadRequest(validationResult.Errors);
 
-            var bookedRoomIds = await _context.BookingDetails
-                .Where(bd => bd.CheckInDate < checkOut && bd.CheckOutDate > checkIn)
-                .Select(bd => bd.RoomId)
-                .Distinct()
+            if (query.CheckIn.HasValue && query.CheckOut.HasValue)
+            {
+                if (query.CheckIn >= query.CheckOut)
+                    return BadRequest("Check-in phải trước check-out");
+
+                if (query.CheckIn < DateTime.Today)
+                    return BadRequest("Check-in không được trong quá khứ");
+            }
+
+            var q = _context.Rooms
+                .AsNoTracking()
+                .Include(r => r.RoomType)
+                    .ThenInclude(rt => rt.RoomTypeAmenities)
+                        .ThenInclude(rta => rta.Amenity)
+                .Where(r => !r.IsDeleted && r.Status == RoomStatuses.Available);
+
+            // Lọc theo ngày chỉ khi CẢ HAI tham số đều có
+            if (query.CheckIn.HasValue && query.CheckOut.HasValue)
+            {
+                // Logic kiểm tra phòng trống trong khoảng ngày
+                // (tránh overlap booking)
+                q = q.Where(r => !r.BookingDetails.Any(bd =>
+                    bd.Booking != null &&
+                    bd.CheckInDate < query.CheckOut &&
+                    bd.CheckOutDate > query.CheckIn));
+            }
+
+            // Lọc theo loại phòng (nếu có)
+            if (query.RoomTypeId.HasValue)
+            {
+                q = q.Where(r => r.RoomTypeId == query.RoomTypeId.Value);
+            }
+
+            // Lọc theo sức chứa (nếu có)
+            if (query.Adults.HasValue)
+            {
+                q = q.Where(r => r.RoomType != null && r.RoomType.CapacityAdults >= query.Adults.Value);
+            }
+
+            if (query.Children.HasValue)
+            {
+                q = q.Where(r => r.RoomType != null && r.RoomType.CapacityChildren >= query.Children.Value);
+            }
+
+            // Phân trang
+            var total = await q.CountAsync();
+            var items = await q
+                .OrderBy(r => r.RoomNumber)
+                .Skip((query.Page - 1) * query.PageSize)
+                .Take(query.PageSize)
                 .ToListAsync();
 
-            var query = _context.Rooms
-                .Include(r => r.RoomType)
-                .ThenInclude(rt => rt!.RoomTypeAmenities).ThenInclude(a => a.Amenity)
-                .Include(r => r.RoomInventory)
-                .Where(r => r.Status == "Available" && !bookedRoomIds.Contains(r.Id));
+            var dtos = _mapper.Map<List<RoomDetailDTO>>(items);
 
-            if (adults.HasValue)
-                query = query.Where(r => r.RoomType!.CapacityAdults >= adults);
-            if (children.HasValue)
-                query = query.Where(r => r.RoomType!.CapacityChildren >= children);
+            var result = new PagedResponse<RoomDetailDTO>(dtos, total, query.Page, query.PageSize);
 
-            var rooms = await query.ToListAsync();
-
-            return Ok(_mapper.Map<List<RoomDetailDTO>>(rooms));
+            return Ok(result);
         }
 
         // PATCH: api/rooms/{id}/status
@@ -441,6 +478,6 @@ namespace backend.Controllers
                 CreatedCount = createdDtos.Count,
                 Rooms = createdDtos
             });
-        } 
+        }
     }
 }
