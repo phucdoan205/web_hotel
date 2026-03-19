@@ -13,7 +13,8 @@ namespace backend.Models
         public decimal? Size { get; set; }
         public string? BedType { get; set; }
         public string? Description { get; set; }
-
+        public bool IsDeleted { get; set; }
+        public DateTime? DeletedAt { get; set; }
         public ICollection<Room> Rooms { get; set; } = new List<Room>();
         public ICollection<RoomTypeAmenity> RoomTypeAmenities { get; set; } = new List<RoomTypeAmenity>();
         public ICollection<RoomImage> RoomImages { get; set; } = new List<RoomImage>();
