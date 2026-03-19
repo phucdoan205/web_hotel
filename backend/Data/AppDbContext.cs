@@ -1,5 +1,7 @@
-using Microsoft.EntityFrameworkCore;
+using backend.Common;
 using backend.Models;
+using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 
 namespace backend.Data
 {
@@ -20,7 +22,7 @@ namespace backend.Data
         public DbSet<Room> Rooms { get; set; }
         public DbSet<RoomTypeAmenity> RoomTypeAmenities { get; set; }
         public DbSet<RoomImage> RoomImages { get; set; }
-        public DbSet<RoomInventory> RoomInventories { get; set; }
+        public DbSet<RoomInventory> RoomInventory { get; set; }
 
         public DbSet<ArticleCategory> ArticleCategories { get; set; }
         public DbSet<Article> Articles { get; set; }
@@ -50,6 +52,22 @@ namespace backend.Data
 
             modelBuilder.Entity<RoomTypeAmenity>()
                 .HasKey(rta => new { rta.RoomTypeId, rta.AmenityId });
+
+            // Soft-delete
+            foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+            {
+                if (typeof(ISoftDelete).IsAssignableFrom(entityType.ClrType))
+                {
+                    var parameter = Expression.Parameter(entityType.ClrType);
+                    var property = Expression.Property(parameter, nameof(ISoftDelete.IsDeleted));
+                    var constant = Expression.Constant(false);
+                    var body = Expression.Equal(property, constant);
+                    var lambda = Expression.Lambda(body, parameter);
+
+                    modelBuilder.Entity(entityType.ClrType)
+                        .HasQueryFilter(lambda);
+                }
+            }
 
             base.OnModelCreating(modelBuilder);
         }
