@@ -21,6 +21,7 @@ namespace backend.Controllers
         private readonly IValidator<UpdateRoomDTO> _updateValidator;
         private readonly IValidator<PatchRoomCleaningStatusDTO> _patchCleaningValidator;
         private readonly IValidator<PatchRoomStatusDTO> _patchStatusValidator;
+        private readonly IValidator<BulkCreateRoomDTO> _bulkCreateValidator;
 
         public RoomsController(
             AppDbContext context,
@@ -28,7 +29,8 @@ namespace backend.Controllers
             IValidator<CreateRoomDTO> createValidator,
             IValidator<UpdateRoomDTO> updateValidator,
             IValidator<PatchRoomCleaningStatusDTO> patchCleaningValidator,
-            IValidator<PatchRoomStatusDTO> patchStatusValidator)
+            IValidator<PatchRoomStatusDTO> patchStatusValidator,
+            IValidator<BulkCreateRoomDTO> bulkCreateValidator)
         {
             _context = context;
             _mapper = mapper;
@@ -36,6 +38,7 @@ namespace backend.Controllers
             _updateValidator = updateValidator;
             _patchCleaningValidator = patchCleaningValidator;
             _patchStatusValidator = patchStatusValidator;
+            _bulkCreateValidator = bulkCreateValidator;
         }
 
         // GET: api/rooms (có filter + pagination)
@@ -356,6 +359,88 @@ namespace backend.Controllers
             var resultDto = _mapper.Map<RoomDetailDTO>(updatedRoom);
 
             return Ok(resultDto);
+        }
+
+        [HttpPost("bulk-create")]
+        public async Task<IActionResult> BulkCreate([FromBody] BulkCreateRoomDTO dto)
+        {
+            var validation = await _bulkCreateValidator.ValidateAsync(dto);
+            if (!validation.IsValid)
+            {
+                return BadRequest(validation.Errors);
+            }
+
+            // Kiểm tra duplicate RoomNumber trong danh sách gửi lên (trước khi vào DB)
+            var roomNumbers = dto.Rooms.Select(r => r.RoomNumber.Trim()).ToList();
+            var duplicatesInRequest = roomNumbers
+                .GroupBy(n => n)
+                .Where(g => g.Count() > 1)
+                .Select(g => g.Key)
+                .ToList();
+
+            if (duplicatesInRequest.Any())
+            {
+                return BadRequest($"Có số phòng trùng lặp trong danh sách: {string.Join(", ", duplicatesInRequest)}");
+            }
+
+            // Kiểm tra RoomNumber đã tồn tại trong database
+            var existingNumbers = await _context.Rooms
+                .Where(r => roomNumbers.Contains(r.RoomNumber))
+                .Select(r => r.RoomNumber)
+                .ToListAsync();
+
+            if (existingNumbers.Any())
+            {
+                return BadRequest($"Các số phòng đã tồn tại: {string.Join(", ", existingNumbers)}");
+            }
+
+            // Kiểm tra RoomTypeId tồn tại (nếu tất cả dùng chung 1 loại thì check 1 lần)
+            var roomTypeIds = dto.Rooms
+                .Where(r => r.RoomTypeId.HasValue)
+                .Select(r => r.RoomTypeId!.Value)
+                .Distinct()
+                .ToList();
+
+            var validRoomTypeCount = await _context.RoomTypes
+                .CountAsync(rt => roomTypeIds.Contains(rt.Id));
+
+            if (validRoomTypeCount != roomTypeIds.Count)
+            {
+                return BadRequest("Một hoặc nhiều RoomTypeId không tồn tại");
+            }
+
+            // Mapping & tạo entities
+            var roomsToAdd = new List<Room>();
+
+            foreach (var roomDto in dto.Rooms)
+            {
+                var room = _mapper.Map<Room>(roomDto);
+
+                // Default value nếu cần
+                room.Status ??= RoomStatuses.Available;
+                room.CleaningStatus ??= RoomCleaningStatuses.Dirty;
+
+                // Xử lý inventories nếu có
+                if (roomDto.InitialInventories?.Any() == true)
+                {
+                    room.RoomInventory = _mapper.Map<List<RoomInventory>>(roomDto.InitialInventories);
+                }
+
+                roomsToAdd.Add(room);
+            }
+
+            // Bulk insert
+            await _context.Rooms.AddRangeAsync(roomsToAdd);
+            await _context.SaveChangesAsync();
+
+            // Trả về danh sách phòng vừa tạo (với ID)
+            var createdDtos = _mapper.Map<List<RoomDetailDTO>>(roomsToAdd);
+
+            return CreatedAtAction(nameof(BulkCreate), new { }, new
+            {
+                CreatedCount = createdDtos.Count,
+                Rooms = createdDtos
+            });
         }
     }
 }
