@@ -66,7 +66,6 @@ namespace backend.Controllers
 
             if (!force)
             {
-                // Check if there are associated rooms, bookings, or reviews
                 if (entity.Rooms.Any() || entity.BookingDetails.Any() || entity.Reviews.Any())
                 {
                     return BadRequest(new {
