@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace backend.Migrations
 {
     /// <inheritdoc />
-    public partial class databasetest : Migration
+    public partial class updatedb : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -142,7 +142,9 @@ namespace backend.Migrations
                     CapacityChildren = table.Column<int>(type: "int", nullable: false),
                     Size = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
                     BedType = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Description = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    Description = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -268,7 +270,11 @@ namespace backend.Migrations
                     RoomTypeId = table.Column<int>(type: "int", nullable: true),
                     RoomNumber = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Floor = table.Column<int>(type: "int", nullable: true),
-                    Status = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    Status = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    CleaningStatus = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    LastCleaningUpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -441,7 +447,7 @@ namespace backend.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "RoomInventories",
+                name: "RoomInventory",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
@@ -453,9 +459,9 @@ namespace backend.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_RoomInventories", x => x.Id);
+                    table.PrimaryKey("PK_RoomInventory", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_RoomInventories_Rooms_RoomId",
+                        name: "FK_RoomInventory_Rooms_RoomId",
                         column: x => x.RoomId,
                         principalTable: "Rooms",
                         principalColumn: "Id");
@@ -542,9 +548,9 @@ namespace backend.Migrations
                         principalTable: "BookingDetails",
                         principalColumn: "Id");
                     table.ForeignKey(
-                        name: "FK_Loss_And_Damages_RoomInventories_RoomInventoryId",
+                        name: "FK_Loss_And_Damages_RoomInventory_RoomInventoryId",
                         column: x => x.RoomInventoryId,
-                        principalTable: "RoomInventories",
+                        principalTable: "RoomInventory",
                         principalColumn: "Id");
                 });
 
@@ -729,8 +735,8 @@ namespace backend.Migrations
                 column: "RoomTypeId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_RoomInventories_RoomId",
-                table: "RoomInventories",
+                name: "IX_RoomInventory_RoomId",
+                table: "RoomInventory",
                 column: "RoomId");
 
             migrationBuilder.CreateIndex(
@@ -796,7 +802,7 @@ namespace backend.Migrations
                 name: "ArticleCategories");
 
             migrationBuilder.DropTable(
-                name: "RoomInventories");
+                name: "RoomInventory");
 
             migrationBuilder.DropTable(
                 name: "Order_Services");

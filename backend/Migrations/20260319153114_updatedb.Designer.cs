@@ -12,8 +12,8 @@ using backend.Data;
 namespace backend.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260317090443_databasetest")]
-    partial class databasetest
+    [Migration("20260319153114_updatedb")]
+    partial class updatedb
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -583,8 +583,20 @@ namespace backend.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("CleaningStatus")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<int?>("Floor")
                         .HasColumnType("int");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("LastCleaningUpdatedAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("RoomNumber")
                         .IsRequired()
@@ -653,7 +665,7 @@ namespace backend.Migrations
 
                     b.HasIndex("RoomId");
 
-                    b.ToTable("RoomInventories");
+                    b.ToTable("RoomInventory");
                 });
 
             modelBuilder.Entity("backend.Models.RoomType", b =>
@@ -676,8 +688,14 @@ namespace backend.Migrations
                     b.Property<int>("CapacityChildren")
                         .HasColumnType("int");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("Description")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -1030,7 +1048,7 @@ namespace backend.Migrations
             modelBuilder.Entity("backend.Models.RoomInventory", b =>
                 {
                     b.HasOne("backend.Models.Room", "Room")
-                        .WithMany("RoomInventories")
+                        .WithMany("RoomInventory")
                         .HasForeignKey("RoomId");
 
                     b.Navigation("Room");
@@ -1144,7 +1162,7 @@ namespace backend.Migrations
                 {
                     b.Navigation("BookingDetails");
 
-                    b.Navigation("RoomInventories");
+                    b.Navigation("RoomInventory");
                 });
 
             modelBuilder.Entity("backend.Models.RoomInventory", b =>
