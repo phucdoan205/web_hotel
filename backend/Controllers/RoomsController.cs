@@ -173,19 +173,25 @@ namespace backend.Controllers
         public async Task<IActionResult> Delete(int id)
         {
             var room = await _context.Rooms
-                .Include(r => r.BookingDetails)
-                .Include(r => r.RoomInventory)
+                .IgnoreQueryFilters()
                 .FirstOrDefaultAsync(r => r.Id == id);
 
-            if (room == null) return NotFound();
+            if (room == null)
+                return NotFound();
 
-            if (room.BookingDetails.Any(b => b.CheckOutDate >= DateTime.Today))
-                return BadRequest("Phòng đang có đặt phòng hoạt động, không thể xóa");
+            if (room.IsDeleted)
+                return BadRequest("Phòng đã bị xóa (soft-delete) trước đó.");
 
-            // Xóa inventory trước (nếu có cascade delete thì không cần)
-            _context.RoomInventory.RemoveRange(room.RoomInventory);
+            // Business rule: không cho xóa nếu đang có booking active
+            var hasActiveBooking = await _context.BookingDetails
+                .AnyAsync(bd => bd.RoomId == id
+                             && bd.CheckOutDate >= DateTime.UtcNow.Date);
 
-            _context.Rooms.Remove(room);
+            if (hasActiveBooking)
+                return BadRequest("Không thể xóa phòng đang có booking hoạt động.");
+
+            _context.Rooms.Remove(room);  // ← sẽ bị interceptor chuyển thành soft-delete
+
             await _context.SaveChangesAsync();
 
             return NoContent();
