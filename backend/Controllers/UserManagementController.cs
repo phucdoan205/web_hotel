@@ -1,4 +1,5 @@
 using backend.Data;
+using backend.DTOs;
 using backend.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -48,11 +49,22 @@ namespace backend.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<UserResponse>> Create(User user)
+        public async Task<ActionResult<UserResponse>> Create(UserCreateDTO request)
         {
-            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(user.PasswordHash);
-            user.Status = true;
-            
+            var user = new User
+            {
+                RoleId = request.RoleId,
+                MembershipId = request.MembershipId,
+                FullName = request.FullName,
+                Email = request.Email,
+                Phone = request.Phone,
+                GoogleId = request.GoogleId,
+                AvatarUrl = request.AvatarUrl,
+                DateOfBirth = request.DateOfBirth,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
+                Status = true
+            };
+
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
 
