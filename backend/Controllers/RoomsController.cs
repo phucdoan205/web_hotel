@@ -235,9 +235,9 @@ namespace backend.Controllers
                 return NotFound();
 
             // Business rule: một số trạng thái không được chuyển trực tiếp
-            if (room.Status == "Occupied" && dto.Status != "Cleaning" && dto.Status != "Maintenance")
+            if (room.Status == RoomStatuses.Occupied && dto.Status != RoomStatuses.Cleaning && dto.Status != RoomStatuses.Maintenance)
             {
-                return BadRequest("Phòng đang có khách, chỉ được chuyển sang Cleaning hoặc Maintenance");
+                return BadRequest($"Phòng đang {RoomStatuses.Occupied}, chỉ được chuyển sang {RoomStatuses.Cleaning} hoặc {RoomStatuses.Maintenance}");
             }
 
             room.Status = dto.Status;
@@ -260,15 +260,15 @@ namespace backend.Controllers
             if (room == null)
                 return NotFound();
 
-            // Business rules ví dụ
-            if (dto.CleaningStatus == RoomCleaningStatuses.Clean && room.Status == "Occupied")
+            // Business rules
+            if (dto.CleaningStatus == RoomCleaningStatuses.Clean && room.Status == RoomStatuses.Occupied)
             {
-                return BadRequest("Không thể đánh dấu Clean khi phòng đang có khách (Occupied)");
+                return BadRequest("Không thể đánh dấu Clean khi phòng đang có khách");
             }
 
             if (dto.CleaningStatus == RoomCleaningStatuses.Inspected && room.CleaningStatus != RoomCleaningStatuses.Clean)
             {
-                return BadRequest("Phòng phải ở trạng thái Clean trước khi Inspected");
+                return BadRequest("Phòng phải ở trạng thái Clean trước khi chuyển sang Inspected");
             }
 
             room.CleaningStatus = dto.CleaningStatus;

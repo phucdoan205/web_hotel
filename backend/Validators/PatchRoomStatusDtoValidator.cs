@@ -1,4 +1,5 @@
-﻿using backend.DTOs.Room;
+﻿using backend.Common;
+using backend.DTOs.Room;
 using FluentValidation;
 
 namespace backend.Validators
@@ -9,14 +10,8 @@ namespace backend.Validators
         {
             RuleFor(x => x.Status)
                 .NotEmpty()
-                .Must(BeValidStatus)
+                .Must(RoomStatuses.IsValid)
                 .WithMessage("Trạng thái không hợp lệ. Các giá trị cho phép: Available, Occupied, Maintenance, Cleaning, OutOfOrder");
-        }
-
-        private bool BeValidStatus(string status)
-        {
-            var valid = new[] { "Available", "Occupied", "Maintenance", "Cleaning", "OutOfOrder" };
-            return valid.Contains(status, StringComparer.OrdinalIgnoreCase);
         }
     }
 }
