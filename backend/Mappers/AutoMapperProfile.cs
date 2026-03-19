@@ -1,4 +1,5 @@
 using AutoMapper;
+using backend.Common;
 using backend.DTOs;
 using backend.DTOs.Room;
 using backend.Models;
@@ -51,7 +52,7 @@ namespace backend.Mappers
                 .ForMember(dest => dest.RoomTypeId, opt => opt.MapFrom(src => src.RoomTypeId))
                 .ForMember(dest => dest.RoomNumber, opt => opt.MapFrom(src => src.RoomNumber))
                 .ForMember(dest => dest.Floor, opt => opt.MapFrom(src => src.Floor))
-                .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status ?? "Available"))
+                .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status ?? RoomStatuses.Available))
                 .ForMember(dest => dest.RoomInventory, opt => opt.Ignore());  // Ignore để map thủ công sau
 
             // Mapping từ UpdateRoomDTO → Room (cho PUT update)
