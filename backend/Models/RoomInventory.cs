@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace backend.Models
 {
-    
+    [Table("RoomInventory")]
     public class RoomInventory
     {
         public int Id { get; set; }
