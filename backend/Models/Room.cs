@@ -10,8 +10,10 @@ namespace backend.Models
         public string RoomNumber { get; set; } = null!;
         public int? Floor { get; set; }
         public string? Status { get; set; }
+        public string? CleaningStatus { get; set; }
         public RoomType? RoomType { get; set; }
         public ICollection<BookingDetail> BookingDetails { get; set; } = new List<BookingDetail>();
         public ICollection<RoomInventory> RoomInventory{ get; set; } = new List<RoomInventory>();
+        public DateTime? LastCleaningUpdatedAt { get; set; }
     }
 }

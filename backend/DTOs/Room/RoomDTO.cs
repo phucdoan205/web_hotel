@@ -1,4 +1,6 @@
-﻿namespace backend.DTOs.Room
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace backend.DTOs.Room
 {
     public class RoomDTO
     {
@@ -11,7 +13,6 @@
         public int? Floor {  get; set; }
 
         public bool? Status { get; set; } 
-
-
     }
+
 }

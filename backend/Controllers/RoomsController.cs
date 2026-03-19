@@ -3,12 +3,11 @@ using backend.Common;
 using backend.Data;
 using backend.DTOs.Room;
 using backend.Models;
+using backend.Validators;
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Dynamic.Core;
-
-// For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
 namespace backend.Controllers
 {
@@ -20,17 +19,23 @@ namespace backend.Controllers
         private readonly IMapper _mapper;
         private readonly IValidator<CreateRoomDTO> _createValidator;
         private readonly IValidator<UpdateRoomDTO> _updateValidator;
+        private readonly IValidator<PatchRoomCleaningStatusDTO> _patchCleaningValidator;
+        private readonly IValidator<PatchRoomStatusDTO> _patchStatusValidator;
 
         public RoomsController(
             AppDbContext context,
             IMapper mapper,
             IValidator<CreateRoomDTO> createValidator,
-            IValidator<UpdateRoomDTO> updateValidator)
+            IValidator<UpdateRoomDTO> updateValidator,
+            IValidator<PatchRoomCleaningStatusDTO> patchCleaningValidator,
+            IValidator<PatchRoomStatusDTO> patchStatusValidator)
         {
             _context = context;
             _mapper = mapper;
             _createValidator = createValidator;
             _updateValidator = updateValidator;
+            _patchCleaningValidator = patchCleaningValidator;
+            _patchStatusValidator = patchStatusValidator;
         }
 
         // GET: api/rooms (có filter + pagination)
@@ -187,7 +192,6 @@ namespace backend.Controllers
             return NoContent();
         }
 
-        // BONUS: Tìm phòng trống theo ngày
         [HttpGet("available")]
         public async Task<ActionResult<List<RoomDetailDTO>>> GetAvailableRooms(
             [FromQuery] DateTime checkIn,
@@ -217,6 +221,71 @@ namespace backend.Controllers
             var rooms = await query.ToListAsync();
 
             return Ok(_mapper.Map<List<RoomDetailDTO>>(rooms));
+        }
+
+        // PATCH: api/rooms/{id}/status
+        [HttpPatch("{id}/status")]
+        public async Task<IActionResult> PatchStatus(int id, [FromBody] PatchRoomStatusDTO dto)
+        {
+            var validation = await _patchStatusValidator.ValidateAsync(dto);
+            if (!validation.IsValid)
+                return BadRequest(validation.Errors);
+
+            var room = await _context.Rooms.FindAsync(id);
+            if (room == null)
+                return NotFound();
+
+            // Business rule: một số trạng thái không được chuyển trực tiếp
+            if (room.Status == "Occupied" && dto.Status != "Cleaning" && dto.Status != "Maintenance")
+            {
+                return BadRequest("Phòng đang có khách, chỉ được chuyển sang Cleaning hoặc Maintenance");
+            }
+
+            room.Status = dto.Status;
+            //room.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+
+        // PATCH: api/rooms/{id}/cleaning-status
+        [HttpPatch("{id}/cleaning-status")]
+        public async Task<IActionResult> PatchCleaningStatus(int id, [FromBody] PatchRoomCleaningStatusDTO dto)
+        {
+            var validation = await _patchCleaningValidator.ValidateAsync(dto);
+            if (!validation.IsValid)
+                return BadRequest(validation.Errors);
+
+            var room = await _context.Rooms.FindAsync(id);
+            if (room == null)
+                return NotFound();
+
+            // Business rules ví dụ
+            if (dto.CleaningStatus == RoomCleaningStatuses.Clean && room.Status == "Occupied")
+            {
+                return BadRequest("Không thể đánh dấu Clean khi phòng đang có khách (Occupied)");
+            }
+
+            if (dto.CleaningStatus == RoomCleaningStatuses.Inspected && room.CleaningStatus != RoomCleaningStatuses.Clean)
+            {
+                return BadRequest("Phòng phải ở trạng thái Clean trước khi Inspected");
+            }
+
+            room.CleaningStatus = dto.CleaningStatus;
+            room.LastCleaningUpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            var updatedRoom = await _context.Rooms
+                .Include(r => r.RoomType)
+                .ThenInclude(rt => rt!.RoomTypeAmenities).ThenInclude(a => a.Amenity)
+                .Include(r => r.RoomInventory)
+                .FirstOrDefaultAsync(r => r.Id == id);
+
+            var resultDto = _mapper.Map<RoomDetailDTO>(updatedRoom);
+
+            return Ok(resultDto);
         }
     }
 }

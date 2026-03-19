@@ -42,7 +42,10 @@ namespace backend.Mappers
                 .ForMember(d => d.Amenities, opt => opt.MapFrom(s => s.RoomType != null
                     ? s.RoomType.RoomTypeAmenities.Select(a => a.Amenity.Name).ToList()
                     : new List<string>()))
-                .ForMember(d => d.Inventory, opt => opt.MapFrom(s => s.RoomInventory ?? new List<RoomInventory>()));
+                .ForMember(d => d.Inventory, opt => opt.MapFrom(s => s.RoomInventory ?? new List<RoomInventory>()))
+                .ForMember(d => d.CleaningStatus, opt => opt.MapFrom(s => s.CleaningStatus))
+                .ForMember(d => d.LastCleaningUpdatedAt, opt => opt.MapFrom(s => s.LastCleaningUpdatedAt));
+
             CreateMap<CreateRoomDTO, Room>()
                 .ForMember(dest => dest.RoomTypeId, opt => opt.MapFrom(src => src.RoomTypeId))
                 .ForMember(dest => dest.RoomNumber, opt => opt.MapFrom(src => src.RoomNumber))
