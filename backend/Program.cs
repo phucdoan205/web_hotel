@@ -7,6 +7,10 @@ using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer; 
 using Microsoft.IdentityModel.Tokens; 
 using System.Text;
+using backend.Data.Interceptors;
+using backend.DTOs.Room;
+using backend.DTOs.RoomInventory;
+using backend.Validators;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -37,9 +41,13 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddFluentValidationClientsideAdapters();
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
-
 builder.Services.AddScoped<CloudinaryService>();
-builder.Services.AddScoped<IJwtService, JwtService>(); // Đăng ký JwtService
+builder.Services.AddScoped<IJwtService, JwtService>(); 
+
+builder.Services.AddInterceptors(new SoftDeleteInterceptor());
+builder.Services.AddValidatorsFromAssemblyContaining<CreateRoomDtoValidator>();
+builder.Services.AddScoped<IValidator<BulkCreateRoomDTO>, BulkCreateRoomDtoValidator>();
+builder.Services.AddScoped<IValidator<CloneRoomInventoryDTO>, CloneRoomInventoryDtoValidator>();
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
