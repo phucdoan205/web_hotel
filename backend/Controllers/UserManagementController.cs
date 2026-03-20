@@ -1,5 +1,6 @@
 using backend.Data;
 using backend.DTOs;
+using backend.DTOs.User;
 using backend.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -18,24 +19,13 @@ namespace backend.Controllers
             _context = context;
         }
 
-        public sealed class UserResponse
-        {
-            public int Id { get; set; }
-            public string FullName { get; set; } = null!;
-            public string Email { get; set; } = null!;
-            public string? Phone { get; set; }
-            public int? RoleId { get; set; }
-            public string? RoleName { get; set; }
-            public bool? Status { get; set; }
-        }
-
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<UserResponse>>> GetAll()
+        public async Task<ActionResult<IEnumerable<UserManagementResponseDTO>>> GetAll()
         {
             return await _context.Users
                 .Include(u => u.Role)
                 .Where(u => u.Status == true)
-                .Select(u => new UserResponse
+                .Select(u => new UserManagementResponseDTO
                 {
                     Id = u.Id,
                     FullName = u.FullName,
@@ -49,7 +39,7 @@ namespace backend.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<UserResponse>> Create(UserCreateDTO request)
+        public async Task<ActionResult<UserManagementResponseDTO>> Create(UserCreateDTO request)
         {
             var user = new User
             {
@@ -68,7 +58,7 @@ namespace backend.Controllers
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
 
-            return Ok(new UserResponse {
+            return Ok(new UserManagementResponseDTO {
                 Id = user.Id,
                 FullName = user.FullName,
                 Email = user.Email,
@@ -78,13 +68,8 @@ namespace backend.Controllers
             });
         }
 
-        public sealed class ChangeRoleRequest
-        {
-            public int NewRoleId { get; set; }
-        }
-
         [HttpPut("{id:int}/change-role")]
-        public async Task<IActionResult> ChangeRole(int id, ChangeRoleRequest request)
+        public async Task<IActionResult> ChangeRole(int id, ChangeRoleRequestDTO request)
         {
             var user = await _context.Users.FindAsync(id);
             if (user == null) return NotFound();

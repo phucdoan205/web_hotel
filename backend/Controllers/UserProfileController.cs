@@ -1,4 +1,5 @@
 using backend.Data;
+using backend.DTOs.User;
 using backend.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -55,25 +56,14 @@ namespace backend.Controllers
             return string.IsNullOrWhiteSpace(safe) ? $"user-{userId}" : safe;
         }
 
-        public sealed class UserProfileResponse
-        {
-            public int Id { get; set; }
-            public int? RoleId { get; set; }
-            public int? MembershipId { get; set; }
-            public string FullName { get; set; } = null!;
-            public string Email { get; set; } = null!;
-            public string? Phone { get; set; }
-            public bool? Status { get; set; }
-        }
-
         [HttpGet("my-profile")]
-        public async Task<ActionResult<UserProfileResponse>> MyProfile([FromQuery] int? userId = null)
+        public async Task<ActionResult<UserProfileResponseDTO>> MyProfile([FromQuery] int? userId = null)
         {
             var id = ResolveUserId(userId);
             var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == id);
             if (user == null) return NotFound();
 
-            return new UserProfileResponse
+            return new UserProfileResponseDTO
             {
                 Id = user.Id,
                 RoleId = user.RoleId,
@@ -85,16 +75,8 @@ namespace backend.Controllers
             };
         }
 
-        public sealed class UpdateProfileRequest
-        {
-            public int? UserId { get; set; }
-            public string? FullName { get; set; }
-            public string? Email { get; set; }
-            public string? Phone { get; set; }
-        }
-
         [HttpPut("update-profile")]
-        public async Task<IActionResult> UpdateProfile(UpdateProfileRequest request)
+        public async Task<IActionResult> UpdateProfile(UpdateProfileRequestDTO request)
         {
             var id = ResolveUserId(request.UserId);
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
@@ -108,15 +90,8 @@ namespace backend.Controllers
             return NoContent();
         }
 
-        public sealed class ChangePasswordRequest
-        {
-            public int? UserId { get; set; }
-            public string? CurrentPassword { get; set; }
-            public string NewPassword { get; set; } = null!;
-        }
-
         [HttpPut("change-password")]
-        public async Task<IActionResult> ChangePassword(ChangePasswordRequest request)
+        public async Task<IActionResult> ChangePassword(ChangePasswordRequestDTO request)
         {
             var id = ResolveUserId(request.UserId);
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
@@ -136,7 +111,7 @@ namespace backend.Controllers
         [HttpPost("upload-avatar")]
         [Consumes("multipart/form-data")]
         [RequestSizeLimit(20_000_000)]
-        public async Task<ActionResult<object>> UploadAvatar(IFormFile file, [FromForm] int? userId = null)
+        public async Task<ActionResult<UploadAvatarResponseDTO>> UploadAvatar(IFormFile file, [FromForm] int? userId = null)
         {
             if (file == null || file.Length == 0) return BadRequest("Empty file.");
 
@@ -156,12 +131,12 @@ namespace backend.Controllers
             user.AvatarUrl = uploadedUrl;
             await _context.SaveChangesAsync();
 
-            return Ok(new
+            return Ok(new UploadAvatarResponseDTO
             {
-                userId = user.Id,
-                fullName = user.FullName,
-                folder,
-                url = uploadedUrl
+                UserId = user.Id,
+                FullName = user.FullName,
+                Folder = folder,
+                Url = uploadedUrl
             });
         }
     }

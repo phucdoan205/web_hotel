@@ -1,4 +1,5 @@
 using backend.Data;
+using backend.DTOs.Role;
 using backend.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -17,40 +18,6 @@ namespace backend.Controllers
         public RoleController(AppDbContext context)
         {
             _context = context;
-        }
-
-        public sealed class RoleRequest
-        {
-            public string Name { get; set; } = null!;
-            public string? Description { get; set; }
-        }
-
-        public sealed class RoleResponse
-        {
-            public int Id { get; set; }
-            public string Name { get; set; } = null!;
-            public string? Description { get; set; }
-            public int UserCount { get; set; }
-        }
-
-        public sealed class AssignPermissionRequest
-        {
-            public int RoleId { get; set; }
-            public List<int> PermissionIds { get; set; } = new();
-        }
-
-        public sealed class PermissionResponse
-        {
-            public int Id { get; set; }
-            public string Name { get; set; } = null!;
-        }
-
-        public sealed class MyPermissionsResponse
-        {
-            public int UserId { get; set; }
-            public int? RoleId { get; set; }
-            public string? RoleName { get; set; }
-            public List<PermissionResponse> Permissions { get; set; } = new();
         }
 
         private int? ResolveCurrentUserId()
@@ -75,11 +42,11 @@ namespace backend.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<RoleResponse>>> GetAll()
+        public async Task<ActionResult<IEnumerable<RoleResponseDTO>>> GetAll()
         {
             var roles = await _context.Roles
                 .AsNoTracking()
-                .Select(r => new RoleResponse
+                .Select(r => new RoleResponseDTO
                 {
                     Id = r.Id,
                     Name = r.Name,
@@ -93,12 +60,12 @@ namespace backend.Controllers
         }
 
         [HttpGet("{id:int}")]
-        public async Task<ActionResult<RoleResponse>> GetById(int id)
+        public async Task<ActionResult<RoleResponseDTO>> GetById(int id)
         {
             var role = await _context.Roles
                 .AsNoTracking()
                 .Where(r => r.Id == id)
-                .Select(r => new RoleResponse
+                .Select(r => new RoleResponseDTO
                 {
                     Id = r.Id,
                     Name = r.Name,
@@ -116,7 +83,7 @@ namespace backend.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<RoleResponse>> Create([FromBody] RoleRequest request)
+        public async Task<ActionResult<RoleResponseDTO>> Create([FromBody] RoleRequestDTO request)
         {
             if (string.IsNullOrWhiteSpace(request.Name))
             {
@@ -139,7 +106,7 @@ namespace backend.Controllers
             _context.Roles.Add(role);
             await _context.SaveChangesAsync();
 
-            var response = new RoleResponse
+            var response = new RoleResponseDTO
             {
                 Id = role.Id,
                 Name = role.Name,
@@ -151,7 +118,7 @@ namespace backend.Controllers
         }
 
         [HttpPut("{id:int}")]
-        public async Task<IActionResult> Update(int id, [FromBody] RoleRequest request)
+        public async Task<IActionResult> Update(int id, [FromBody] RoleRequestDTO request)
         {
             if (string.IsNullOrWhiteSpace(request.Name))
             {
@@ -202,7 +169,7 @@ namespace backend.Controllers
         }
 
         [HttpPost("assign-permission")]
-        public async Task<IActionResult> AssignPermission([FromBody] AssignPermissionRequest request)
+        public async Task<IActionResult> AssignPermission([FromBody] AssignPermissionRequestDTO request)
         {
             if (request.PermissionIds == null || request.PermissionIds.Count == 0)
             {
@@ -247,7 +214,7 @@ namespace backend.Controllers
         }
 
         [HttpGet("my-permissions")]
-        public async Task<ActionResult<MyPermissionsResponse>> GetMyPermissions()
+        public async Task<ActionResult<MyPermissionsResponseDTO>> GetMyPermissions()
         {
             var userId = ResolveCurrentUserId();
             if (!userId.HasValue)
@@ -271,15 +238,15 @@ namespace backend.Controllers
                 .Select(rp => rp.Permission)
                 .Where(p => p != null)
                 .GroupBy(p => p.Id)
-                .Select(g => new PermissionResponse
+                .Select(g => new PermissionResponseDTO
                 {
                     Id = g.Key,
                     Name = g.First().Name
                 })
                 .OrderBy(p => p.Name)
-                .ToList() ?? new List<PermissionResponse>();
+                .ToList() ?? new List<PermissionResponseDTO>();
 
-            return Ok(new MyPermissionsResponse
+            return Ok(new MyPermissionsResponseDTO
             {
                 UserId = user.Id,
                 RoleId = user.RoleId,
