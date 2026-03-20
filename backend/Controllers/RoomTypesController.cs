@@ -13,17 +13,18 @@ namespace backend.Controllers
     public class RoomTypesController : ControllerBase
     {
         private readonly AppDbContext _context;
-        private readonly IValidator<CreateRoomTypeDTO> _createValidator;
-        private readonly IValidator<UpdateRoomTypeDTO> _updateValidator;
+        //private readonly IValidator<CreateRoomTypeDTO> _createValidator;
+        //private readonly IValidator<UpdateRoomTypeDTO> _updateValidator;
 
         public RoomTypesController(
-            AppDbContext context,
-            IValidator<CreateRoomTypeDTO> createValidator,
-            IValidator<UpdateRoomTypeDTO> updateValidator)
+            AppDbContext context
+            //IValidator<CreateRoomTypeDTO> createValidator,
+            //IValidator<UpdateRoomTypeDTO> updateValidator
+            )
         {
             _context = context;
-            _createValidator = createValidator;
-            _updateValidator = updateValidator;
+            //_createValidator = createValidator;
+            //_updateValidator = updateValidator;
         }
 
         private static RoomTypeDTO MapRoomType(RoomType roomType)
@@ -117,11 +118,11 @@ namespace backend.Controllers
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateRoomTypeDTO dto)
         {
-            var validation = await _createValidator.ValidateAsync(dto);
-            if (!validation.IsValid)
-            {
-                return BadRequest(validation.Errors);
-            }
+            //var validation = await _createValidator.ValidateAsync(dto);
+            //if (!validation.IsValid)
+            //{
+            //    return BadRequest(validation.Errors);
+            //}
 
             var roomType = new RoomType
             {
@@ -173,14 +174,14 @@ namespace backend.Controllers
                 return NotFound();
             }
 
-            var validationContext = new ValidationContext<UpdateRoomTypeDTO>(dto);
-            validationContext.RootContextData["RoomTypeId"] = id;
-            var validation = await _updateValidator.ValidateAsync(validationContext);
+            //var validationContext = new ValidationContext<UpdateRoomTypeDTO>(dto);
+            //validationContext.RootContextData["RoomTypeId"] = id;
+            //var validation = await _updateValidator.ValidateAsync(validationContext);
 
-            if (!validation.IsValid)
-            {
-                return BadRequest(validation.Errors);
-            }
+            //if (!validation.IsValid)
+            //{
+            //    return BadRequest(validation.Errors);
+            //}
 
             if (!string.IsNullOrWhiteSpace(dto.Name))
                 roomType.Name = dto.Name.Trim();
