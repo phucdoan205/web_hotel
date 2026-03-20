@@ -1,7 +1,9 @@
 using CloudinaryDotNet;
 using CloudinaryDotNet.Actions;
-using Microsoft.AspNetCore.Http; 
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
+using System.Text;
+using System.Text.RegularExpressions;
 
 public class CloudinaryService
 {
@@ -18,7 +20,7 @@ public class CloudinaryService
         _cloudinary = new Cloudinary(account);
     }
 
-    public async Task<string?> UploadImageAsync(IFormFile file)
+    public async Task<string?> UploadImageAsync(IFormFile file, string? folder = null)
     {
         if (file == null || file.Length <= 0) return null;
 
@@ -27,7 +29,7 @@ public class CloudinaryService
         var uploadParams = new ImageUploadParams
         {
             File = new FileDescription(file.FileName, stream),
-            Folder = "hotel_assets" 
+            Folder = string.IsNullOrWhiteSpace(folder) ? "hotel_assets" : folder.Trim()
         };
 
         var uploadResult = await _cloudinary.UploadAsync(uploadParams);

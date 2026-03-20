@@ -2,6 +2,8 @@ using backend.Data;
 using backend.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Text;
+using System.Text.RegularExpressions;
 
 namespace backend.Controllers
 {
@@ -11,10 +13,12 @@ namespace backend.Controllers
     public class UserProfileController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly CloudinaryService _cloudinaryService;
 
-        public UserProfileController(AppDbContext context)
+        public UserProfileController(AppDbContext context, CloudinaryService cloudinaryService)
         {
             _context = context;
+            _cloudinaryService = cloudinaryService;
         }
 
         private int ResolveUserId(int? userId)
@@ -28,6 +32,27 @@ namespace backend.Controllers
             }
 
             return 1;
+        }
+
+        private static string BuildFolderSafeUserName(string fullName, int userId)
+        {
+            var raw = string.IsNullOrWhiteSpace(fullName) ? $"user-{userId}" : fullName.Trim();
+            var normalized = raw.Normalize(NormalizationForm.FormD);
+            var builder = new StringBuilder();
+
+            foreach (var ch in normalized)
+            {
+                var category = System.Globalization.CharUnicodeInfo.GetUnicodeCategory(ch);
+                if (category != System.Globalization.UnicodeCategory.NonSpacingMark)
+                {
+                    builder.Append(ch);
+                }
+            }
+
+            var withoutDiacritics = builder.ToString().Normalize(NormalizationForm.FormC);
+            var safe = Regex.Replace(withoutDiacritics, "[^a-zA-Z0-9_-]+", "-").Trim('-');
+
+            return string.IsNullOrWhiteSpace(safe) ? $"user-{userId}" : safe;
         }
 
         public sealed class UserProfileResponse
@@ -111,24 +136,33 @@ namespace backend.Controllers
         [HttpPost("upload-avatar")]
         [Consumes("multipart/form-data")]
         [RequestSizeLimit(20_000_000)]
-        public async Task<ActionResult<object>> UploadAvatar(IFormFile file)
+        public async Task<ActionResult<object>> UploadAvatar(IFormFile file, [FromForm] int? userId = null)
         {
             if (file == null || file.Length == 0) return BadRequest("Empty file.");
 
-            var ext = Path.GetExtension(file.FileName);
-            var fileName = $"{Guid.NewGuid():N}{ext}";
-            var dir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "avatars");
-            Directory.CreateDirectory(dir);
-            var path = Path.Combine(dir, fileName);
+            var id = ResolveUserId(userId);
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
+            if (user == null) return NotFound("User not found.");
 
-            await using (var stream = System.IO.File.Create(path))
+            var userFolderName = BuildFolderSafeUserName(user.FullName, user.Id);
+            var folder = $"Home/Profile/{userFolderName}";
+            var uploadedUrl = await _cloudinaryService.UploadImageAsync(file, folder);
+
+            if (string.IsNullOrWhiteSpace(uploadedUrl))
             {
-                await file.CopyToAsync(stream);
+                return StatusCode(500, "Upload to Cloudinary failed.");
             }
 
-            var publicUrl = $"/avatars/{fileName}";
-            return Ok(new { url = publicUrl });
+            user.AvatarUrl = uploadedUrl;
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                userId = user.Id,
+                fullName = user.FullName,
+                folder,
+                url = uploadedUrl
+            });
         }
     }
 }
-
