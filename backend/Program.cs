@@ -44,13 +44,13 @@ builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 builder.Services.AddScoped<CloudinaryService>();
 builder.Services.AddScoped<IJwtService, JwtService>(); 
 
-builder.Services.AddInterceptors(new SoftDeleteInterceptor());
 builder.Services.AddValidatorsFromAssemblyContaining<CreateRoomDtoValidator>();
 builder.Services.AddScoped<IValidator<BulkCreateRoomDTO>, BulkCreateRoomDtoValidator>();
 builder.Services.AddScoped<IValidator<CloneRoomInventoryDTO>, CloneRoomInventoryDtoValidator>();
 
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
+    .AddInterceptors(new SoftDeleteInterceptor()));
 builder.Services.AddAutoMapper(typeof(AutoMapperProfile));
 
 var app = builder.Build();
