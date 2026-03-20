@@ -121,6 +121,7 @@ namespace backend.Controllers
 
             var userFolderName = BuildFolderSafeUserName(user.FullName, user.Id);
             var folder = $"Home/Profile/{userFolderName}";
+            var oldAvatarUrl = user.AvatarUrl;
             var uploadedUrl = await _cloudinaryService.UploadImageAsync(file, folder);
 
             if (string.IsNullOrWhiteSpace(uploadedUrl))
@@ -130,6 +131,7 @@ namespace backend.Controllers
 
             user.AvatarUrl = uploadedUrl;
             await _context.SaveChangesAsync();
+            await _cloudinaryService.DeleteImageByUrlAsync(oldAvatarUrl);
 
             return Ok(new UploadAvatarResponseDTO
             {
