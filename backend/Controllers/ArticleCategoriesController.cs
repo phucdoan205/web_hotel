@@ -1,7 +1,7 @@
+using backend.Data;
+using backend.DTOs.Article;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using backend.Data;
-using backend.Models; 
 
 namespace backend.Controllers
 {
@@ -19,16 +19,39 @@ namespace backend.Controllers
         [HttpGet]
         public async Task<IActionResult> GetCategories()
         {
-            var categories = await _context.ArticleCategories.ToListAsync();
+            var categories = await _context.ArticleCategories
+                .Select(c => new ArticleCategoryDTO
+                {
+                    Id = c.Id,
+                    Name = c.Name
+                })
+                .AsNoTracking()
+                .ToListAsync();
+
             return Ok(categories);
         }
 
         [HttpPost]
-        public async Task<IActionResult> CreateCategory(ArticleCategory category)
+        public async Task<IActionResult> CreateCategory([FromBody] CreateArticleCategoryDTO request)
         {
+            if (string.IsNullOrWhiteSpace(request.Name))
+            {
+                return BadRequest("Name is required.");
+            }
+
+            var category = new Models.ArticleCategory
+            {
+                Name = request.Name.Trim()
+            };
+
             _context.ArticleCategories.Add(category);
             await _context.SaveChangesAsync();
-            return Ok(category);
+
+            return Ok(new ArticleCategoryDTO
+            {
+                Id = category.Id,
+                Name = category.Name
+            });
         }
     }
 }

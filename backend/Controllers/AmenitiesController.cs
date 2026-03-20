@@ -1,5 +1,5 @@
 using backend.Data;
-using backend.Models;
+using backend.DTOs.Amenity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,42 +16,83 @@ namespace backend.Controllers
             _context = context;
         }
 
-        // GET: api/Amenities
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Amenity>>> GetAll()
+        public async Task<ActionResult<IEnumerable<AmenityDTO>>> GetAll()
         {
-            // Chỉ lấy những cái chưa bị xóa (IsActive = true) nếu bạn muốn ẩn trên FE hoàn toàn
-            return await _context.Amenities
-                .Where(x => x.IsActive == true)
+            var items = await _context.Amenities
+                .Where(x => x.IsActive)
+                .Select(x => new AmenityDTO
+                {
+                    Id = x.Id,
+                    Name = x.Name,
+                    IconUrl = x.IconUrl,
+                    IsActive = x.IsActive
+                })
+                .AsNoTracking()
                 .ToListAsync();
+
+            return Ok(items);
         }
 
-        // GET: api/Amenities/{id}
-        [HttpGet("{id}")]
-        public async Task<ActionResult<Amenity>> GetById(int id)
+        [HttpGet("{id:int}")]
+        public async Task<ActionResult<AmenityDTO>> GetById(int id)
         {
-            var entity = await _context.Amenities.FindAsync(id);
-            if (entity == null || entity.IsActive == false) return NotFound();
+            var entity = await _context.Amenities
+                .Where(x => x.Id == id && x.IsActive)
+                .Select(x => new AmenityDTO
+                {
+                    Id = x.Id,
+                    Name = x.Name,
+                    IconUrl = x.IconUrl,
+                    IsActive = x.IsActive
+                })
+                .AsNoTracking()
+                .FirstOrDefaultAsync();
 
-            return entity;
+            if (entity == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(entity);
         }
 
-        // POST: api/Amenities
         [HttpPost]
-        public async Task<ActionResult<Amenity>> Create(Amenity amenity)
+        public async Task<ActionResult<AmenityDTO>> Create([FromBody] CreateAmenityDTO request)
         {
-            amenity.IsActive = true; // Đảm bảo khi tạo mới luôn là true
+            if (string.IsNullOrWhiteSpace(request.Name))
+            {
+                return BadRequest("Name is required.");
+            }
+
+            var amenity = new Models.Amenity
+            {
+                Name = request.Name.Trim(),
+                IconUrl = string.IsNullOrWhiteSpace(request.IconUrl) ? null : request.IconUrl.Trim(),
+                IsActive = true
+            };
+
             _context.Amenities.Add(amenity);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction(nameof(GetById), new { id = amenity.Id }, amenity);
+            var result = new AmenityDTO
+            {
+                Id = amenity.Id,
+                Name = amenity.Name,
+                IconUrl = amenity.IconUrl,
+                IsActive = amenity.IsActive
+            };
+
+            return CreatedAtAction(nameof(GetById), new { id = amenity.Id }, result);
         }
 
-        // PUT: api/Amenities/{id}
-        [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, Amenity amenity)
+        [HttpPut("{id:int}")]
+        public async Task<IActionResult> Update(int id, Models.Amenity amenity)
         {
-            if (id != amenity.Id) return BadRequest();
+            if (id != amenity.Id)
+            {
+                return BadRequest();
+            }
 
             _context.Entry(amenity).State = EntityState.Modified;
 
@@ -61,23 +102,27 @@ namespace backend.Controllers
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!AmenityExists(id)) return NotFound();
-                else throw;
+                if (!AmenityExists(id))
+                {
+                    return NotFound();
+                }
+
+                throw;
             }
 
             return NoContent();
         }
 
-        // DELETE: api/Amenities/{id} (Soft Delete)
-        [HttpDelete("{id}")]
+        [HttpDelete("{id:int}")]
         public async Task<IActionResult> Delete(int id)
         {
             var entity = await _context.Amenities.FindAsync(id);
-            if (entity == null) return NotFound();
+            if (entity == null)
+            {
+                return NotFound();
+            }
 
-            // Thay vì _context.Remove, ta chỉ cập nhật trạng thái
             entity.IsActive = false;
-
             await _context.SaveChangesAsync();
 
             return NoContent();
