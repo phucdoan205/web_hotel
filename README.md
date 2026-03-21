@@ -1,4 +1,20 @@
 Code backend hoàn chỉnh ở nhánh thai
+Các controller/api đã làm:
+
+AmenitiesController
+ArticleCategoriesController
+ArticlesController
+AttractionsController
+AuthController
+GuestController
+RoleController
+RoomInventoriesController
+RoomsController
+RoomTypesController
+UserManagementController
+UserProfileController
+
+Ảnh được upload lên cloudinary.
 
 🛒 WEB HOTEL
 
