@@ -3,7 +3,7 @@ using backend.Common;
 using backend.Data;
 using backend.DTOs.Room;
 using backend.Models;
-using backend.Validators;
+//using backend.Validators;
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -17,31 +17,32 @@ namespace backend.Controllers
     {
         private readonly AppDbContext _context;
         private readonly IMapper _mapper;
-        private readonly IValidator<CreateRoomDTO> _createValidator;
-        private readonly IValidator<UpdateRoomDTO> _updateValidator;
-        private readonly IValidator<PatchRoomCleaningStatusDTO> _patchCleaningValidator;
-        private readonly IValidator<PatchRoomStatusDTO> _patchStatusValidator;
-        private readonly IValidator<BulkCreateRoomDTO> _bulkCreateValidator;
-        private readonly IValidator<GetAvailableRoomsQuery> _queryValidator;
+        //private readonly IValidator<CreateRoomDTO> _createValidator;
+        //private readonly IValidator<UpdateRoomDTO> _updateValidator;
+        //private readonly IValidator<PatchRoomCleaningStatusDTO> _patchCleaningValidator;
+        //private readonly IValidator<PatchRoomStatusDTO> _patchStatusValidator;
+        //private readonly IValidator<BulkCreateRoomDTO> _bulkCreateValidator;
+        //private readonly IValidator<GetAvailableRoomsQuery> _queryValidator;
 
         public RoomsController(
             AppDbContext context,
-            IMapper mapper,
-            IValidator<CreateRoomDTO> createValidator,
-            IValidator<UpdateRoomDTO> updateValidator,
-            IValidator<PatchRoomCleaningStatusDTO> patchCleaningValidator,
-            IValidator<PatchRoomStatusDTO> patchStatusValidator,
-            IValidator<BulkCreateRoomDTO> bulkCreateValidator,
-            IValidator<GetAvailableRoomsQuery> queryValidator)
+            IMapper mapper
+            //IValidator<CreateRoomDTO> createValidator,
+            //IValidator<UpdateRoomDTO> updateValidator,
+            //IValidator<PatchRoomCleaningStatusDTO> patchCleaningValidator,
+            //IValidator<PatchRoomStatusDTO> patchStatusValidator,
+            //IValidator<BulkCreateRoomDTO> bulkCreateValidator,
+            //IValidator<GetAvailableRoomsQuery> queryValidator
+            )
         {
             _context = context;
             _mapper = mapper;
-            _createValidator = createValidator;
-            _updateValidator = updateValidator;
-            _patchCleaningValidator = patchCleaningValidator;
-            _patchStatusValidator = patchStatusValidator;
-            _bulkCreateValidator = bulkCreateValidator;
-            _queryValidator = queryValidator;
+            //_createValidator = createValidator;
+            //_updateValidator = updateValidator;
+            //_patchCleaningValidator = patchCleaningValidator;
+            //_patchStatusValidator = patchStatusValidator;
+            ////_bulkCreateValidator = bulkCreateValidator;
+            //_queryValidator = queryValidator;
         }
 
         // GET: api/rooms
@@ -123,8 +124,9 @@ namespace backend.Controllers
         [HttpPost]
         public async Task<ActionResult<RoomDetailDTO>> Create([FromBody] CreateRoomDTO dto)
         {
-            var validation = await _createValidator.ValidateAsync(dto);
-            if (!validation.IsValid) return BadRequest(validation.Errors);
+
+            //var validation = await _createValidator.ValidateAsync(dto);
+            //if (!validation.IsValid) return BadRequest(validation.Errors);
 
             var room = _mapper.Map<Room>(dto);
 
@@ -153,8 +155,8 @@ namespace backend.Controllers
         public async Task<IActionResult> Update(int id, [FromBody] UpdateRoomDTO dto)
         {
             dto.ID = id;
-            var validation = await _updateValidator.ValidateAsync(dto);
-            if (!validation.IsValid) return BadRequest(validation.Errors);
+            //var validation = await _updateValidator.ValidateAsync(dto);
+            //if (!validation.IsValid) return BadRequest(validation.Errors);
 
             var room = await _context.Rooms.FindAsync(id);
             if (room == null) return NotFound();
@@ -270,9 +272,9 @@ namespace backend.Controllers
         [HttpGet("available")]
         public async Task<ActionResult<PagedResult<RoomDetailDTO>>> GetAvailableRooms([FromQuery] GetAvailableRoomsQuery query)
         {
-            var validationResult = await _queryValidator.ValidateAsync(query);
-            if (!validationResult.IsValid)
-                return BadRequest(validationResult.Errors);
+            //var validationResult = await _queryValidator.ValidateAsync(query);
+            //if (!validationResult.IsValid)
+            //    return BadRequest(validationResult.Errors);
 
             if (query.CheckIn.HasValue && query.CheckOut.HasValue)
             {
@@ -337,9 +339,9 @@ namespace backend.Controllers
         [HttpPatch("{id}/status")]
         public async Task<IActionResult> PatchStatus(int id, [FromBody] PatchRoomStatusDTO dto)
         {
-            var validation = await _patchStatusValidator.ValidateAsync(dto);
-            if (!validation.IsValid)
-                return BadRequest(validation.Errors);
+            //var validation = await _patchStatusValidator.ValidateAsync(dto);
+            //if (!validation.IsValid)
+            //    return BadRequest(validation.Errors);
 
             var room = await _context.Rooms.FindAsync(id);
             if (room == null)
@@ -363,9 +365,9 @@ namespace backend.Controllers
         [HttpPatch("{id}/cleaning-status")]
         public async Task<IActionResult> PatchCleaningStatus(int id, [FromBody] PatchRoomCleaningStatusDTO dto)
         {
-            var validation = await _patchCleaningValidator.ValidateAsync(dto);
-            if (!validation.IsValid)
-                return BadRequest(validation.Errors);
+            //var validation = await _patchCleaningValidator.ValidateAsync(dto);
+            //if (!validation.IsValid)
+            //    return BadRequest(validation.Errors);
 
             var room = await _context.Rooms.FindAsync(id);
             if (room == null)
@@ -401,11 +403,11 @@ namespace backend.Controllers
         [HttpPost("bulk-create")]
         public async Task<IActionResult> BulkCreate([FromBody] BulkCreateRoomDTO dto)
         {
-            var validation = await _bulkCreateValidator.ValidateAsync(dto);
-            if (!validation.IsValid)
-            {
-                return BadRequest(validation.Errors);
-            }
+            //var validation = await _bulkCreateValidator.ValidateAsync(dto);
+            //if (!validation.IsValid)
+            //{
+            //    return BadRequest(validation.Errors);
+            //}
 
             // Kiểm tra duplicate RoomNumber trong danh sách gửi lên (trước khi vào DB)
             var roomNumbers = dto.Rooms.Select(r => r.RoomNumber.Trim()).ToList();

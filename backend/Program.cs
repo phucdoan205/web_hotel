@@ -10,7 +10,7 @@ using System.Text;
 using backend.Data.Interceptors;
 using backend.DTOs.Room;
 using backend.DTOs.RoomInventory;
-using backend.Validators;
+//using backend.Validators;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -44,9 +44,9 @@ builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 builder.Services.AddScoped<CloudinaryService>();
 builder.Services.AddScoped<IJwtService, JwtService>(); 
 
-builder.Services.AddValidatorsFromAssemblyContaining<CreateRoomDtoValidator>();
-builder.Services.AddScoped<IValidator<BulkCreateRoomDTO>, BulkCreateRoomDtoValidator>();
-builder.Services.AddScoped<IValidator<CloneRoomInventoryDTO>, CloneRoomInventoryDtoValidator>();
+//builder.Services.AddValidatorsFromAssemblyContaining<CreateRoomDtoValidator>();
+//builder.Services.AddScoped<IValidator<BulkCreateRoomDTO>, BulkCreateRoomDtoValidator>();
+//builder.Services.AddScoped<IValidator<CloneRoomInventoryDTO>, CloneRoomInventoryDtoValidator>();
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))

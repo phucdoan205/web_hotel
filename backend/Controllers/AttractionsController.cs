@@ -18,19 +18,20 @@ namespace backend.Controllers
     {
         private readonly AppDbContext _context;
         private readonly IMapper _mapper;
-        private readonly IValidator<CreateAttractionDTO> _createValidator;
-        private readonly IValidator<UpdateAttractionDTO> _updateValidator;
+        //private readonly IValidator<CreateAttractionDTO> _createValidator;
+        //private readonly IValidator<UpdateAttractionDTO> _updateValidator;
 
         public AttractionsController(
             AppDbContext context,
-            IMapper mapper,
-            IValidator<CreateAttractionDTO> createValidator,
-            IValidator<UpdateAttractionDTO> updateValidator)
+            IMapper mapper
+            //IValidator<CreateAttractionDTO> createValidator,
+            //IValidator<UpdateAttractionDTO> updateValidator
+            )
         {
             _context = context;
             _mapper = mapper;
-            _createValidator = createValidator;
-            _updateValidator = updateValidator;
+            //_createValidator = createValidator;
+            //_updateValidator = updateValidator;
         }
 
         // GET: api/Attractions
@@ -84,8 +85,8 @@ namespace backend.Controllers
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateAttractionDTO dto)
         {
-            var validation = await _createValidator.ValidateAsync(dto);
-            if (!validation.IsValid) return BadRequest(validation.Errors);
+            //var validation = await _createValidator.ValidateAsync(dto);
+            //if (!validation.IsValid) return BadRequest(validation.Errors);
 
             var entity = _mapper.Map<Attraction>(dto);
 
@@ -104,12 +105,12 @@ namespace backend.Controllers
             if (attraction == null)
                 return NotFound();
 
-            var validationContext = new ValidationContext<UpdateAttractionDTO>(dto);
-            validationContext.RootContextData["AttractionId"] = id;
-            var validation = await _updateValidator.ValidateAsync(validationContext);
+            //var validationContext = new ValidationContext<UpdateAttractionDTO>(dto);
+            //validationContext.RootContextData["AttractionId"] = id;
+            //var validation = await _updateValidator.ValidateAsync(validationContext);
 
-            if (!validation.IsValid)
-                return BadRequest(validation.Errors);
+            //if (!validation.IsValid)
+            //    return BadRequest(validation.Errors);
 
             _mapper.Map(dto, attraction);
 

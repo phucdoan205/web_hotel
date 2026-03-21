@@ -12,20 +12,21 @@ namespace backend.Controllers
     public class RoomInventoriesController : ControllerBase
     {
         private readonly AppDbContext _context;
-        private readonly IValidator<CreateRoomInventoryDTO> _createValidator;
-        private readonly IValidator<UpdateRoomInventoryDTO> _updateValidator;
-        private readonly IValidator<CloneRoomInventoryDTO> _cloneValidator;
+        //private readonly IValidator<CreateRoomInventoryDTO> _createValidator;
+        //private readonly IValidator<UpdateRoomInventoryDTO> _updateValidator;
+        //private readonly IValidator<CloneRoomInventoryDTO> _cloneValidator;
 
         public RoomInventoriesController(
-            AppDbContext context,
-            IValidator<CreateRoomInventoryDTO> createValidator,
-            IValidator<UpdateRoomInventoryDTO> updateValidator,
-            IValidator<CloneRoomInventoryDTO> cloneValidator)
+            AppDbContext context
+            //IValidator<CreateRoomInventoryDTO> createValidator,
+            //IValidator<UpdateRoomInventoryDTO> updateValidator,
+            //IValidator<CloneRoomInventoryDTO> cloneValidator
+            )
         {
             _context = context;
-            _createValidator = createValidator;
-            _updateValidator = updateValidator;
-            _cloneValidator = cloneValidator;
+            //_createValidator = createValidator;
+            //_updateValidator = updateValidator;
+            //_cloneValidator = cloneValidator;
         }
 
         private static RoomInventoryDTO MapRoomInventory(RoomInventory item)
@@ -66,11 +67,11 @@ namespace backend.Controllers
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateRoomInventoryDTO dto)
         {
-            var validation = await _createValidator.ValidateAsync(dto);
-            if (!validation.IsValid)
-            {
-                return BadRequest(validation.Errors);
-            }
+            //var validation = await _createValidator.ValidateAsync(dto);
+            //if (!validation.IsValid)
+            //{
+            //    return BadRequest(validation.Errors);
+            //}
 
             var entity = new RoomInventory
             {
@@ -108,11 +109,11 @@ namespace backend.Controllers
                 return BadRequest("Phong da bi xoa hoac khong ton tai.");
             }
 
-            var validation = await _updateValidator.ValidateAsync(dto);
-            if (!validation.IsValid)
-            {
-                return BadRequest(validation.Errors);
-            }
+            //var validation = await _updateValidator.ValidateAsync(dto);
+            //if (!validation.IsValid)
+            //{
+            //    return BadRequest(validation.Errors);
+            //}
 
             if (!string.IsNullOrWhiteSpace(dto.ItemName))
             {
@@ -173,11 +174,11 @@ namespace backend.Controllers
         [HttpPost("clone")]
         public async Task<ActionResult<RoomInventoryDTO>> Clone([FromBody] CloneRoomInventoryDTO dto)
         {
-            var validation = await _cloneValidator.ValidateAsync(dto);
-            if (!validation.IsValid)
-            {
-                return BadRequest(validation.Errors);
-            }
+            //var validation = await _cloneValidator.ValidateAsync(dto);
+            //if (!validation.IsValid)
+            //{
+            //    return BadRequest(validation.Errors);
+            //}
 
             var source = await _context.RoomInventory
                 .AsNoTracking()

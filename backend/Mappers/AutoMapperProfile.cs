@@ -1,5 +1,6 @@
 using AutoMapper;
 using backend.DTOs;
+using backend.DTOs.Attraction;
 using backend.DTOs.Room;
 using backend.DTOs.RoomInventory;
 using backend.DTOs.RoomType;
@@ -89,6 +90,12 @@ namespace backend.Mappers
                 .ForMember(dest => dest.BookingDetails, opt => opt.Ignore())
                 .ForMember(dest => dest.Reviews, opt => opt.Ignore())
                 .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
+
+            CreateMap<Attraction, AttractionDTO>();
+            CreateMap<CreateAttractionDTO, Attraction>();
+            CreateMap<UpdateAttractionDTO, Attraction>()
+                .ForAllMembers(opt => opt.Condition((src, dest, srcValue) => srcValue != null));
+
         }
     }
 }
