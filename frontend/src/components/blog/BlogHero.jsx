@@ -1,5 +1,6 @@
 import React from "react";
 import { Search } from "lucide-react";
+import { NavLink } from "react-router-dom";
 
 const BlogHero = () => {
   return (
@@ -21,9 +22,13 @@ const BlogHero = () => {
             placeholder="Tìm bài viết, địa điểm..."
             className="w-full py-4 px-6 pr-16 rounded-full text-slate-800 outline-none shadow-xl"
           />
-          <button className="absolute right-2 top-2 bg-blue-500 p-2.5 rounded-full hover:bg-blue-600 transition-colors">
+          {/* đg dẫn đến trang tìm kiếm bài viết */}
+          <NavLink
+            to="/articles/search"
+            className="absolute right-2 top-2 bg-blue-500 p-2.5 rounded-full hover:bg-blue-600 transition-colors"
+          >
             <Search className="text-white" size={20} />
-          </button>
+          </NavLink>
         </div>
       </div>
     </div>

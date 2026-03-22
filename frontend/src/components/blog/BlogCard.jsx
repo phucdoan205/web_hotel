@@ -1,5 +1,6 @@
 import React from "react";
 import { Calendar, ChevronRight } from "lucide-react";
+import { Link, NavLink } from "react-router-dom";
 
 const BlogCard = ({ post }) => {
   return (
@@ -24,9 +25,13 @@ const BlogCard = ({ post }) => {
         <p className="text-slate-500 text-sm mb-4 line-clamp-2">
           {post.excerpt}
         </p>
-        <button className="flex items-center gap-1 text-blue-500 font-bold text-sm hover:gap-2 transition-all">
+        {/* mốt thay đổi đg dẫn thành `/articles/${post.id}` để vô chi tiết bài viết */}
+        <NavLink
+          to={`/articles/${post.id}`}
+          className="flex items-center gap-1 text-blue-500 font-bold text-sm hover:gap-2 transition-all"
+        >
           Đọc tiếp <ChevronRight size={16} />
-        </button>
+        </NavLink>
       </div>
     </div>
   );

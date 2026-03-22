@@ -1,6 +1,7 @@
 import React from "react";
 import { MapPin, Calendar, Users, Search } from "lucide-react";
 import { useSearchNavigation } from "../../hooks/useSearchNavigation";
+import { Link } from "react-router-dom";
 
 const Hero = () => {
   // Gọi các giá trị từ custom hook
@@ -71,13 +72,13 @@ const Hero = () => {
             </div>
           </div>
           {/* Nút Search */}
-          <button
+          <Link to="/hotels/:id"
             onClick={handleSearch}
             className="bg-blue-500 hover:bg-blue-600 text-white font-bold h-12 px-8 rounded-lg flex items-center justify-center gap-2 transition-all active:scale-95 shadow"
           >
             <Search size={20} />
             Search
-          </button>
+          </Link>
         </div>
       </div>
     </div>
