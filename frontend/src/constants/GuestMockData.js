@@ -1,0 +1,32 @@
+export const MOCK_GUESTS = [
+  {
+    id: "G-8821",
+    name: "Nguyễn Thị Mai",
+    email: "mai.nguyen@gmail.com",
+    phone: "+84 912 345 678",
+    bookings: 12,
+    lastStay: "Oct 12, 2023",
+    detail: "3 nights • Deluxe Room",
+    status: "VIP",
+  },
+  {
+    id: "G-8822",
+    name: "Trần Văn Hoàng",
+    email: "hoang.tv@company.vn",
+    phone: "+84 905 111 222",
+    bookings: 4,
+    lastStay: "Nov 02, 2023",
+    detail: "1 night • Suite",
+    status: "REGULAR",
+  },
+  {
+    id: "G-7710",
+    name: "Lê Minh Tuấn",
+    email: "tuanl@gmail.com",
+    phone: "+84 988 777 666",
+    bookings: 2,
+    lastStay: "Jan 15, 2023",
+    detail: "2 nights • Twin Room",
+    status: "BLACKLISTED",
+  },
+];
