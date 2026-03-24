@@ -11,8 +11,8 @@ import {
 const Navbar = () => {
   // Thông tin User mẫu (dựa trên ảnh)
   const user = {
-    name: "Alex Rivera",
-    role: "General Manager",
+    name: "Lễ tân 01",
+    role: "Receptionist",
     avatar: "https://i.pravatar.cc/150?u=alexrivera", // Ảnh đại diện mẫu
   };
 
@@ -21,7 +21,7 @@ const Navbar = () => {
     <header className="fixed top-0 right-0 z-30 h-20 left-64 bg-white border-b border-gray-100 px-10 flex items-center justify-between">
       {/* 1. Bên trái: Breadcrumb (dựa trên ảnh) */}
       <div className="flex items-center gap-2.5 text-sm font-medium">
-        <span className="text-gray-400">Admin</span>
+        <span className="text-gray-400">Receptionist</span>
       </div>
 
       {/* 2. Bên phải: Các hành động và User Profile */}

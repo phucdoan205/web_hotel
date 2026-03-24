@@ -20,7 +20,7 @@ const Sidebar = () => {
     {
       name: "Hotel Management",
       icon: Building,
-      path: "/admin/hotel-management",
+      path: "/admin/room-inventory",
     },
     { name: "Reports", icon: BarChart3, path: "/admin/reports" },
     { name: "Audit Log", icon: History, path: "/admin/audit-log" },
