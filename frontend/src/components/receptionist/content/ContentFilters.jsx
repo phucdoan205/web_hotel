@@ -2,6 +2,15 @@ import React from "react";
 import { Search, ListFilter, ArrowUpDown, Plus } from "lucide-react";
 
 const ContentFilters = ({ activeTab, onAdd }) => {
+  const handleAddClick = () => {
+    if (activeTab === "posts") {
+      onAdd(); // Trigger the AddPostForm only for posts
+    } else if (activeTab === "categories") {
+      // Handle adding a new category (if needed)
+      console.log("Adding a new category...");
+    }
+  };
+
   return (
     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
       <div className="relative group">
@@ -26,7 +35,7 @@ const ContentFilters = ({ activeTab, onAdd }) => {
         </button>
       </div>
       <button
-        onClick={onAdd}
+        onClick={handleAddClick}
         className="flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-xl shadow-blue-100"
       >
         <Plus size={16} strokeWidth={3} />
