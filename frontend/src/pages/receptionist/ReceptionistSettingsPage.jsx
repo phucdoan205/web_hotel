@@ -1,9 +1,9 @@
 import React, { useState } from "react";
-import SettingsTabs from "../components/receptionist/settings/SettingsTabs";
-import HotelProfileForm from "../components/receptionist/settings/HotelProfileForm";
-import PersonalAccountForm from "../components/receptionist/settings/PersonalAccountForm";
+import SettingsTabs from "../../components/receptionist/settings/SettingsTabs";
+import HotelProfileForm from "../../components/receptionist/settings/HotelProfileForm";
+import PersonalAccountForm from "../../components/receptionist/settings/PersonalAccountForm";
 
-const SettingsPage = () => {
+const ReceptionistSettingsPage = () => {
   const [activeTab, setActiveTab] = useState("hotel");
 
   return (
@@ -35,4 +35,4 @@ const SettingsPage = () => {
   );
 };
 
-export default SettingsPage;
+export default ReceptionistSettingsPage;

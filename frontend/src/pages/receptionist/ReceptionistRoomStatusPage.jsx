@@ -4,7 +4,7 @@ import RoomFilter from "../../components/receptionist/roomstatus/RoomFilter";
 import RoomGrid from "../../components/receptionist/roomstatus/RoomGrid";
 import RoomDetailsSidebar from "../../components/receptionist/roomstatus/RoomDetailsSidebar";
 
-const RoomStatusPage = () => {
+const ReceptionistRoomStatusPage = () => {
   // Lấy toàn bộ logic quản lý từ Custom Hook
   const { roomsByFloor, selectedRoom, setSelectedRoom, setFilterFloor } =
     useRoomManager();
@@ -45,4 +45,4 @@ const RoomStatusPage = () => {
   );
 };
 
-export default RoomStatusPage;
+export default ReceptionistRoomStatusPage;

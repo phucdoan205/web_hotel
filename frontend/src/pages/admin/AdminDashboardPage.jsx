@@ -5,7 +5,7 @@ import BookingTable from "../../components/admin/dashboard/BookingTable";
 import RevenueChart from "../../components/admin/dashboard/RevenueChart";
 import RoomChart from "../../components/admin/dashboard/RoomChart";
 
-const DashboardPage = () => {
+const AdminDashboardPage = () => {
   return (
     <div className="space-y-6">
       {/* 4 Stat Cards */}
@@ -60,4 +60,4 @@ const DashboardPage = () => {
   );
 };
 
-export default DashboardPage;
+export default AdminDashboardPage;

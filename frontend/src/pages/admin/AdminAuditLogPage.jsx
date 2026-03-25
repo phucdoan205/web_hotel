@@ -3,7 +3,7 @@ import { Search, Download, RefreshCw, Calendar } from "lucide-react";
 import AuditTable from "../../components/admin/audit/AuditTable";
 import AuditWidgets from "../../components/admin/audit/AuditWidgets";
 
-const AuditLogPage = () => {
+const AdminAuditLogPage = () => {
   return (
     <div className="space-y-6">
       {/* Top Header Section */}
@@ -89,4 +89,4 @@ const AuditLogPage = () => {
   );
 };
 
-export default AuditLogPage;
+export default AdminAuditLogPage;

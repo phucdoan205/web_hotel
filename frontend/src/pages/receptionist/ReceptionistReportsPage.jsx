@@ -10,7 +10,7 @@ import BookingSources from "../../components/receptionist/reports/BookingSources
 import RevenueChart from "../../components/receptionist/reports/RevenueChart";
 import TopSellingRooms from "../../components/receptionist/reports/TopSellingRooms";
 
-const ReportsPage = () => {
+const ReceptionistReportsPage = () => {
   return (
     <div className="flex-1 p-8 bg-[#F9FAFB] overflow-y-auto space-y-8">
       {/* Header */}
@@ -56,4 +56,4 @@ const ReportsPage = () => {
   );
 };
 
-export default ReportsPage;
+export default ReceptionistReportsPage;

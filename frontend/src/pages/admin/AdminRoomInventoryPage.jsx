@@ -11,7 +11,7 @@ import RoomStats from "../../components/admin/rooms/RoomStats";
 import RoomCard from "../../components/admin/rooms/RoomCard";
 import ServiceCard from "../../components/admin/rooms/ServiceCard";
 
-const RoomInventoryPage = () => {
+const AdminRoomInventoryPage = () => {
   const categories = ["All Rooms", "Standard", "Deluxe", "Suite", "Penthouse"];
 
   const rooms = [
@@ -152,4 +152,4 @@ const RoomInventoryPage = () => {
   );
 };
 
-export default RoomInventoryPage;
+export default AdminRoomInventoryPage;

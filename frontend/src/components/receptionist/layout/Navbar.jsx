@@ -11,22 +11,19 @@ import {
 const Navbar = () => {
   // Thông tin User mẫu (dựa trên ảnh)
   const user = {
-    name: "Lễ tân 01",
-    role: "Receptionist",
+    name: "lễ tân 1",
+    role: "Lễ tân",
     avatar: "https://i.pravatar.cc/150?u=alexrivera", // Ảnh đại diện mẫu
   };
 
   return (
-    // Navbar container: Cố định trên cùng, bù chiều rộng cho Sidebar, full chiều cao
-    <header className="fixed top-0 right-0 z-30 h-20 left-64 bg-white border-b border-gray-100 px-10 flex items-center justify-between">
-      {/* 1. Bên trái: Breadcrumb (dựa trên ảnh) */}
-      <div className="flex items-center gap-2.5 text-sm font-medium">
-        <span className="text-gray-400">Receptionist</span>
-      </div>
+    <div className="flex items-center justify-between h-full px-6">
+      {/* Left Section: Title or Logo */}
+      <div className="text-lg font-semibold text-gray-800">Lễ tân</div>
 
-      {/* 2. Bên phải: Các hành động và User Profile */}
-      <div className="flex items-center gap-x-6">
-        {/* Nhóm Icon thông báo (đã làm gọn lại dựa trên ảnh chính) */}
+      {/* Right Section: Notification Icon and User Info */}
+      <div className="flex items-center space-x-6">
+        {/* Notification Icon */}
         <div className="flex items-center gap-x-3.5 border-r border-gray-100 pr-6">
           <button className="text-gray-400 hover:text-sky-600 transition-colors relative p-1.5 rounded-full hover:bg-sky-50">
             <Bell className="size-5" />
@@ -35,7 +32,7 @@ const Navbar = () => {
           </button>
         </div>
 
-        {/* User Profile Section (dựa trên ảnh) */}
+        {/* User Info */}
         <button className="flex items-center gap-x-4 pl-1 rounded-xl hover:bg-gray-50 p-2 transition-colors">
           <div className="flex flex-col text-right">
             <span className="text-sm font-semibold text-gray-950 leading-tight">
@@ -58,7 +55,7 @@ const Navbar = () => {
           </div>
         </button>
       </div>
-    </header>
+    </div>
   );
 };
 

@@ -3,7 +3,7 @@ import { Search, Plus } from "lucide-react";
 import StaffTable from "../../components/admin/staff/StaffTable";
 import StaffWidgets from "../../components/admin/staff/StaffWidgets";
 
-const StaffPage = () => {
+const AdminStaffPage = () => {
   return (
     <div className="space-y-6">
       {/* Header Section */}
@@ -41,4 +41,4 @@ const StaffPage = () => {
   );
 };
 
-export default StaffPage;
+export default AdminStaffPage;

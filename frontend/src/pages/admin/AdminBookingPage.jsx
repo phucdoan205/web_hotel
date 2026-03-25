@@ -4,7 +4,7 @@ import BookingStats from "../../components/admin/bookings/BookingStats";
 import BookingFilters from "../../components/admin/bookings/BookingFilters";
 import BookingList from "../../components/admin/bookings/BookingList";
 
-const BookingPage = () => {
+const AdminBookingPage = () => {
   return (
     <div className="space-y-6">
       {/* Header Section */}
@@ -37,4 +37,4 @@ const BookingPage = () => {
   );
 };
 
-export default BookingPage;
+export default AdminBookingPage;

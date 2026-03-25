@@ -74,12 +74,7 @@ const Sidebar = () => {
               }
             `}
           >
-            <item.icon
-              size={20}
-              className={({ isActive }) =>
-                isActive ? "text-blue-600" : "text-gray-400"
-              }
-            />
+            <item.icon size={20} />
             {item.title}
           </NavLink>
         ))}

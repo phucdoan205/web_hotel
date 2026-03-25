@@ -6,7 +6,7 @@ import BookingSources from "../../components/admin/reports/BookingSources";
 import MonthlySummary from "../../components/admin/reports/MonthlySummary";
 import TopServices from "../../components/admin/reports/TopServices";
 
-const ReportsPage = () => {
+const AdminReportsPage = () => {
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -45,4 +45,4 @@ const ReportsPage = () => {
   );
 };
 
-export default ReportsPage;
+export default AdminReportsPage;

@@ -5,7 +5,7 @@ import ProductGrid from "../../components/receptionist/POS/ProductGrid";
 import POSCart from "../../components/receptionist/POS/POSCart";
 import { MOCK_PRODUCTS } from "../../constants/ProductMockData";
 
-const POSServicePage = () => {
+const ReceptionistPOSServicePage = () => {
   const [activeTab, setActiveTab] = useState("Food");
   const { cartItems, addToCart, removeFromCart, updateQuantity, total } =
     useCart();
@@ -46,4 +46,4 @@ const POSServicePage = () => {
   );
 };
 
-export default POSServicePage;
+export default ReceptionistPOSServicePage;

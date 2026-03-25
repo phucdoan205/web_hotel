@@ -4,7 +4,7 @@ import { useGuestData } from "../../hooks/useGuestData"; // Import hook
 import GuestFilters from "../../components/receptionist/guests/GuestFilters";
 import GuestTable from "../../components/receptionist/guests/GuestTable";
 
-const GuestManagementPage = () => {
+const ReceptionistGuestManagementPage = () => {
   // Sử dụng Hook để lấy toàn bộ logic
   const { search, setSearch, activeTab, setActiveTab, filteredGuests } =
     useGuestData();
@@ -51,4 +51,4 @@ const GuestManagementPage = () => {
   );
 };
 
-export default GuestManagementPage;
+export default ReceptionistGuestManagementPage;

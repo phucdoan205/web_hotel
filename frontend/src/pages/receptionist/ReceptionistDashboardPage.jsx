@@ -6,7 +6,7 @@ import CheckInTable from "../../components/receptionist/dashboard/CheckInTable";
 import CheckOutList from "../../components/receptionist/dashboard/CheckOutList";
 import Availability from "../../components/receptionist/dashboard/Availability";
 
-const Dashboard = () => {
+const ReceptionistDashboardPage = () => {
   const statsData = [
     {
       title: "Total Rooms Today",
@@ -96,4 +96,4 @@ const Dashboard = () => {
   );
 };
 
-export default Dashboard;
+export default ReceptionistDashboardPage;

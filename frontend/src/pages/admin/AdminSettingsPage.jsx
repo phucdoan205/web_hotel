@@ -14,7 +14,7 @@ import HotelInfoTab from "../../components/admin/settings/HotelInfoTab";
 import TeamManagementTab from "../../components/admin/settings/TeamManagementTab";
 import SecurityTab from "../../components/admin/settings/SecurityTab";
 
-const SettingsPage = () => {
+const AdminSettingsPage = () => {
   // Mặc định tab sẽ là 'Profile'
   const [activeTab, setActiveTab] = useState("Profile");
 
@@ -120,4 +120,4 @@ const SettingsPage = () => {
   );
 };
 
-export default SettingsPage;
+export default AdminSettingsPage;

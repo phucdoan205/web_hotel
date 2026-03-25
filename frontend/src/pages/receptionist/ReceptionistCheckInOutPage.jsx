@@ -7,7 +7,7 @@ import {
   WalkInAction,
 } from "../../components/receptionist/checkinout/QuickWidgets";
 
-const CheckInOut = () => {
+const ReceptionistCheckInOutPage = () => {
   // Mặc định là 'in' (Check-in Tab)
   const [activeTab, setActiveTab] = useState("in");
 
@@ -93,4 +93,4 @@ const CheckInOut = () => {
   );
 };
 
-export default CheckInOut;
+export default ReceptionistCheckInOutPage;

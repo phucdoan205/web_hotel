@@ -6,7 +6,7 @@ import CategoryTable from "../../components/receptionist/content/CategoryTable";
 import ContentStats from "../../components/receptionist/content/ContentStats";
 import AddPostForm from "../../components/receptionist/content/AddPostForm";
 
-const ContentManagement = () => {
+const ReceptionistContentManagementPage = () => {
   const { activeTab, isAddingPost, setIsAddingPost, toggleTab } =
     useContentManager();
 
@@ -83,4 +83,4 @@ const ContentManagement = () => {
   );
 };
 
-export default ContentManagement;
+export default ReceptionistContentManagementPage;

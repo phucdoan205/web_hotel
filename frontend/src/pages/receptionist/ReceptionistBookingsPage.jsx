@@ -2,7 +2,7 @@ import React from "react";
 import BookingFilters from "../../components/receptionist/bookings/BookingFilters";
 import BookingTable from "../../components/receptionist/bookings/BookingTable";
 
-const Bookings = () => {
+const ReceptionistBookingsPage = () => {
   return (
     <div className="p-8 space-y-2 animate-in fade-in slide-in-from-bottom-2 duration-700">
       <div className="mb-8">
@@ -23,4 +23,4 @@ const Bookings = () => {
   );
 };
 
-export default Bookings;
+export default ReceptionistBookingsPage;
