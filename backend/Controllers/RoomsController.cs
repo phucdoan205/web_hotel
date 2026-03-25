@@ -17,33 +17,7 @@ namespace backend.Controllers
     {
         private readonly AppDbContext _context;
         private readonly IMapper _mapper;
-        //private readonly IValidator<CreateRoomDTO> _createValidator;
-        //private readonly IValidator<UpdateRoomDTO> _updateValidator;
-        //private readonly IValidator<PatchRoomCleaningStatusDTO> _patchCleaningValidator;
-        //private readonly IValidator<PatchRoomStatusDTO> _patchStatusValidator;
-        //private readonly IValidator<BulkCreateRoomDTO> _bulkCreateValidator;
-        //private readonly IValidator<GetAvailableRoomsQuery> _queryValidator;
 
-        public RoomsController(
-            AppDbContext context,
-            IMapper mapper
-            //IValidator<CreateRoomDTO> createValidator,
-            //IValidator<UpdateRoomDTO> updateValidator,
-            //IValidator<PatchRoomCleaningStatusDTO> patchCleaningValidator,
-            //IValidator<PatchRoomStatusDTO> patchStatusValidator,
-            //IValidator<BulkCreateRoomDTO> bulkCreateValidator,
-            //IValidator<GetAvailableRoomsQuery> queryValidator
-            )
-        {
-            _context = context;
-            _mapper = mapper;
-            //_createValidator = createValidator;
-            //_updateValidator = updateValidator;
-            //_patchCleaningValidator = patchCleaningValidator;
-            //_patchStatusValidator = patchStatusValidator;
-            ////_bulkCreateValidator = bulkCreateValidator;
-            //_queryValidator = queryValidator;
-        }
 
         // GET: api/rooms
         [HttpGet]
@@ -272,9 +246,6 @@ namespace backend.Controllers
         [HttpGet("available")]
         public async Task<ActionResult<PagedResult<RoomDetailDTO>>> GetAvailableRooms([FromQuery] GetAvailableRoomsQuery query)
         {
-            //var validationResult = await _queryValidator.ValidateAsync(query);
-            //if (!validationResult.IsValid)
-            //    return BadRequest(validationResult.Errors);
 
             if (query.CheckIn.HasValue && query.CheckOut.HasValue)
             {
