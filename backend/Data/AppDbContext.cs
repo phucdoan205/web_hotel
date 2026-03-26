@@ -28,6 +28,7 @@ namespace backend.Data
         public DbSet<Article> Articles { get; set; }
         public DbSet<Attraction> Attractions { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
+        public DbSet<Notification> Notifications { get; set; }
 
         public DbSet<Booking> Bookings { get; set; }
         public DbSet<Guest> Guests { get; set; }
@@ -52,6 +53,30 @@ namespace backend.Data
 
             modelBuilder.Entity<RoomTypeAmenity>()
                 .HasKey(rta => new { rta.RoomTypeId, rta.AmenityId });
+
+            modelBuilder.Entity<Notification>(entity =>
+            {
+                entity.Property(n => n.Title)
+                    .HasMaxLength(255);
+
+                entity.Property(n => n.Content)
+                    .HasColumnType("nvarchar(max)");
+
+                entity.Property(n => n.Type)
+                    .HasColumnType("varchar(50)");
+
+                entity.Property(n => n.ReferenceLink)
+                    .HasColumnType("varchar(255)");
+
+                entity.Property(n => n.CreatedAt)
+                    .HasColumnType("datetime")
+                    .HasDefaultValueSql("GETDATE()");
+
+                entity.HasOne(n => n.User)
+                    .WithMany(u => u.Notifications)
+                    .HasForeignKey(n => n.UserId)
+                    .OnDelete(DeleteBehavior.SetNull);
+            });
 
             // Soft-delete
             foreach (var entityType in modelBuilder.Model.GetEntityTypes())

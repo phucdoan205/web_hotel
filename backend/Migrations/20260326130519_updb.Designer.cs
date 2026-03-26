@@ -12,7 +12,7 @@ using backend.Data;
 namespace backend.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260320125750_updb")]
+    [Migration("20260326130519_updb")]
     partial class updb
     {
         /// <inheritdoc />
@@ -378,6 +378,47 @@ namespace backend.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Memberships");
+                });
+
+            modelBuilder.Entity("backend.Models.Notification", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasDefaultValueSql("GETDATE()");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("ReferenceLink")
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("Type")
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<int?>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Notifications");
                 });
 
             modelBuilder.Entity("backend.Models.OrderService", b =>
@@ -957,6 +998,16 @@ namespace backend.Migrations
                     b.Navigation("RoomInventory");
                 });
 
+            modelBuilder.Entity("backend.Models.Notification", b =>
+                {
+                    b.HasOne("backend.Models.User", "User")
+                        .WithMany("Notifications")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("backend.Models.OrderService", b =>
                 {
                     b.HasOne("backend.Models.BookingDetail", "BookingDetail")
@@ -1203,6 +1254,8 @@ namespace backend.Migrations
                     b.Navigation("AuditLogs");
 
                     b.Navigation("Bookings");
+
+                    b.Navigation("Notifications");
 
                     b.Navigation("Reviews");
                 });
