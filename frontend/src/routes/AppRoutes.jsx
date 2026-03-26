@@ -5,6 +5,7 @@ import { Routes, Route } from "react-router-dom";
 import MainLayout from "../layouts/MainLayout";
 import AdminLayout from "../layouts/AdminLayout";
 import ReceptionistLayout from "../layouts/ReceptionistLayout";
+import HousekeepingLayout from "../layouts/HousekeepingLayout";
 
 // Pages landings   
 import HomePage from "../pages/public/HomePage";
@@ -37,6 +38,15 @@ import ReceptionistSettingsPage from "../pages/receptionist/ReceptionistSettings
 import ReceptionistPOSServicePage from "../pages/receptionist/ReceptionistPOSServicePage";
 import ReceptionistDashboardPage from "../pages/receptionist/ReceptionistDashboardPage";
 
+// Pages housekeeping
+import HousekeepingSettingsPage from "../pages/housekeeping/HousekeepingSettingsPage";
+import HousekeepingDashboardPage from "../pages/housekeeping/HousekeepingDashboardPage";
+import HousekeepingRoomListPage from "../pages/housekeeping/HousekeepingRoomListPage";
+import HousekeepingRoomInspectionDetailPage from "../pages/housekeeping/HousekeepingRoomInspectionDetailPage";
+import HousekeepingReportsPage from "../pages/housekeeping/HousekeepingReportsPage";
+import HousekeepingTasksPage from "../pages/housekeeping/HousekeepingTasksPage";
+import HousekeepingInventoryManagementPage from "../pages/housekeeping/HousekeepingInventoryManagementPage";
+import HousekeepingStaffManagementPage from "../pages/housekeeping/HousekeepingStaffManagementPage";
 
 
 
@@ -84,6 +94,19 @@ const AppRoutes = () => {
         <Route path="room-status" element={<ReceptionistRoomStatusPage />} />
         <Route path="settings" element={<ReceptionistSettingsPage />} />
         <Route path="pos" element={<ReceptionistPOSServicePage />} />
+      </Route>
+
+      {/* 5. Housekeeping Routes (Dùng HousekeepingLayout) */}
+      <Route path="/housekeeping" element={<HousekeepingLayout />}>
+        <Route index element={<HousekeepingDashboardPage />} />
+        <Route path="dashboard" element={<HousekeepingDashboardPage />} />
+        <Route path="rooms" element={<HousekeepingRoomListPage />} />
+        <Route path="inspections" element={<HousekeepingRoomInspectionDetailPage />} />
+        <Route path="reports" element={<HousekeepingReportsPage />} />
+        <Route path="tasks" element={<HousekeepingTasksPage />} />
+        <Route path="inventory" element={<HousekeepingInventoryManagementPage />} />
+        <Route path="staff" element={<HousekeepingStaffManagementPage />} />
+        <Route path="settings" element={<HousekeepingSettingsPage />} />
       </Route>
 
       {/* 404 Route */}
