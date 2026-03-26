@@ -1,0 +1,102 @@
+import React from "react";
+import { Routes, Route } from "react-router-dom";
+
+// Layouts
+import MainLayout from "../layouts/MainLayout";
+import AdminLayout from "../layouts/AdminLayout";
+import ReceptionistLayout from "../layouts/ReceptionistLayout";
+
+// Pages landings   
+import HomePage from "../pages/public/HomePage";
+import BlogPage from "../pages/public/BlogPage";
+import LoginPage from "../pages/auth/LoginPage";
+import RegisterPage from "../pages/auth/RegisterPage";
+import ActivityPage from "../pages/public/ActivityPage";
+import PostDetailPage from "../pages/public/PostDetailPage";
+import BlogSearchPage from "../pages/public/BlogSearchPage";
+import HotelListPage from "../pages/public/HotelListPage";
+import FoodPage from "../pages/public/FoodPage";
+
+// Pages admin
+import AdminSettingsPage from "../pages/admin/AdminSettingsPage";
+import AdminDashboardPage from "../pages/admin/AdminDashboardPage";
+import AdminAuditLogPage from "../pages/admin/AdminAuditLogPage";
+import AdminReportsPage from "../pages/admin/AdminReportsPage";
+import AdminBookingPage from "../pages/admin/AdminBookingPage";
+import AdminRoomInventoryPage from "../pages/admin/AdminRoomInventoryPage";
+import AdminStaffPage from "../pages/admin/AdminStaffPage";
+
+// Pages receptionist
+import ReceptionistCheckInOutPage from "../pages/receptionist/ReceptionistCheckInOutPage";
+import ReceptionistBookingsPage from "../pages/receptionist/ReceptionistBookingsPage";
+import ReceptionistContentManagementPage from "../pages/receptionist/ReceptionistContentManagementPage";
+import ReceptionistGuestManagementPage from "../pages/receptionist/ReceptionistGuestManagementPage";
+import ReceptionistReportsPage from "../pages/receptionist/ReceptionistReportsPage";
+import ReceptionistRoomStatusPage from "../pages/receptionist/ReceptionistRoomStatusPage";
+import ReceptionistSettingsPage from "../pages/receptionist/ReceptionistSettingsPage";
+import ReceptionistPOSServicePage from "../pages/receptionist/ReceptionistPOSServicePage";
+import ReceptionistDashboardPage from "../pages/receptionist/ReceptionistDashboardPage";
+
+
+
+
+const AppRoutes = () => {
+  return (
+    <Routes>
+      {/* 1. Public Routes dùng MainLayout (Có Navbar/Footer) */}
+      <Route path="/" element={<MainLayout />}>
+        <Route index element={<HomePage />} />
+        <Route path="hotels" element={<HomePage />} />
+        <Route path="hotels/:id" element={<HotelListPage />} />
+        <Route path="articles" element={<BlogPage />} />
+        <Route path="articles/:id" element={<PostDetailPage />} />
+        <Route path="articles/search" element={<BlogSearchPage />} />
+        <Route path="activities" element={<ActivityPage />} />
+        <Route path="hotels/search" element={<HotelListPage />} />
+        <Route path="food" element={<FoodPage />} />
+      </Route>
+
+      {/* 2. Auth Routes (Không dùng chung Layout Landing) */}
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
+
+      {/* 3. Admin Routes (Dùng AdminLayout) */}
+      <Route path="/admin" element={<AdminLayout />}>
+        <Route index element={<AdminDashboardPage />} />
+        <Route path="dashboard" element={<AdminDashboardPage />} />
+        <Route path="settings" element={<AdminSettingsPage />} />
+        <Route path="audit-log" element={<AdminAuditLogPage />} />
+        <Route path="reports" element={<AdminReportsPage />} />
+        <Route path="bookings" element={<AdminBookingPage />} />
+        <Route path="room-inventory" element={<AdminRoomInventoryPage />} />
+        <Route path="staff" element={<AdminStaffPage />} />
+      </Route>
+
+      {/* 4. Receptionist Routes (Dùng ReceptionistLayout) */}
+      <Route path="/receptionist" element={<ReceptionistLayout />}>
+        <Route index element={<ReceptionistDashboardPage />} />
+        <Route path="dashboard" element={<ReceptionistDashboardPage />} />
+        <Route path="check-in-out" element={<ReceptionistCheckInOutPage />} />
+        <Route path="bookings" element={<ReceptionistBookingsPage />} />
+        <Route path="posts" element={<ReceptionistContentManagementPage />} />
+        <Route path="guests" element={<ReceptionistGuestManagementPage />} />
+        <Route path="reports" element={<ReceptionistReportsPage />} />
+        <Route path="room-status" element={<ReceptionistRoomStatusPage />} />
+        <Route path="settings" element={<ReceptionistSettingsPage />} />
+        <Route path="pos" element={<ReceptionistPOSServicePage />} />
+      </Route>
+
+      {/* 404 Route */}
+      <Route
+        path="*"
+        element={
+          <div className="flex items-center justify-center h-screen font-bold text-2xl">
+            404 - Page Not Found
+          </div>
+        }
+      />
+    </Routes>
+  );
+};
+
+export default AppRoutes;
