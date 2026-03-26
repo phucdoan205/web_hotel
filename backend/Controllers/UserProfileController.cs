@@ -60,7 +60,10 @@ namespace backend.Controllers
         public async Task<ActionResult<UserProfileResponseDTO>> MyProfile([FromQuery] int? userId = null)
         {
             var id = ResolveUserId(userId);
-            var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == id);
+            var user = await _context.Users
+                .AsNoTracking()
+                .Include(u => u.Role)
+                .FirstOrDefaultAsync(u => u.Id == id);
             if (user == null) return NotFound();
 
             return new UserProfileResponseDTO
@@ -71,6 +74,8 @@ namespace backend.Controllers
                 FullName = user.FullName,
                 Email = user.Email,
                 Phone = user.Phone,
+                AvatarUrl = user.AvatarUrl,
+                RoleName = user.Role?.Name,
                 Status = user.Status
             };
         }

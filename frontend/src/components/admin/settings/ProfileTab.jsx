@@ -1,33 +1,203 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import axios from "axios";
 import { Camera } from "lucide-react";
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5291/api";
+
+const getAvatarPreview = (profile) => {
+  if (profile?.avatarUrl) {
+    return profile.avatarUrl;
+  }
+
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(
+    profile?.fullName ?? "Admin User",
+  )}&background=84cc16&color=111827`;
+};
+
 const ProfileTab = () => {
+  const [profile, setProfile] = useState(null);
+  const [avatarLoadFailed, setAvatarLoadFailed] = useState(false);
+  const [formData, setFormData] = useState({
+    fullName: "",
+    email: "",
+    avatarUrl: "",
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [message, setMessage] = useState("");
+
+  const loadProfile = async () => {
+    setIsLoading(true);
+    setMessage("");
+
+    try {
+      const response = await axios.get(`${API_BASE_URL}/UserProfile/my-profile`);
+      setProfile(response.data);
+      setAvatarLoadFailed(false);
+      setFormData({
+        fullName: response.data?.fullName ?? "",
+        email: response.data?.email ?? "",
+        avatarUrl: response.data?.avatarUrl ?? "",
+      });
+    } catch {
+      setMessage("Cannot load profile data.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadProfile();
+  }, []);
+
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+    setFormData((current) => ({
+      ...current,
+      [name]: value,
+    }));
+  };
+
+  const handleAvatarUpload = async (event) => {
+    const file = event.target.files?.[0];
+
+    if (!file || !profile) {
+      return;
+    }
+
+    setIsUploading(true);
+    setMessage("");
+
+    try {
+      const payload = new FormData();
+      payload.append("file", file);
+      payload.append("userId", String(profile.id));
+
+      const response = await axios.post(
+        `${API_BASE_URL}/UserProfile/upload-avatar`,
+        payload,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        },
+      );
+
+      const uploadedUrl = response.data?.url ?? "";
+
+      setProfile((current) => ({
+        ...current,
+        avatarUrl: uploadedUrl,
+      }));
+      setAvatarLoadFailed(false);
+      setFormData((current) => ({
+        ...current,
+        avatarUrl: uploadedUrl,
+      }));
+      setMessage("Avatar updated successfully.");
+    } catch {
+      setMessage("Cannot upload avatar.");
+    } finally {
+      setIsUploading(false);
+      event.target.value = "";
+    }
+  };
+
+  const handleSave = async (event) => {
+    event.preventDefault();
+
+    if (!profile) {
+      return;
+    }
+
+    setIsSaving(true);
+    setMessage("");
+
+    try {
+      await axios.put(`${API_BASE_URL}/UserProfile/update-profile`, {
+        userId: profile.id,
+        fullName: formData.fullName.trim(),
+        email: formData.email.trim(),
+      });
+
+      setProfile((current) => ({
+        ...current,
+        fullName: formData.fullName.trim(),
+        email: formData.email.trim(),
+        avatarUrl: formData.avatarUrl,
+      }));
+      setMessage("Profile updated successfully.");
+    } catch {
+      setMessage("Cannot update profile.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="rounded-[2rem] border border-gray-100 bg-white p-8 text-sm font-bold text-gray-400">
+        Loading profile...
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-8">
-      {/* Profile Picture Section */}
+    <form onSubmit={handleSave} className="space-y-8">
+      {message ? (
+        <div className="rounded-2xl border border-gray-100 bg-gray-50 px-5 py-4 text-sm font-semibold text-gray-600">
+          {message}
+        </div>
+      ) : null}
+
       <div className="flex items-center gap-6">
         <div className="relative group">
           <img
-            src="https://ui-avatars.com/api/?name=Alexander+Wright&background=random"
+            src={
+              avatarLoadFailed
+                ? getAvatarPreview({
+                    fullName: formData.fullName,
+                    avatarUrl: "",
+                  })
+                : getAvatarPreview({
+                    fullName: formData.fullName,
+                    avatarUrl: formData.avatarUrl,
+                  })
+            }
             alt="Profile"
             className="size-24 rounded-full object-cover border-4 border-white shadow-sm"
+            onError={() => setAvatarLoadFailed(true)}
           />
-          <button className="absolute bottom-0 right-0 p-2 bg-blue-600 rounded-full text-white border-2 border-white hover:bg-blue-700 transition-all shadow-md">
+          <label className="absolute bottom-0 right-0 p-2 bg-blue-600 rounded-full text-white border-2 border-white hover:bg-blue-700 transition-all shadow-md cursor-pointer">
             <Camera className="size-4" />
-          </button>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleAvatarUpload}
+              className="hidden"
+              disabled={isUploading}
+            />
+          </label>
         </div>
         <div>
           <h4 className="font-bold text-gray-900">Profile Picture</h4>
           <p className="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-wider">
             JPG, GIF or PNG. Max size of 800K
           </p>
-          <button className="mt-2 text-xs font-black text-blue-600 hover:underline">
-            Upload new photo
-          </button>
+          <label className="mt-2 inline-block text-xs font-black text-blue-600 hover:underline cursor-pointer">
+            {isUploading ? "Uploading..." : "Upload new photo"}
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleAvatarUpload}
+              className="hidden"
+              disabled={isUploading}
+            />
+          </label>
         </div>
       </div>
 
-      {/* Form Fields */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-2">
           <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">
@@ -35,7 +205,9 @@ const ProfileTab = () => {
           </label>
           <input
             type="text"
-            defaultValue="Alexander Wright"
+            name="fullName"
+            value={formData.fullName}
+            onChange={handleChange}
             className="w-full px-5 py-3.5 bg-gray-50 border border-transparent rounded-2xl text-sm font-bold text-gray-900 focus:bg-white focus:border-blue-100 outline-none transition-all"
           />
         </div>
@@ -45,38 +217,35 @@ const ProfileTab = () => {
           </label>
           <input
             type="email"
-            defaultValue="alexander.w@grandblue.com"
+            name="email"
+            value={formData.email}
+            onChange={handleChange}
             className="w-full px-5 py-3.5 bg-gray-50 border border-transparent rounded-2xl text-sm font-bold text-gray-900 focus:bg-white focus:border-blue-100 outline-none transition-all"
           />
         </div>
-        <div className="space-y-2">
+        <div className="space-y-2 md:col-span-2">
           <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">
             Role
           </label>
           <input
             type="text"
             readOnly
-            defaultValue="Super Admin"
+            value={profile?.roleName ?? "Admin"}
             className="w-full px-5 py-3.5 bg-gray-100 border border-transparent rounded-2xl text-sm font-bold text-gray-400 cursor-not-allowed outline-none"
           />
-        </div>
-        <div className="space-y-2">
-          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">
-            Language
-          </label>
-          <select className="w-full px-5 py-3.5 bg-gray-50 border border-transparent rounded-2xl text-sm font-bold text-gray-900 outline-none">
-            <option>English (US)</option>
-            <option>Vietnamese (VN)</option>
-          </select>
         </div>
       </div>
 
       <div className="flex justify-end pt-4">
-        <button className="px-8 py-3.5 bg-blue-600 rounded-2xl text-xs font-black text-white shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all">
-          Save Changes
+        <button
+          type="submit"
+          disabled={isSaving || isUploading}
+          className="px-8 py-3.5 bg-blue-600 rounded-2xl text-xs font-black text-white shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+        >
+          {isSaving ? "Saving..." : "Save Changes"}
         </button>
       </div>
-    </div>
+    </form>
   );
 };
 
