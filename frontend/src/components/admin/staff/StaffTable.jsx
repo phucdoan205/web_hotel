@@ -70,7 +70,6 @@ const StaffTable = ({ staff, isLoading, error, onEdit, onDelete }) => {
             ) : (
               staff.map((member) => {
                 const isActive = member.status === true;
-                const statusValue = isActive ? 1 : 0;
                 const roleLabel = roleLabels[member.roleId] ?? member.roleName ?? "No Role";
 
                 return (
@@ -116,7 +115,7 @@ const StaffTable = ({ staff, isLoading, error, onEdit, onDelete }) => {
                             isActive ? "text-emerald-600" : "text-rose-500"
                           }`}
                         >
-                          {statusValue}
+                          {isActive ? "Active" : "Deleted"}
                         </span>
                       </div>
                     </td>

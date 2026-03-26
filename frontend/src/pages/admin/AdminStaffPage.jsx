@@ -1,28 +1,38 @@
 import React, { useDeferredValue, useEffect, useMemo, useState } from "react";
 import axios from "axios";
-import { RefreshCw, Search, X } from "lucide-react";
+import { AlertTriangle, ImageUp, RefreshCw, Search, X } from "lucide-react";
 import StaffTable from "../../components/admin/staff/StaffTable";
 import StaffWidgets from "../../components/admin/staff/StaffWidgets";
 
-const STAFF_ROLE_IDS = [1, 4, 5];
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5291/api";
 
 const emptyForm = {
   fullName: "",
   email: "",
-  roleId: "",
   avatarUrl: "",
   status: true,
+};
+
+const getAvatarPreview = (member) => {
+  if (member?.avatarUrl) {
+    return member.avatarUrl;
+  }
+
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(
+    member?.fullName ?? "Staff",
+  )}&background=F3F4F6&color=111827`;
 };
 
 const AdminStaffPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [staff, setStaff] = useState([]);
-  const [roles, setRoles] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [error, setError] = useState("");
   const [editingStaff, setEditingStaff] = useState(null);
+  const [deletingStaff, setDeletingStaff] = useState(null);
   const [formData, setFormData] = useState(emptyForm);
   const deferredSearchTerm = useDeferredValue(searchTerm);
 
@@ -31,17 +41,11 @@ const AdminStaffPage = () => {
     setError("");
 
     try {
-      const [staffResponse, rolesResponse] = await Promise.all([
-        axios.get(`${API_BASE_URL}/UserManagement/staff`, {
-          params: { includeInactive: true },
-        }),
-        axios.get(`${API_BASE_URL}/Roles`),
-      ]);
+      const staffResponse = await axios.get(`${API_BASE_URL}/UserManagement/staff`, {
+        params: { includeInactive: true },
+      });
 
       setStaff(staffResponse.data ?? []);
-      setRoles(
-        (rolesResponse.data ?? []).filter((role) => STAFF_ROLE_IDS.includes(role.id)),
-      );
     } catch (fetchError) {
       const responseMessage =
         fetchError.response?.data?.message || fetchError.response?.data;
@@ -86,7 +90,6 @@ const AdminStaffPage = () => {
     setFormData({
       fullName: member.fullName ?? "",
       email: member.email ?? "",
-      roleId: member.roleId ? String(member.roleId) : "",
       avatarUrl: member.avatarUrl ?? "",
       status: member.status === true,
     });
@@ -95,6 +98,20 @@ const AdminStaffPage = () => {
   const closeEditModal = () => {
     setEditingStaff(null);
     setFormData(emptyForm);
+    setIsUploadingAvatar(false);
+  };
+
+  const openDeleteModal = (member) => {
+    if (member.status !== true) {
+      return;
+    }
+
+    setDeletingStaff(member);
+  };
+
+  const closeDeleteModal = () => {
+    setDeletingStaff(null);
+    setIsDeleting(false);
   };
 
   const handleFormChange = (event) => {
@@ -103,6 +120,58 @@ const AdminStaffPage = () => {
       ...current,
       [name]: name === "status" ? value === "true" : value,
     }));
+  };
+
+  const handleAvatarUpload = async (event) => {
+    const file = event.target.files?.[0];
+
+    if (!file || !editingStaff) {
+      return;
+    }
+
+    setIsUploadingAvatar(true);
+    setError("");
+
+    try {
+      const payload = new FormData();
+      payload.append("file", file);
+      payload.append("userId", String(editingStaff.id));
+
+      const response = await axios.post(
+        `${API_BASE_URL}/UserProfile/upload-avatar`,
+        payload,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        },
+      );
+
+      const uploadedUrl = response.data?.url ?? "";
+
+      setFormData((current) => ({
+        ...current,
+        avatarUrl: uploadedUrl,
+      }));
+
+      setStaff((current) =>
+        current.map((member) =>
+          member.id === editingStaff.id
+            ? { ...member, avatarUrl: uploadedUrl }
+            : member,
+        ),
+      );
+    } catch (uploadError) {
+      const message =
+        uploadError.response?.data?.message ||
+        uploadError.response?.data ||
+        "Cannot upload avatar.";
+
+      setError(typeof message === "string" ? message : "Cannot upload avatar.");
+    } finally {
+      setIsUploadingAvatar(false);
+      event.target.value = "";
+    }
   };
 
   const handleSaveEdit = async (event) => {
@@ -119,8 +188,7 @@ const AdminStaffPage = () => {
       const payload = {
         fullName: formData.fullName.trim(),
         email: formData.email.trim(),
-        roleId: formData.roleId ? Number(formData.roleId) : null,
-        avatarUrl: formData.avatarUrl.trim() || null,
+        avatarUrl: formData.avatarUrl || null,
         status: formData.status,
       };
 
@@ -147,29 +215,26 @@ const AdminStaffPage = () => {
     }
   };
 
-  const handleSoftDelete = async (member) => {
-    if (member.status !== true) {
+  const handleConfirmDelete = async () => {
+    if (!deletingStaff) {
       return;
     }
 
-    const confirmed = window.confirm(
-      `Soft delete staff "${member.fullName}"?`,
-    );
-
-    if (!confirmed) {
-      return;
-    }
+    setIsDeleting(true);
+    setError("");
 
     try {
-      await axios.delete(`${API_BASE_URL}/UserManagement/${member.id}`);
+      await axios.delete(`${API_BASE_URL}/UserManagement/${deletingStaff.id}`);
 
       setStaff((current) =>
-        current.map((staffMember) =>
-          staffMember.id === member.id
-            ? { ...staffMember, status: false }
-            : staffMember,
+        current.map((member) =>
+          member.id === deletingStaff.id
+            ? { ...member, status: false }
+            : member,
         ),
       );
+
+      closeDeleteModal();
     } catch (deleteError) {
       const message =
         deleteError.response?.data?.message ||
@@ -177,6 +242,7 @@ const AdminStaffPage = () => {
         "Cannot soft delete this staff member.";
 
       setError(typeof message === "string" ? message : "Cannot soft delete this staff member.");
+      setIsDeleting(false);
     }
   };
 
@@ -209,7 +275,7 @@ const AdminStaffPage = () => {
         <div className="mt-8">
           <h1 className="text-3xl font-black text-gray-900">Staff Management</h1>
           <p className="text-sm font-bold text-gray-400 mt-1">
-            Quản lý staff.
+            Quan ly staff khach san.
           </p>
         </div>
 
@@ -224,7 +290,7 @@ const AdminStaffPage = () => {
           isLoading={isLoading}
           error={error && staff.length === 0 ? error : ""}
           onEdit={openEditModal}
-          onDelete={handleSoftDelete}
+          onDelete={openDeleteModal}
         />
 
         <StaffWidgets
@@ -241,7 +307,7 @@ const AdminStaffPage = () => {
               <div>
                 <h2 className="text-xl font-black text-gray-900">Edit Staff</h2>
                 <p className="text-sm font-semibold text-gray-400 mt-1">
-                  Update staff information and role assignment.
+                  Update name, email, avatar and status.
                 </p>
               </div>
               <button
@@ -253,7 +319,36 @@ const AdminStaffPage = () => {
               </button>
             </div>
 
-            <form onSubmit={handleSaveEdit} className="p-6 space-y-5">
+            <form onSubmit={handleSaveEdit} className="p-6 space-y-6">
+              <div className="flex flex-col items-center gap-4">
+                <img
+                  src={getAvatarPreview({
+                    fullName: formData.fullName,
+                    avatarUrl: formData.avatarUrl,
+                  })}
+                  alt={formData.fullName}
+                  className="size-24 rounded-full object-cover ring-4 ring-orange-50"
+                />
+
+                <label className="inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-slate-100 text-sm font-bold text-slate-700 hover:bg-slate-200 transition-all cursor-pointer">
+                  <ImageUp className="size-4" />
+                  {isUploadingAvatar ? "Uploading..." : "Upload New Avatar"}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarUpload}
+                    className="hidden"
+                    disabled={isUploadingAvatar}
+                  />
+                </label>
+
+                {formData.avatarUrl ? (
+                  <p className="text-xs font-semibold text-gray-400 text-center break-all">
+                    Cloudinary URL updated
+                  </p>
+                ) : null}
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <label className="flex flex-col gap-2">
                   <span className="text-sm font-bold text-gray-700">Full Name</span>
@@ -278,25 +373,7 @@ const AdminStaffPage = () => {
                   />
                 </label>
 
-                <label className="flex flex-col gap-2">
-                  <span className="text-sm font-bold text-gray-700">Role</span>
-                  <select
-                    name="roleId"
-                    value={formData.roleId}
-                    onChange={handleFormChange}
-                    required
-                    className="rounded-2xl bg-gray-50 border border-gray-200 px-4 py-3 text-sm outline-none focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
-                  >
-                    <option value="">Select role</option>
-                    {roles.map((role) => (
-                      <option key={role.id} value={role.id}>
-                        {role.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <label className="flex flex-col gap-2">
+                <label className="flex flex-col gap-2 md:col-span-2">
                   <span className="text-sm font-bold text-gray-700">Status</span>
                   <select
                     name="status"
@@ -307,17 +384,6 @@ const AdminStaffPage = () => {
                     <option value="true">Active</option>
                     <option value="false">Deleted</option>
                   </select>
-                </label>
-
-                <label className="md:col-span-2 flex flex-col gap-2">
-                  <span className="text-sm font-bold text-gray-700">Avatar URL</span>
-                  <input
-                    name="avatarUrl"
-                    value={formData.avatarUrl}
-                    onChange={handleFormChange}
-                    placeholder="https://..."
-                    className="rounded-2xl bg-gray-50 border border-gray-200 px-4 py-3 text-sm outline-none focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
-                  />
                 </label>
               </div>
 
@@ -331,13 +397,60 @@ const AdminStaffPage = () => {
                 </button>
                 <button
                   type="submit"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || isUploadingAvatar}
                   className="px-5 py-3 rounded-2xl text-sm font-bold text-white bg-orange-600 hover:bg-orange-700 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {isSubmitting ? "Saving..." : "Save Changes"}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      ) : null}
+
+      {deletingStaff ? (
+        <div className="fixed inset-0 z-50 bg-slate-950/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-lg rounded-[2rem] bg-white shadow-2xl border border-gray-100 overflow-hidden">
+            <div className="px-6 py-6 border-b border-gray-100 flex items-start gap-4">
+              <div className="shrink-0 size-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center">
+                <AlertTriangle className="size-6" />
+              </div>
+              <div>
+                <h2 className="text-xl font-black text-gray-900">Confirm Delete</h2>
+                <p className="text-sm font-semibold text-gray-400 mt-1">
+                  Ban co chac muon soft delete staff nay khong?
+                </p>
+              </div>
+            </div>
+
+            <div className="px-6 py-5">
+              <div className="rounded-2xl bg-slate-50 border border-slate-100 p-4">
+                <p className="text-sm font-bold text-slate-800">
+                  {deletingStaff.fullName}
+                </p>
+                <p className="text-xs font-semibold text-slate-500 mt-1">
+                  {deletingStaff.email}
+                </p>
+              </div>
+            </div>
+
+            <div className="px-6 py-5 border-t border-gray-100 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={closeDeleteModal}
+                className="px-5 py-3 rounded-2xl text-sm font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDelete}
+                disabled={isDeleting}
+                className="px-5 py-3 rounded-2xl text-sm font-bold text-white bg-rose-600 hover:bg-rose-700 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {isDeleting ? "Deleting..." : "Confirm Delete"}
+              </button>
+            </div>
           </div>
         </div>
       ) : null}
