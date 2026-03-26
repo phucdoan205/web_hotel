@@ -83,7 +83,7 @@ const HousekeepingDashboardPage = () => {
           <InventoryStatus />
 
           {/* Mẹo tối ưu */}
-          <div className="bg-blue-50/50 p-6 rounded-[2rem] border border-blue-100">
+          <div className="bg-blue-50/50 p-6 rounded-4xl border border-blue-100">
             <div className="flex items-center gap-3 mb-3 text-[#0085FF]">
               <AlertCircle size={18} />
               <p className="text-[11px] font-black uppercase">

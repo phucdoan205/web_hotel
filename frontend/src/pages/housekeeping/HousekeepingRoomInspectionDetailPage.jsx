@@ -20,7 +20,7 @@ const HousekeepingRoomInspectionDetailPage = () => {
   };
 
   return (
-    <div className="max-w-[1400px] mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="max-w-350 mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* CỘT TRÁI: THÔNG TIN VÀ CHECKLIST */}
         <div className="lg:col-span-2 space-y-6">
@@ -63,7 +63,7 @@ const HousekeepingRoomInspectionDetailPage = () => {
               </h3>
               <textarea
                 placeholder="Nhập ghi chú cụ thể hoặc báo cáo hư hỏng nếu có..."
-                className="w-full h-32 bg-gray-50 border-none rounded-[2rem] p-6 text-xs font-bold focus:ring-2 focus:ring-blue-100 outline-none transition-all resize-none"
+                className="w-full h-32 bg-gray-50 border-none rounded-4xl p-6 text-xs font-bold focus:ring-2 focus:ring-blue-100 outline-none transition-all resize-none"
               />
             </div>
           </div>
