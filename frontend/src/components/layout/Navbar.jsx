@@ -1,47 +1,52 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { User, Rocket } from "lucide-react";
+import { Rocket, User } from "lucide-react";
 import NavItem from "./NavItem";
+import { getStoredAuth } from "../../utils/authStorage";
+import UserMenu from "../shared/UserMenu";
 
 const Navbar = () => {
+  const auth = getStoredAuth();
+
   return (
-    <nav className="flex items-center justify-between px-10 py-4 bg-white shadow-sm sticky top-0 z-50 h-16">
-      {/* Logo Section - Bấm vào quay về Home */}
-      <Link to="/" className="flex items-center gap-2 cursor-pointer">
-        <div className="bg-[#0194f3] p-1.5 rounded-lg">
-          <Rocket className="text-white w-5 h-5 rotate-45" />
+    <nav className="sticky top-0 z-50 flex h-16 items-center justify-between bg-white px-10 py-4 shadow-sm">
+      <Link to="/" className="flex cursor-pointer items-center gap-2">
+        <div className="rounded-lg bg-[#0194f3] p-1.5">
+          <Rocket className="h-5 w-5 rotate-45 text-white" />
         </div>
-        <span className="text-2xl font-bold text-[#0194f3] tracking-tight">
+        <span className="text-2xl font-bold tracking-tight text-[#0194f3]">
           Traveloka
         </span>
       </Link>
 
-      {/* Navigation Links */}
-      <div className="hidden md:flex items-center gap-1">
+      <div className="hidden items-center gap-1 md:flex">
         <NavItem label="Khách sạn" to="/hotels" />
         <NavItem label="Ẩm thực" to="/food" />
         <NavItem label="Hoạt động" to="/activities" />
         <NavItem label="Bài viết" to="/articles" />
       </div>
 
-      {/* Auth Actions */}
       <div className="flex items-center gap-2">
-        {/* Nút Đăng nhập - Link tới trang /login */}
-        <Link
-          to="/login"
-          className="flex items-center gap-2 px-4 py-2 text-slate-900 font-bold hover:bg-slate-100 rounded-md transition-all text-sm"
-        >
-          <User size={18} className="text-slate-900" />
-          <span>Đăng nhập</span>
-        </Link>
+        {auth ? (
+          <UserMenu logoutRedirect="/" showRole={false} variant="dark" />
+        ) : (
+          <>
+            <Link
+              to="/login"
+              className="flex items-center gap-2 rounded-md px-4 py-2 text-sm font-bold text-slate-900 transition-all hover:bg-slate-100"
+            >
+              <User size={18} className="text-slate-900" />
+              <span>Đăng nhập</span>
+            </Link>
 
-        {/* Nút Đăng ký - Link tới trang /register */}
-        <Link
-          to="/register"
-          className="px-5 py-2 bg-[#0194f3] text-white font-bold rounded-md hover:bg-[#0183d7] transition-all text-sm shadow-sm"
-        >
-          Đăng ký
-        </Link>
+            <Link
+              to="/register"
+              className="rounded-md bg-[#0194f3] px-5 py-2 text-sm font-bold text-white shadow-sm transition-all hover:bg-[#0183d7]"
+            >
+              Đăng ký
+            </Link>
+          </>
+        )}
       </div>
     </nav>
   );
