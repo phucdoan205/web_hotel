@@ -50,6 +50,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddFluentValidationClientsideAdapters();
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
+builder.Services.AddHttpClient();
 builder.Services.AddScoped<CloudinaryService>();
 builder.Services.AddScoped<IJwtService, JwtService>(); 
 

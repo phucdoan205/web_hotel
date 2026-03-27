@@ -23,6 +23,11 @@ public class JwtService : IJwtService
             new Claim(ClaimTypes.Role, user.Role?.Name ?? "Customer")
         };
 
+        if (!string.IsNullOrWhiteSpace(user.GoogleId))
+        {
+            claims.Add(new Claim("GoogleId", user.GoogleId));
+        }
+
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
