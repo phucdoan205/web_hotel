@@ -5,7 +5,7 @@ import {
   createNotificationStreamUrl,
   getNotifications,
   markAllNotificationsRead,
-} from "../../../api/admin/notificationApi";
+} from "../../../api/notifications/notificationApi";
 
 const formatTimeAgo = (value) => {
   if (!value) {
