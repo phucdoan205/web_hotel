@@ -19,17 +19,20 @@ namespace backend.Controllers
         private readonly IJwtService _jwtService;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly IConfiguration _configuration;
+        private readonly NotificationService _notificationService;
 
         public AuthController(
             AppDbContext context,
             IJwtService jwtService,
             IHttpClientFactory httpClientFactory,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            NotificationService notificationService)
         {
             _context = context;
             _jwtService = jwtService;
             _httpClientFactory = httpClientFactory;
             _configuration = configuration;
+            _notificationService = notificationService;
         }
 
         [HttpPost("login")]
@@ -50,6 +53,14 @@ namespace backend.Controllers
             {
                 return Unauthorized(new { message = "Email or password is incorrect." });
             }
+
+            await _notificationService.CreateAsync(
+                "User Login",
+                $"{user.FullName} has signed in with email.",
+                "Info",
+                user.Role?.Name?.Equals("Admin", StringComparison.OrdinalIgnoreCase) == true
+                    ? "/admin/dashboard"
+                    : "/");
 
             return Ok(BuildAuthResponse(user));
         }
@@ -94,6 +105,12 @@ namespace backend.Controllers
                 await _context.SaveChangesAsync();
                 await _context.Entry(user).Reference(u => u.Role).LoadAsync();
 
+                await _notificationService.CreateAsync(
+                    "New Google User",
+                    $"{user.FullName} created a new account with Google.",
+                    "Success",
+                    "/admin/staff");
+
                 return Ok(BuildAuthResponse(user));
             }
 
@@ -126,6 +143,14 @@ namespace backend.Controllers
             {
                 await _context.SaveChangesAsync();
             }
+
+            await _notificationService.CreateAsync(
+                "Google Login",
+                $"{user.FullName} has signed in with Google.",
+                "Info",
+                user.Role?.Name?.Equals("Admin", StringComparison.OrdinalIgnoreCase) == true
+                    ? "/admin/dashboard"
+                    : "/");
 
             return Ok(BuildAuthResponse(user));
         }

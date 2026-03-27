@@ -53,6 +53,8 @@ builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 builder.Services.AddHttpClient();
 builder.Services.AddScoped<CloudinaryService>();
 builder.Services.AddScoped<IJwtService, JwtService>(); 
+builder.Services.AddSingleton<NotificationRealtimeService>();
+builder.Services.AddScoped<NotificationService>();
 
 //builder.Services.AddValidatorsFromAssemblyContaining<CreateRoomDtoValidator>();
 //builder.Services.AddScoped<IValidator<BulkCreateRoomDTO>, BulkCreateRoomDtoValidator>();

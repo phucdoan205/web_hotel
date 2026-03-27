@@ -8,6 +8,11 @@ export const getStaffList = async (includeInactive = true) => {
   return response.data ?? [];
 };
 
+export const getStaffById = async (staffId) => {
+  const response = await apiClient.get(`/UserManagement/${staffId}`);
+  return response.data;
+};
+
 export const updateStaff = async (staffId, payload) => {
   const response = await apiClient.put(`/UserManagement/${staffId}`, payload);
   return response.data;

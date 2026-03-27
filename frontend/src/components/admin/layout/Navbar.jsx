@@ -1,5 +1,5 @@
 import React from "react";
-import { Bell } from "lucide-react";
+import AdminNotificationBell from "./AdminNotificationBell";
 import UserMenu from "../../shared/UserMenu";
 
 const Navbar = () => {
@@ -11,13 +11,7 @@ const Navbar = () => {
 
       <div className="flex items-center gap-x-6">
         <div className="flex items-center gap-x-3.5 border-r border-gray-100 pr-6">
-          <button
-            type="button"
-            className="relative rounded-full p-1.5 text-gray-400 transition-colors hover:bg-sky-50 hover:text-sky-600"
-          >
-            <Bell className="size-5" />
-            <span className="absolute right-1 top-1 size-2 rounded-full border-2 border-white bg-red-500"></span>
-          </button>
+          <AdminNotificationBell />
         </div>
 
         <UserMenu logoutRedirect="/" />

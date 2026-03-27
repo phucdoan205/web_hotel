@@ -13,10 +13,12 @@ namespace backend.Controllers
     public class UserManagementController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly NotificationService _notificationService;
 
-        public UserManagementController(AppDbContext context)
+        public UserManagementController(AppDbContext context, NotificationService notificationService)
         {
             _context = context;
+            _notificationService = notificationService;
         }
 
         [HttpGet("staff")]
@@ -44,6 +46,7 @@ namespace backend.Controllers
                     Email = u.Email,
                     Phone = u.Phone,
                     AvatarUrl = u.AvatarUrl,
+                    DateOfBirth = u.DateOfBirth,
                     RoleId = u.RoleId,
                     RoleName = u.Role != null ? u.Role.Name : null,
                     Status = u.Status
@@ -67,11 +70,36 @@ namespace backend.Controllers
                     Email = u.Email,
                     Phone = u.Phone,
                     AvatarUrl = u.AvatarUrl,
+                    DateOfBirth = u.DateOfBirth,
                     RoleId = u.RoleId,
                     RoleName = u.Role != null ? u.Role.Name : null,
                     Status = u.Status
                 })
                 .ToListAsync();
+        }
+
+        [HttpGet("{id:int}")]
+        public async Task<ActionResult<UserManagementResponseDTO>> GetById(int id)
+        {
+            var user = await _context.Users
+                .AsNoTracking()
+                .Include(u => u.Role)
+                .FirstOrDefaultAsync(u => u.Id == id);
+
+            if (user == null) return NotFound();
+
+            return Ok(new UserManagementResponseDTO
+            {
+                Id = user.Id,
+                FullName = user.FullName,
+                Email = user.Email,
+                Phone = user.Phone,
+                AvatarUrl = user.AvatarUrl,
+                DateOfBirth = user.DateOfBirth,
+                RoleId = user.RoleId,
+                RoleName = user.Role?.Name,
+                Status = user.Status
+            });
         }
 
         [HttpPost]
@@ -94,12 +122,19 @@ namespace backend.Controllers
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
 
+            await _notificationService.CreateAsync(
+                "Staff Created",
+                $"Staff account {user.FullName} has been created.",
+                "Success",
+                "/admin/staff");
+
             return Ok(new UserManagementResponseDTO {
                 Id = user.Id,
                 FullName = user.FullName,
                 Email = user.Email,
                 Phone = user.Phone,
                 AvatarUrl = user.AvatarUrl,
+                DateOfBirth = user.DateOfBirth,
                 RoleId = user.RoleId,
                 Status = user.Status
             });
@@ -160,6 +195,12 @@ namespace backend.Controllers
 
             await _context.Entry(user).Reference(u => u.Role).LoadAsync();
 
+            await _notificationService.CreateAsync(
+                "Staff Updated",
+                $"Staff account {user.FullName} has been updated.",
+                "Info",
+                "/admin/staff");
+
             return Ok(new UserManagementResponseDTO
             {
                 Id = user.Id,
@@ -167,6 +208,7 @@ namespace backend.Controllers
                 Email = user.Email,
                 Phone = user.Phone,
                 AvatarUrl = user.AvatarUrl,
+                DateOfBirth = user.DateOfBirth,
                 RoleId = user.RoleId,
                 RoleName = user.Role?.Name,
                 Status = user.Status
@@ -181,6 +223,12 @@ namespace backend.Controllers
 
             user.RoleId = request.NewRoleId;
             await _context.SaveChangesAsync();
+
+            await _notificationService.CreateAsync(
+                "Role Changed",
+                $"Role for {user.FullName} has been changed.",
+                "Warning",
+                "/admin/staff");
             return NoContent();
         }
 
@@ -192,6 +240,12 @@ namespace backend.Controllers
 
             user.Status = false;
             await _context.SaveChangesAsync();
+
+            await _notificationService.CreateAsync(
+                "Staff Deactivated",
+                $"{user.FullName} has been soft deleted.",
+                "Error",
+                "/admin/staff");
             return NoContent();
         }
     }

@@ -1,33 +1,60 @@
 import React, { useDeferredValue, useEffect, useMemo, useState } from "react";
-import { AlertTriangle, ImageUp, RefreshCw, Search, X } from "lucide-react";
+import { ImageUp, RefreshCw, Search, X } from "lucide-react";
 import StaffTable from "../../components/admin/staff/StaffTable";
 import StaffWidgets from "../../components/admin/staff/StaffWidgets";
 import { API_BASE_URL } from "../../api/client";
 import {
+  getStaffById,
   getStaffList,
-  softDeleteStaff,
   updateStaff,
   uploadUserAvatar,
 } from "../../api/admin/staffApi";
+import { getRoles } from "../../api/admin/roleApi";
 import { getAvatarPreview } from "../../utils/avatar";
 
 const emptyForm = {
   fullName: "",
   email: "",
   avatarUrl: "",
-  status: true,
+  dateOfBirth: "",
+  roleId: "",
+};
+
+const STAFF_ROLE_IDS = [1, 4, 5];
+
+const formatDateForInput = (value) => {
+  if (!value) {
+    return "";
+  }
+
+  if (typeof value === "string") {
+    const normalizedValue = value.trim();
+
+    if (/^\d{4}-\d{2}-\d{2}/.test(normalizedValue)) {
+      return normalizedValue.slice(0, 10);
+    }
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  return date.toISOString().slice(0, 10);
 };
 
 const AdminStaffPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [staff, setStaff] = useState([]);
+  const [roles, setRoles] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [statusUpdatingId, setStatusUpdatingId] = useState(null);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [isLoadingEditDetail, setIsLoadingEditDetail] = useState(false);
   const [error, setError] = useState("");
   const [editingStaff, setEditingStaff] = useState(null);
-  const [deletingStaff, setDeletingStaff] = useState(null);
   const [formData, setFormData] = useState(emptyForm);
   const deferredSearchTerm = useDeferredValue(searchTerm);
 
@@ -36,8 +63,15 @@ const AdminStaffPage = () => {
     setError("");
 
     try {
-      const staffList = await getStaffList(true);
+      const [staffList, allRoles] = await Promise.all([
+        getStaffList(true),
+        getRoles(),
+      ]);
+
       setStaff(staffList);
+      setRoles(
+        allRoles.filter((role) => STAFF_ROLE_IDS.includes(Number(role.id))),
+      );
     } catch (fetchError) {
       const responseMessage =
         fetchError.response?.data?.message || fetchError.response?.data;
@@ -77,40 +111,48 @@ const AdminStaffPage = () => {
   const activeCount = staff.filter((member) => member.status === true).length;
   const deletedCount = staff.filter((member) => member.status !== true).length;
 
-  const openEditModal = (member) => {
+  const openEditModal = async (member) => {
+    setError("");
     setEditingStaff(member);
+    setIsLoadingEditDetail(true);
     setFormData({
       fullName: member.fullName ?? "",
       email: member.email ?? "",
       avatarUrl: member.avatarUrl ?? "",
-      status: member.status === true,
+      dateOfBirth: formatDateForInput(member.dateOfBirth),
+      roleId: member.roleId ? String(member.roleId) : "",
     });
+
+    try {
+      const staffDetail = await getStaffById(member.id);
+
+      setEditingStaff(staffDetail);
+      setFormData({
+        fullName: staffDetail.fullName ?? "",
+        email: staffDetail.email ?? "",
+        avatarUrl: staffDetail.avatarUrl ?? "",
+        dateOfBirth: formatDateForInput(staffDetail.dateOfBirth),
+        roleId: staffDetail.roleId ? String(staffDetail.roleId) : "",
+      });
+    } catch (fetchDetailError) {
+      // Keep the modal usable with row data if detail endpoint is unavailable.
+    } finally {
+      setIsLoadingEditDetail(false);
+    }
   };
 
   const closeEditModal = () => {
     setEditingStaff(null);
     setFormData(emptyForm);
     setIsUploadingAvatar(false);
-  };
-
-  const openDeleteModal = (member) => {
-    if (member.status !== true) {
-      return;
-    }
-
-    setDeletingStaff(member);
-  };
-
-  const closeDeleteModal = () => {
-    setDeletingStaff(null);
-    setIsDeleting(false);
+    setIsLoadingEditDetail(false);
   };
 
   const handleFormChange = (event) => {
     const { name, value } = event.target;
     setFormData((current) => ({
       ...current,
-      [name]: name === "status" ? value === "true" : value,
+      [name]: value,
     }));
   };
 
@@ -168,7 +210,8 @@ const AdminStaffPage = () => {
         fullName: formData.fullName.trim(),
         email: formData.email.trim(),
         avatarUrl: formData.avatarUrl || null,
-        status: formData.status,
+        dateOfBirth: formData.dateOfBirth || null,
+        roleId: formData.roleId ? Number(formData.roleId) : null,
       };
 
       const response = await updateStaff(editingStaff.id, payload);
@@ -191,36 +234,66 @@ const AdminStaffPage = () => {
     }
   };
 
-  const handleConfirmDelete = async () => {
-    if (!deletingStaff) {
+  const handleToggleStatus = async (member) => {
+    if (statusUpdatingId === member.id) {
       return;
     }
 
-    setIsDeleting(true);
     setError("");
+    setStatusUpdatingId(member.id);
+    const nextStatus = member.status !== true;
+
+    setStaff((current) =>
+      current.map((staffMember) =>
+        staffMember.id === member.id
+          ? { ...staffMember, status: nextStatus }
+          : staffMember,
+      ),
+    );
 
     try {
-      await softDeleteStaff(deletingStaff.id);
+      const response = await updateStaff(member.id, {
+        status: nextStatus,
+      });
 
       setStaff((current) =>
-        current.map((member) =>
-          member.id === deletingStaff.id
-            ? { ...member, status: false }
-            : member,
+        current.map((staffMember) =>
+          staffMember.id === member.id ? response : staffMember,
+        ),
+      );
+    } catch (statusError) {
+      const message =
+        statusError.response?.data?.message ||
+        statusError.response?.data ||
+        "Cannot update staff status.";
+
+      setStaff((current) =>
+        current.map((staffMember) =>
+          staffMember.id === member.id
+            ? { ...staffMember, status: member.status }
+            : staffMember,
         ),
       );
 
-      closeDeleteModal();
-    } catch (deleteError) {
-      const message =
-        deleteError.response?.data?.message ||
-        deleteError.response?.data ||
-        "Cannot soft delete this staff member.";
-
-      setError(typeof message === "string" ? message : "Cannot soft delete this staff member.");
-      setIsDeleting(false);
+      setError(
+        typeof message === "string" ? message : "Cannot update staff status.",
+      );
+    } finally {
+      setStatusUpdatingId(null);
     }
   };
+
+  const roleOptions = roles.length
+    ? roles
+    : STAFF_ROLE_IDS.map((roleId) => ({
+        id: roleId,
+        name:
+          roleId === 1
+            ? "Admin"
+            : roleId === 4
+              ? "HouseKeeping"
+              : "Receptionist",
+      }));
 
   return (
     <>
@@ -265,8 +338,9 @@ const AdminStaffPage = () => {
           staff={filteredStaff}
           isLoading={isLoading}
           error={error && staff.length === 0 ? error : ""}
+          statusUpdatingId={statusUpdatingId}
           onEdit={openEditModal}
-          onDelete={openDeleteModal}
+          onToggleStatus={handleToggleStatus}
         />
 
         <StaffWidgets
@@ -283,7 +357,7 @@ const AdminStaffPage = () => {
               <div>
                 <h2 className="text-xl font-black text-gray-900">Edit Staff</h2>
                 <p className="text-sm font-semibold text-gray-400 mt-1">
-                  Update name, email, avatar and status.
+                  Update staff profile, avatar, role and date of birth.
                 </p>
               </div>
               <button
@@ -296,6 +370,12 @@ const AdminStaffPage = () => {
             </div>
 
             <form onSubmit={handleSaveEdit} className="p-6 space-y-6">
+              {isLoadingEditDetail ? (
+                <div className="rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-600">
+                  Loading staff detail...
+                </div>
+              ) : null}
+
               <div className="flex flex-col items-center gap-4">
                 <img
                   src={getAvatarPreview({
@@ -349,16 +429,31 @@ const AdminStaffPage = () => {
                   />
                 </label>
 
-                <label className="flex flex-col gap-2 md:col-span-2">
-                  <span className="text-sm font-bold text-gray-700">Status</span>
+                <label className="flex flex-col gap-2">
+                  <span className="text-sm font-bold text-gray-700">Date of Birth</span>
+                  <input
+                    type="date"
+                    name="dateOfBirth"
+                    value={formData.dateOfBirth}
+                    onChange={handleFormChange}
+                    className="rounded-2xl bg-gray-50 border border-gray-200 px-4 py-3 text-sm outline-none focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
+                  />
+                </label>
+
+                <label className="flex flex-col gap-2">
+                  <span className="text-sm font-bold text-gray-700">Role</span>
                   <select
-                    name="status"
-                    value={String(formData.status)}
+                    name="roleId"
+                    value={formData.roleId}
                     onChange={handleFormChange}
                     className="rounded-2xl bg-gray-50 border border-gray-200 px-4 py-3 text-sm outline-none focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
                   >
-                    <option value="true">Active</option>
-                    <option value="false">Deleted</option>
+                    <option value="">Select role</option>
+                    {roleOptions.map((role) => (
+                      <option key={role.id} value={role.id}>
+                        {role.name}
+                      </option>
+                    ))}
                   </select>
                 </label>
               </div>
@@ -380,53 +475,6 @@ const AdminStaffPage = () => {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      ) : null}
-
-      {deletingStaff ? (
-        <div className="fixed inset-0 z-50 bg-slate-950/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-lg rounded-[2rem] bg-white shadow-2xl border border-gray-100 overflow-hidden">
-            <div className="px-6 py-6 border-b border-gray-100 flex items-start gap-4">
-              <div className="shrink-0 size-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center">
-                <AlertTriangle className="size-6" />
-              </div>
-              <div>
-                <h2 className="text-xl font-black text-gray-900">Confirm Delete</h2>
-                <p className="text-sm font-semibold text-gray-400 mt-1">
-                  Ban co chac muon soft delete staff nay khong?
-                </p>
-              </div>
-            </div>
-
-            <div className="px-6 py-5">
-              <div className="rounded-2xl bg-slate-50 border border-slate-100 p-4">
-                <p className="text-sm font-bold text-slate-800">
-                  {deletingStaff.fullName}
-                </p>
-                <p className="text-xs font-semibold text-slate-500 mt-1">
-                  {deletingStaff.email}
-                </p>
-              </div>
-            </div>
-
-            <div className="px-6 py-5 border-t border-gray-100 flex items-center justify-end gap-3">
-              <button
-                type="button"
-                onClick={closeDeleteModal}
-                className="px-5 py-3 rounded-2xl text-sm font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-all"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmDelete}
-                disabled={isDeleting}
-                className="px-5 py-3 rounded-2xl text-sm font-bold text-white bg-rose-600 hover:bg-rose-700 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                {isDeleting ? "Deleting..." : "Confirm Delete"}
-              </button>
-            </div>
           </div>
         </div>
       ) : null}

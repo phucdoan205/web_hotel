@@ -1,5 +1,5 @@
 import React from "react";
-import { Edit2, Trash2 } from "lucide-react";
+import { Edit2 } from "lucide-react";
 import { getAvatarPreview } from "../../../utils/avatar";
 
 const roleStyles = {
@@ -8,13 +8,30 @@ const roleStyles = {
   5: "bg-blue-50 text-blue-600",
 };
 
+const activeStatusStyles = {
+  track: "bg-blue-500",
+  text: "text-blue-600",
+};
+
+const deletedStatusStyles = {
+  track: "bg-rose-400",
+  text: "text-rose-500",
+};
+
 const roleLabels = {
   1: "Admin",
   4: "HouseKeeping",
   5: "Receptionist",
 };
 
-const StaffTable = ({ staff, isLoading, error, onEdit, onDelete }) => {
+const StaffTable = ({
+  staff,
+  isLoading,
+  error,
+  statusUpdatingId,
+  onEdit,
+  onToggleStatus,
+}) => {
   return (
     <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
       <div className="overflow-x-auto">
@@ -61,6 +78,7 @@ const StaffTable = ({ staff, isLoading, error, onEdit, onDelete }) => {
             ) : (
               staff.map((member) => {
                 const isActive = member.status === true;
+                const isUpdatingStatus = statusUpdatingId === member.id;
                 const roleLabel = roleLabels[member.roleId] ?? member.roleName ?? "No Role";
 
                 return (
@@ -95,15 +113,29 @@ const StaffTable = ({ staff, isLoading, error, onEdit, onDelete }) => {
                       {member.email}
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <div
-                          className={`size-2 rounded-full ${
-                            isActive ? "bg-emerald-500" : "bg-rose-400"
-                          }`}
-                        />
+                      <div className="flex min-w-[132px] items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={() => onToggleStatus(member)}
+                          disabled={isUpdatingStatus}
+                          className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors ${
+                            isActive
+                              ? activeStatusStyles.track
+                              : deletedStatusStyles.track
+                          } ${isUpdatingStatus ? "cursor-not-allowed opacity-60" : ""}`}
+                          title={isActive ? "Set deleted" : "Set active"}
+                        >
+                          <span
+                            className={`absolute top-1 size-5 rounded-full bg-white shadow-sm ${
+                              isActive ? "left-6" : "left-1"
+                            }`}
+                          />
+                        </button>
                         <span
-                          className={`text-xs font-bold ${
-                            isActive ? "text-emerald-600" : "text-rose-500"
+                          className={`min-w-[52px] text-xs font-bold ${
+                            isActive
+                              ? activeStatusStyles.text
+                              : deletedStatusStyles.text
                           }`}
                         >
                           {isActive ? "Active" : "Deleted"}
@@ -119,15 +151,6 @@ const StaffTable = ({ staff, isLoading, error, onEdit, onDelete }) => {
                           title="Edit staff"
                         >
                           <Edit2 className="size-4" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => onDelete(member)}
-                          disabled={!isActive}
-                          className="p-2 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-                          title="Soft delete staff"
-                        >
-                          <Trash2 className="size-4" />
                         </button>
                       </div>
                     </td>
