@@ -71,15 +71,20 @@ const AdminNotificationBell = () => {
 
     loadNotifications();
 
+    const intervalId = window.setInterval(() => {
+      loadNotifications();
+    }, 3000);
+
     return () => {
       isMounted = false;
+      window.clearInterval(intervalId);
     };
   }, []);
 
   useEffect(() => {
     const eventSource = new EventSource(createNotificationStreamUrl());
 
-    eventSource.onmessage = (event) => {
+    const handleIncomingNotification = (event) => {
       try {
         const notification = JSON.parse(event.data);
 
@@ -94,6 +99,12 @@ const AdminNotificationBell = () => {
       } catch {
         // Ignore malformed events and keep the stream alive.
       }
+    };
+
+    eventSource.onmessage = handleIncomingNotification;
+    eventSource.addEventListener("notification", handleIncomingNotification);
+    eventSource.onerror = () => {
+      // Polling fallback above keeps notifications fresh if SSE is unstable.
     };
 
     return () => {
@@ -164,6 +175,7 @@ const AdminNotificationBell = () => {
           <div className="border-b border-gray-100 px-5 py-4">
             <h3 className="text-sm font-black text-gray-900">Notifications</h3>
             <p className="mt-1 text-xs font-semibold text-gray-400">
+              Realtime activity from the system
             </p>
           </div>
 
