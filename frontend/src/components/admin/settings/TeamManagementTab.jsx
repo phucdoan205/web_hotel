@@ -1,9 +1,10 @@
 import React, { useDeferredValue, useEffect, useMemo, useState } from "react";
-import axios from "axios";
 import { Edit2, Mail, Search, X } from "lucide-react";
 import StaffWidgets from "../staff/StaffWidgets";
+import { getRoles } from "../../../api/admin/roleApi";
+import { changeStaffRole, getStaffList } from "../../../api/admin/staffApi";
+import { getAvatarPreview } from "../../../utils/avatar";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5291/api";
 const STAFF_ROLE_IDS = [1, 4, 5];
 
 const roleStyles = {
@@ -16,16 +17,6 @@ const roleLabels = {
   1: "Admin",
   4: "HouseKeeping",
   5: "Receptionist",
-};
-
-const getAvatarPreview = (member) => {
-  if (member?.avatarUrl) {
-    return member.avatarUrl;
-  }
-
-  return `https://ui-avatars.com/api/?name=${encodeURIComponent(
-    member?.fullName ?? "Staff",
-  )}&background=F3F4F6&color=111827`;
 };
 
 const TeamManagementTab = () => {
@@ -45,16 +36,14 @@ const TeamManagementTab = () => {
     setError("");
 
     try {
-      const [staffResponse, rolesResponse] = await Promise.all([
-        axios.get(`${API_BASE_URL}/UserManagement/staff`, {
-          params: { includeInactive: true },
-        }),
-        axios.get(`${API_BASE_URL}/Roles`),
+      const [staffList, rolesList] = await Promise.all([
+        getStaffList(true),
+        getRoles(),
       ]);
 
-      setStaff(staffResponse.data ?? []);
+      setStaff(staffList);
       setRoles(
-        (rolesResponse.data ?? []).filter((role) => STAFF_ROLE_IDS.includes(role.id)),
+        rolesList.filter((role) => STAFF_ROLE_IDS.includes(role.id)),
       );
     } catch (fetchError) {
       const responseMessage =
@@ -120,12 +109,7 @@ const TeamManagementTab = () => {
     setError("");
 
     try {
-      await axios.put(
-        `${API_BASE_URL}/UserManagement/${editingStaff.id}/change-role`,
-        {
-          newRoleId: Number(selectedRoleId),
-        },
-      );
+      await changeStaffRole(editingStaff.id, Number(selectedRoleId));
 
       const selectedRole = roles.find((role) => role.id === Number(selectedRoleId));
 

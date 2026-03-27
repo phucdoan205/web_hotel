@@ -1,18 +1,8 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
 import { Camera } from "lucide-react";
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5291/api";
-
-const getAvatarPreview = (profile) => {
-  if (profile?.avatarUrl) {
-    return profile.avatarUrl;
-  }
-
-  return `https://ui-avatars.com/api/?name=${encodeURIComponent(
-    profile?.fullName ?? "Admin User",
-  )}&background=84cc16&color=111827`;
-};
+import { getMyProfile, updateMyProfile } from "../../../api/admin/profileApi";
+import { uploadUserAvatar } from "../../../api/admin/staffApi";
+import { getAvatarPreview } from "../../../utils/avatar";
 
 const ProfileTab = () => {
   const [profile, setProfile] = useState(null);
@@ -32,13 +22,13 @@ const ProfileTab = () => {
     setMessage("");
 
     try {
-      const response = await axios.get(`${API_BASE_URL}/UserProfile/my-profile`);
-      setProfile(response.data);
+      const profileData = await getMyProfile();
+      setProfile(profileData);
       setAvatarLoadFailed(false);
       setFormData({
-        fullName: response.data?.fullName ?? "",
-        email: response.data?.email ?? "",
-        avatarUrl: response.data?.avatarUrl ?? "",
+        fullName: profileData?.fullName ?? "",
+        email: profileData?.email ?? "",
+        avatarUrl: profileData?.avatarUrl ?? "",
       });
     } catch {
       setMessage("Cannot load profile data.");
@@ -70,21 +60,8 @@ const ProfileTab = () => {
     setMessage("");
 
     try {
-      const payload = new FormData();
-      payload.append("file", file);
-      payload.append("userId", String(profile.id));
-
-      const response = await axios.post(
-        `${API_BASE_URL}/UserProfile/upload-avatar`,
-        payload,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        },
-      );
-
-      const uploadedUrl = response.data?.url ?? "";
+      const response = await uploadUserAvatar(profile.id, file);
+      const uploadedUrl = response?.url ?? "";
 
       setProfile((current) => ({
         ...current,
@@ -115,7 +92,7 @@ const ProfileTab = () => {
     setMessage("");
 
     try {
-      await axios.put(`${API_BASE_URL}/UserProfile/update-profile`, {
+      await updateMyProfile({
         userId: profile.id,
         fullName: formData.fullName.trim(),
         email: formData.email.trim(),

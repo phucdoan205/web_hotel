@@ -1,5 +1,6 @@
 import React from "react";
 import { Edit2, Trash2 } from "lucide-react";
+import { getAvatarPreview } from "../../../utils/avatar";
 
 const roleStyles = {
   1: "bg-amber-50 text-amber-700",
@@ -11,16 +12,6 @@ const roleLabels = {
   1: "Admin",
   4: "HouseKeeping",
   5: "Receptionist",
-};
-
-const getAvatarUrl = (staff) => {
-  if (staff.avatarUrl) {
-    return staff.avatarUrl;
-  }
-
-  return `https://ui-avatars.com/api/?name=${encodeURIComponent(
-    staff.fullName,
-  )}&background=F3F4F6&color=111827`;
 };
 
 const StaffTable = ({ staff, isLoading, error, onEdit, onDelete }) => {
@@ -82,7 +73,7 @@ const StaffTable = ({ staff, isLoading, error, onEdit, onDelete }) => {
                     </td>
                     <td className="px-6 py-4">
                       <img
-                        src={getAvatarUrl(member)}
+                        src={getAvatarPreview(member, "Staff")}
                         alt={member.fullName}
                         className="size-11 rounded-full object-cover ring-2 ring-gray-100"
                       />

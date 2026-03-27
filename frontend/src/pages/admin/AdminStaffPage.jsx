@@ -1,26 +1,21 @@
 import React, { useDeferredValue, useEffect, useMemo, useState } from "react";
-import axios from "axios";
 import { AlertTriangle, ImageUp, RefreshCw, Search, X } from "lucide-react";
 import StaffTable from "../../components/admin/staff/StaffTable";
 import StaffWidgets from "../../components/admin/staff/StaffWidgets";
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5291/api";
+import { API_BASE_URL } from "../../api/client";
+import {
+  getStaffList,
+  softDeleteStaff,
+  updateStaff,
+  uploadUserAvatar,
+} from "../../api/admin/staffApi";
+import { getAvatarPreview } from "../../utils/avatar";
 
 const emptyForm = {
   fullName: "",
   email: "",
   avatarUrl: "",
   status: true,
-};
-
-const getAvatarPreview = (member) => {
-  if (member?.avatarUrl) {
-    return member.avatarUrl;
-  }
-
-  return `https://ui-avatars.com/api/?name=${encodeURIComponent(
-    member?.fullName ?? "Staff",
-  )}&background=F3F4F6&color=111827`;
 };
 
 const AdminStaffPage = () => {
@@ -41,11 +36,8 @@ const AdminStaffPage = () => {
     setError("");
 
     try {
-      const staffResponse = await axios.get(`${API_BASE_URL}/UserManagement/staff`, {
-        params: { includeInactive: true },
-      });
-
-      setStaff(staffResponse.data ?? []);
+      const staffList = await getStaffList(true);
+      setStaff(staffList);
     } catch (fetchError) {
       const responseMessage =
         fetchError.response?.data?.message || fetchError.response?.data;
@@ -133,21 +125,8 @@ const AdminStaffPage = () => {
     setError("");
 
     try {
-      const payload = new FormData();
-      payload.append("file", file);
-      payload.append("userId", String(editingStaff.id));
-
-      const response = await axios.post(
-        `${API_BASE_URL}/UserProfile/upload-avatar`,
-        payload,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        },
-      );
-
-      const uploadedUrl = response.data?.url ?? "";
+      const response = await uploadUserAvatar(editingStaff.id, file);
+      const uploadedUrl = response?.url ?? "";
 
       setFormData((current) => ({
         ...current,
@@ -192,14 +171,11 @@ const AdminStaffPage = () => {
         status: formData.status,
       };
 
-      const response = await axios.put(
-        `${API_BASE_URL}/UserManagement/${editingStaff.id}`,
-        payload,
-      );
+      const response = await updateStaff(editingStaff.id, payload);
 
       setStaff((current) =>
         current.map((member) =>
-          member.id === editingStaff.id ? response.data : member,
+          member.id === editingStaff.id ? response : member,
         ),
       );
       closeEditModal();
@@ -224,7 +200,7 @@ const AdminStaffPage = () => {
     setError("");
 
     try {
-      await axios.delete(`${API_BASE_URL}/UserManagement/${deletingStaff.id}`);
+      await softDeleteStaff(deletingStaff.id);
 
       setStaff((current) =>
         current.map((member) =>
