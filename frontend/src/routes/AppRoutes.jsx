@@ -5,6 +5,8 @@ import { Routes, Route } from "react-router-dom";
 import MainLayout from "../layouts/MainLayout";
 import AdminLayout from "../layouts/AdminLayout";
 import ReceptionistLayout from "../layouts/ReceptionistLayout";
+import HousekeepingLayout from "../layouts/HousekeepingLayout";
+import GuestLayout from "../layouts/GuestLayout";
 
 // Pages landings   
 import HomePage from "../pages/public/HomePage";
@@ -37,9 +39,30 @@ import ReceptionistSettingsPage from "../pages/receptionist/ReceptionistSettings
 import ReceptionistPOSServicePage from "../pages/receptionist/ReceptionistPOSServicePage";
 import ReceptionistDashboardPage from "../pages/receptionist/ReceptionistDashboardPage";
 
+// Pages housekeeping
+import HousekeepingSettingsPage from "../pages/housekeeping/HousekeepingSettingsPage";
+import HousekeepingDashboardPage from "../pages/housekeeping/HousekeepingDashboardPage";
+import HousekeepingRoomListPage from "../pages/housekeeping/HousekeepingRoomListPage";
+import HousekeepingRoomInspectionDetailPage from "../pages/housekeeping/HousekeepingRoomInspectionDetailPage";
+import HousekeepingReportsPage from "../pages/housekeeping/HousekeepingReportsPage";
+import HousekeepingTasksPage from "../pages/housekeeping/HousekeepingTasksPage";
+import HousekeepingInventoryManagementPage from "../pages/housekeeping/HousekeepingInventoryManagementPage";
+import HousekeepingStaffManagementPage from "../pages/housekeeping/HousekeepingStaffManagementPage";
+
+// Pages guest
+import GuestSettingsPage from "../pages/guest/GuestSettingsPage";
+import GuestDashboardPage from "../pages/guest/GuestDashboardPage";
+import GuestMyBookingsPage from "../pages/guest/GuestMyBookingsPage";
+import GuestMyReviewsPage from "../pages/guest/GuestMyReviewsPage";
+import GuestInRoomDiningPage from "../pages/guest/GuestInRoomDiningPage";
+import GuestBookingDetailPage from "../pages/guest/GuestBookingDetailPage";;
+import GuestPaymentMethodsPage from "../pages/guest/GuestPaymentMethodsPage";
+import GuestVoucherPage from "../pages/guest/GuestVoucherPage";
+import GuestMyFavoritesPage from "../pages/guest/GuestMyFavoritesPage";
+import GuestCustomerSupportPage from "../pages/guest/GuestCustomerSupportPage";
 
 
-
+// AppRoutes định nghĩa tất cả các route của ứng dụng, phân chia rõ ràng giữa các loại người dùng và layout tương ứng
 const AppRoutes = () => {
   return (
     <Routes>
@@ -84,6 +107,34 @@ const AppRoutes = () => {
         <Route path="room-status" element={<ReceptionistRoomStatusPage />} />
         <Route path="settings" element={<ReceptionistSettingsPage />} />
         <Route path="pos" element={<ReceptionistPOSServicePage />} />
+      </Route>
+
+      {/* 5. Housekeeping Routes (Dùng HousekeepingLayout) */}
+      <Route path="/housekeeping" element={<HousekeepingLayout />}>
+        <Route index element={<HousekeepingDashboardPage />} />
+        <Route path="dashboard" element={<HousekeepingDashboardPage />} />
+        <Route path="rooms" element={<HousekeepingRoomListPage />} />
+        <Route path="inspections" element={<HousekeepingRoomInspectionDetailPage />} />
+        <Route path="reports" element={<HousekeepingReportsPage />} />
+        <Route path="tasks" element={<HousekeepingTasksPage />} />
+        <Route path="inventory" element={<HousekeepingInventoryManagementPage />} />
+        <Route path="staff" element={<HousekeepingStaffManagementPage />} />
+        <Route path="settings" element={<HousekeepingSettingsPage />} />
+      </Route>
+
+      {/* 6. Guest Routes (Dùng GuestLayout) */}
+      <Route path="/guest" element={<GuestLayout />}>
+        <Route index element={<GuestDashboardPage />} />
+        <Route path="dashboard" element={<GuestDashboardPage />} />
+        <Route path="bookings" element={<GuestMyBookingsPage />} />
+        <Route path="reviews" element={<GuestMyReviewsPage />} />
+        <Route path="dining" element={<GuestInRoomDiningPage />} />
+        <Route path="booking/:id" element={<GuestBookingDetailPage />} />
+        <Route path="payments" element={<GuestPaymentMethodsPage />} />
+        <Route path="vouchers" element={<GuestVoucherPage />} />
+        <Route path="favorites" element={<GuestMyFavoritesPage />} />
+        <Route path="support" element={<GuestCustomerSupportPage />} />
+        <Route path="settings" element={<GuestSettingsPage />} />
       </Route>
 
       {/* 404 Route */}
