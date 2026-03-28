@@ -4,14 +4,23 @@ import { loginWithEmail, loginWithGoogle } from "../api/auth/authApi";
 import { saveAuth } from "../utils/authStorage";
 
 const resolveRedirectPath = (role) => {
-  const normalizedRole = role?.toLowerCase();
+  const normalizedRole = role?.trim().toLowerCase();
 
-  if (normalizedRole === "receptionist") {
+  if (
+    normalizedRole === "receptionist" ||
+    normalizedRole === "front desk" ||
+    normalizedRole === "frontdesk" ||
+    normalizedRole === "le tan"
+  ) {
     return "/receptionist/dashboard";
   }
 
-  if (normalizedRole === "admin" || normalizedRole === "housekeeping") {
+  if (normalizedRole === "admin") {
     return "/admin/dashboard";
+  }
+
+  if (normalizedRole === "housekeeping") {
+    return "/housekeeping/dashboard";
   }
 
   return "/";
