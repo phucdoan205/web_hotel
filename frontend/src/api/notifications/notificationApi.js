@@ -3,7 +3,7 @@ import { getStoredAuth } from "../../utils/authStorage";
 
 const getCurrentUserId = () => getStoredAuth()?.userId ?? null;
 
-export const getNotifications = async (take = 10) => {
+export const getNotifications = async (take = 3) => {
   const userId = getCurrentUserId();
   const response = await apiClient.get("/Notifications", {
     params: {

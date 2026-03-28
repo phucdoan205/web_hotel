@@ -20,7 +20,6 @@ namespace backend.Controllers
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly IConfiguration _configuration;
         private readonly NotificationService _notificationService;
-
         public AuthController(
             AppDbContext context,
             IJwtService jwtService,
@@ -53,14 +52,6 @@ namespace backend.Controllers
             {
                 return Unauthorized(new { message = "Email or password is incorrect." });
             }
-
-            await _notificationService.CreateAsync(
-                "User Login",
-                $"{user.FullName} has signed in with email.",
-                "Info",
-                user.Role?.Name?.Equals("Admin", StringComparison.OrdinalIgnoreCase) == true
-                    ? "/admin/dashboard"
-                    : "/");
 
             return Ok(BuildAuthResponse(user));
         }
@@ -143,14 +134,6 @@ namespace backend.Controllers
             {
                 await _context.SaveChangesAsync();
             }
-
-            await _notificationService.CreateAsync(
-                "Google Login",
-                $"{user.FullName} has signed in with Google.",
-                "Info",
-                user.Role?.Name?.Equals("Admin", StringComparison.OrdinalIgnoreCase) == true
-                    ? "/admin/dashboard"
-                    : "/");
 
             return Ok(BuildAuthResponse(user));
         }

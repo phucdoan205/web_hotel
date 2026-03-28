@@ -58,7 +58,7 @@ const AdminNotificationBell = () => {
 
     const loadNotifications = async () => {
       try {
-        const items = await getNotifications(12);
+        const items = await getNotifications(3);
         if (isMounted) {
           setNotifications(items);
         }
@@ -94,7 +94,7 @@ const AdminNotificationBell = () => {
             ...current.filter((item) => item.id !== notification.id),
           ];
 
-          return next.slice(0, 12);
+          return next.slice(0, 3);
         });
       } catch {
         // Ignore malformed events and keep the stream alive.
