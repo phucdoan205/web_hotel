@@ -23,7 +23,16 @@ const resolveRedirectPath = (role) => {
     return "/housekeeping/dashboard";
   }
 
-  return "/";
+  if (
+    !normalizedRole ||
+    normalizedRole === "guest" ||
+    normalizedRole === "customer" ||
+    normalizedRole === "user"
+  ) {
+    return "/guest/dashboard";
+  }
+
+  return "/guest/dashboard";
 };
 
 export const useLogin = () => {
