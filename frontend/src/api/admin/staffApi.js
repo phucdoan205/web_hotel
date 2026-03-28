@@ -13,6 +13,11 @@ export const getStaffById = async (staffId) => {
   return response.data;
 };
 
+export const createStaff = async (payload) => {
+  const response = await apiClient.post("/UserManagement", payload);
+  return response.data;
+};
+
 export const updateStaff = async (staffId, payload) => {
   const response = await apiClient.put(`/UserManagement/${staffId}`, payload);
   return response.data;

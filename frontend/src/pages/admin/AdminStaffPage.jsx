@@ -1,9 +1,10 @@
 import React, { useDeferredValue, useEffect, useMemo, useState } from "react";
-import { ImageUp, RefreshCw, Search, X } from "lucide-react";
+import { ImageUp, RefreshCw, Search, UserPlus, X } from "lucide-react";
 import StaffTable from "../../components/admin/staff/StaffTable";
 import StaffWidgets from "../../components/admin/staff/StaffWidgets";
 import { API_BASE_URL } from "../../api/client";
 import {
+  createStaff,
   getStaffById,
   getStaffList,
   updateStaff,
@@ -15,9 +16,11 @@ import { getAvatarPreview } from "../../utils/avatar";
 const emptyForm = {
   fullName: "",
   email: "",
+  phone: "",
   avatarUrl: "",
   dateOfBirth: "",
   roleId: "",
+  password: "",
 };
 
 const STAFF_ROLE_IDS = [1, 4, 5];
@@ -55,8 +58,13 @@ const AdminStaffPage = () => {
   const [isLoadingEditDetail, setIsLoadingEditDetail] = useState(false);
   const [error, setError] = useState("");
   const [editingStaff, setEditingStaff] = useState(null);
+  const [modalMode, setModalMode] = useState(null);
   const [formData, setFormData] = useState(emptyForm);
+  const [pendingAvatarFile, setPendingAvatarFile] = useState(null);
+  const [pendingAvatarPreview, setPendingAvatarPreview] = useState("");
   const deferredSearchTerm = useDeferredValue(searchTerm);
+  const isCreateMode = modalMode === "create";
+  const isEditMode = modalMode === "edit";
 
   const loadStaffPageData = async () => {
     setIsLoading(true);
@@ -113,14 +121,17 @@ const AdminStaffPage = () => {
 
   const openEditModal = async (member) => {
     setError("");
+    setModalMode("edit");
     setEditingStaff(member);
     setIsLoadingEditDetail(true);
     setFormData({
       fullName: member.fullName ?? "",
       email: member.email ?? "",
+      phone: member.phone ?? "",
       avatarUrl: member.avatarUrl ?? "",
       dateOfBirth: formatDateForInput(member.dateOfBirth),
       roleId: member.roleId ? String(member.roleId) : "",
+      password: "",
     });
 
     try {
@@ -130,9 +141,11 @@ const AdminStaffPage = () => {
       setFormData({
         fullName: staffDetail.fullName ?? "",
         email: staffDetail.email ?? "",
+        phone: staffDetail.phone ?? "",
         avatarUrl: staffDetail.avatarUrl ?? "",
         dateOfBirth: formatDateForInput(staffDetail.dateOfBirth),
         roleId: staffDetail.roleId ? String(staffDetail.roleId) : "",
+        password: "",
       });
     } catch (fetchDetailError) {
       // Keep the modal usable with row data if detail endpoint is unavailable.
@@ -142,10 +155,28 @@ const AdminStaffPage = () => {
   };
 
   const closeEditModal = () => {
+    if (pendingAvatarPreview) {
+      URL.revokeObjectURL(pendingAvatarPreview);
+    }
+
     setEditingStaff(null);
+    setModalMode(null);
     setFormData(emptyForm);
     setIsUploadingAvatar(false);
     setIsLoadingEditDetail(false);
+    setPendingAvatarFile(null);
+    setPendingAvatarPreview("");
+  };
+
+  const openCreateModal = () => {
+    setError("");
+    setEditingStaff(null);
+    setModalMode("create");
+    setIsUploadingAvatar(false);
+    setIsLoadingEditDetail(false);
+    setFormData(emptyForm);
+    setPendingAvatarFile(null);
+    setPendingAvatarPreview("");
   };
 
   const handleFormChange = (event) => {
@@ -159,7 +190,7 @@ const AdminStaffPage = () => {
   const handleAvatarUpload = async (event) => {
     const file = event.target.files?.[0];
 
-    if (!file || !editingStaff) {
+    if (!file || !editingStaff || !isEditMode) {
       return;
     }
 
@@ -195,10 +226,27 @@ const AdminStaffPage = () => {
     }
   };
 
+  const handleCreateAvatarSelect = (event) => {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    if (pendingAvatarPreview) {
+      URL.revokeObjectURL(pendingAvatarPreview);
+    }
+
+    const previewUrl = URL.createObjectURL(file);
+    setPendingAvatarFile(file);
+    setPendingAvatarPreview(previewUrl);
+    event.target.value = "";
+  };
+
   const handleSaveEdit = async (event) => {
     event.preventDefault();
 
-    if (!editingStaff) {
+    if (!isCreateMode && !editingStaff) {
       return;
     }
 
@@ -209,10 +257,47 @@ const AdminStaffPage = () => {
       const payload = {
         fullName: formData.fullName.trim(),
         email: formData.email.trim(),
+        phone: formData.phone.trim() || null,
         avatarUrl: formData.avatarUrl || null,
         dateOfBirth: formData.dateOfBirth || null,
         roleId: formData.roleId ? Number(formData.roleId) : null,
       };
+
+      if (formData.password.trim()) {
+        payload.password = formData.password.trim();
+      }
+
+      if (isCreateMode) {
+        if (!payload.password) {
+          setError("Password is required to create a staff account.");
+          setIsSubmitting(false);
+          return;
+        }
+
+        const response = await createStaff(payload);
+        let avatarUrl = response.avatarUrl ?? null;
+
+        if (pendingAvatarFile) {
+          const uploadResponse = await uploadUserAvatar(response.id, pendingAvatarFile);
+          avatarUrl = uploadResponse?.url ?? avatarUrl;
+        }
+
+        const selectedRole = roleOptions.find(
+          (role) => String(role.id) === formData.roleId,
+        );
+
+        setStaff((current) => [
+          {
+            ...response,
+            avatarUrl,
+            roleName: response.roleName ?? selectedRole?.name ?? null,
+            phone: response.phone ?? payload.phone,
+          },
+          ...current,
+        ]);
+        closeEditModal();
+        return;
+      }
 
       const response = await updateStaff(editingStaff.id, payload);
 
@@ -311,14 +396,24 @@ const AdminStaffPage = () => {
               />
             </div>
           </div>
-          <button
-            type="button"
-            onClick={loadStaffPageData}
-            className="flex items-center gap-2 px-6 py-3 bg-orange-600 rounded-2xl text-sm font-bold text-white hover:bg-orange-700 transition-all shadow-lg shadow-orange-100"
-          >
-            <RefreshCw className="size-5" />
-            Refresh List
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={openCreateModal}
+              className="flex items-center gap-2 px-6 py-3 bg-sky-600 rounded-2xl text-sm font-bold text-white hover:bg-sky-700 transition-all shadow-lg shadow-sky-100"
+            >
+              <UserPlus className="size-5" />
+              Add Staff Account
+            </button>
+            <button
+              type="button"
+              onClick={loadStaffPageData}
+              className="flex items-center gap-2 px-6 py-3 bg-orange-600 rounded-2xl text-sm font-bold text-white hover:bg-orange-700 transition-all shadow-lg shadow-orange-100"
+            >
+              <RefreshCw className="size-5" />
+              Refresh List
+            </button>
+          </div>
         </div>
 
         <div className="mt-8">
@@ -350,14 +445,18 @@ const AdminStaffPage = () => {
         />
       </div>
 
-      {editingStaff ? (
+      {modalMode ? (
         <div className="fixed inset-0 z-50 bg-slate-950/40 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="w-full max-w-2xl rounded-[2rem] bg-white shadow-2xl border border-gray-100 overflow-hidden">
             <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
               <div>
-                <h2 className="text-xl font-black text-gray-900">Edit Staff</h2>
+                <h2 className="text-xl font-black text-gray-900">
+                  {isCreateMode ? "Add Staff Account" : "Edit Staff"}
+                </h2>
                 <p className="text-sm font-semibold text-gray-400 mt-1">
-                  Update staff profile, avatar, role and date of birth.
+                  {isCreateMode
+                    ? "Create a new staff account for admin, housekeeping or receptionist."
+                    : "Update staff profile, avatar, role and date of birth."}
                 </p>
               </div>
               <button
@@ -370,7 +469,7 @@ const AdminStaffPage = () => {
             </div>
 
             <form onSubmit={handleSaveEdit} className="p-6 space-y-6">
-              {isLoadingEditDetail ? (
+              {isEditMode && isLoadingEditDetail ? (
                 <div className="rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-600">
                   Loading staff detail...
                 </div>
@@ -380,27 +479,42 @@ const AdminStaffPage = () => {
                 <img
                   src={getAvatarPreview({
                     fullName: formData.fullName,
-                    avatarUrl: formData.avatarUrl,
+                    avatarUrl: isCreateMode
+                      ? pendingAvatarPreview || formData.avatarUrl
+                      : formData.avatarUrl,
                   })}
                   alt={formData.fullName}
                   className="size-24 rounded-full object-cover ring-4 ring-orange-50"
                 />
 
-                <label className="inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-slate-100 text-sm font-bold text-slate-700 hover:bg-slate-200 transition-all cursor-pointer">
-                  <ImageUp className="size-4" />
-                  {isUploadingAvatar ? "Uploading..." : "Upload New Avatar"}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleAvatarUpload}
-                    className="hidden"
-                    disabled={isUploadingAvatar}
-                  />
-                </label>
+                {isEditMode ? (
+                  <label className="inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-slate-100 text-sm font-bold text-slate-700 hover:bg-slate-200 transition-all cursor-pointer">
+                    <ImageUp className="size-4" />
+                    {isUploadingAvatar ? "Uploading..." : "Upload New Avatar"}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleAvatarUpload}
+                      className="hidden"
+                      disabled={isUploadingAvatar}
+                    />
+                  </label>
+                ) : isCreateMode ? (
+                  <label className="inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-slate-100 text-sm font-bold text-slate-700 hover:bg-slate-200 transition-all cursor-pointer">
+                    <ImageUp className="size-4" />
+                    Choose Avatar
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleCreateAvatarSelect}
+                      className="hidden"
+                    />
+                  </label>
+                ) : null}
 
-                {formData.avatarUrl ? (
+                {formData.avatarUrl || pendingAvatarPreview ? (
                   <p className="text-xs font-semibold text-gray-400 text-center break-all">
-                    Cloudinary URL updated
+                    {isEditMode ? "Cloudinary URL updated" : "Avatar preview ready"}
                   </p>
                 ) : null}
               </div>
@@ -425,6 +539,16 @@ const AdminStaffPage = () => {
                     value={formData.email}
                     onChange={handleFormChange}
                     required
+                    className="rounded-2xl bg-gray-50 border border-gray-200 px-4 py-3 text-sm outline-none focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
+                  />
+                </label>
+
+                <label className="flex flex-col gap-2">
+                  <span className="text-sm font-bold text-gray-700">Phone</span>
+                  <input
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleFormChange}
                     className="rounded-2xl bg-gray-50 border border-gray-200 px-4 py-3 text-sm outline-none focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
                   />
                 </label>
@@ -456,6 +580,25 @@ const AdminStaffPage = () => {
                     ))}
                   </select>
                 </label>
+
+                <label className="flex flex-col gap-2 md:col-span-2">
+                  <span className="text-sm font-bold text-gray-700">
+                    {isCreateMode ? "Password" : "New Password"}
+                  </span>
+                  <input
+                    type="password"
+                    name="password"
+                    value={formData.password}
+                    onChange={handleFormChange}
+                    required={isCreateMode}
+                    placeholder={
+                      isCreateMode
+                        ? "Enter initial password"
+                        : "Leave blank to keep current password"
+                    }
+                    className="rounded-2xl bg-gray-50 border border-gray-200 px-4 py-3 text-sm outline-none focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
+                  />
+                </label>
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-2">
@@ -471,7 +614,11 @@ const AdminStaffPage = () => {
                   disabled={isSubmitting || isUploadingAvatar}
                   className="px-5 py-3 rounded-2xl text-sm font-bold text-white bg-orange-600 hover:bg-orange-700 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  {isSubmitting ? "Saving..." : "Save Changes"}
+                  {isSubmitting
+                    ? "Saving..."
+                    : isCreateMode
+                      ? "Create Account"
+                      : "Save Changes"}
                 </button>
               </div>
             </form>
