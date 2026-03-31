@@ -8,6 +8,8 @@ namespace backend.DTOs.User
         public string FullName { get; set; } = null!;
         public string Email { get; set; } = null!;
         public string? Phone { get; set; }
+        public string? AvatarUrl { get; set; }
+        public string? RoleName { get; set; }
         public bool? Status { get; set; }
     }
 }

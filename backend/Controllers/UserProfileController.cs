@@ -15,11 +15,16 @@ namespace backend.Controllers
     {
         private readonly AppDbContext _context;
         private readonly CloudinaryService _cloudinaryService;
+        private readonly NotificationService _notificationService;
 
-        public UserProfileController(AppDbContext context, CloudinaryService cloudinaryService)
+        public UserProfileController(
+            AppDbContext context,
+            CloudinaryService cloudinaryService,
+            NotificationService notificationService)
         {
             _context = context;
             _cloudinaryService = cloudinaryService;
+            _notificationService = notificationService;
         }
 
         private int ResolveUserId(int? userId)
@@ -60,7 +65,10 @@ namespace backend.Controllers
         public async Task<ActionResult<UserProfileResponseDTO>> MyProfile([FromQuery] int? userId = null)
         {
             var id = ResolveUserId(userId);
-            var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == id);
+            var user = await _context.Users
+                .AsNoTracking()
+                .Include(u => u.Role)
+                .FirstOrDefaultAsync(u => u.Id == id);
             if (user == null) return NotFound();
 
             return new UserProfileResponseDTO
@@ -71,6 +79,8 @@ namespace backend.Controllers
                 FullName = user.FullName,
                 Email = user.Email,
                 Phone = user.Phone,
+                AvatarUrl = user.AvatarUrl,
+                RoleName = user.Role?.Name,
                 Status = user.Status
             };
         }
@@ -87,6 +97,13 @@ namespace backend.Controllers
             if (request.Phone != null) user.Phone = request.Phone;
 
             await _context.SaveChangesAsync();
+
+            await _notificationService.CreateAsync(
+                "Profile Updated",
+                $"{user.FullName} updated their profile information.",
+                "Info",
+                "/admin/settings");
+
             return NoContent();
         }
 
@@ -132,6 +149,12 @@ namespace backend.Controllers
             user.AvatarUrl = uploadedUrl;
             await _context.SaveChangesAsync();
             await _cloudinaryService.DeleteImageByUrlAsync(oldAvatarUrl);
+
+            await _notificationService.CreateAsync(
+                "Avatar Updated",
+                $"{user.FullName} updated their profile photo.",
+                "Info",
+                "/admin/settings");
 
             return Ok(new UploadAvatarResponseDTO
             {
