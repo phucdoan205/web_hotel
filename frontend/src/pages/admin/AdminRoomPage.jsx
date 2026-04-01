@@ -1,74 +1,124 @@
+// AdminRoomsPage.jsx
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { roomApi } from '../../api/admin/roomApi';
-import { DataGrid } from '@mui/x-data-grid';
-import { Button, Tabs, Tab, Box, Typography } from '@mui/material';
+import { Box, Typography, Tabs, Tab, Button } from '@mui/material';
+
+import RoomTable from '../../components/admin/rooms/RoomTable';
 import BulkCreateModal from '../../components/admin/rooms/BulkCreateModal';
 import CleaningModal from '../../components/admin/rooms/CleaningModal';
+import RoomDetailModal from '../../components/admin/rooms/RoomDetailModal';
 import RoomForm from '../../components/admin/rooms/RoomForm';
 
 export default function AdminRoomsPage() {
   const queryClient = useQueryClient();
+
   const [tab, setTab] = useState(0);
   const [openBulk, setOpenBulk] = useState(false);
   const [openCleaning, setOpenCleaning] = useState(false);
+  const [openDetail, setOpenDetail] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState(null);
 
-  const { data: rooms } = useQuery({
+  // Fetch danh sách phòng
+  const { data: rooms = [], isLoading } = useQuery({
     queryKey: ['rooms'],
-    queryFn: () => roomApi.getRooms().then(r => r.data.items || []),
+    queryFn: async () => {
+      const res = await roomApi.getRooms();
+      return res.data?.items || res.data || [];
+    },
   });
 
+  // Mutation cập nhật trạng thái dọn phòng
   const updateCleaningMutation = useMutation({
     mutationFn: ({ id, status }) => roomApi.updateCleaningStatus(id, status),
-    onSuccess: () => queryClient.invalidateQueries(['rooms']),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['rooms']);
+    },
   });
 
-  const columns = [
-    { field: 'roomNumber', headerName: 'Số phòng', width: 120 },
-    { field: 'roomTypeName', headerName: 'Loại phòng', width: 180 },
-    { field: 'status', headerName: 'Trạng thái', width: 130 },
-    { field: 'cleaningStatus', headerName: 'Dọn phòng', width: 130 },
-    {
-      field: 'actions',
-      headerName: 'Hành động',
-      width: 300,
-      renderCell: (params) => (
-        <>
-          <Button size="small" onClick={() => { setSelectedRoom(params.row); setOpenCleaning(true); }}>Dọn phòng</Button>
-          <Button size="small" color="secondary" onClick={() => alert(`Xem chi tiết phòng ${params.row.roomNumber}`)}>Chi tiết</Button>
-        </>
-      ),
-    },
-  ];
+  // Xử lý mở modal chi tiết
+  const handleOpenDetail = (room) => {
+    setSelectedRoom(room);
+    setOpenDetail(true);
+  };
+
+  // Xử lý mở modal dọn phòng
+  const handleOpenCleaning = (room) => {
+    setSelectedRoom(room);
+    setOpenCleaning(true);
+  };
 
   return (
     <Box p={3}>
-      <Typography variant="h4">Quản lý Phòng</Typography>
+      <Typography variant="h4" fontWeight="bold" gutterBottom>
+        Quản lý Phòng
+      </Typography>
 
-      <Tabs value={tab} onChange={(e, v) => setTab(v)} sx={{ mb: 3 }}>
+      <Tabs
+        value={tab}
+        onChange={(e, newValue) => setTab(newValue)}
+        sx={{ mb: 4, borderBottom: 1, borderColor: 'divider' }}
+      >
         <Tab label="Danh sách phòng" />
-        <Tab label="Tạo phòng nhanh" />
+        <Tab label="Tạo phòng mới" />
       </Tabs>
 
+      {/* Tab 0: Danh sách phòng */}
       {tab === 0 && (
         <>
-          <Button variant="contained" onClick={() => setOpenBulk(true)}>Tạo nhiều phòng (Bulk)</Button>
-          <DataGrid rows={rooms || []} columns={columns} getRowId={row => row.id} />
+          <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+            <Typography variant="h6">
+              Tổng số phòng: <strong>{rooms.length}</strong>
+            </Typography>
+            <Button
+              variant="contained"
+              onClick={() => setOpenBulk(true)}
+              size="large"
+            >
+              + Tạo nhiều phòng (Bulk)
+            </Button>
+          </Box>
+
+          <RoomTable
+            rooms={rooms}
+            onClean={handleOpenCleaning}
+            onDetail={handleOpenDetail}
+          />
         </>
       )}
 
-      {tab === 1 && <RoomForm onSuccess={() => queryClient.invalidateQueries(['rooms'])} />}
+      {/* Tab 1: Tạo phòng đơn lẻ */}
+      {tab === 1 && (
+        <RoomForm
+          onSuccess={() => queryClient.invalidateQueries(['rooms'])}
+        />
+      )}
 
-      <BulkCreateModal open={openBulk} onClose={() => setOpenBulk(false)} />
+      {/* Modals */}
+      <BulkCreateModal
+        open={openBulk}
+        onClose={() => setOpenBulk(false)}
+      />
+
       <CleaningModal
         open={openCleaning}
         room={selectedRoom}
         onClose={() => setOpenCleaning(false)}
         onSave={(status) => {
-          updateCleaningMutation.mutate({ id: selectedRoom.id, status });
+          if (selectedRoom) {
+            updateCleaningMutation.mutate({
+              id: selectedRoom.id,
+              status
+            });
+          }
           setOpenCleaning(false);
         }}
+      />
+
+      <RoomDetailModal
+        open={openDetail}
+        onClose={() => setOpenDetail(false)}
+        room={selectedRoom}
       />
     </Box>
   );
