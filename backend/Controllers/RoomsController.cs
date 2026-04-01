@@ -18,6 +18,11 @@ namespace backend.Controllers
         private readonly AppDbContext _context;
         private readonly IMapper _mapper;
 
+        public RoomsController(AppDbContext context, IMapper mapper)
+        {
+            _context = context;
+            _mapper = mapper;
+        }
 
         // GET: api/rooms
         [HttpGet]

@@ -12,8 +12,8 @@ using backend.Data;
 namespace backend.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260326130519_updb")]
-    partial class updb
+    [Migration("20260331145011_ChaylaiDB")]
+    partial class ChaylaiDB
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
