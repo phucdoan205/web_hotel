@@ -134,19 +134,11 @@ namespace backend.Controllers
         [HttpPost]
         public async Task<ActionResult<RoomTypeDetailDTO>> Create([FromBody] CreateRoomTypeDTO dto)
         {
-<<<<<<< HEAD
-            //var validation = await _createValidator.ValidateAsync(dto);
-            //if (!validation.IsValid)
-            //{
-            //    return BadRequest(validation.Errors);
-            //}
-=======
 
             if (await _context.RoomTypes.AnyAsync(rt => rt.Name == dto.Name.Trim()))
             {
                 return BadRequest("Tên loại phòng đã tồn tại");
             }
->>>>>>> 57934bd21653d36fd77877b8740ddbba81ea6645
 
             var roomType = _mapper.Map<RoomType>(dto);
 
