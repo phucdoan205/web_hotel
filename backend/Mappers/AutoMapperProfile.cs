@@ -37,6 +37,9 @@ namespace backend.Mappers
 
             CreateMap<RoomInventory, RoomInventoryDTO>()
                 .ForMember(dest => dest.RoomId, opt => opt.MapFrom(src => src.RoomId ?? 0))
+                .ForMember(dest => dest.EquipmentId, opt => opt.MapFrom(src => src.EquipmentId))
+                .ForMember(dest => dest.EquipmentName, opt => opt.MapFrom(src => src.Equipment != null ? src.Equipment.Name : null))
+                .ForMember(dest => dest.EquipmentCode, opt => opt.MapFrom(src => src.Equipment != null ? src.Equipment.ItemCode : null))
                 .ForMember(dest => dest.RoomNumber, opt => opt.MapFrom(src => src.Room != null ? src.Room.RoomNumber : null));
             CreateMap<CreateRoomInventoryDTO, RoomInventory>();
             CreateMap<UpdateRoomInventoryDTO, RoomInventory>()

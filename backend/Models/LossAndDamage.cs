@@ -12,8 +12,7 @@ namespace backend.Models
         public decimal PenaltyAmount { get; set; }
         public string? Description { get; set; }
         public DateTime? CreatedAt { get; set; }
-        public bool Status { get; set; } = false;
-        public DateTime? ResolvedAt { get; set; }
+        public string? ImageUrl { get; set; }
 
         public BookingDetail? BookingDetail { get; set; }
         public RoomInventory? RoomInventory { get; set; }

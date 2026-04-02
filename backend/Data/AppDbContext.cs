@@ -22,6 +22,7 @@ namespace backend.Data
         public DbSet<Room> Rooms { get; set; }
         public DbSet<RoomTypeAmenity> RoomTypeAmenities { get; set; }
         public DbSet<RoomImage> RoomImages { get; set; }
+        public DbSet<Equipment> Equipments { get; set; }
         public DbSet<RoomInventory> RoomInventory { get; set; }
 
         public DbSet<ArticleCategory> ArticleCategories { get; set; }
@@ -76,6 +77,76 @@ namespace backend.Data
                     .WithMany(u => u.Notifications)
                     .HasForeignKey(n => n.UserId)
                     .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            modelBuilder.Entity<Equipment>(entity =>
+            {
+                entity.Property(e => e.ItemCode)
+                    .HasColumnType("varchar(50)");
+
+                entity.Property(e => e.Name)
+                    .HasColumnType("nvarchar(255)");
+
+                entity.Property(e => e.Category)
+                    .HasColumnType("nvarchar(100)");
+
+                entity.Property(e => e.Unit)
+                    .HasColumnType("nvarchar(50)");
+
+                entity.Property(e => e.BasePrice)
+                    .HasColumnType("decimal(18,2)");
+
+                entity.Property(e => e.DefaultPriceIfLost)
+                    .HasColumnType("decimal(18,2)");
+
+                entity.Property(e => e.Supplier)
+                    .HasColumnType("nvarchar(255)");
+
+                entity.Property(e => e.CreatedAt)
+                    .HasColumnType("datetime");
+
+                entity.Property(e => e.UpdatedAt)
+                    .HasColumnType("datetime");
+
+                entity.Property(e => e.ImageUrl)
+                    .HasColumnType("nvarchar(max)");
+            });
+
+            modelBuilder.Entity<RoomInventory>(entity =>
+            {
+                entity.Property(ri => ri.PriceIfLost)
+                    .HasColumnType("decimal(18,2)");
+
+                entity.Property(ri => ri.Note)
+                    .HasColumnType("nvarchar(max)");
+
+                entity.Property(ri => ri.ItemType)
+                    .HasColumnType("nvarchar(100)");
+
+                entity.HasOne(ri => ri.Room)
+                    .WithMany(r => r.RoomInventory)
+                    .HasForeignKey(ri => ri.RoomId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasOne(ri => ri.Equipment)
+                    .WithMany(e => e.RoomInventories)
+                    .HasForeignKey(ri => ri.EquipmentId)
+                    .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            modelBuilder.Entity<LossAndDamage>(entity =>
+            {
+                entity.Property(ld => ld.PenaltyAmount)
+                    .HasColumnType("decimal(18,2)");
+
+                entity.Property(ld => ld.Description)
+                    .HasColumnType("nvarchar(max)");
+
+                entity.Property(ld => ld.CreatedAt)
+                    .HasColumnType("datetime");
+
+                entity.Property(ld => ld.ImageUrl)
+                    .HasColumnType("nvarchar(max)");
             });
 
             // Soft-delete
