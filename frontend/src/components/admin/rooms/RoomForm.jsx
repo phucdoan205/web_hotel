@@ -1,8 +1,8 @@
 // RoomForm.jsx
 import { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { roomApi } from '../../../api/admin/roomApi';
-import { TextField, Button, Box, Typography, MenuItem, Select, FormControl, InputLabel } from '@mui/material';
+import { TextField, Button, Box, Typography, MenuItem, Select, FormControl, InputLabel, CircularProgress } from '@mui/material';
 
 export default function RoomForm({ onSuccess }) {
   const queryClient = useQueryClient();
@@ -13,6 +13,23 @@ export default function RoomForm({ onSuccess }) {
     status: 'Available',
     cleaningStatus: 'Dirty',
   });
+
+  const { data: roomTypesResponse, isLoading: loadingTypes } = useQuery({
+    queryKey: ['roomTypes'],
+    queryFn: async () => {
+      const res = await roomApi.getRoomTypes();
+      console.log('RoomTypes API response:', res.data); // debug
+      return res.data;
+    },
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    enabled: true,                    // chỉ fetch khi modal mở
+  });
+
+  // Lấy đúng trường "items" từ PagedResponse
+  const roomTypes = roomTypesResponse?.items && Array.isArray(roomTypesResponse.items)
+    ? roomTypesResponse.items
+    : [];
 
   const mutation = useMutation({
     mutationFn: roomApi.createRoom,
@@ -36,11 +53,25 @@ export default function RoomForm({ onSuccess }) {
 
       <FormControl fullWidth sx={{ mb: 2 }}>
         <InputLabel>Loại phòng</InputLabel>
-        <Select value={form.roomTypeId} onChange={e => setForm({ ...form, roomTypeId: e.target.value })} required>
-          <MenuItem value={1}>Standard</MenuItem>
-          <MenuItem value={2}>Deluxe</MenuItem>
-          <MenuItem value={3}>Suite</MenuItem>
-          {/* Thêm động sau khi có API getRoomTypes */}
+        <Select
+          value={form.roomTypeId}
+          label="Loại phòng"
+          onChange={(e) => setForm({ ...form, roomTypeId: e.target.value })}
+          disabled={loadingTypes}
+        >
+          {loadingTypes ? (
+            <MenuItem disabled>
+              <CircularProgress size={20} sx={{ mr: 1 }} /> Đang tải...
+            </MenuItem>
+          ) : roomTypes.length === 0 ? (
+            <MenuItem disabled>Không có loại phòng</MenuItem>
+          ) : (
+            roomTypes.map((rt) => (
+              <MenuItem key={rt.id} value={rt.id}>
+                {rt.name}
+              </MenuItem>
+            ))
+          )}
         </Select>
       </FormControl>
 
