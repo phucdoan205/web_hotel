@@ -32,22 +32,17 @@ export default function BulkCreateModal({ open, onClose }) {
   const [errorMsg, setErrorMsg] = useState('');
 
   // Fetch Room Types (PagedResponse)
-  const { data: roomTypesResponse, isLoading: loadingTypes } = useQuery({
+  const { data: roomTypes = [], isLoading: loadingTypes } = useQuery({
     queryKey: ['roomTypes'],
     queryFn: async () => {
       const res = await roomApi.getRoomTypes();
       console.log('RoomTypes API response:', res.data); // debug
-      return res.data;
+      return res.data.items || [];
     },
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
     enabled: open,                    // chỉ fetch khi modal mở
   });
-
-  // Lấy đúng trường "items" từ PagedResponse
-  const roomTypes = roomTypesResponse?.items && Array.isArray(roomTypesResponse.items)
-    ? roomTypesResponse.items
-    : [];
 
   const mutation = useMutation({
     mutationFn: (data) => {

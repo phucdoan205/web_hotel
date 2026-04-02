@@ -114,12 +114,12 @@ export default function AdminRoomsPage() {
           setOpenCleaning(false);
         }}
       />
-
+{/* 
       <RoomDetailModal
         open={openDetail}
         onClose={() => setOpenDetail(false)}
         room={selectedRoom}
-      />
+      /> */}
     </Box>
   );
 }

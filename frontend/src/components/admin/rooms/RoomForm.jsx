@@ -14,22 +14,17 @@ export default function RoomForm({ onSuccess }) {
     cleaningStatus: 'Dirty',
   });
 
-  const { data: roomTypesResponse, isLoading: loadingTypes } = useQuery({
+  const { data: roomTypes = [], isLoading: loadingTypes } = useQuery({
     queryKey: ['roomTypes'],
     queryFn: async () => {
       const res = await roomApi.getRoomTypes();
       console.log('RoomTypes API response:', res.data); // debug
-      return res.data;
+      return res.data.items || [];
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 5 * 60 * 60 * 1000,
     refetchOnWindowFocus: false,
-    enabled: true,                    // chỉ fetch khi modal mở
+    enabled: true,
   });
-
-  // Lấy đúng trường "items" từ PagedResponse
-  const roomTypes = roomTypesResponse?.items && Array.isArray(roomTypesResponse.items)
-    ? roomTypesResponse.items
-    : [];
 
   const mutation = useMutation({
     mutationFn: roomApi.createRoom,
