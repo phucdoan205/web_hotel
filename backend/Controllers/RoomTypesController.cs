@@ -1,3 +1,4 @@
+using AutoMapper;
 using backend.Common;
 using backend.Data;
 using backend.DTOs.RoomType;
@@ -13,16 +14,29 @@ namespace backend.Controllers
     public class RoomTypesController : ControllerBase
     {
         private readonly AppDbContext _context;
+<<<<<<< HEAD
+=======
+        private readonly IMapper _mapper;
+>>>>>>> 57934bd21653d36fd77877b8740ddbba81ea6645
         //private readonly IValidator<CreateRoomTypeDTO> _createValidator;
         //private readonly IValidator<UpdateRoomTypeDTO> _updateValidator;
 
         public RoomTypesController(
+<<<<<<< HEAD
             AppDbContext context
+=======
+            AppDbContext context,
+            IMapper mapper
+>>>>>>> 57934bd21653d36fd77877b8740ddbba81ea6645
             //IValidator<CreateRoomTypeDTO> createValidator,
             //IValidator<UpdateRoomTypeDTO> updateValidator
             )
         {
             _context = context;
+<<<<<<< HEAD
+=======
+            _mapper = mapper;
+>>>>>>> 57934bd21653d36fd77877b8740ddbba81ea6645
             //_createValidator = createValidator;
             //_updateValidator = updateValidator;
         }
@@ -116,53 +130,78 @@ namespace backend.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Create([FromBody] CreateRoomTypeDTO dto)
+        // POST: api/RoomTypes
+        [HttpPost]
+        public async Task<ActionResult<RoomTypeDetailDTO>> Create([FromBody] CreateRoomTypeDTO dto)
         {
+<<<<<<< HEAD
             //var validation = await _createValidator.ValidateAsync(dto);
             //if (!validation.IsValid)
             //{
             //    return BadRequest(validation.Errors);
             //}
+=======
 
-            var roomType = new RoomType
+            if (await _context.RoomTypes.AnyAsync(rt => rt.Name == dto.Name.Trim()))
             {
-                Name = dto.Name.Trim(),
-                BasePrice = dto.BasePrice,
-                CapacityAdults = dto.CapacityAdults,
-                CapacityChildren = dto.CapacityChildren,
-                Size = dto.Size,
-                BedType = string.IsNullOrWhiteSpace(dto.BedType) ? null : dto.BedType.Trim(),
-                Description = string.IsNullOrWhiteSpace(dto.Description) ? null : dto.Description.Trim()
-            };
+                return BadRequest("Tên loại phòng đã tồn tại");
+            }
+>>>>>>> 57934bd21653d36fd77877b8740ddbba81ea6645
+
+            var roomType = _mapper.Map<RoomType>(dto);
+
+            var invalidIds = new List<int>();
+            var existingAmenities = new List<int>();
 
             if (dto.AmenityIds?.Any() == true)
             {
-                roomType.RoomTypeAmenities = dto.AmenityIds
-                    .Distinct()
-                    .Select(id => new RoomTypeAmenity { AmenityId = id })
+                existingAmenities = await _context.Amenities
+                    .Where(a => dto.AmenityIds.Contains(a.Id))
+                    .Select(a => a.Id)
+                    .ToListAsync();
+
+                invalidIds = dto.AmenityIds
+                    .Except(existingAmenities)
                     .ToList();
+
+                if (existingAmenities.Any())
+                {
+                    roomType.RoomTypeAmenities = existingAmenities
+                    .Select(id => new RoomTypeAmenity
+                    {
+                        AmenityId = id
+                    })
+                    .ToList();
+                }
             }
 
             if (dto.ImageUrls?.Any() == true)
             {
                 roomType.RoomImages = dto.ImageUrls
-                    .Where(url => !string.IsNullOrWhiteSpace(url))
-                    .Select(url => new RoomImage { ImageUrl = url.Trim() })
+                    .Select(url => new RoomImage
+                    {
+                        ImageUrl = url,
+                        IsPrimary = false
+                    })
                     .ToList();
             }
 
             _context.RoomTypes.Add(roomType);
             await _context.SaveChangesAsync();
 
-            var created = await _context.RoomTypes
-                .Include(rt => rt.RoomTypeAmenities)
-                    .ThenInclude(rta => rta.Amenity)
-                .Include(rt => rt.RoomImages)
-                .Include(rt => rt.Rooms)
-                .AsNoTracking()
-                .FirstAsync(rt => rt.Id == roomType.Id);
+            await _context.Entry(roomType).Collection(rt => rt.RoomTypeAmenities).LoadAsync();
 
-            return CreatedAtAction(nameof(GetRoomType), new { id = roomType.Id }, MapRoomTypeDetail(created));
+            await _context.Entry(roomType).Collection(rt => rt.RoomImages).LoadAsync();
+
+            var createdRoomType = _mapper.Map<RoomTypeDetailDTO>(roomType);
+
+            var result = new
+            {
+                RoomType = createdRoomType,
+                Warning = invalidIds.Any() ? $"Các AmenityId sau không tồn tại và đã bị bỏ qua: {string.Join(", ", invalidIds)}" : null
+            };
+
+            return CreatedAtAction(nameof(GetRoomType), new { id = roomType.Id }, result);
         }
 
         [HttpPut("{id:int}")]
