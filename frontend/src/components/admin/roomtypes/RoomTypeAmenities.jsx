@@ -14,19 +14,29 @@ import {
   Divider,
   Box,
 } from '@mui/material';
-import { Add as AddIcon, Delete as DeleteIcon } from '@mui/icons-material';
+import { 
+  Add as AddIcon, 
+  Delete as DeleteIcon, 
+  DeleteSweep as DeleteSweepIcon,
+  AddCircle as AddCircleIcon 
+} from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { roomApi } from '../../../api/admin/roomApi';
 
 export default function RoomTypeAmenities({ open, onClose, roomTypeId, roomTypeName }) {
   const queryClient = useQueryClient();
 
-  const [selectedAmenity, setSelectedAmenity] = useState(null);
+  const [selectedAmenities, setSelectedAmenities] = useState([]);
+  const [selectedToDelete, setSelectedToDelete] = useState([]);
   const [errorMsg, setErrorMsg] = useState('');
 
-  // Tự động xóa lỗi khi dialog mở
+  // Tự động reset khi mở dialog
   useEffect(() => {
-    if (open) setErrorMsg('');
+    if (open) {
+      setErrorMsg('');
+      setSelectedAmenities([]);
+      setSelectedToDelete([]);
+    }
   }, [open]);
 
   // Lấy danh sách tất cả amenities
@@ -44,63 +54,77 @@ export default function RoomTypeAmenities({ open, onClose, roomTypeId, roomTypeN
     enabled: !!roomTypeId && open,
   });
 
-  // Mutation thêm amenity
+  // Mutation thêm nhiều amenity
   const addMutation = useMutation({
-    mutationFn: ({ roomTypeId, amenityId }) =>
-      roomApi.addAmenityToRoomType(roomTypeId, amenityId),
+    mutationFn: (amenityIds) =>
+      Promise.all(amenityIds.map(id => roomApi.addAmenityToRoomType(roomTypeId, id))),
     onSuccess: () => {
       queryClient.invalidateQueries(['roomTypeAmenities', roomTypeId]);
-      setSelectedAmenity(null);
+      setSelectedAmenities([]);
       setErrorMsg('');
     },
     onError: (err) => {
-      setErrorMsg(
-        err.response?.data?.Message ||
-        err.response?.data?.message ||
-        'Thêm tiện ích thất bại'
-      );
+      setErrorMsg(err.response?.data?.Message || err.response?.data?.message || 'Thêm tiện ích thất bại');
     },
   });
 
-  // Mutation xóa amenity
+  // Mutation xóa nhiều amenity
   const removeMutation = useMutation({
-    mutationFn: ({ roomTypeId, amenityId }) =>
-      roomApi.removeAmenityFromRoomType(roomTypeId, amenityId),
+    mutationFn: (amenityIds) =>
+      Promise.all(amenityIds.map(id => roomApi.removeAmenityFromRoomType(roomTypeId, id))),
     onSuccess: () => {
       queryClient.invalidateQueries(['roomTypeAmenities', roomTypeId]);
+      setSelectedToDelete([]);
       setErrorMsg('');
     },
     onError: (err) => {
-      setErrorMsg(
-        err.response?.data?.Message ||
-        err.response?.data?.message ||
-        'Xóa tiện ích thất bại'
-      );
+      setErrorMsg(err.response?.data?.Message || err.response?.data?.message || 'Xóa tiện ích thất bại');
     },
   });
 
-  const handleAdd = () => {
-    if (!selectedAmenity) return;
-    addMutation.mutate({ roomTypeId, amenityId: selectedAmenity.id });
+  const handleAddSelected = () => {
+    if (selectedAmenities.length === 0) return;
+    const amenityIds = selectedAmenities.map(a => a.id);
+    addMutation.mutate(amenityIds);
   };
 
-  const handleRemove = (amenityId) => {
-    if (confirm('Bạn có chắc muốn xóa tiện ích này khỏi loại phòng?')) {
-      removeMutation.mutate({ roomTypeId, amenityId });
-    }
+  const handleAddAll = () => {
+    if (availableAmenities.length === 0) return;
+    if (!confirm(`Bạn có chắc muốn THÊM HẾT tất cả ${availableAmenities.length} tiện ích còn lại?`)) return;
+
+    const allIds = availableAmenities.map(a => a.id);
+    addMutation.mutate(allIds);
   };
 
+  const handleBulkDelete = () => {
+    if (selectedToDelete.length === 0) return;
+    if (!confirm(`Bạn có chắc muốn xóa ${selectedToDelete.length} tiện ích đã chọn?`)) return;
+    removeMutation.mutate(selectedToDelete);
+  };
+
+  const handleDeleteAll = () => {
+    if (currentAmenities.length === 0) return;
+    if (!confirm(`Bạn có chắc muốn XÓA HẾT tất cả ${currentAmenities.length} tiện ích của loại phòng này?`)) return;
+    
+    const allIds = currentAmenities.map(item => item.id);
+    removeMutation.mutate(allIds);
+  };
+
+  const toggleDeleteSelection = (amenityId) => {
+    setSelectedToDelete(prev =>
+      prev.includes(amenityId)
+        ? prev.filter(id => id !== amenityId)
+        : [...prev, amenityId]
+    );
+  };
+
+  // Amenity chưa được thêm vào RoomType
   const availableAmenities = allAmenities.filter(
     a => !currentAmenities.some(ca => ca.id === a.id)
   );
 
   return (
-    <Dialog 
-      open={open} 
-      onClose={onClose} 
-      maxWidth="lg"           // Tăng từ md → lg để rộng hơn trên máy tính
-      fullWidth
-    >
+    <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
       <DialogTitle sx={{ pb: 1 }}>
         Quản lý Tiện ích - {roomTypeName}
       </DialogTitle>
@@ -112,64 +136,100 @@ export default function RoomTypeAmenities({ open, onClose, roomTypeId, roomTypeN
           </Alert>
         )}
 
-        {/* === PHẦN THÊM TIỆN ÍCH - ĐÃ LÀM RỘNG TỐI ĐA === */}
+        {/* === THÊM TIỆN ÍCH === */}
         <Box sx={{ mb: 5 }}>
           <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
             Thêm tiện ích
           </Typography>
 
-          <Box sx={{ 
-            display: 'flex', 
-            gap: 2,
-            flexDirection: { xs: 'column', sm: 'row' } 
-          }}>
+          <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', sm: 'row' } }}>
             <Autocomplete
+              multiple
               fullWidth
               options={availableAmenities}
               getOptionLabel={(option) => option.name}
-              value={selectedAmenity}
-              onChange={(_, newValue) => setSelectedAmenity(newValue)}
+              value={selectedAmenities}
+              onChange={(_, newValue) => setSelectedAmenities(newValue)}
               renderInput={(params) => (
                 <TextField
                   {...params}
                   label="Chọn tiện ích"
-                  placeholder="Tìm kiếm tên tiện ích..."
+                  placeholder="Chọn một hoặc nhiều tiện ích..."
                   size="medium"
                 />
               )}
               disabled={addMutation.isPending}
             />
 
-            <Button
-              variant="contained"
-              color="primary"
-              size="medium"
-              startIcon={<AddIcon />}
-              onClick={handleAdd}
-              disabled={!selectedAmenity || addMutation.isPending}
-              sx={{
-                minWidth: { xs: '100%', sm: 160 },
-                height: '56px',           // Đồng bộ chiều cao với TextField
-                fontWeight: 'bold',
-                px: 4
-              }}
-            >
-              {addMutation.isPending ? (
-                <CircularProgress size={24} color="inherit" />
-              ) : (
-                'THÊM'
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: { xs: '100%', sm: 200 } }}>
+              <Button
+                variant="contained"
+                color="primary"
+                startIcon={<AddIcon />}
+                onClick={handleAddSelected}
+                disabled={selectedAmenities.length === 0 || addMutation.isPending}
+                sx={{ height: '56px', fontWeight: 'bold' }}
+              >
+                {addMutation.isPending ? (
+                  <CircularProgress size={24} color="inherit" />
+                ) : (
+                  `THÊM (${selectedAmenities.length})`
+                )}
+              </Button>
+
+              {availableAmenities.length > 0 && (
+                <Button
+                  variant="outlined"
+                  color="success"
+                  startIcon={<AddCircleIcon />}
+                  onClick={handleAddAll}
+                  disabled={addMutation.isPending}
+                  sx={{ height: '56px', fontWeight: 'bold' }}
+                >
+                  Thêm hết ({availableAmenities.length})
+                </Button>
               )}
-            </Button>
+            </Box>
           </Box>
         </Box>
 
         <Divider sx={{ my: 3 }} />
 
-        {/* Danh sách tiện ích hiện có */}
+        {/* === DANH SÁCH TIỆN ÍCH HIỆN CÓ === */}
         <Box sx={{ mb: 2 }}>
-          <Typography variant="h6" gutterBottom>
-            Tiện ích hiện có ({currentAmenities.length})
-          </Typography>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Typography variant="h6">
+              Tiện ích hiện có ({currentAmenities.length})
+            </Typography>
+
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              {selectedToDelete.length > 0 && (
+                <Button
+                  variant="outlined"
+                  color="error"
+                  startIcon={<DeleteIcon />}
+                  onClick={handleBulkDelete}
+                  disabled={removeMutation.isPending}
+                  size="small"
+                >
+                  Xóa đã chọn ({selectedToDelete.length})
+                </Button>
+              )}
+
+              {currentAmenities.length > 0 && (
+                <Button
+                  variant="outlined"
+                  color="error"
+                  startIcon={<DeleteSweepIcon />}
+                  onClick={handleDeleteAll}
+                  disabled={removeMutation.isPending}
+                  size="small"
+                >
+                  Xoá hết
+                </Button>
+              )}
+            </Box>
+          </Box>
 
           {isLoading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
@@ -180,44 +240,37 @@ export default function RoomTypeAmenities({ open, onClose, roomTypeId, roomTypeN
               Chưa có tiện ích nào cho loại phòng này.
             </Typography>
           ) : (
-            <Box sx={{ 
-              display: 'flex', 
-              flexWrap: 'wrap', 
-              gap: 1.5,
-              pt: 1 
-            }}>
-              {currentAmenities.map((item) => (
-                <Chip
-                  key={item.id}
-                  label={item.name}
-                  onDelete={() => handleRemove(item.id)}
-                  color="primary"
-                  variant="outlined"
-                  deleteIcon={<DeleteIcon />}
-                  sx={{
-                    fontSize: '1.02rem',
-                    py: 2.8,
-                    px: 2.5,
-                    borderRadius: '50px',
-                    '& .MuiChip-label': { px: 1.5 },
-                    '&:hover': {
-                      backgroundColor: 'rgba(25, 118, 210, 0.08)',
-                      borderColor: 'primary.main',
-                    },
-                  }}
-                />
-              ))}
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, pt: 1 }}>
+              {currentAmenities.map((item) => {
+                const isSelected = selectedToDelete.includes(item.id);
+                return (
+                  <Chip
+                    key={item.id}
+                    label={item.name}
+                    onDelete={() => toggleDeleteSelection(item.id)}
+                    color={isSelected ? "error" : "primary"}
+                    variant={isSelected ? "filled" : "outlined"}
+                    deleteIcon={<DeleteIcon />}
+                    sx={{
+                      fontSize: '1.02rem',
+                      py: 2.8,
+                      px: 2.5,
+                      borderRadius: '50px',
+                      cursor: 'pointer',
+                      '&:hover': {
+                        backgroundColor: isSelected ? 'rgba(211, 47, 47, 0.1)' : 'rgba(25, 118, 210, 0.08)',
+                      },
+                    }}
+                  />
+                );
+              })}
             </Box>
           )}
         </Box>
       </DialogContent>
 
       <DialogActions sx={{ px: 3, py: 2.5 }}>
-        <Button 
-          onClick={onClose} 
-          variant="outlined" 
-          size="large"
-        >
+        <Button onClick={onClose} variant="outlined" size="large">
           ĐÓNG
         </Button>
       </DialogActions>
