@@ -187,6 +187,9 @@ export default function RoomDetailModal({ open, onClose, room: initialRoom }) {
 
   // === DỮ LIỆU TỪ initialRoom VÀ roomTypeData ===
   const roomType = roomTypeData || {};
+  const selectedRoomType = roomTypesData?.find((rt) => String(rt.id) === String(formData.roomTypeId)) || roomType;
+  const displayRoomType = isEditing ? selectedRoomType : roomType;
+  const titleRoomType = isEditing ? selectedRoomType : roomType;
 
   // Ưu tiên amenities từ initialRoom, nếu không thì lấy từ roomType
   let amenities = [];
@@ -210,7 +213,7 @@ export default function RoomDetailModal({ open, onClose, room: initialRoom }) {
           <Bed color="primary" />
           <div>
             <Typography variant="h6" component="div">
-              Phòng #{initialRoom.roomNumber} — {roomType.name || 'Không xác định'}
+              Phòng #{initialRoom.roomNumber} — {initialRoom.roomTypeName || 'Không xác định'}
             </Typography>
             <Typography variant="body2" color="text.secondary">
               ID: {initialRoom.id} • Tầng {initialRoom.floor}
@@ -309,24 +312,24 @@ export default function RoomDetailModal({ open, onClose, room: initialRoom }) {
               <Paper elevation={2} sx={{ p: 3, borderRadius: 3, height: '100%' }}>
                 <Typography variant="h6" gutterBottom>Loại phòng</Typography>
                 <Typography variant="h5" fontWeight="bold" color="#ff5e1f">
-                  {roomType.name || '—'}
+                  {displayRoomType.name || '—'}
                 </Typography>
                 <Typography variant="h6" sx={{ mt: 1 }}>
-                  {roomType.basePrice ? roomType.basePrice.toLocaleString('vi-VN') + ' ₫' : '0 ₫'} / đêm
+                  {displayRoomType.basePrice ? displayRoomType.basePrice.toLocaleString('vi-VN') + ' ₫' : '0 ₫'} / đêm
                 </Typography>
                 <Divider sx={{ my: 2 }} />
                 <Typography>
-                  <strong>Sức chứa:</strong> {roomType.capacityAdults || 0} người lớn • {roomType.capacityChildren || 0} trẻ em
+                  <strong>Sức chứa:</strong> {displayRoomType.capacityAdults || 0} người lớn • {displayRoomType.capacityChildren || 0} trẻ em
                 </Typography>
-                {roomType.size && (
-                  <Typography><strong>Diện tích:</strong> {roomType.size} m²</Typography>
+                {displayRoomType.size && (
+                  <Typography><strong>Diện tích:</strong> {displayRoomType.size} m²</Typography>
                 )}
-                {roomType.bedType && (
-                  <Typography><strong>Loại giường:</strong> {roomType.bedType}</Typography>
+                {displayRoomType.bedType && (
+                  <Typography><strong>Loại giường:</strong> {displayRoomType.bedType}</Typography>
                 )}
-                {roomType.description && (
+                {displayRoomType.description && (
                   <Typography variant="body2" sx={{ mt: 2, fontStyle: 'italic' }}>
-                    <strong>Chi tiết:</strong> {roomType.description}
+                    <strong>Chi tiết:</strong> {displayRoomType.description}
                   </Typography>
                 )}
               </Paper>
