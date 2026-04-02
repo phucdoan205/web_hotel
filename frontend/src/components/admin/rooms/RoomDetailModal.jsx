@@ -391,55 +391,6 @@ export default function RoomDetailModal({ open, onClose, room: initialRoom }) {
                 )}
               </div>
               <Paper elevation={1} sx={{ p: 3, borderRadius: 3 }}>
-                {isEditing && showAddInventory && (
-                  <Paper sx={{ p: 2, mb: 3, bgcolor: '#f5f5f5', borderRadius: 2 }}>
-                    <Grid container spacing={2}>
-                      <Grid item xs={12}>
-                        <TextField
-                          fullWidth
-                          label="Tên vật tư"
-                          value={inventoryForm.itemName}
-                          onChange={(e) => setInventoryForm({ ...inventoryForm, itemName: e.target.value })}
-                        />
-                      </Grid>
-                      <Grid item xs={12} sm={6}>
-                        <TextField
-                          fullWidth
-                          label="Số lượng"
-                          type="number"
-                          value={inventoryForm.quantity}
-                          onChange={(e) => setInventoryForm({ ...inventoryForm, quantity: e.target.value })}
-                        />
-                      </Grid>
-                      <Grid item xs={12} sm={6}>
-                        <TextField
-                          fullWidth
-                          label="Giá bồi thường"
-                          type="number"
-                          value={inventoryForm.priceIfLost}
-                          onChange={(e) => setInventoryForm({ ...inventoryForm, priceIfLost: e.target.value })}
-                        />
-                      </Grid>
-                      <Grid item xs={12}>
-                        <div style={{ display: 'flex', gap: 8 }}>
-                          <Button variant="contained" onClick={handleAddInventory}>
-                            {editingInventoryIdx !== null ? 'Cập nhật' : 'Thêm'}
-                          </Button>
-                          <Button
-                            variant="outlined"
-                            onClick={() => {
-                              setShowAddInventory(false);
-                              setEditingInventoryIdx(null);
-                              setInventoryForm({ itemName: '', quantity: 1, priceIfLost: 0 });
-                            }}
-                          >
-                            Hủy
-                          </Button>
-                        </div>
-                      </Grid>
-                    </Grid>
-                  </Paper>
-                )}
 
                 {isEditing && inventoryItems.length > 0 ? (
                   <TableContainer component={Paper} variant="outlined">
@@ -505,6 +456,63 @@ export default function RoomDetailModal({ open, onClose, room: initialRoom }) {
           </Grid>
         )}
       </DialogContent>
+
+      <Dialog
+        open={showAddInventory}
+        onClose={() => {
+          setShowAddInventory(false);
+          setEditingInventoryIdx(null);
+          setInventoryForm({ itemName: '', quantity: 1, priceIfLost: 0 });
+        }}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>{editingInventoryIdx !== null ? 'Chỉnh sửa vật tư' : 'Thêm vật tư'}</DialogTitle>
+        <DialogContent>
+          <Grid container spacing={2} sx={{ pt: 1 }}>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Tên vật tư"
+                value={inventoryForm.itemName}
+                onChange={(e) => setInventoryForm({ ...inventoryForm, itemName: e.target.value })}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Số lượng"
+                type="number"
+                value={inventoryForm.quantity}
+                onChange={(e) => setInventoryForm({ ...inventoryForm, quantity: e.target.value })}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Giá bồi thường"
+                type="number"
+                value={inventoryForm.priceIfLost}
+                onChange={(e) => setInventoryForm({ ...inventoryForm, priceIfLost: e.target.value })}
+              />
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => {
+              setShowAddInventory(false);
+              setEditingInventoryIdx(null);
+              setInventoryForm({ itemName: '', quantity: 1, priceIfLost: 0 });
+            }}
+          >
+            Hủy
+          </Button>
+          <Button variant="contained" onClick={handleAddInventory}>
+            {editingInventoryIdx !== null ? 'Cập nhật' : 'Thêm'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <DialogActions sx={{ px: 3, py: 2.5 }}>
         {isEditing ? (
