@@ -5,9 +5,10 @@ const ServiceCard = ({
   title,
   description,
   status,
-  icon: Icon,
+  icon,
   colorClass,
 }) => {
+  const Icon = icon;
   return (
     <div className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm flex flex-col items-center text-center group hover:shadow-md transition-all">
       <div

@@ -5,7 +5,12 @@
         /// <summary>
         /// ID của RoomInventory nguồn cần sao chép
         /// </summary>
-        public int SourceInventoryId { get; set; }
+        public int? SourceInventoryId { get; set; }
+
+        /// <summary>
+        /// ID phòng nguồn (clone toàn bộ vật tư trong phòng)
+        /// </summary>
+        public int? SourceRoomId { get; set; }
 
         /// <summary>
         /// Phòng đích (nếu muốn clone sang phòng khác). 

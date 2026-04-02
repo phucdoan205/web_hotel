@@ -13,7 +13,7 @@ import { usePostForm } from "../../../hooks/usePostForm";
 
 const AddPostForm = ({ onCancel }) => {
   const { formData, handleChange, removeTag, submitPost } = usePostForm();
-  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [, setShowDatePicker] = useState(false);
 
   const handleDateChange = (date) => {
     handleChange({ target: { name: "publishDate", value: date } });
@@ -30,6 +30,14 @@ const AddPostForm = ({ onCancel }) => {
           &gt; Thêm bài viết mới
         </div>
         <div className="flex items-center gap-4">
+          {onCancel && (
+            <button
+              onClick={onCancel}
+              className="text-sm font-medium text-gray-600 hover:text-gray-800"
+            >
+              Hủy
+            </button>
+          )}
           <button
             onClick={() => submitPost("draft")}
             className="text-sm font-medium text-gray-600 hover:text-gray-800"

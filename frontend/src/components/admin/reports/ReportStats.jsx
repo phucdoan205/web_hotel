@@ -1,28 +1,31 @@
 import React from "react";
 import { DollarSign, Bed, BarChart3 } from "lucide-react";
 
-const StatCard = ({ label, value, subText, trend, icon: Icon, colorClass }) => (
-  <div className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm flex flex-col flex-1">
-    <div className="flex justify-between items-start mb-4">
-      <div className={`p-3 rounded-2xl ${colorClass}`}>
-        <Icon className="size-5" />
+const StatCard = ({ label, value, subText, trend, icon, colorClass }) => {
+  const Icon = icon;
+  return (
+    <div className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm flex flex-col flex-1">
+      <div className="flex justify-between items-start mb-4">
+        <div className={`p-3 rounded-2xl ${colorClass}`}>
+          <Icon className="size-5" />
+        </div>
+        <span
+          className={`text-[10px] font-bold px-2 py-1 rounded-lg ${trend > 0 ? "bg-emerald-50 text-emerald-500" : "bg-rose-50 text-rose-500"}`}
+        >
+          {trend > 0 ? "+" : ""}
+          {trend}%
+        </span>
       </div>
-      <span
-        className={`text-[10px] font-bold px-2 py-1 rounded-lg ${trend > 0 ? "bg-emerald-50 text-emerald-500" : "bg-rose-50 text-rose-500"}`}
-      >
-        {trend > 0 ? "+" : ""}
-        {trend}%
+      <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">
+        {label}
+      </span>
+      <span className="text-2xl font-black text-gray-900 mt-1">{value}</span>
+      <span className="text-[10px] font-medium text-gray-400 mt-1">
+        {subText}
       </span>
     </div>
-    <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">
-      {label}
-    </span>
-    <span className="text-2xl font-black text-gray-900 mt-1">{value}</span>
-    <span className="text-[10px] font-medium text-gray-400 mt-1">
-      {subText}
-    </span>
-  </div>
-);
+  );
+};
 
 const ReportStats = () => (
   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

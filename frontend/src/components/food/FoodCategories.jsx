@@ -1,18 +1,21 @@
 import React from "react";
 import { Utensils, Globe, Star, Coffee, Cake, ChevronDown } from "lucide-react";
 
-const CategoryTab = ({ icon: Icon, label, active }) => (
-  <button
-    className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all border ${
-      active
-        ? "bg-blue-500 text-white border-blue-500 shadow-md shadow-blue-200"
-        : "bg-white text-slate-600 border-slate-100 hover:bg-slate-50"
-    }`}
-  >
-    <Icon size={18} />
-    {label}
-  </button>
-);
+const CategoryTab = ({ icon, label, active }) => {
+  const Icon = icon;
+  return (
+    <button
+      className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all border ${
+        active
+          ? "bg-blue-500 text-white border-blue-500 shadow-md shadow-blue-200"
+          : "bg-white text-slate-600 border-slate-100 hover:bg-slate-50"
+      }`}
+    >
+      <Icon size={18} />
+      {label}
+    </button>
+  );
+};
 
 const FoodCategories = () => {
   return (

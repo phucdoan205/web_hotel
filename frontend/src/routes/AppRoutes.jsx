@@ -38,6 +38,9 @@ import ReceptionistRoomStatusPage from "../pages/receptionist/ReceptionistRoomSt
 import ReceptionistSettingsPage from "../pages/receptionist/ReceptionistSettingsPage";
 import ReceptionistPOSServicePage from "../pages/receptionist/ReceptionistPOSServicePage";
 import ReceptionistDashboardPage from "../pages/receptionist/ReceptionistDashboardPage";
+import ReceptionistInventoryRoomsPage from "../pages/receptionist/ReceptionistInventoryRoomsPage";
+import ReceptionistInventoryRoomPage from "../pages/receptionist/ReceptionistInventoryRoomPage";
+import ReceptionistLossDamagePage from "../pages/receptionist/ReceptionistLossDamagePage";
 
 // Pages housekeeping
 import HousekeepingSettingsPage from "../pages/housekeeping/HousekeepingSettingsPage";
@@ -48,6 +51,10 @@ import HousekeepingReportsPage from "../pages/housekeeping/HousekeepingReportsPa
 import HousekeepingTasksPage from "../pages/housekeeping/HousekeepingTasksPage";
 import HousekeepingInventoryManagementPage from "../pages/housekeeping/HousekeepingInventoryManagementPage";
 import HousekeepingStaffManagementPage from "../pages/housekeeping/HousekeepingStaffManagementPage";
+import HousekeepingInventoryRoomsPage from "../pages/housekeeping/HousekeepingInventoryRoomsPage";
+import HousekeepingInventoryRoomPage from "../pages/housekeeping/HousekeepingInventoryRoomPage";
+import HousekeepingLossDamageRoomsPage from "../pages/housekeeping/HousekeepingLossDamageRoomsPage";
+import HousekeepingLossDamageChecklistPage from "../pages/housekeeping/HousekeepingLossDamageChecklistPage";
 
 // Pages guest
 import GuestSettingsPage from "../pages/guest/GuestSettingsPage";
@@ -105,6 +112,9 @@ const AppRoutes = () => {
         <Route path="guests" element={<ReceptionistGuestManagementPage />} />
         <Route path="reports" element={<ReceptionistReportsPage />} />
         <Route path="room-status" element={<ReceptionistRoomStatusPage />} />
+        <Route path="inventory" element={<ReceptionistInventoryRoomsPage />} />
+        <Route path="inventory/:roomId" element={<ReceptionistInventoryRoomPage />} />
+        <Route path="loss-damage" element={<ReceptionistLossDamagePage />} />
         <Route path="settings" element={<ReceptionistSettingsPage />} />
         <Route path="pos" element={<ReceptionistPOSServicePage />} />
       </Route>
@@ -117,10 +127,17 @@ const AppRoutes = () => {
         <Route path="inspections" element={<HousekeepingRoomInspectionDetailPage />} />
         <Route path="reports" element={<HousekeepingReportsPage />} />
         <Route path="tasks" element={<HousekeepingTasksPage />} />
-        <Route path="inventory" element={<HousekeepingInventoryManagementPage />} />
+        <Route path="inventory" element={<HousekeepingInventoryRoomsPage />} />
+        <Route path="inventory/:roomId" element={<HousekeepingInventoryRoomPage />} />
+        <Route path="inventory-management" element={<HousekeepingInventoryManagementPage />} />
+        <Route path="loss-damage" element={<HousekeepingLossDamageRoomsPage />} />
+        <Route path="loss-damage/:roomId" element={<HousekeepingLossDamageChecklistPage />} />
         <Route path="staff" element={<HousekeepingStaffManagementPage />} />
         <Route path="settings" element={<HousekeepingSettingsPage />} />
       </Route>
+
+      <Route path="/Housekeeping/*" element={<Navigate to="/housekeeping" replace />} />
+      <Route path="/Receptionist/*" element={<Navigate to="/receptionist" replace />} />
 
       {/* 6. Guest Routes (Dùng GuestLayout) */}
       <Route path="/guest" element={<GuestLayout />}>

@@ -56,8 +56,6 @@ namespace backend.Controllers
         {
             var query = _context.Rooms
             .Include(r => r.RoomType)
-            .ThenInclude(rt => rt!.RoomTypeAmenities)
-            .ThenInclude(rta => rta.Amenity)
             .Include(r => r.RoomInventory)
             .AsNoTracking();
 
@@ -110,7 +108,7 @@ namespace backend.Controllers
         public async Task<ActionResult<RoomDetailDTO>> GetRoom(int id)
         {
             var room = await _context.Rooms
-                .Include(r => r.RoomType).ThenInclude(rt => rt!.RoomTypeAmenities).ThenInclude(rta => rta.Amenity)
+                .Include(r => r.RoomType)
                 .Include(r => r.RoomInventory)
                 .AsNoTracking()
                 .FirstOrDefaultAsync(r => r.Id == id);
@@ -251,8 +249,6 @@ namespace backend.Controllers
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .Include(r => r.RoomType)
-                    .ThenInclude(rt => rt!.RoomTypeAmenities)
-                    .ThenInclude(rta => rta.Amenity)
                 .Include(r => r.RoomInventory)
                 .AsNoTracking()
                 .ToListAsync();
@@ -288,8 +284,6 @@ namespace backend.Controllers
             var q = _context.Rooms
                 .AsNoTracking()
                 .Include(r => r.RoomType)
-                    .ThenInclude(rt => rt.RoomTypeAmenities)
-                        .ThenInclude(rta => rta.Amenity)
                 .Where(r => !r.IsDeleted && r.Status == RoomStatuses.Available);
 
             // Lọc theo ngày chỉ khi CẢ HAI tham số đều có
@@ -391,7 +385,6 @@ namespace backend.Controllers
 
             var updatedRoom = await _context.Rooms
                 .Include(r => r.RoomType)
-                .ThenInclude(rt => rt!.RoomTypeAmenities).ThenInclude(a => a.Amenity)
                 .Include(r => r.RoomInventory)
                 .FirstOrDefaultAsync(r => r.Id == id);
 

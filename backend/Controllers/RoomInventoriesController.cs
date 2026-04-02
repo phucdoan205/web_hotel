@@ -171,8 +171,82 @@ namespace backend.Controllers
             return NoContent();
         }
 
+        [HttpPost("bulk")]
+        public async Task<IActionResult> BulkCreate([FromBody] List<CreateRoomInventoryDTO> items)
+        {
+            if (items == null || items.Count == 0)
+            {
+                return BadRequest("Danh sach vat tu trong.");
+            }
+
+            var roomIds = items
+                .Select(x => x.RoomId)
+                .Distinct()
+                .ToList();
+
+            var validRoomIds = await _context.Rooms
+                .AsNoTracking()
+                .Where(r => roomIds.Contains(r.Id) && !r.IsDeleted)
+                .Select(r => r.Id)
+                .ToListAsync();
+
+            if (validRoomIds.Count != roomIds.Count)
+            {
+                return BadRequest("Co phong khong ton tai hoac da bi xoa.");
+            }
+
+            var existingItems = await _context.RoomInventory
+                .Where(ri => ri.RoomId.HasValue && roomIds.Contains(ri.RoomId.Value))
+                .ToListAsync();
+
+            var byKey = existingItems.ToDictionary(
+                ri => $"{ri.RoomId}:{ri.ItemName.Trim().ToLowerInvariant()}",
+                ri => ri);
+
+            var createdCount = 0;
+            var updatedCount = 0;
+
+            foreach (var dto in items)
+            {
+                if (string.IsNullOrWhiteSpace(dto.ItemName))
+                {
+                    continue;
+                }
+
+                var itemName = dto.ItemName.Trim();
+                var key = $"{dto.RoomId}:{itemName.ToLowerInvariant()}";
+
+                if (byKey.TryGetValue(key, out var existing))
+                {
+                    existing.Quantity = (existing.Quantity ?? 0) + dto.Quantity;
+                    if ((existing.PriceIfLost ?? 0) == 0 && dto.PriceIfLost > 0)
+                    {
+                        existing.PriceIfLost = dto.PriceIfLost;
+                    }
+                    updatedCount++;
+                    continue;
+                }
+
+                var entity = new RoomInventory
+                {
+                    RoomId = dto.RoomId,
+                    ItemName = itemName,
+                    Quantity = dto.Quantity,
+                    PriceIfLost = dto.PriceIfLost
+                };
+
+                _context.RoomInventory.Add(entity);
+                byKey[key] = entity;
+                createdCount++;
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new { createdCount, updatedCount });
+        }
+
         [HttpPost("clone")]
-        public async Task<ActionResult<RoomInventoryDTO>> Clone([FromBody] CloneRoomInventoryDTO dto)
+        public async Task<IActionResult> Clone([FromBody] CloneRoomInventoryDTO dto)
         {
             //var validation = await _cloneValidator.ValidateAsync(dto);
             //if (!validation.IsValid)
@@ -180,9 +254,92 @@ namespace backend.Controllers
             //    return BadRequest(validation.Errors);
             //}
 
+            if (dto.SourceRoomId.HasValue)
+            {
+                var sourceRoomId = dto.SourceRoomId.Value;
+                var targetRoomIdValue = dto.TargetRoomId;
+
+                if (!targetRoomIdValue.HasValue)
+                {
+                    return BadRequest("Can truyen TargetRoomId.");
+                }
+
+                var sourceRoomExists = await _context.Rooms
+                    .AsNoTracking()
+                    .AnyAsync(r => r.Id == sourceRoomId && !r.IsDeleted);
+
+                if (!sourceRoomExists)
+                {
+                    return NotFound("Khong tim thay phong nguon.");
+                }
+
+                var targetRoomExists = await _context.Rooms
+                    .AsNoTracking()
+                    .AnyAsync(r => r.Id == targetRoomIdValue.Value && !r.IsDeleted);
+
+                if (!targetRoomExists)
+                {
+                    return NotFound("Khong tim thay phong dich.");
+                }
+
+                var sourceItems = await _context.RoomInventory
+                    .AsNoTracking()
+                    .Where(ri => ri.RoomId == sourceRoomId)
+                    .ToListAsync();
+
+                var targetItems = await _context.RoomInventory
+                    .Where(ri => ri.RoomId == targetRoomIdValue.Value)
+                    .ToListAsync();
+
+                var targetByName = targetItems.ToDictionary(
+                    ri => ri.ItemName.Trim().ToLowerInvariant(),
+                    ri => ri);
+
+                var createdCount = 0;
+                var updatedCount = 0;
+
+                foreach (var src in sourceItems)
+                {
+                    var name = src.ItemName.Trim();
+                    var key = name.ToLowerInvariant();
+                    var qty = src.Quantity ?? 0;
+
+                    if (targetByName.TryGetValue(key, out var existing))
+                    {
+                        existing.Quantity = (existing.Quantity ?? 0) + qty;
+                        if ((existing.PriceIfLost ?? 0) == 0 && (src.PriceIfLost ?? 0) > 0)
+                        {
+                            existing.PriceIfLost = src.PriceIfLost;
+                        }
+                        updatedCount++;
+                        continue;
+                    }
+
+                    var cloneEntity = new RoomInventory
+                    {
+                        RoomId = targetRoomIdValue.Value,
+                        ItemName = name,
+                        Quantity = qty,
+                        PriceIfLost = src.PriceIfLost
+                    };
+
+                    _context.RoomInventory.Add(cloneEntity);
+                    targetByName[key] = cloneEntity;
+                    createdCount++;
+                }
+
+                await _context.SaveChangesAsync();
+                return Ok(new { createdCount, updatedCount });
+            }
+
+            if (!dto.SourceInventoryId.HasValue || dto.SourceInventoryId.Value <= 0)
+            {
+                return BadRequest("Can truyen SourceInventoryId.");
+            }
+
             var source = await _context.RoomInventory
                 .AsNoTracking()
-                .FirstOrDefaultAsync(ri => ri.Id == dto.SourceInventoryId);
+                .FirstOrDefaultAsync(ri => ri.Id == dto.SourceInventoryId.Value);
 
             if (source == null)
             {

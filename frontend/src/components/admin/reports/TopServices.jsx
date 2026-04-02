@@ -1,27 +1,30 @@
 import React from "react";
 import { Utensils, Sparkles, Plane, Map } from "lucide-react";
 
-const ServiceItem = ({ icon: Icon, name, revenue, trend, colorClass }) => (
-  <div className="flex items-center justify-between p-4 rounded-2xl border border-gray-50 hover:bg-gray-50 transition-colors">
-    <div className="flex items-center gap-4">
-      <div className={`p-3 rounded-xl ${colorClass}`}>
-        <Icon className="size-4" />
+const ServiceItem = ({ icon, name, revenue, trend, colorClass }) => {
+  const Icon = icon;
+  return (
+    <div className="flex items-center justify-between p-4 rounded-2xl border border-gray-50 hover:bg-gray-50 transition-colors">
+      <div className="flex items-center gap-4">
+        <div className={`p-3 rounded-xl ${colorClass}`}>
+          <Icon className="size-4" />
+        </div>
+        <div>
+          <h4 className="text-xs font-bold text-gray-900">{name}</h4>
+          <p className="text-[10px] font-medium text-gray-400">
+            {revenue} Revenue
+          </p>
+        </div>
       </div>
-      <div>
-        <h4 className="text-xs font-bold text-gray-900">{name}</h4>
-        <p className="text-[10px] font-medium text-gray-400">
-          {revenue} Revenue
-        </p>
-      </div>
+      <span
+        className={`text-[10px] font-black ${trend > 0 ? "text-emerald-500" : "text-rose-500"}`}
+      >
+        {trend > 0 ? "+" : ""}
+        {trend}%
+      </span>
     </div>
-    <span
-      className={`text-[10px] font-black ${trend > 0 ? "text-emerald-500" : "text-rose-500"}`}
-    >
-      {trend > 0 ? "+" : ""}
-      {trend}%
-    </span>
-  </div>
-);
+  );
+};
 
 const TopServices = () => {
   return (

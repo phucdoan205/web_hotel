@@ -11,6 +11,27 @@ import {
   Hotel,
 } from "lucide-react";
 
+const SidebarItem = ({ item, isBottom = false }) => {
+  const baseClasses =
+    "flex items-center gap-x-3 py-2.5 px-4 rounded-xl transition-all duration-200";
+  const activeClasses = "bg-sky-100 text-sky-600 font-medium";
+  const inactiveClasses = "text-gray-600 hover:bg-sky-50 hover:text-sky-700";
+
+  const getClasses = ({ isActive }) =>
+    `${baseClasses} ${isActive ? activeClasses : inactiveClasses} ${
+      isBottom ? "mt-auto" : ""
+    }`;
+
+  const Icon = item.icon;
+
+  return (
+    <NavLink to={item.path} className={getClasses}>
+      <Icon className="size-5" />
+      <span>{item.name}</span>
+    </NavLink>
+  );
+};
+
 const Sidebar = () => {
   // Danh sách các item menu chính (dựa trên ảnh)
   const menuItems = [
@@ -25,25 +46,6 @@ const Sidebar = () => {
     { name: "Reports", icon: BarChart3, path: "/admin/reports" },
     { name: "Audit Log", icon: History, path: "/admin/audit-log" },
   ];
-
-  // Component phụ cho Menu Item để code gọn hơn
-  const SidebarItem = ({ item, isBottom = false }) => {
-    // Class mặc định và class khi được active (Navlink xử lý)
-    const baseClasses = `flex items-center gap-x-3 py-2.5 px-4 rounded-xl transition-all duration-200`;
-    const activeClasses = `bg-sky-100 text-sky-600 font-medium`;
-    const inactiveClasses = `text-gray-600 hover:bg-sky-50 hover:text-sky-700`;
-
-    // Tính toán class cuối cùng dựa trên isActive của NavLink
-    const getClasses = ({ isActive }) =>
-      `${baseClasses} ${isActive ? activeClasses : inactiveClasses} ${isBottom ? "mt-auto" : ""}`;
-
-    return (
-      <NavLink to={item.path} className={getClasses}>
-        <item.icon className="size-5" />
-        <span>{item.name}</span>
-      </NavLink>
-    );
-  };
 
   return (
     // Sidebar container: Cố định bên trái, độ rộng cố định, full chiều cao

@@ -147,7 +147,7 @@ const AdminStaffPage = () => {
         roleId: staffDetail.roleId ? String(staffDetail.roleId) : "",
         password: "",
       });
-    } catch (fetchDetailError) {
+    } catch {
       // Keep the modal usable with row data if detail endpoint is unavailable.
     } finally {
       setIsLoadingEditDetail(false);

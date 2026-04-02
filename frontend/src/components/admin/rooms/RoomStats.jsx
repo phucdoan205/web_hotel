@@ -5,32 +5,35 @@ const StatBox = ({
   label,
   value,
   subValue,
-  icon: Icon,
+  icon,
   colorClass,
   borderColor,
-}) => (
-  <div
-    className={`bg-white p-5 rounded-2xl border-l-4 ${borderColor} shadow-sm border-y border-r border-gray-100 flex justify-between items-center flex-1`}
-  >
-    <div>
-      <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-        {label}
-      </span>
-      <div className="flex items-baseline gap-2 mt-1">
-        <span className="text-2xl font-black text-gray-900">{value}</span>
-        <span className="text-[10px] font-bold text-gray-400">Total units</span>
-      </div>
-      {subValue && (
-        <span className="text-[10px] font-bold text-emerald-500 mt-1 block">
-          {subValue}
+}) => {
+  const Icon = icon;
+  return (
+    <div
+      className={`bg-white p-5 rounded-2xl border-l-4 ${borderColor} shadow-sm border-y border-r border-gray-100 flex justify-between items-center flex-1`}
+    >
+      <div>
+        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+          {label}
         </span>
-      )}
+        <div className="flex items-baseline gap-2 mt-1">
+          <span className="text-2xl font-black text-gray-900">{value}</span>
+          <span className="text-[10px] font-bold text-gray-400">Total units</span>
+        </div>
+        {subValue && (
+          <span className="text-[10px] font-bold text-emerald-500 mt-1 block">
+            {subValue}
+          </span>
+        )}
+      </div>
+      <div className={`p-3 rounded-xl ${colorClass}`}>
+        <Icon className="size-5" />
+      </div>
     </div>
-    <div className={`p-3 rounded-xl ${colorClass}`}>
-      <Icon className="size-5" />
-    </div>
-  </div>
-);
+  );
+};
 
 const RoomStats = () => {
   return (

@@ -6,7 +6,6 @@ const StatCard = ({
   subtext,
   icon,
   bgColor,
-  iconColor,
   trend,
 }) => (
   <div className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm flex-1">

@@ -1,8 +1,9 @@
 import React from "react";
 import { TrendingUp, TrendingDown } from "lucide-react";
 
-const StatCard = ({ title, value, trend, icon: Icon, colorClass }) => {
+const StatCard = ({ title, value, trend, icon, colorClass }) => {
   const isPositive = trend > 0;
+  const Icon = icon;
 
   return (
     <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-50">

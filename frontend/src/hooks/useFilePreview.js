@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 export const useFilePreview = (initialImage, onImageChange) => {
   const [preview, setPreview] = useState(initialImage);

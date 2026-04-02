@@ -1,6 +1,6 @@
 import React from "react";
 import { useRegister } from "../../hooks/useRegister";
-import { Link, NavLink } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 const RegisterForm = () => {
   const { formData, errors, isLoading, handleChange, handleSubmit } =
@@ -21,13 +21,16 @@ const RegisterForm = () => {
           Join us to explore the world with ease and exclusive travel deals.
         </p>
 
-        <form className="space-y-5">
+        <form className="space-y-5" onSubmit={handleSubmit}>
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-1">
               Full Name
             </label>
             <input
               type="text"
+              name="fullName"
+              value={formData.fullName}
+              onChange={handleChange}
               placeholder="Enter your full name"
               className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
             />
@@ -39,6 +42,9 @@ const RegisterForm = () => {
             </label>
             <input
               type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
               placeholder="example@gmail.com"
               className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
             />
@@ -50,6 +56,9 @@ const RegisterForm = () => {
             </label>
             <input
               type="text"
+              name="phoneNumber"
+              value={formData.phoneNumber}
+              onChange={handleChange}
               placeholder="+62 812 345 6789"
               className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
             />
@@ -62,6 +71,9 @@ const RegisterForm = () => {
               </label>
               <input
                 type="password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
                 placeholder="••••••••"
                 className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
               />
@@ -72,6 +84,9 @@ const RegisterForm = () => {
               </label>
               <input
                 type="password"
+                name="confirmPassword"
+                value={formData.confirmPassword}
+                onChange={handleChange}
                 placeholder="••••••••"
                 className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
               />
@@ -82,6 +97,9 @@ const RegisterForm = () => {
             <input
               type="checkbox"
               id="terms"
+              name="agreeTerms"
+              checked={formData.agreeTerms}
+              onChange={handleChange}
               className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
             />
             <label htmlFor="terms" className="text-sm text-slate-600">
@@ -91,18 +109,30 @@ const RegisterForm = () => {
               </a>
             </label>
           </div>
-          <NavLink to="/login">
-            <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-lg shadow-lg shadow-blue-100 transition-all uppercase tracking-wide">
-              Sign Up
-            </button>
-          </NavLink>
+          {errors.confirmPassword && (
+            <p className="text-sm font-medium text-rose-600">
+              {errors.confirmPassword}
+            </p>
+          )}
+          {errors.agreeTerms && (
+            <p className="text-sm font-medium text-rose-600">
+              {errors.agreeTerms}
+            </p>
+          )}
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-bold py-3.5 rounded-lg shadow-lg shadow-blue-100 transition-all uppercase tracking-wide"
+          >
+            {isLoading ? "Signing up..." : "Sign Up"}
+          </button>
         </form>
 
         <p className="mt-8 text-center text-sm text-slate-600">
           Already have an account?{" "}
-          <a href="/login" className="text-blue-600 font-bold hover:underline">
+          <Link to="/login" className="text-blue-600 font-bold hover:underline">
             Login here
-          </a>
+          </Link>
         </p>
       </div>
     </div>

@@ -10,6 +10,11 @@ const CreditCard = ({ type, last4, holder, expiry, isDefault }) => {
         isVisa ? "bg-[#1A1F26]" : "bg-[#2D336B]"
       }`}
     >
+      {isDefault && (
+        <div className="absolute left-5 top-5 text-[9px] font-black bg-white/15 px-2 py-1 rounded-lg">
+          DEFAULT
+        </div>
+      )}
       {/* Chip & Contactless Icon */}
       <div className="flex justify-between items-start mb-8">
         <div className="text-xl font-bold italic tracking-wider">
