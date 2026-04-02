@@ -21,19 +21,30 @@ export const roomApi = {
   deleteRoom: (id) => axios.delete(`${API_BASE}/Rooms/${id}`),
   restoreRoom: (id) => axios.post(`${API_BASE}/Rooms/${id}/restore`),
 
-  updateRoomStatus: (id, status) => 
+  updateRoomStatus: (id, status) =>
     axios.patch(`${API_BASE}/Rooms/${id}/status`, { status }),
 
-  updateCleaningStatus: (id, cleaningStatus) => 
+  updateCleaningStatus: (id, cleaningStatus) =>
     axios.patch(`${API_BASE}/Rooms/${id}/cleaning-status`, { cleaningStatus }),
 
   // ==================== ROOM INVENTORY ====================
-  getInventoryByRoom: (roomId) => 
+  getInventoryByRoom: (roomId) =>
     axios.get(`${API_BASE}/RoomInventories/room/${roomId}`),
 
   createInventory: (data) => axios.post(`${API_BASE}/RoomInventories`, data),
   updateInventory: (id, data) => axios.put(`${API_BASE}/RoomInventories/${id}`, data),
   deleteInventory: (id) => axios.delete(`${API_BASE}/RoomInventories/${id}`),
-  
+
   cloneInventory: (data) => axios.post(`${API_BASE}/RoomInventories/clone`, data),
+  // ==================== ROOM TYPE AMENITIES ====================
+  getAmenities: () => axios.get(`${API_BASE}/Amenities`),
+
+  getRoomTypeAmenities: (roomTypeId) =>
+    axios.get(`${API_BASE}/RoomTypes/${roomTypeId}/amenities`),
+
+  addAmenityToRoomType: (roomTypeId, amenityId) =>
+    axios.post(`${API_BASE}/RoomTypes/${roomTypeId}/amenities/${amenityId}`),
+
+  removeAmenityFromRoomType: (roomTypeId, amenityId) =>
+    axios.delete(`${API_BASE}/RoomTypes/${roomTypeId}/amenities/${amenityId}`),
 };

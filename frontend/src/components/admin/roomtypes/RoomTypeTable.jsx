@@ -1,115 +1,154 @@
-// src/pages/admin/rooms/RoomTypeTable.jsx
-import React from 'react';
-import { Edit2, Trash2 } from 'lucide-react';
+// src/components/admin/room-types/RoomTypeTable.jsx
+import React, { useState } from 'react';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Button,
+  Chip,
+  Typography,
+} from '@mui/material';
+import { Edit, Delete, Star } from '@mui/icons-material';
+import RoomTypeAmenities from './RoomTypeAmenities';
 
-const RoomTypeTable = ({ roomTypes, isLoading, onEdit, onDelete }) => {
+export default function RoomTypeTable({
+  roomTypes,
+  isLoading,
+  onEdit,
+  onDelete,
+  onManageAmenities,
+}) {
+  const [amenitiesDialog, setAmenitiesDialog] = useState({
+    open: false,
+    roomTypeId: null,
+    roomTypeName: '',
+  });
+
+  const openAmenitiesManager = (roomType) => {
+    setAmenitiesDialog({
+      open: true,
+      roomTypeId: roomType.id,
+      roomTypeName: roomType.name,
+    });
+  };
+
+  const closeAmenitiesManager = () => {
+    setAmenitiesDialog({
+      open: false,
+      roomTypeId: null,
+      roomTypeName: '',
+    });
+  };
+
   if (isLoading) {
     return (
-      <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-12 text-center">
-        <p className="text-gray-400 font-semibold">Đang tải danh sách loại phòng...</p>
-      </div>
+      <Paper sx={{ p: 4, textAlign: 'center' }}>
+        <Typography>Đang tải danh sách loại phòng...</Typography>
+      </Paper>
     );
   }
 
   return (
-    <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="w-full text-left min-w-[800px]">
-          <thead className="bg-gray-50/70 border-b border-gray-100">
-            <tr className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">
-              <th className="px-8 py-5">Tên loại phòng</th>
-              <th className="px-6 py-5">Giá cơ bản</th>
-              <th className="px-6 py-5">Sức chứa</th>
-              <th className="px-6 py-5">Diện tích</th>
-              <th className="px-6 py-5">Loại giường</th>
-              <th className="px-6 py-5 text-center">Thao tác</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-50">
-            {roomTypes.length === 0 ? (
-              <tr>
-                <td
-                  colSpan={6}
-                  className="px-8 py-16 text-center text-sm font-semibold text-gray-400"
-                >
-                  Chưa có loại phòng nào. Hãy thêm loại phòng mới.
-                </td>
-              </tr>
-            ) : (
-              roomTypes.map((roomType) => (
-                <tr
-                  key={roomType.id}
-                  className="hover:bg-gray-50/70 transition-colors group"
-                >
-                  <td className="px-8 py-6">
-                    <div className="font-bold text-gray-900 text-base">
-                      {roomType.name}
-                    </div>
-                    {roomType.description && (
-                      <p className="text-xs text-gray-500 mt-1 line-clamp-2 max-w-md">
-                        {roomType.description}
-                      </p>
-                    )}
-                  </td>
+    <>
+      <TableContainer component={Paper} elevation={2} sx={{ borderRadius: 3 }}>
+        <Table>
+          <TableHead sx={{ bgcolor: '#f8fafc' }}>
+            <TableRow>
+              <TableCell><strong>ID</strong></TableCell>
+              <TableCell><strong>Tên loại phòng</strong></TableCell>
+              <TableCell align="right"><strong>Giá cơ bản (₫)</strong></TableCell>
+              <TableCell><strong>Sức chứa</strong></TableCell>
+              <TableCell><strong>Diện tích (m²)</strong></TableCell>
+              <TableCell><strong>Giường</strong></TableCell>
+              <TableCell align="center"><strong>Tiện ích</strong></TableCell>
+              <TableCell align="center"><strong>Hành động</strong></TableCell>
+            </TableRow>
+          </TableHead>
 
-                  <td className="px-6 py-6">
-                    <div className="font-black text-emerald-600 text-lg">
-                      {roomType.basePrice.toLocaleString('vi-VN')} ₫
-                    </div>
-                  </td>
+          <TableBody>
+            {roomTypes && roomTypes.length > 0 ? (
+              roomTypes.map((rt) => (
+                <TableRow key={rt.id} hover>
+                  <TableCell>#{rt.id}</TableCell>
+                  <TableCell>
+                    <Typography variant="body1" fontWeight="medium">
+                      {rt.name}
+                    </Typography>
+                  </TableCell>
+                  <TableCell align="right">
+                    <strong>
+                      {rt.basePrice?.toLocaleString('vi-VN')} ₫
+                    </strong>
+                  </TableCell>
+                  <TableCell>
+                    {rt.capacityAdults} lớn • {rt.capacityChildren} trẻ em
+                  </TableCell>
+                  <TableCell>
+                    {rt.size ? `${rt.size} m²` : '—'}
+                  </TableCell>
+                  <TableCell>{rt.bedType || '—'}</TableCell>
 
-                  <td className="px-6 py-6 text-sm">
-                    <span className="font-semibold text-gray-700">
-                      {roomType.capacityAdults} người lớn
-                    </span>
-                    {roomType.capacityChildren > 0 && (
-                      <span className="text-gray-500"> • {roomType.capacityChildren} trẻ em</span>
-                    )}
-                  </td>
+                  {/* Cột Tiện ích */}
+                  <TableCell align="center">
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      startIcon={<Star />}
+                      onClick={() => onManageAmenities(rt)}
+                      sx={{ textTransform: 'none' }}
+                    >
+                      Quản lý
+                    </Button>
+                  </TableCell>
 
-                  <td className="px-6 py-6 text-sm font-medium text-gray-600">
-                    {roomType.size ? `${roomType.size} m²` : '—'}
-                  </td>
-
-                  <td className="px-6 py-6 text-sm text-gray-600">
-                    {roomType.bedType || '—'}
-                  </td>
-
-                  <td className="px-6 py-6">
-                    <div className="flex items-center justify-center gap-3 opacity-0 group-hover:opacity-100 transition-all">
-                      <button
-                        onClick={() => onEdit(roomType)}
-                        className="p-2.5 text-gray-400 hover:text-sky-600 hover:bg-sky-50 rounded-2xl transition-all"
-                        title="Chỉnh sửa"
-                      >
-                        <Edit2 className="size-4" />
-                      </button>
-
-                      <button
-                        onClick={() => onDelete(roomType.id)}
-                        className="p-2.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-2xl transition-all"
-                        title="Xóa"
-                      >
-                        <Trash2 className="size-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
+                  {/* Hành động */}
+                  <TableCell align="center">
+                    <Button
+                      variant="outlined"
+                      color="primary"
+                      size="small"
+                      startIcon={<Edit />}
+                      onClick={() => onEdit(rt)}
+                      sx={{ mr: 1 }}
+                    >
+                      Sửa
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      color="error"
+                      size="small"
+                      startIcon={<Delete />}
+                      onClick={() => onDelete(rt.id)}
+                    >
+                      Xóa
+                    </Button>
+                  </TableCell>
+                </TableRow>
               ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={8} align="center" sx={{ py: 6 }}>
+                  <Typography color="text.secondary">
+                    Không tìm thấy loại phòng nào.
+                  </Typography>
+                </TableCell>
+              </TableRow>
             )}
-          </tbody>
-        </table>
-      </div>
+          </TableBody>
+        </Table>
+      </TableContainer>
 
-      {/* Footer */}
-      <div className="px-8 py-5 border-t border-gray-100 bg-gray-50/30 flex justify-between items-center text-xs font-bold text-gray-400">
-        <p>
-          Hiển thị <span className="text-gray-900">{roomTypes.length}</span> loại phòng
-        </p>
-        <p className="text-[10px] uppercase tracking-widest">Room Type Management</p>
-      </div>
-    </div>
+      {/* Modal quản lý tiện ích */}
+      <RoomTypeAmenities
+        open={amenitiesDialog.open}
+        onClose={closeAmenitiesManager}
+        roomTypeId={amenitiesDialog.roomTypeId}
+        roomTypeName={amenitiesDialog.roomTypeName}
+      />
+    </>
   );
-};
-
-export default RoomTypeTable;
+}

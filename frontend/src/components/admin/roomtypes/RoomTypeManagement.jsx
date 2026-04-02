@@ -6,11 +6,20 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { roomApi } from '../../../api/admin/roomApi';
 import RoomTypeForm from './RoomTypeForm';
 import RoomTypeTable from './RoomTypeTable';
+import RoomTypeAmenities from './RoomTypeAmenities';   // ← Import component mới
 
 const RoomTypeManagement = () => {
   const queryClient = useQueryClient();
+
   const [openForm, setOpenForm] = useState(false);
   const [editingRoomType, setEditingRoomType] = useState(null);
+
+  // State cho quản lý tiện ích
+  const [amenitiesDialog, setAmenitiesDialog] = useState({
+    open: false,
+    roomTypeId: null,
+    roomTypeName: '',
+  });
 
   // === LẤY DANH SÁCH LOẠI PHÒNG ===
   const { data: roomTypes = [], isLoading, error } = useQuery({
@@ -55,6 +64,23 @@ const RoomTypeManagement = () => {
   const handleOpenEdit = (roomType) => {
     setEditingRoomType(roomType);
     setOpenForm(true);
+  };
+
+  // === MỞ QUẢN LÝ TIỆN ÍCH ===
+  const handleOpenAmenities = (roomType) => {
+    setAmenitiesDialog({
+      open: true,
+      roomTypeId: roomType.id,
+      roomTypeName: roomType.name,
+    });
+  };
+
+  const handleCloseAmenities = () => {
+    setAmenitiesDialog({
+      open: false,
+      roomTypeId: null,
+      roomTypeName: '',
+    });
   };
 
   const handleSave = (payload) => {
@@ -117,6 +143,7 @@ const RoomTypeManagement = () => {
         isLoading={isLoading}
         onEdit={handleOpenEdit}
         onDelete={handleDelete}
+        onManageAmenities={handleOpenAmenities}
       />
 
       {/* Form Modal */}
@@ -130,6 +157,14 @@ const RoomTypeManagement = () => {
           }}
         />
       )}
+
+      {/* Modal Quản lý Tiện ích */}
+      <RoomTypeAmenities
+        open={amenitiesDialog.open}
+        onClose={handleCloseAmenities}
+        roomTypeId={amenitiesDialog.roomTypeId}
+        roomTypeName={amenitiesDialog.roomTypeName}
+      />
     </div>
   );
 };

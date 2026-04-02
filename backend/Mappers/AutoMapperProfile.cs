@@ -1,5 +1,6 @@
 using AutoMapper;
 using backend.DTOs;
+using backend.DTOs.Amenity;
 using backend.DTOs.Attraction;
 using backend.DTOs.Room;
 using backend.DTOs.RoomInventory;
@@ -96,6 +97,7 @@ namespace backend.Mappers
             CreateMap<UpdateAttractionDTO, Attraction>()
                 .ForAllMembers(opt => opt.Condition((src, dest, srcValue) => srcValue != null));
 
+            CreateMap<Amenity, AmenityDTO>();
         }
     }
 }
