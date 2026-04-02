@@ -71,7 +71,7 @@ export default function RoomTypeForm({ initialData, onSave, onCancel }) {
             <Grid item xs={12}>
               <TextField
                 fullWidth
-                label="Tên loại phòng *"
+                label="Tên loại phòng"
                 name="name"
                 value={form.name}
                 onChange={handleChange}
@@ -84,7 +84,7 @@ export default function RoomTypeForm({ initialData, onSave, onCancel }) {
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label="Giá cơ bản (VND) *"
+                label="Giá cơ bản (VND)"
                 name="basePrice"
                 type="number"
                 value={form.basePrice}
@@ -107,7 +107,7 @@ export default function RoomTypeForm({ initialData, onSave, onCancel }) {
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label="Số người lớn *"
+                label="Số người lớn"
                 name="capacityAdults"
                 type="number"
                 value={form.capacityAdults}
