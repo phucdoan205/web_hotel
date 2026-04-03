@@ -24,6 +24,7 @@ import {
 import { Inventory as InventoryIcon, Delete as DeleteIcon, DeleteSweep as DeleteSweepIcon, Add as AddIcon } from '@mui/icons-material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { roomApi } from '../../../api/admin/roomApi';
+import { equipmentApi } from '../../../api/admin/equipmentApi';
 
 export default function RoomInventoryModal({ 
   open, 
@@ -51,7 +52,7 @@ export default function RoomInventoryModal({
 
   const { data: equipmentSuggestions = [] } = useQuery({
     queryKey: ['equipmentSuggestions'],
-    queryFn: () => roomApi.getEquipments({ isActive: true }).then((res) => res.data?.items || []),
+    queryFn: () => equipmentApi.getEquipments({ isActive: true }).then((res) => res.data?.items || []),
     enabled: open,
   });
 

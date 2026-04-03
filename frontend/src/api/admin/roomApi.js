@@ -1,7 +1,7 @@
 // src/api/roomApi.js
 import axios from 'axios';
 
-const API_BASE = 'http://localhost:5291/api';   // thay đổi nếu deploy
+const API_BASE = 'http://localhost:5291/api';
 
 export const roomApi = {
   // ==================== ROOM TYPES ====================
@@ -26,9 +26,6 @@ export const roomApi = {
 
   updateCleaningStatus: (id, cleaningStatus) =>
     axios.patch(`${API_BASE}/Rooms/${id}/cleaning-status`, { cleaningStatus }),
-
-  // ==================== EQUIPMENT ====================
-  getEquipments: (params = {}) => axios.get(`${API_BASE}/Equipment`, { params }),
 
   // ==================== ROOM INVENTORY ====================
   getInventoryByRoom: (roomId) =>
