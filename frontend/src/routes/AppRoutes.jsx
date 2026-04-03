@@ -1,5 +1,5 @@
 import React from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 
 // Layouts
 import MainLayout from "../layouts/MainLayout";
@@ -120,7 +120,8 @@ const AppRoutes = () => {
         <Route index element={<HousekeepingDashboardPage />} />
         <Route path="dashboard" element={<HousekeepingDashboardPage />} />
         <Route path="rooms" element={<HousekeepingRoomListPage />} />
-        <Route path="inspections" element={<HousekeepingRoomInspectionDetailPage />} />
+        <Route path="inspections" element={<Navigate to="/housekeeping/tasks" replace />} />
+        <Route path="tasks/:roomId" element={<HousekeepingRoomInspectionDetailPage />} />
         <Route path="reports" element={<HousekeepingReportsPage />} />
         <Route path="tasks" element={<HousekeepingTasksPage />} />
         <Route path="inventory" element={<HousekeepingInventoryManagementPage />} />
