@@ -1,0 +1,266 @@
+using backend.Data;
+using backend.DTOs.RoomInventory;
+using backend.Models;
+using FluentValidation;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+
+namespace backend.Controllers
+{
+    [ApiController]
+    [Route("api/[controller]")]
+    public class RoomInventoriesController : ControllerBase
+    {
+        private readonly AppDbContext _context;
+        //private readonly IValidator<CreateRoomInventoryDTO> _createValidator;
+        //private readonly IValidator<UpdateRoomInventoryDTO> _updateValidator;
+        //private readonly IValidator<CloneRoomInventoryDTO> _cloneValidator;
+
+        public RoomInventoriesController(
+            AppDbContext context
+            //IValidator<CreateRoomInventoryDTO> createValidator,
+            //IValidator<UpdateRoomInventoryDTO> updateValidator,
+            //IValidator<CloneRoomInventoryDTO> cloneValidator
+            )
+        {
+            _context = context;
+            //_createValidator = createValidator;
+            //_updateValidator = updateValidator;
+            //_cloneValidator = cloneValidator;
+        }
+
+        private static RoomInventoryDTO MapRoomInventory(RoomInventory item)
+        {
+            return new RoomInventoryDTO
+            {
+                Id = item.Id,
+                RoomId = item.RoomId ?? 0,
+                EquipmentId = item.EquipmentId,
+                EquipmentName = item.Equipment?.Name,
+                EquipmentCode = item.Equipment?.ItemCode,
+                Quantity = item.Quantity,
+                PriceIfLost = item.PriceIfLost,
+                ItemType = item.ItemType,
+                Note = item.Note,
+                IsActive = item.IsActive,
+                RoomNumber = item.Room?.RoomNumber
+            };
+        }
+
+        [HttpGet("room/{roomId:int}")]
+        public async Task<ActionResult<List<RoomInventoryDTO>>> GetByRoom(int roomId)
+        {
+            var roomExists = await _context.Rooms
+                .AsNoTracking()
+                .AnyAsync(r => r.Id == roomId && !r.IsDeleted);
+
+            if (!roomExists)
+            {
+                return NotFound("Khong tim thay phong.");
+            }
+
+            var items = await _context.RoomInventory
+                .Include(ri => ri.Room)
+                .Include(ri => ri.Equipment)
+                .Where(ri => ri.RoomId == roomId && ri.Room != null && !ri.Room.IsDeleted)
+                .AsNoTracking()
+                .OrderBy(ri => ri.Equipment != null ? ri.Equipment.Name : ri.ItemType)
+                .ToListAsync();
+
+            return Ok(items.Select(MapRoomInventory).ToList());
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Create([FromBody] CreateRoomInventoryDTO dto)
+        {
+            //var validation = await _createValidator.ValidateAsync(dto);
+            //if (!validation.IsValid)
+            //{
+            //    return BadRequest(validation.Errors);
+            //}
+
+            if (dto.EquipmentId.HasValue)
+            {
+                var equipmentExists = await _context.Equipments
+                    .AsNoTracking()
+                    .AnyAsync(e => e.Id == dto.EquipmentId.Value && e.IsActive);
+
+                if (!equipmentExists)
+                {
+                    return BadRequest("Equipment khong ton tai hoac da ngung su dung.");
+                }
+            }
+
+            var entity = new RoomInventory
+            {
+                RoomId = dto.RoomId,
+                EquipmentId = dto.EquipmentId,
+                Quantity = dto.Quantity,
+                PriceIfLost = dto.PriceIfLost,
+                ItemType = string.IsNullOrWhiteSpace(dto.ItemType) ? null : dto.ItemType.Trim(),
+                Note = dto.Note,
+                IsActive = dto.IsActive
+            };
+
+            _context.RoomInventory.Add(entity);
+            await _context.SaveChangesAsync();
+
+            var created = await _context.RoomInventory
+                .Include(ri => ri.Room)
+                .Include(ri => ri.Equipment)
+                .AsNoTracking()
+                .FirstAsync(ri => ri.Id == entity.Id);
+
+            return CreatedAtAction(nameof(GetByRoom), new { roomId = dto.RoomId }, MapRoomInventory(created));
+        }
+
+        [HttpPut("{id:int}")]
+        public async Task<IActionResult> Update(int id, [FromBody] UpdateRoomInventoryDTO dto)
+        {
+            var item = await _context.RoomInventory
+                .Include(ri => ri.Room)
+                .Include(ri => ri.Equipment)
+                .FirstOrDefaultAsync(ri => ri.Id == id);
+
+            if (item == null)
+            {
+                return NotFound();
+            }
+
+            if (item.Room == null || item.Room.IsDeleted)
+            {
+                return BadRequest("Phong da bi xoa hoac khong ton tai.");
+            }
+
+            //var validation = await _updateValidator.ValidateAsync(dto);
+            //if (!validation.IsValid)
+            //{
+            //    return BadRequest(validation.Errors);
+            //}
+
+            if (dto.EquipmentId.HasValue)
+            {
+                var equipmentExists = await _context.Equipments
+                    .AsNoTracking()
+                    .AnyAsync(e => e.Id == dto.EquipmentId.Value && e.IsActive);
+
+                if (!equipmentExists)
+                {
+                    return BadRequest("Equipment khong ton tai hoac da ngung su dung.");
+                }
+
+                item.EquipmentId = dto.EquipmentId.Value;
+            }
+
+            if (dto.Quantity.HasValue)
+                item.Quantity = dto.Quantity.Value;
+            if (dto.PriceIfLost.HasValue)
+                item.PriceIfLost = dto.PriceIfLost.Value;
+            if (dto.ItemType != null)
+                item.ItemType = string.IsNullOrWhiteSpace(dto.ItemType) ? null : dto.ItemType.Trim();
+            if (dto.Note != null)
+                item.Note = dto.Note;
+            if (dto.IsActive.HasValue)
+                item.IsActive = dto.IsActive.Value;
+
+            await _context.SaveChangesAsync();
+            return NoContent();
+        }
+
+        [HttpDelete("{id:int}")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var item = await _context.RoomInventory
+                .Include(ri => ri.Room)
+                .FirstOrDefaultAsync(ri => ri.Id == id);
+
+            if (item == null)
+            {
+                return NotFound();
+            }
+
+            if (item.Room == null || item.Room.IsDeleted)
+            {
+                return BadRequest("Phong da bi xoa hoac khong ton tai.");
+            }
+
+            var hasDamage = await _context.LossAndDamages
+                .AnyAsync(ld => ld.RoomInventoryId == id);
+
+            if (hasDamage)
+            {
+                return BadRequest("Khong the xoa vat dung dang co ghi nhan mat mat hu hong.");
+            }
+
+            _context.RoomInventory.Remove(item);
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+
+        [HttpPost("clone")]
+        public async Task<ActionResult<RoomInventoryDTO>> Clone([FromBody] CloneRoomInventoryDTO dto)
+        {
+            //var validation = await _cloneValidator.ValidateAsync(dto);
+            //if (!validation.IsValid)
+            //{
+            //    return BadRequest(validation.Errors);
+            //}
+
+            var source = await _context.RoomInventory
+                .Include(ri => ri.Equipment)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(ri => ri.Id == dto.SourceInventoryId);
+
+            if (source == null)
+            {
+                return NotFound("Khong tim thay vat dung nguon.");
+            }
+
+            if (!source.RoomId.HasValue)
+            {
+                return BadRequest("Vat dung nguon chua gan voi phong.");
+            }
+
+            var targetRoomId = dto.TargetRoomId ?? source.RoomId.Value;
+            var finalQuantity = dto.NewQuantity ?? source.Quantity ?? 0;
+            var finalEquipmentId = dto.NewEquipmentId ?? source.EquipmentId;
+            var finalItemType = dto.NewItemType ?? source.ItemType;
+            var finalNote = dto.NewNote ?? source.Note;
+
+            if (finalEquipmentId.HasValue)
+            {
+                var equipmentExists = await _context.Equipments
+                    .AsNoTracking()
+                    .AnyAsync(e => e.Id == finalEquipmentId.Value && e.IsActive);
+
+                if (!equipmentExists)
+                {
+                    return BadRequest("Equipment khong ton tai hoac da ngung su dung.");
+                }
+            }
+
+            var clone = new RoomInventory
+            {
+                RoomId = targetRoomId,
+                EquipmentId = finalEquipmentId,
+                Quantity = finalQuantity,
+                PriceIfLost = source.PriceIfLost,
+                ItemType = finalItemType,
+                Note = finalNote,
+                IsActive = source.IsActive
+            };
+
+            _context.RoomInventory.Add(clone);
+            await _context.SaveChangesAsync();
+
+            var created = await _context.RoomInventory
+                .Include(ri => ri.Room)
+                .Include(ri => ri.Equipment)
+                .AsNoTracking()
+                .FirstAsync(ri => ri.Id == clone.Id);
+
+            return CreatedAtAction(nameof(GetByRoom), new { roomId = targetRoomId }, MapRoomInventory(created));
+        }
+    }
+}
