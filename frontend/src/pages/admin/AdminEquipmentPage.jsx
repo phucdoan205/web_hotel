@@ -1,4 +1,4 @@
-import React, { useDeferredValue, useEffect, useMemo, useState } from "react";
+import React, { useDeferredValue, useEffect, useState } from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -14,6 +14,7 @@ import {
   createEquipment,
   getEquipmentById,
   getEquipmentList,
+  getEquipmentSummary,
   updateEquipment,
 } from "../../api/admin/equipmentApi";
 
@@ -100,6 +101,62 @@ const buildPayload = (formData) => ({
   imageFile: formData.imageFile,
 });
 
+const parseNonNegativeInteger = (value) => {
+  const parsedValue = Number.parseInt(value, 10);
+  return Number.isNaN(parsedValue) || parsedValue < 0 ? 0 : parsedValue;
+};
+
+const normalizeQuantityFields = (currentFormData, fieldName, nextValue) => {
+  const totalQuantity =
+    fieldName === "totalQuantity"
+      ? parseNonNegativeInteger(nextValue)
+      : parseNonNegativeInteger(currentFormData.totalQuantity);
+  const inUseQuantity =
+    fieldName === "inUseQuantity"
+      ? parseNonNegativeInteger(nextValue)
+      : parseNonNegativeInteger(currentFormData.inUseQuantity);
+  const damagedQuantity =
+    fieldName === "damagedQuantity"
+      ? parseNonNegativeInteger(nextValue)
+      : parseNonNegativeInteger(currentFormData.damagedQuantity);
+  const liquidatedQuantity =
+    fieldName === "liquidatedQuantity"
+      ? parseNonNegativeInteger(nextValue)
+      : parseNonNegativeInteger(currentFormData.liquidatedQuantity);
+
+  let normalizedTotal = totalQuantity;
+  let normalizedInUse = inUseQuantity;
+  let normalizedDamaged = damagedQuantity;
+  let normalizedLiquidated = liquidatedQuantity;
+
+  if (fieldName === "totalQuantity") {
+    const minimumRequired = inUseQuantity + damagedQuantity + liquidatedQuantity;
+    normalizedTotal = Math.max(totalQuantity, minimumRequired);
+  }
+
+  if (fieldName === "inUseQuantity") {
+    const maxAllowed = Math.max(0, normalizedTotal - damagedQuantity - liquidatedQuantity);
+    normalizedInUse = Math.min(inUseQuantity, maxAllowed);
+  }
+
+  if (fieldName === "damagedQuantity") {
+    const maxAllowed = Math.max(0, normalizedTotal - inUseQuantity - liquidatedQuantity);
+    normalizedDamaged = Math.min(damagedQuantity, maxAllowed);
+  }
+
+  if (fieldName === "liquidatedQuantity") {
+    const maxAllowed = Math.max(0, normalizedTotal - inUseQuantity - damagedQuantity);
+    normalizedLiquidated = Math.min(liquidatedQuantity, maxAllowed);
+  }
+
+  return {
+    totalQuantity: String(normalizedTotal),
+    inUseQuantity: String(normalizedInUse),
+    damagedQuantity: String(normalizedDamaged),
+    liquidatedQuantity: String(normalizedLiquidated),
+  };
+};
+
 const AdminEquipmentPage = () => {
   const [equipmentItems, setEquipmentItems] = useState([]);
   const [categories, setCategories] = useState(CATEGORY_OPTIONS);
@@ -108,6 +165,11 @@ const AdminEquipmentPage = () => {
   const [quantitySort, setQuantitySort] = useState("desc");
   const [page, setPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
+  const [summary, setSummary] = useState({
+    totalQuantity: 0,
+    inUseQuantity: 0,
+    inStockQuantity: 0,
+  });
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -132,16 +194,24 @@ const AdminEquipmentPage = () => {
     setError("");
 
     try {
-      const response = await getEquipmentList({
-        search: deferredSearchTerm.trim() || undefined,
-        category: categoryFilter,
-        quantitySort,
-        page,
-        pageSize: PAGE_SIZE,
-      });
+      const [response, summaryResponse] = await Promise.all([
+        getEquipmentList({
+          search: deferredSearchTerm.trim() || undefined,
+          category: categoryFilter,
+          quantitySort,
+          page,
+          pageSize: PAGE_SIZE,
+        }),
+        getEquipmentSummary(),
+      ]);
 
       setEquipmentItems(response.items ?? []);
       setTotalCount(response.totalCount ?? 0);
+      setSummary({
+        totalQuantity: summaryResponse?.totalQuantity ?? 0,
+        inUseQuantity: summaryResponse?.inUseQuantity ?? 0,
+        inStockQuantity: summaryResponse?.inStockQuantity ?? 0,
+      });
       setCategories(
         Array.from(new Set([...(response.categories ?? []), ...CATEGORY_OPTIONS])),
       );
@@ -161,19 +231,6 @@ const AdminEquipmentPage = () => {
   useEffect(() => {
     loadEquipmentData();
   }, [deferredSearchTerm, categoryFilter, quantitySort, page]);
-
-  const summary = useMemo(
-    () =>
-      equipmentItems.reduce(
-        (accumulator, item) => ({
-          total: accumulator.total + (item.totalQuantity ?? 0),
-          inUse: accumulator.inUse + (item.inUseQuantity ?? 0),
-          inStock: accumulator.inStock + (item.inStockQuantity ?? 0),
-        }),
-        { total: 0, inUse: 0, inStock: 0 },
-      ),
-    [equipmentItems],
-  );
 
   const closeModal = () => {
     if (formData.previewUrl) {
@@ -227,10 +284,24 @@ const AdminEquipmentPage = () => {
 
   const handleFormChange = (event) => {
     const { name, value } = event.target;
-    setFormData((current) => ({
-      ...current,
-      [name]: value,
-    }));
+    setFormData((current) => {
+      if (
+        name === "totalQuantity" ||
+        name === "inUseQuantity" ||
+        name === "damagedQuantity" ||
+        name === "liquidatedQuantity"
+      ) {
+        return {
+          ...current,
+          ...normalizeQuantityFields(current, name, value),
+        };
+      }
+
+      return {
+        ...current,
+        [name]: value,
+      };
+    });
   };
 
   const handleImageChange = (event) => {
@@ -344,16 +415,16 @@ const AdminEquipmentPage = () => {
 
         <div className="grid gap-4 md:grid-cols-3">
           <div className="rounded-[2rem] bg-white p-6 shadow-sm ring-1 ring-gray-100">
-            <p className="text-sm font-semibold text-gray-500">Tổng vật tư trang này</p>
-            <p className="mt-3 text-3xl font-black text-gray-900">{formatNumber(summary.total)}</p>
+            <p className="text-sm font-semibold text-gray-500">Tổng số lượng toàn kho</p>
+            <p className="mt-3 text-3xl font-black text-gray-900">{formatNumber(summary.totalQuantity)}</p>
           </div>
           <div className="rounded-[2rem] bg-white p-6 shadow-sm ring-1 ring-gray-100">
             <p className="text-sm font-semibold text-gray-500">Đang sử dụng</p>
-            <p className="mt-3 text-3xl font-black text-amber-600">{formatNumber(summary.inUse)}</p>
+            <p className="mt-3 text-3xl font-black text-amber-600">{formatNumber(summary.inUseQuantity)}</p>
           </div>
           <div className="rounded-[2rem] bg-white p-6 shadow-sm ring-1 ring-gray-100">
             <p className="text-sm font-semibold text-gray-500">Còn trong kho</p>
-            <p className="mt-3 text-3xl font-black text-emerald-600">{formatNumber(summary.inStock)}</p>
+            <p className="mt-3 text-3xl font-black text-emerald-600">{formatNumber(summary.inStockQuantity)}</p>
           </div>
         </div>
 
@@ -409,39 +480,6 @@ const AdminEquipmentPage = () => {
             </div>
           </div>
 
-          <div className="mt-4 flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                setCategoryFilter("all");
-                setPage(1);
-              }}
-              className={`rounded-full px-4 py-2 text-xs font-bold transition ${
-                categoryFilter === "all"
-                  ? "bg-sky-600 text-white"
-                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-              }`}
-            >
-              Tất cả
-            </button>
-            {categories.map((category) => (
-              <button
-                key={category}
-                type="button"
-                onClick={() => {
-                  setCategoryFilter(category);
-                  setPage(1);
-                }}
-                className={`rounded-full px-4 py-2 text-xs font-bold transition ${
-                  categoryFilter === category
-                    ? "bg-sky-600 text-white"
-                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                }`}
-              >
-                {category}
-              </button>
-            ))}
-          </div>
         </div>
 
         {error ? (
@@ -653,8 +691,8 @@ const AdminEquipmentPage = () => {
                   <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
                     Số lượng còn trong kho
                   </p>
-                  <p className={`mt-2 text-2xl font-black ${modalInStock < 0 ? "text-rose-600" : "text-emerald-600"}`}>
-                    {formatNumber(modalInStock)}
+                  <p className="mt-2 text-2xl font-black text-emerald-600">
+                    {formatNumber(Math.max(0, modalInStock))}
                   </p>
                 </div>
               </div>

@@ -19,6 +19,11 @@ export const getEquipmentList = async (params) => {
   return response.data;
 };
 
+export const getEquipmentSummary = async () => {
+  const response = await apiClient.get("/Equipments/summary");
+  return response.data;
+};
+
 export const getEquipmentById = async (equipmentId) => {
   const response = await apiClient.get(`/Equipments/${equipmentId}`);
   return response.data;

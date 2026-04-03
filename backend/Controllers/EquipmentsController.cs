@@ -29,6 +29,26 @@ namespace backend.Controllers
             _cloudinaryService = cloudinaryService;
         }
 
+        [HttpGet("summary")]
+        public async Task<ActionResult<EquipmentSummaryDTO>> GetSummary()
+        {
+            var summarySource = await _context.Equipments
+                .AsNoTracking()
+                .Where(e => e.IsActive)
+                .ToListAsync();
+
+            return Ok(new EquipmentSummaryDTO
+            {
+                TotalQuantity = summarySource.Sum(e => e.TotalQuantity),
+                InUseQuantity = summarySource.Sum(e => e.InUseQuantity),
+                InStockQuantity = summarySource.Sum(e => CalculateInStockQuantity(
+                    e.TotalQuantity,
+                    e.InUseQuantity,
+                    e.DamagedQuantity,
+                    e.LiquidatedQuantity))
+            });
+        }
+
         [HttpGet]
         public async Task<ActionResult<EquipmentListResponseDTO>> GetList(
             [FromQuery] string? search = null,
@@ -91,7 +111,8 @@ namespace backend.Controllers
                 TotalCount = totalCount,
                 Page = page,
                 PageSize = pageSize,
-                Categories = mergedCategories
+                Categories = mergedCategories,
+                Summary = new EquipmentSummaryDTO()
             });
         }
 
@@ -294,7 +315,7 @@ namespace backend.Controllers
                 InUseQuantity = equipment.InUseQuantity,
                 DamagedQuantity = equipment.DamagedQuantity,
                 LiquidatedQuantity = equipment.LiquidatedQuantity,
-                InStockQuantity = equipment.InStockQuantity ?? CalculateInStockQuantity(
+                InStockQuantity = CalculateInStockQuantity(
                     equipment.TotalQuantity,
                     equipment.InUseQuantity,
                     equipment.DamagedQuantity,
@@ -326,7 +347,7 @@ namespace backend.Controllers
                 return "Gia khong duoc am.";
             }
 
-            var remainingQuantity = CalculateInStockQuantity(totalQuantity, inUseQuantity, damagedQuantity, liquidatedQuantity);
+            var remainingQuantity = totalQuantity - inUseQuantity - damagedQuantity - liquidatedQuantity;
             if (remainingQuantity < 0)
             {
                 return "Tong so luong phai lon hon hoac bang tong dang su dung, hong va thanh ly.";
@@ -337,7 +358,7 @@ namespace backend.Controllers
 
         private static int CalculateInStockQuantity(int totalQuantity, int inUseQuantity, int damagedQuantity, int liquidatedQuantity)
         {
-            return totalQuantity - inUseQuantity - damagedQuantity - liquidatedQuantity;
+            return Math.Max(0, totalQuantity - inUseQuantity - damagedQuantity - liquidatedQuantity);
         }
 
         private static string NormalizeRequired(string? value)
