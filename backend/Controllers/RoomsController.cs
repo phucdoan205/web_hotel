@@ -2,7 +2,6 @@ using AutoMapper;
 using backend.Common;
 using backend.Data;
 using backend.DTOs.Room;
-using backend.DTOs.RoomInventory;
 using backend.Models;
 //using backend.Validators;
 using FluentValidation;
@@ -23,75 +22,6 @@ namespace backend.Controllers
         {
             _context = context;
             _mapper = mapper;
-        }
-
-        private async Task<Equipment?> ResolveEquipmentAsync(int? equipmentId, string? itemName, decimal? priceIfLost)
-        {
-            if (equipmentId.HasValue)
-            {
-                return await _context.Equipments.FirstOrDefaultAsync(e => e.Id == equipmentId.Value && e.IsActive);
-            }
-
-            if (string.IsNullOrWhiteSpace(itemName))
-            {
-                return null;
-            }
-
-            var normalizedName = itemName.Trim();
-            var equipment = await _context.Equipments.FirstOrDefaultAsync(e => e.Name == normalizedName);
-            if (equipment != null)
-            {
-                return equipment;
-            }
-
-            var now = DateTime.UtcNow;
-            equipment = new Equipment
-            {
-                ItemCode = $"EQ-{now:yyyyMMddHHmmssfff}",
-                Name = normalizedName,
-                Category = "General",
-                Unit = "Item",
-                TotalQuantity = 0,
-                InUseQuantity = 0,
-                DamagedQuantity = 0,
-                LiquidatedQuantity = 0,
-                InStockQuantity = 0,
-                BasePrice = priceIfLost ?? 0,
-                DefaultPriceIfLost = priceIfLost ?? 0,
-                IsActive = true,
-                CreatedAt = now
-            };
-
-            _context.Equipments.Add(equipment);
-            await _context.SaveChangesAsync();
-            return equipment;
-        }
-
-        private async Task<List<RoomInventory>> BuildInventoriesAsync(IEnumerable<CreateRoomInventoryDTO> inventoryDtos, Room room)
-        {
-            var inventories = new List<RoomInventory>();
-
-            foreach (var inventoryDto in inventoryDtos)
-            {
-                var equipment = await ResolveEquipmentAsync(inventoryDto.EquipmentId, inventoryDto.ItemName, inventoryDto.PriceIfLost);
-                if (equipment == null)
-                {
-                    continue;
-                }
-
-                inventories.Add(new RoomInventory
-                {
-                    Room = room,
-                    EquipmentId = equipment.Id,
-                    Quantity = inventoryDto.Quantity,
-                    PriceIfLost = inventoryDto.PriceIfLost ?? equipment.DefaultPriceIfLost,
-                    Note = inventoryDto.Note,
-                    IsActive = inventoryDto.IsActive ?? true,
-                    ItemType = inventoryDto.ItemType
-                });
-            }
-
-            return inventories;
         }
 
         // GET: api/rooms
@@ -184,7 +114,7 @@ namespace backend.Controllers
             // Thêm inventory nếu có
             if (dto.InitialInventories?.Any() == true)
             {
-                var inventories = await BuildInventoriesAsync(dto.InitialInventories, room);
+                var inventories = _mapper.Map<List<RoomInventory>>(dto.InitialInventories);
                 inventories.ForEach(i => i.Room = room); // hoặc i.RoomId = room.Id sau khi save
                 room.RoomInventory = inventories;
             }
@@ -512,7 +442,7 @@ namespace backend.Controllers
                 // Xử lý inventories nếu có
                 if (roomDto.InitialInventories?.Any() == true)
                 {
-                    room.RoomInventory = await BuildInventoriesAsync(roomDto.InitialInventories, room);
+                    room.RoomInventory = _mapper.Map<List<RoomInventory>>(roomDto.InitialInventories);
                 }
 
                 roomsToAdd.Add(room);

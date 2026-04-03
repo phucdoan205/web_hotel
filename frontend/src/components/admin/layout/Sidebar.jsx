@@ -10,6 +10,7 @@ import {
   Settings,
   Hotel,
   Boxes,
+  Factory,
 } from "lucide-react";
 
 const Sidebar = () => {
@@ -18,12 +19,9 @@ const Sidebar = () => {
     { name: "Dashboard", icon: LayoutDashboard, path: "/admin/dashboard" },
     { name: "Bookings", icon: CalendarCheck2, path: "/admin/bookings" },
     { name: "Staff", icon: Users, path: "/admin/staff" },
-    {
-      name: "Hotel Management",
-      icon: Building,
-      path: "/admin/room-inventory",
-    },
-    { name: "Vật tư", icon: Boxes, path: "/admin/equipment" },
+    { name: "Room Management", icon: Building, path: "/admin/rooms", },
+    { name: "Room Type Management", icon: Factory, path: "/admin/room-types", },
+    { name: "Inventory", icon: Boxes, path: "/admin/equipment" },
     { name: "Reports", icon: BarChart3, path: "/admin/reports" },
     { name: "Audit Log", icon: History, path: "/admin/audit-log" },
   ];
