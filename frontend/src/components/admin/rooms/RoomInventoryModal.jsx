@@ -35,6 +35,7 @@ export default function RoomInventoryModal({
 
   const [selectedToDelete, setSelectedToDelete] = useState([]);
   const [inventoryInputValue, setInventoryInputValue] = useState('');
+  
   const [inventoryForm, setInventoryForm] = useState({
     equipmentId: null,
     itemName: '',
@@ -103,12 +104,14 @@ export default function RoomInventoryModal({
         equipmentId: eq.id,
         itemName: eq.name,
         quantity: 1,
-        priceIfLost: 0,
+        priceIfLost: parseFloat(eq.defaultPriceIfLost || eq.priceIfLost || 0),
         isActive: true,
       });
     }
     queryClient.invalidateQueries(['roomInventory', roomId]);
   };
+
+  // ... (các hàm toggle, delete giữ nguyên)
 
   const toggleSelection = (id) => {
     setSelectedToDelete(prev => 
@@ -157,8 +160,8 @@ export default function RoomInventoryModal({
             Thêm từ thiết bị có sẵn
           </Typography>
 
-          {/* === PHẦN MỚI - SỬ DỤNG FLEX ĐỂ AUTOCOMPLETE RỘNG TỐI ĐA === */}
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+            {/* Autocomplete - Rộng tối đa */}
             <Box sx={{ flex: '1 1 400px', minWidth: '300px' }}>
               <Autocomplete
                 freeSolo
@@ -173,10 +176,15 @@ export default function RoomInventoryModal({
                       equipmentId: newValue.id,
                       itemName: newValue.name,
                       quantity: 1,
-                      priceIfLost: 0,
+                      priceIfLost: parseFloat(newValue.defaultPriceIfLost || newValue.priceIfLost || 0),
                     });
                   } else {
-                    setInventoryForm({ equipmentId: null, itemName: '', quantity: 1, priceIfLost: 0 });
+                    setInventoryForm({ 
+                      equipmentId: null, 
+                      itemName: '', 
+                      quantity: 1, 
+                      priceIfLost: 0 
+                    });
                   }
                 }}
                 renderInput={(params) => (
@@ -185,23 +193,13 @@ export default function RoomInventoryModal({
                     label="Chọn thiết bị" 
                     size="small" 
                     fullWidth 
-                    sx={{ 
-                      '& .MuiInputBase-root': { 
-                        minHeight: '48px',
-                        fontSize: '1rem'
-                      } 
-                    }}
+                    sx={{ '& .MuiInputBase-root': { minHeight: '48px' } }}
                   />
                 )}
-                sx={{
-                  '& .MuiAutocomplete-popper': {
-                    minWidth: '100% !important',
-                    width: 'auto !important',
-                  },
-                }}
               />
             </Box>
 
+            {/* Số lượng */}
             <Box sx={{ width: 140 }}>
               <TextField 
                 fullWidth 
@@ -210,6 +208,19 @@ export default function RoomInventoryModal({
                 size="small" 
                 value={inventoryForm.quantity} 
                 onChange={e => setInventoryForm({ ...inventoryForm, quantity: +e.target.value })} 
+                sx={{ '& .MuiInputBase-root': { minHeight: '48px' } }}
+              />
+            </Box>
+
+            {/* Giá bồi thường - Cho phép chỉnh sửa */}
+            <Box sx={{ width: 180 }}>
+              <TextField 
+                fullWidth 
+                label="Giá bồi thường (nếu mất)" 
+                type="number" 
+                size="small" 
+                value={inventoryForm.priceIfLost} 
+                onChange={e => setInventoryForm({ ...inventoryForm, priceIfLost: +e.target.value })} 
                 sx={{ '& .MuiInputBase-root': { minHeight: '48px' } }}
               />
             </Box>
@@ -229,7 +240,7 @@ export default function RoomInventoryModal({
               onClick={handleAddAllEquipment}
               sx={{ height: '48px', px: 3, whiteSpace: 'nowrap' }}
             >
-              Thêm tất cả thiết bị chưa có
+              Thêm tất cả
             </Button>
           </Box>
         </Box>
