@@ -14,12 +14,7 @@ const createRoomTypeFormState = (initialData) => ({
   imageUrls: initialData?.imageUrls ?? [],
 });
 
-export default function RoomTypeForm({
-  open,
-  initialData,
-  onSave,
-  onCancel,
-}) {
+export default function RoomTypeForm({ open, initialData, onSave, onCancel }) {
   const [form, setForm] = useState(() => createRoomTypeFormState(initialData));
   const [uploadError, setUploadError] = useState("");
 
@@ -36,7 +31,9 @@ export default function RoomTypeForm({
       setUploadError("");
     },
     onError: (error) => {
-      setUploadError(error.response?.data?.message ?? "Upload ảnh loại phòng thất bại.");
+      setUploadError(
+        error.response?.data?.message ?? "Upload ảnh loại phòng thất bại.",
+      );
     },
   });
 
@@ -50,13 +47,6 @@ export default function RoomTypeForm({
             <h2 className="text-2xl font-black text-slate-900">
               {initialData ? "Cập nhật loại phòng" : "Thêm loại phòng"}
             </h2>
-            <p className="mt-1 text-sm font-medium text-slate-500">
-              Ảnh sẽ được tải lên Cloudinary theo thư mục
-              {" "}
-              <span className="font-black text-slate-700">
-                home/room/{form.name || "ten-loai-phong"}
-              </span>
-            </p>
           </div>
           <button
             type="button"
@@ -193,12 +183,7 @@ export default function RoomTypeForm({
 
             <div className="rounded-[28px] border border-slate-200 bg-slate-50 p-5">
               <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                <div>
-                  <h3 className="text-lg font-black text-slate-900">Ảnh loại phòng</h3>
-                  <p className="text-sm font-medium text-slate-500">
-                    Khi thay ảnh mới, backend sẽ xóa ảnh cũ không còn sử dụng.
-                  </p>
-                </div>
+                <h3 className="text-lg font-black text-slate-900">Ảnh loại phòng</h3>
 
                 <label className="inline-flex cursor-pointer items-center gap-2 rounded-2xl bg-orange-600 px-4 py-3 text-sm font-black uppercase tracking-wide text-white shadow-lg shadow-orange-100 transition-all hover:bg-orange-700">
                   {uploadMutation.isPending ? (
@@ -251,7 +236,10 @@ export default function RoomTypeForm({
                 ) : (
                   <div className="grid gap-3 sm:grid-cols-2">
                     {form.imageUrls.map((url) => (
-                      <div key={url} className="group relative overflow-hidden rounded-[24px] bg-white ring-1 ring-slate-200">
+                      <div
+                        key={url}
+                        className="group relative overflow-hidden rounded-[24px] bg-white ring-1 ring-slate-200"
+                      >
                         <img src={url} alt="Room Type" className="h-40 w-full object-cover" />
                         <button
                           type="button"

@@ -5,6 +5,7 @@ import RoomTable from "../../components/admin/rooms/RoomTable";
 import RoomForm from "../../components/admin/rooms/RoomForm";
 import BulkCreateModal from "../../components/admin/rooms/BulkCreateModal";
 import CleaningModal from "../../components/admin/rooms/CleaningModal";
+import DeleteRoomDialog from "../../components/admin/rooms/DeleteRoomDialog";
 import RoomDetailModal from "../../components/admin/rooms/RoomDetailModal";
 import RoomInventoryModal from "../../components/admin/rooms/RoomInventoryModal";
 import RoomCloneModal from "../../components/admin/rooms/RoomCloneModal";
@@ -30,6 +31,7 @@ export default function AdminRoomPage() {
   const tab = location.pathname.includes("/room-types") ? 1 : 0;
   const [filters, setFilters] = useState(defaultFilters);
   const [selectedRoom, setSelectedRoom] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const [formState, setFormState] = useState({ open: false, room: null });
   const [openBulk, setOpenBulk] = useState(false);
   const [openCleaning, setOpenCleaning] = useState(false);
@@ -78,6 +80,14 @@ export default function AdminRoomPage() {
     mutationFn: (id) => roomsApi.deleteRoom(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rooms"] });
+      setDeleteTarget(null);
+    },
+  });
+
+  const restoreRoomMutation = useMutation({
+    mutationFn: (id) => roomsApi.restoreRoom(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["rooms"] });
     },
   });
 
@@ -101,7 +111,7 @@ export default function AdminRoomPage() {
           Quản lý phòng
         </h1>
         <p className="text-sm font-medium text-slate-500">
-          Quản lý phòng, ảnh phòng và thao tác vận hành theo phong cách admin hiện tại.
+          Quản lý phòng và thao tác vận hành theo phong cách admin hiện tại.
         </p>
       </div>
 
@@ -114,7 +124,9 @@ export default function AdminRoomPage() {
             <button
               key={item.value}
               type="button"
-              onClick={() => navigate(item.value === 0 ? "/admin/rooms" : "/admin/room-types")}
+              onClick={() =>
+                navigate(item.value === 0 ? "/admin/rooms" : "/admin/room-types")
+              }
               className={`border-b-2 px-1 pb-3 text-sm font-black uppercase tracking-wide transition-all ${
                 tab === item.value
                   ? "border-sky-500 text-sky-600"
@@ -147,16 +159,15 @@ export default function AdminRoomPage() {
           onEdit={(room) => setFormState({ open: true, room })}
           onBulkCreate={() => setOpenBulk(true)}
           onDelete={(room) => {
-            if (!window.confirm(`Xóa phòng ${room.roomNumber}?`)) return;
-            deleteRoomMutation.mutate(room.id);
+            deleteRoomMutation.reset();
+            setDeleteTarget(room);
+          }}
+          onRestore={(room) => {
+            restoreRoomMutation.mutate(room.id);
           }}
           onClean={(room) => {
             setSelectedRoom(room);
             setOpenCleaning(true);
-          }}
-          onDetail={(room) => {
-            setSelectedRoom(room);
-            setOpenDetail(true);
           }}
           onOpenInventory={(room) => {
             setSelectedRoom(room);
@@ -193,6 +204,22 @@ export default function AdminRoomPage() {
           if (!selectedRoom?.id) return;
           updateCleaningMutation.mutate({ id: selectedRoom.id, cleaningStatus });
           setOpenCleaning(false);
+        }}
+      />
+
+      <DeleteRoomDialog
+        open={Boolean(deleteTarget)}
+        room={deleteTarget}
+        isPending={deleteRoomMutation.isPending}
+        error={deleteRoomMutation.error?.response?.data ?? deleteRoomMutation.error?.message ?? ""}
+        onClose={() => {
+          if (deleteRoomMutation.isPending) return;
+          deleteRoomMutation.reset();
+          setDeleteTarget(null);
+        }}
+        onConfirm={() => {
+          if (!deleteTarget?.id) return;
+          deleteRoomMutation.mutate(deleteTarget.id);
         }}
       />
 

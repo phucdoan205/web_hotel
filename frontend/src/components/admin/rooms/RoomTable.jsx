@@ -33,7 +33,7 @@ export default function RoomTable({
   onEdit,
   onBulkCreate,
   onDelete,
-  onDetail,
+  onRestore,
   onOpenInventory,
   onClean,
   onClone,
@@ -53,18 +53,18 @@ export default function RoomTable({
             </p>
           </div>
 
-          <div className="flex flex-col gap-2 sm:flex-row">
+          <div className="flex flex-wrap items-center gap-2 lg:max-w-[430px] lg:justify-end">
             <button
               type="button"
               onClick={onBulkCreate}
-              className="rounded-2xl border border-sky-200 px-5 py-3 text-sm font-black uppercase tracking-wide text-sky-700 transition-all hover:bg-sky-50"
+              className="min-w-[180px] rounded-2xl border border-sky-200 px-5 py-3 text-sm font-black uppercase tracking-wide text-sky-700 transition-all hover:bg-sky-50"
             >
               Thêm nhiều phòng
             </button>
             <button
               type="button"
               onClick={onCreate}
-              className="rounded-2xl bg-orange-600 px-5 py-3 text-sm font-black uppercase tracking-wide text-white shadow-lg shadow-orange-100 transition-all hover:bg-orange-700"
+              className="min-w-[150px] rounded-2xl bg-orange-600 px-5 py-3 text-sm font-black uppercase tracking-wide text-white shadow-lg shadow-orange-100 transition-all hover:bg-orange-700"
             >
               Thêm phòng
             </button>
@@ -178,7 +178,7 @@ export default function RoomTable({
                     <td className="px-6 py-4"><div className="h-3 w-10 animate-pulse rounded-full bg-slate-100" /></td>
                     <td className="px-6 py-4"><div className="h-7 w-24 animate-pulse rounded-full bg-slate-100" /></td>
                     <td className="px-6 py-4"><div className="h-7 w-24 animate-pulse rounded-full bg-slate-100" /></td>
-                    <td className="px-6 py-4"><div className="h-3 w-48 animate-pulse rounded-full bg-slate-100" /></td>
+                    <td className="px-6 py-4"><div className="h-3 w-40 animate-pulse rounded-full bg-slate-100" /></td>
                   </tr>
                 ))
               ) : rooms.length === 0 ? (
@@ -214,7 +214,9 @@ export default function RoomTable({
                       )}
                     </td>
                     <td className="px-6 py-4 text-sm font-black text-slate-900">{room.roomNumber}</td>
-                    <td className="px-6 py-4 text-sm font-semibold text-slate-700">{room.roomTypeName || "Chưa có loại"}</td>
+                    <td className="px-6 py-4 text-sm font-semibold text-slate-700">
+                      {room.roomTypeName || "Chưa có loại"}
+                    </td>
                     <td className="px-6 py-4 text-sm font-semibold text-slate-700">{room.floor ?? "-"}</td>
                     <td className="px-6 py-4">
                       <span className={`inline-flex rounded-full px-3 py-1 text-xs font-black ${getBadgeClass(room.status)}`}>
@@ -228,12 +230,15 @@ export default function RoomTable({
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-wrap gap-2">
-                        <button type="button" onClick={() => onDetail(room)} className="rounded-xl bg-slate-100 px-3 py-2 text-xs font-black text-slate-700 transition-all hover:bg-slate-200">Chi tiết</button>
                         <button type="button" onClick={() => onEdit(room)} className="rounded-xl bg-sky-50 px-3 py-2 text-xs font-black text-sky-700 transition-all hover:bg-sky-100">Sửa</button>
                         <button type="button" onClick={() => onClean(room)} className="rounded-xl bg-amber-50 px-3 py-2 text-xs font-black text-amber-700 transition-all hover:bg-amber-100">Dọn phòng</button>
                         <button type="button" onClick={() => onOpenInventory(room)} className="rounded-xl bg-violet-50 px-3 py-2 text-xs font-black text-violet-700 transition-all hover:bg-violet-100">Vật tư</button>
                         <button type="button" onClick={() => onClone(room)} className="rounded-xl bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-700 transition-all hover:bg-emerald-100">Clone</button>
-                        <button type="button" onClick={() => onDelete(room)} className="rounded-xl bg-rose-50 px-3 py-2 text-xs font-black text-rose-700 transition-all hover:bg-rose-100">Xóa</button>
+                        {room.status === "OutOfOrder" ? (
+                          <button type="button" onClick={() => onRestore(room)} className="rounded-xl bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-700 transition-all hover:bg-emerald-100">Khôi phục</button>
+                        ) : (
+                          <button type="button" onClick={() => onDelete(room)} className="rounded-xl bg-rose-50 px-3 py-2 text-xs font-black text-rose-700 transition-all hover:bg-rose-100">Xóa</button>
+                        )}
                       </div>
                     </td>
                   </tr>
