@@ -19,6 +19,11 @@
         public string? NewItemName { get; set; }
 
         /// <summary>
+        /// Equipment mới (optional). Nếu không gửi → giữ nguyên equipment nguồn
+        /// </summary>
+        public int? NewEquipmentId { get; set; }
+
+        /// <summary>
         /// Số lượng mới (optional). Nếu không gửi → giữ nguyên số lượng nguồn
         /// </summary>
         public int? NewQuantity { get; set; }
