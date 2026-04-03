@@ -1,10 +1,8 @@
-// RoomTable.jsx
-import { useState } from 'react';
+// src/components/admin/rooms/RoomTable.jsx
 import { DataGrid } from '@mui/x-data-grid';
 import { Button } from '@mui/material';
-import RoomDetailModal from './RoomDetailModal';   // ← Import modal
 
-const columns = (onClean, onDetail) => [
+const columns = (onClean, onDetail, onOpenInventory) => [
   { field: 'roomNumber', headerName: 'Số phòng', width: 130 },
   { field: 'roomTypeName', headerName: 'Loại phòng', flex: 1 },
   { field: 'floor', headerName: 'Tầng', width: 80 },
@@ -26,45 +24,39 @@ const columns = (onClean, onDetail) => [
         </Button>
         <Button
           size="small"
-          color="secondary"
+          color="primary"
           onClick={() => onDetail(params.row)}
+          sx={{ mr: 1 }}
         >
-          Chi tiết + Vật tư
+          Chi tiết
+        </Button>
+        <Button
+          size="small"
+          color="secondary"
+          onClick={() => onOpenInventory(params.row)}
+        >
+          Vật tư
         </Button>
       </>
     ),
   },
 ];
 
-export default function RoomTable({ rooms, onClean }) {
-  const [selectedRoom, setSelectedRoom] = useState(null);
-  const [detailOpen, setDetailOpen] = useState(false);
-
-  const handleDetail = (room) => {
-    setSelectedRoom(room);
-    setDetailOpen(true);
-  };
-
+export default function RoomTable({ 
+  rooms, 
+  onClean, 
+  onDetail, 
+  onOpenInventory 
+}) {
   return (
-    <>
-      <DataGrid
-        rows={rooms || []}
-        columns={columns(onClean, handleDetail)}   // Truyền handleDetail vào
-        getRowId={(row) => row.id}
-        pageSizeOptions={[10, 20, 50]}
-        initialState={{
-          pagination: { paginationModel: { pageSize: 15 } }
-        }}
-        disableRowSelectionOnClick
-        autoHeight
-      />
-
-      {/* Modal Chi tiết phòng */}
-      <RoomDetailModal
-        open={detailOpen}
-        onClose={() => setDetailOpen(false)}
-        room={selectedRoom}
-      />
-    </>
+    <DataGrid
+      rows={rooms || []}
+      columns={columns(onClean, onDetail, onOpenInventory)}
+      getRowId={(row) => row.id}
+      pageSizeOptions={[10, 20, 50]}
+      initialState={{ pagination: { paginationModel: { pageSize: 15 } } }}
+      disableRowSelectionOnClick
+      autoHeight
+    />
   );
 }

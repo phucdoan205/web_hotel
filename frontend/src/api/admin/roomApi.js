@@ -27,6 +27,9 @@ export const roomApi = {
   updateCleaningStatus: (id, cleaningStatus) =>
     axios.patch(`${API_BASE}/Rooms/${id}/cleaning-status`, { cleaningStatus }),
 
+  // ==================== EQUIPMENT ====================
+  getEquipments: (params = {}) => axios.get(`${API_BASE}/Equipment`, { params }),
+
   // ==================== ROOM INVENTORY ====================
   getInventoryByRoom: (roomId) =>
     axios.get(`${API_BASE}/RoomInventories/room/${roomId}`),
@@ -34,6 +37,7 @@ export const roomApi = {
   createInventory: (data) => axios.post(`${API_BASE}/RoomInventories`, data),
   updateInventory: (id, data) => axios.put(`${API_BASE}/RoomInventories/${id}`, data),
   deleteInventory: (id) => axios.delete(`${API_BASE}/RoomInventories/${id}`),
+  deleteManyInventory: (ids) => Promise.all(ids.map(id => axios.delete(`${API_BASE}/RoomInventories/${id}`))),
 
   cloneInventory: (data) => axios.post(`${API_BASE}/RoomInventories/clone`, data),
   // ==================== ROOM TYPE AMENITIES ====================

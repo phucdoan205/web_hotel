@@ -7,8 +7,9 @@ import { Box, Typography, Tabs, Tab, Button } from '@mui/material';
 import RoomTable from '../../components/admin/rooms/RoomTable';
 import BulkCreateModal from '../../components/admin/rooms/BulkCreateModal';
 import CleaningModal from '../../components/admin/rooms/CleaningModal';
-import RoomDetailModal from '../../components/admin/rooms/RoomDetailModal';
 import RoomForm from '../../components/admin/rooms/RoomForm';
+import RoomDetailModal from '../../components/admin/rooms/RoomDetailModal';
+import RoomInventoryModal from '../../components/admin/rooms/RoomInventoryModal';
 
 export default function AdminRoomsPage() {
   const queryClient = useQueryClient();
@@ -17,6 +18,7 @@ export default function AdminRoomsPage() {
   const [openBulk, setOpenBulk] = useState(false);
   const [openCleaning, setOpenCleaning] = useState(false);
   const [openDetail, setOpenDetail] = useState(false);
+  const [openInventory, setOpenInventory] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState(null);
 
   // Fetch danh sách phòng
@@ -28,24 +30,24 @@ export default function AdminRoomsPage() {
     },
   });
 
-  // Mutation cập nhật trạng thái dọn phòng
   const updateCleaningMutation = useMutation({
     mutationFn: ({ id, status }) => roomApi.updateCleaningStatus(id, status),
-    onSuccess: () => {
-      queryClient.invalidateQueries(['rooms']);
-    },
+    onSuccess: () => queryClient.invalidateQueries(['rooms']),
   });
 
-  // Xử lý mở modal chi tiết
   const handleOpenDetail = (room) => {
     setSelectedRoom(room);
     setOpenDetail(true);
   };
 
-  // Xử lý mở modal dọn phòng
   const handleOpenCleaning = (room) => {
     setSelectedRoom(room);
     setOpenCleaning(true);
+  };
+
+  const handleOpenInventory = (room) => {
+    setSelectedRoom(room);
+    setOpenInventory(true);
   };
 
   return (
@@ -63,18 +65,13 @@ export default function AdminRoomsPage() {
         <Tab label="Tạo phòng mới" />
       </Tabs>
 
-      {/* Tab 0: Danh sách phòng */}
       {tab === 0 && (
         <>
           <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
             <Typography variant="h6">
               Tổng số phòng: <strong>{rooms.length}</strong>
             </Typography>
-            <Button
-              variant="contained"
-              onClick={() => setOpenBulk(true)}
-              size="large"
-            >
+            <Button variant="contained" onClick={() => setOpenBulk(true)} size="large">
               + Tạo nhiều phòng (Bulk)
             </Button>
           </Box>
@@ -83,22 +80,15 @@ export default function AdminRoomsPage() {
             rooms={rooms}
             onClean={handleOpenCleaning}
             onDetail={handleOpenDetail}
+            onOpenInventory={handleOpenInventory}
           />
         </>
       )}
 
-      {/* Tab 1: Tạo phòng đơn lẻ */}
-      {tab === 1 && (
-        <RoomForm
-          onSuccess={() => queryClient.invalidateQueries(['rooms'])}
-        />
-      )}
+      {tab === 1 && <RoomForm onSuccess={() => queryClient.invalidateQueries(['rooms'])} />}
 
       {/* Modals */}
-      <BulkCreateModal
-        open={openBulk}
-        onClose={() => setOpenBulk(false)}
-      />
+      <BulkCreateModal open={openBulk} onClose={() => setOpenBulk(false)} />
 
       <CleaningModal
         open={openCleaning}
@@ -106,20 +96,25 @@ export default function AdminRoomsPage() {
         onClose={() => setOpenCleaning(false)}
         onSave={(status) => {
           if (selectedRoom) {
-            updateCleaningMutation.mutate({
-              id: selectedRoom.id,
-              status
-            });
+            updateCleaningMutation.mutate({ id: selectedRoom.id, status });
           }
           setOpenCleaning(false);
         }}
       />
-{/* 
+
       <RoomDetailModal
         open={openDetail}
         onClose={() => setOpenDetail(false)}
         room={selectedRoom}
-      /> */}
+        onOpenInventory={handleOpenInventory}
+      />
+
+      <RoomInventoryModal
+        open={openInventory}
+        onClose={() => setOpenInventory(false)}
+        roomId={selectedRoom?.id}
+        roomNumber={selectedRoom?.roomNumber}
+      />
     </Box>
   );
 }
