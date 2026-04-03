@@ -1,99 +1,128 @@
-// src/pages/admin/RoomDetailPage.jsx
-import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { roomApi } from '../../api/admin/roomApi';
-import { 
-  Box, Typography, Paper, Grid, Button, Table, TableBody, 
-  TableCell, TableContainer, TableHead, TableRow, IconButton, 
-  Dialog, DialogTitle, DialogContent, DialogActions, TextField 
-} from '@mui/material';
-import { Edit, Delete, ContentCopy } from '@mui/icons-material';
-import { useState } from 'react';
+import { useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  Box,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Grid,
+  IconButton,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TextField,
+  Typography,
+} from "@mui/material";
+import { ContentCopy, Delete } from "@mui/icons-material";
+import { roomsApi } from "../../api/admin/roomsApi";
+import { roomInventoriesApi } from "../../api/admin/roomInventoriesApi";
 
 export default function AdminRoomDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+
   const [openInventory, setOpenInventory] = useState(false);
   const [openClone, setOpenClone] = useState(false);
   const [selectedInventory, setSelectedInventory] = useState(null);
-  const [cloneForm, setCloneForm] = useState({ targetRoomId: '', newItemName: '' });
-
-  // Lấy thông tin phòng
-  const { data: room } = useQuery({
-    queryKey: ['room', id],
-    queryFn: () => roomApi.getRoomById(id).then(res => res.data),
+  const [cloneForm, setCloneForm] = useState({
+    targetRoomId: "",
+    newItemType: "",
+  });
+  const [formData, setFormData] = useState({
+    itemType: "",
+    quantity: 1,
+    priceIfLost: 0,
   });
 
-  // Lấy vật tư của phòng
+  const { data: room } = useQuery({
+    queryKey: ["room", id],
+    queryFn: () => roomsApi.getRoomById(id),
+  });
+
   const { data: inventory = [] } = useQuery({
-    queryKey: ['inventory', id],
-    queryFn: () => roomApi.getInventoryByRoom(id).then(res => res.data),
+    queryKey: ["inventory", id],
+    queryFn: () => roomInventoriesApi.getInventoryByRoom(id),
     enabled: !!id,
   });
 
   const createInventoryMutation = useMutation({
-    mutationFn: roomApi.createInventory,
+    mutationFn: roomInventoriesApi.createInventory,
     onSuccess: () => {
-      queryClient.invalidateQueries(['inventory', id]);
+      queryClient.invalidateQueries({ queryKey: ["inventory", id] });
       setOpenInventory(false);
+      setFormData({ itemType: "", quantity: 1, priceIfLost: 0 });
     },
   });
 
   const cloneMutation = useMutation({
-    mutationFn: roomApi.cloneInventory,
+    mutationFn: roomInventoriesApi.cloneInventory,
     onSuccess: () => {
-      queryClient.invalidateQueries(['inventory', id]);
+      queryClient.invalidateQueries({ queryKey: ["inventory", id] });
       setOpenClone(false);
-      alert('Clone vật tư thành công!');
     },
   });
 
   const deleteInventoryMutation = useMutation({
-    mutationFn: roomApi.deleteInventory,
-    onSuccess: () => queryClient.invalidateQueries(['inventory', id]),
+    mutationFn: roomInventoriesApi.deleteInventory,
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ["inventory", id] }),
   });
 
-  const handleClone = (item) => {
-    setSelectedInventory(item);
-    setCloneForm({ targetRoomId: '', newItemName: item.itemName });
-    setOpenClone(true);
-  };
-
-  const handleCloneSubmit = () => {
-    cloneMutation.mutate({
-      sourceInventoryId: selectedInventory.id,
-      targetRoomId: Number(cloneForm.targetRoomId),
-      newItemName: cloneForm.newItemName.trim() || undefined,
-    });
-  };
-
-  if (!room) return <Typography>Loading...</Typography>;
+  if (!room) {
+    return <Typography>Loading...</Typography>;
+  }
 
   return (
     <Box p={3}>
-      <Button onClick={() => navigate('/admin/rooms')} sx={{ mb: 2 }}>← Quay lại danh sách phòng</Button>
+      <Button onClick={() => navigate("/admin/rooms")} sx={{ mb: 2 }}>
+        Quay lại danh sách phòng
+      </Button>
 
       <Paper sx={{ p: 4, mb: 4 }}>
-        <Typography variant="h4" gutterBottom>Phòng {room.roomNumber}</Typography>
+        <Typography variant="h4" gutterBottom>
+          Phòng {room.roomNumber}
+        </Typography>
         <Grid container spacing={3}>
           <Grid item xs={12} md={6}>
-            <Typography><strong>Loại phòng:</strong> {room.roomTypeName}</Typography>
-            <Typography><strong>Giá cơ bản:</strong> {room.basePrice?.toLocaleString('vi-VN')} VND</Typography>
-            <Typography><strong>Tầng:</strong> {room.floor}</Typography>
-            <Typography><strong>Trạng thái:</strong> {room.status}</Typography>
+            <Typography>
+              <strong>Loại phòng:</strong> {room.roomTypeName}
+            </Typography>
+            <Typography>
+              <strong>Giá cơ bản:</strong>{" "}
+              {room.basePrice?.toLocaleString("vi-VN")} VND
+            </Typography>
+            <Typography>
+              <strong>Tầng:</strong> {room.floor}
+            </Typography>
+            <Typography>
+              <strong>Trạng thái:</strong> {room.status}
+            </Typography>
           </Grid>
           <Grid item xs={12} md={6}>
-            <Typography><strong>Trạng thái dọn:</strong> {room.cleaningStatus}</Typography>
-            <Typography><strong>Sức chứa:</strong> {room.capacityAdults} người lớn, {room.capacityChildren} trẻ em</Typography>
+            <Typography>
+              <strong>Trạng thái dọn:</strong> {room.cleaningStatus}
+            </Typography>
+            <Typography>
+              <strong>Sức chứa:</strong> {room.capacityAdults} người lớn,{" "}
+              {room.capacityChildren} trẻ em
+            </Typography>
           </Grid>
         </Grid>
       </Paper>
 
-      {/* Phần quản lý vật tư */}
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
         <Typography variant="h5">Danh sách vật tư phòng</Typography>
-        <Button variant="contained" onClick={() => setOpenInventory(true)}>+ Thêm vật tư</Button>
+        <Button variant="contained" onClick={() => setOpenInventory(true)}>
+          Thêm vật tư
+        </Button>
       </Box>
 
       <TableContainer component={Paper}>
@@ -109,48 +138,137 @@ export default function AdminRoomDetailPage() {
           <TableBody>
             {inventory.map((item) => (
               <TableRow key={item.id}>
-                <TableCell>{item.itemName}</TableCell>
+                <TableCell>{item.itemType || item.equipmentName}</TableCell>
                 <TableCell align="center">{item.quantity}</TableCell>
-                <TableCell align="right">{item.priceIfLost?.toLocaleString('vi-VN')} VND</TableCell>
+                <TableCell align="right">
+                  {item.priceIfLost?.toLocaleString("vi-VN")} VND
+                </TableCell>
                 <TableCell align="center">
-                  <IconButton color="primary" onClick={() => handleClone(item)}><ContentCopy /></IconButton>
-                  <IconButton color="error" onClick={() => deleteInventoryMutation.mutate(item.id)}><Delete /></IconButton>
+                  <IconButton
+                    color="primary"
+                    onClick={() => {
+                      setSelectedInventory(item);
+                      setCloneForm({
+                        targetRoomId: "",
+                        newItemType: item.itemType || item.equipmentName || "",
+                      });
+                      setOpenClone(true);
+                    }}
+                  >
+                    <ContentCopy />
+                  </IconButton>
+                  <IconButton
+                    color="error"
+                    onClick={() => deleteInventoryMutation.mutate(item.id)}
+                  >
+                    <Delete />
+                  </IconButton>
                 </TableCell>
               </TableRow>
             ))}
-            {inventory.length === 0 && (
+            {inventory.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} align="center">Chưa có vật tư nào</TableCell>
+                <TableCell colSpan={4} align="center">
+                  Chưa có vật tư nào
+                </TableCell>
               </TableRow>
-            )}
+            ) : null}
           </TableBody>
         </Table>
       </TableContainer>
 
-      {/* Dialog thêm vật tư */}
       <Dialog open={openInventory} onClose={() => setOpenInventory(false)}>
         <DialogTitle>Thêm vật tư cho phòng {room.roomNumber}</DialogTitle>
         <DialogContent>
-          <TextField fullWidth label="Tên vật tư" onChange={e => setFormData({...formData, itemName: e.target.value})} sx={{ mt: 2 }} />
-          <TextField fullWidth label="Số lượng" type="number" onChange={e => setFormData({...formData, quantity: +e.target.value})} sx={{ mt: 2 }} />
-          <TextField fullWidth label="Giá nếu mất (VND)" type="number" onChange={e => setFormData({...formData, priceIfLost: +e.target.value})} sx={{ mt: 2 }} />
+          <TextField
+            fullWidth
+            label="Tên vật tư"
+            value={formData.itemType}
+            onChange={(event) =>
+              setFormData((prev) => ({ ...prev, itemType: event.target.value }))
+            }
+            sx={{ mt: 2 }}
+          />
+          <TextField
+            fullWidth
+            label="Số lượng"
+            type="number"
+            value={formData.quantity}
+            onChange={(event) =>
+              setFormData((prev) => ({ ...prev, quantity: Number(event.target.value) }))
+            }
+            sx={{ mt: 2 }}
+          />
+          <TextField
+            fullWidth
+            label="Giá nếu mất (VND)"
+            type="number"
+            value={formData.priceIfLost}
+            onChange={(event) =>
+              setFormData((prev) => ({
+                ...prev,
+                priceIfLost: Number(event.target.value),
+              }))
+            }
+            sx={{ mt: 2 }}
+          />
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenInventory(false)}>Hủy</Button>
-          <Button variant="contained" onClick={() => createInventoryMutation.mutate({ roomId: Number(id), ...formData })}>Thêm</Button>
+          <Button
+            variant="contained"
+            onClick={() =>
+              createInventoryMutation.mutate({ roomId: Number(id), ...formData })
+            }
+          >
+            Thêm
+          </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Dialog Clone vật tư */}
       <Dialog open={openClone} onClose={() => setOpenClone(false)}>
         <DialogTitle>Clone vật tư sang phòng khác</DialogTitle>
         <DialogContent>
-          <TextField fullWidth label="ID phòng đích" type="number" value={cloneForm.targetRoomId} onChange={e => setCloneForm({...cloneForm, targetRoomId: e.target.value})} sx={{ mt: 2 }} />
-          <TextField fullWidth label="Tên vật tư mới (để trống = giữ nguyên)" value={cloneForm.newItemName} onChange={e => setCloneForm({...cloneForm, newItemName: e.target.value})} sx={{ mt: 2 }} />
+          <TextField
+            fullWidth
+            label="ID phòng đích"
+            type="number"
+            value={cloneForm.targetRoomId}
+            onChange={(event) =>
+              setCloneForm((prev) => ({
+                ...prev,
+                targetRoomId: event.target.value,
+              }))
+            }
+            sx={{ mt: 2 }}
+          />
+          <TextField
+            fullWidth
+            label="Tên vật tư mới"
+            value={cloneForm.newItemType}
+            onChange={(event) =>
+              setCloneForm((prev) => ({
+                ...prev,
+                newItemType: event.target.value,
+              }))
+            }
+            sx={{ mt: 2 }}
+          />
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenClone(false)}>Hủy</Button>
-          <Button variant="contained" onClick={handleCloneSubmit}>Clone</Button>
+          <Button
+            variant="contained"
+            onClick={() =>
+              cloneMutation.mutate({
+                sourceInventoryId: selectedInventory.id,
+                targetRoomId: Number(cloneForm.targetRoomId),
+                newItemType: cloneForm.newItemType.trim() || undefined,
+              })
+            }
+          >
+            Clone
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>

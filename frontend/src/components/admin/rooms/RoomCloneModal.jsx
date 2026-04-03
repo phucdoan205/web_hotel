@@ -1,86 +1,94 @@
-// src/components/admin/rooms/RoomCloneModal.jsx
-import { useState, useEffect } from 'react';
+import { useMemo, useState } from "react";
 import {
-    Dialog, DialogTitle, DialogContent, DialogActions,
-    Button, TextField, Typography, Alert
-} from '@mui/material';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { roomApi } from '../../../api/admin/roomApi';
+  Alert,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Stack,
+  TextField,
+  Typography,
+} from "@mui/material";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { roomsApi } from "../../../api/admin/roomsApi";
 
-export default function RoomCloneModal({
-    open,
-    onClose,
-    room
-}) {
-    const queryClient = useQueryClient();
-    const [newRoomNumber, setNewRoomNumber] = useState('');
-    const [error, setError] = useState('');
+export default function RoomCloneModal({ open, onClose, room }) {
+  const queryClient = useQueryClient();
+  const [roomNumbersInput, setRoomNumbersInput] = useState(
+    room?.roomNumber ? `${room.roomNumber}-COPY` : "",
+  );
+  const [errorMsg, setErrorMsg] = useState("");
 
-    const cloneMutation = useMutation({
-        mutationFn: (newNumber) => roomApi.cloneRoom(room?.id, { newRoomNumber: newNumber }),
-        onSuccess: () => {
-            queryClient.invalidateQueries(['rooms']);
-            handleClose();
-            alert(`✅ Clone phòng #${room?.roomNumber} thành công!`);
-        },
-        onError: (err) => {
-            setError(err.response?.data?.message || 'Clone phòng thất bại');
-        },
-    });
+  const roomNumbers = useMemo(
+    () =>
+      roomNumbersInput
+        .split(/\r?\n|,/)
+        .map((item) => item.trim())
+        .filter(Boolean),
+    [roomNumbersInput],
+  );
 
-    const handleClose = () => {
-        setNewRoomNumber('');
-        setError('');
-        onClose();
-    };
+  const cloneMutation = useMutation({
+    mutationFn: async (numbers) =>
+      Promise.all(
+        numbers.map((newRoomNumber) =>
+          roomsApi.cloneRoom(room.id, { newRoomNumber }),
+        ),
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["rooms"] });
+      onClose();
+    },
+    onError: (error) => {
+      setErrorMsg(error.response?.data?.message ?? error.message);
+    },
+  });
 
-    const handleClone = () => {
-        if (!newRoomNumber.trim()) {
-            setError('Vui lòng nhập số phòng mới');
-            return;
-        }
-        cloneMutation.mutate(newRoomNumber.trim());
-    };
+  const handleClone = () => {
+    if (!room?.id || roomNumbers.length === 0) {
+      setErrorMsg("Nhập ít nhất một số phòng để clone.");
+      return;
+    }
 
-    // Reset form khi mở modal
-    useEffect(() => {
-        if (open && room) {
-            setNewRoomNumber(`${room.roomNumber}-Copy`);
-            setError('');
-        }
-    }, [open, room]);
+    setErrorMsg("");
+    cloneMutation.mutate(roomNumbers);
+  };
 
-    return (
-        <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-            <DialogTitle>Clone Phòng #{room?.roomNumber}</DialogTitle>
-            <DialogContent>
-                <Typography variant="body2" sx={{ mb: 2 }}>
-                    Phòng mới sẽ được sao chép <strong>toàn bộ thông tin</strong> và
-                    <strong> danh sách vật tư</strong> từ phòng gốc.
-                </Typography>
+  return (
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
+      <DialogTitle>Clone phòng {room?.roomNumber}</DialogTitle>
+      <DialogContent>
+        <Stack spacing={2} sx={{ mt: 1 }}>
+          <Typography variant="body2" color="text.secondary">
+            Nhập một hoặc nhiều số phòng, mỗi số trên một dòng hoặc cách nhau
+            bằng dấu phẩy.
+          </Typography>
 
-                {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+          {errorMsg ? <Alert severity="error">{errorMsg}</Alert> : null}
 
-                <TextField
-                    autoFocus
-                    fullWidth
-                    label="Số phòng mới *"
-                    value={newRoomNumber}
-                    onChange={(e) => setNewRoomNumber(e.target.value)}
-                    placeholder="Ví dụ: 105A, 201-Copy..."
-                    sx={{ mt: 1 }}
-                />
-            </DialogContent>
-            <DialogActions>
-                <Button onClick={handleClose}>Hủy</Button>
-                <Button
-                    variant="contained"
-                    onClick={handleClone}
-                    disabled={cloneMutation.isPending || !newRoomNumber.trim()}
-                >
-                    {cloneMutation.isPending ? 'Đang clone...' : 'Clone Phòng'}
-                </Button>
-            </DialogActions>
-        </Dialog>
-    );
+          <TextField
+            label="Danh sách số phòng mới"
+            multiline
+            minRows={4}
+            value={roomNumbersInput}
+            onChange={(event) => setRoomNumbersInput(event.target.value)}
+            placeholder={"301\n302\n303A"}
+          />
+        </Stack>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>Hủy</Button>
+        <Button
+          variant="contained"
+          onClick={handleClone}
+          disabled={cloneMutation.isPending}
+        >
+          {cloneMutation.isPending
+            ? "Đang clone..."
+            : `Clone ${roomNumbers.length || ""}`.trim()}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
 }

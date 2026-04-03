@@ -28,6 +28,8 @@ import AdminBookingPage from "../pages/admin/AdminBookingPage";
 import AdminRoomInventoryPage from "../pages/admin/AdminRoomInventoryPage";
 import AdminStaffPage from "../pages/admin/AdminStaffPage";
 import AdminEquipmentPage from "../pages/admin/AdminEquipmentPage";
+import AdminRoomPage from "../pages/admin/AdminRoomPage";
+import AdminRoomTypesPage from "../pages/admin/AdminRoomTypesPage";
 
 // Pages receptionist
 import ReceptionistCheckInOutPage from "../pages/receptionist/ReceptionistCheckInOutPage";
@@ -92,6 +94,8 @@ const AppRoutes = () => {
         <Route path="audit-log" element={<AdminAuditLogPage />} />
         <Route path="reports" element={<AdminReportsPage />} />
         <Route path="bookings" element={<AdminBookingPage />} />
+        <Route path="rooms" element={<AdminRoomPage />} />
+        <Route path="room-types" element={<AdminRoomTypesPage />} />
         <Route path="room-inventory" element={<AdminRoomInventoryPage />} />
         <Route path="equipment" element={<AdminEquipmentPage />} />
         <Route path="staff" element={<AdminStaffPage />} />

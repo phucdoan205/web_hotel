@@ -1,191 +1,148 @@
-// src/pages/admin/rooms/RoomTypeForm.jsx
-import { useState, useEffect } from 'react';
+import { useState } from "react";
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Button,
-  TextField,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   Grid,
-  Typography,
-} from '@mui/material';
+  TextField,
+} from "@mui/material";
 
-export default function RoomTypeForm({ initialData, onSave, onCancel }) {
-  const [form, setForm] = useState({
-    name: '',
-    basePrice: '',
-    capacityAdults: '',
-    capacityChildren: '',
-    size: '',
-    bedType: '',
-    totalRooms: '',      // Số phòng dự kiến
-    description: '',
-  });
+const createRoomTypeFormState = (initialData) => ({
+  name: initialData?.name ?? "",
+  basePrice: initialData?.basePrice ?? "",
+  capacityAdults: initialData?.capacityAdults ?? "",
+  capacityChildren: initialData?.capacityChildren ?? "",
+  size: initialData?.size ?? "",
+  bedType: initialData?.bedType ?? "",
+  description: initialData?.description ?? "",
+});
 
-  useEffect(() => {
-    if (initialData) {
-      setForm({
-        name: initialData.name || '',
-        basePrice: initialData.basePrice || '',
-        capacityAdults: initialData.capacityAdults || '',
-        capacityChildren: initialData.capacityChildren || '',
-        size: initialData.size || '',
-        bedType: initialData.bedType || '',
-        totalRooms: initialData.totalRooms || '',
-        description: initialData.description || '',
-      });
-    }
-  }, [initialData]);
+export default function RoomTypeForm({
+  open,
+  initialData,
+  onSave,
+  onCancel,
+}) {
+  const [form, setForm] = useState(() => createRoomTypeFormState(initialData));
 
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
+  const handleSubmit = (event) => {
+    event.preventDefault();
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-
-    const payload = {
-      ...form,
-      basePrice: parseFloat(form.basePrice) || 0,
-      capacityAdults: parseInt(form.capacityAdults) || 0,
-      capacityChildren: parseInt(form.capacityChildren) || 0,
-      size: form.size ? parseFloat(form.size) : null,
-      totalRooms: form.totalRooms ? parseInt(form.totalRooms) : null,
-      id: initialData?.id,
-    };
-
-    onSave(payload);
+    onSave({
+      name: form.name.trim(),
+      basePrice: Number(form.basePrice) || 0,
+      capacityAdults: Number(form.capacityAdults) || 0,
+      capacityChildren: Number(form.capacityChildren) || 0,
+      size: form.size === "" ? null : Number(form.size),
+      bedType: form.bedType.trim(),
+      description: form.description.trim(),
+    });
   };
 
   return (
-    <Dialog open={true} onClose={onCancel} maxWidth="md" fullWidth>
-      <DialogTitle className="text-xl font-black text-gray-900">
-        {initialData ? 'Chỉnh sửa Loại Phòng' : 'Thêm Loại Phòng Mới'}
+    <Dialog open={open} onClose={onCancel} fullWidth maxWidth="md">
+      <DialogTitle>
+        {initialData ? "Cập nhật loại phòng" : "Thêm loại phòng"}
       </DialogTitle>
-
-      <DialogContent className="pt-6">
-        <form onSubmit={handleSubmit}>
-          <Grid container spacing={3}>
-            {/* Tên loại phòng */}
+      <form onSubmit={handleSubmit}>
+        <DialogContent>
+          <Grid container spacing={2} sx={{ mt: 0.5 }}>
             <Grid item xs={12}>
               <TextField
                 fullWidth
                 label="Tên loại phòng"
-                name="name"
                 value={form.name}
-                onChange={handleChange}
-                required
-                variant="outlined"
+                onChange={(event) =>
+                  setForm((prev) => ({ ...prev, name: event.target.value }))
+                }
               />
             </Grid>
-
-            {/* Giá + Diện tích */}
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label="Giá cơ bản (VND)"
-                name="basePrice"
+                label="Giá cơ bản"
                 type="number"
                 value={form.basePrice}
-                onChange={handleChange}
-                required
+                onChange={(event) =>
+                  setForm((prev) => ({ ...prev, basePrice: event.target.value }))
+                }
               />
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label="Diện tích phòng (m²)"
-                name="size"
+                label="Diện tích"
                 type="number"
                 value={form.size}
-                onChange={handleChange}
+                onChange={(event) =>
+                  setForm((prev) => ({ ...prev, size: event.target.value }))
+                }
               />
             </Grid>
-
-            {/* Số người lớn + Trẻ em */}
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label="Số người lớn"
-                name="capacityAdults"
+                label="Người lớn"
                 type="number"
                 value={form.capacityAdults}
-                onChange={handleChange}
-                required
+                onChange={(event) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    capacityAdults: event.target.value,
+                  }))
+                }
               />
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label="Số trẻ em"
-                name="capacityChildren"
+                label="Trẻ em"
                 type="number"
                 value={form.capacityChildren}
-                onChange={handleChange}
+                onChange={(event) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    capacityChildren: event.target.value,
+                  }))
+                }
               />
             </Grid>
-
-            {/* Số phòng + Loại giường */}
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Số phòng dự kiến"
-                name="totalRooms"
-                type="number"
-                value={form.totalRooms}
-                onChange={handleChange}
-                helperText="Số lượng phòng thuộc loại này"
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Loại giường (Bed Type)"
-                name="bedType"
-                value={form.bedType}
-                onChange={handleChange}
-                placeholder="1 King Bed, 2 Queen Beds..."
-              />
-            </Grid>
-
-            {/* Mô tả */}
             <Grid item xs={12}>
               <TextField
                 fullWidth
-                label="Mô tả"
-                name="description"
+                label="Loại giường"
+                value={form.bedType}
+                onChange={(event) =>
+                  setForm((prev) => ({ ...prev, bedType: event.target.value }))
+                }
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
                 multiline
-                rows={4}
+                minRows={3}
+                label="Mô tả"
                 value={form.description}
-                onChange={handleChange}
+                onChange={(event) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    description: event.target.value,
+                  }))
+                }
               />
             </Grid>
           </Grid>
-        </form>
-      </DialogContent>
-
-      <DialogActions className="px-6 pb-6">
-        <Button
-          onClick={onCancel}
-          sx={{ borderRadius: '14px', px: 4 }}
-        >
-          Hủy
-        </Button>
-        <Button
-          onClick={handleSubmit}
-          variant="contained"
-          sx={{
-            bgcolor: '#ff5e1f',
-            '&:hover': { bgcolor: '#e54d1a' },
-            borderRadius: '14px',
-            px: 6,
-            fontWeight: 'bold',
-          }}
-        >
-          {initialData ? 'Lưu thay đổi' : 'Thêm loại phòng'}
-        </Button>
-      </DialogActions>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={onCancel}>Hủy</Button>
+          <Button type="submit" variant="contained">
+            Lưu
+          </Button>
+        </DialogActions>
+      </form>
     </Dialog>
   );
 }

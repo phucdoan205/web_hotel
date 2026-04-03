@@ -8,6 +8,7 @@ using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Dynamic.Core;
+using System.Text;
 
 namespace backend.Controllers
 {
@@ -17,17 +18,21 @@ namespace backend.Controllers
     {
         private readonly AppDbContext _context;
         private readonly IMapper _mapper;
+        private readonly CloudinaryService _cloudinaryService;
 
-        public RoomsController(AppDbContext context, IMapper mapper)
+        public RoomsController(AppDbContext context, IMapper mapper, CloudinaryService cloudinaryService)
         {
             _context = context;
             _mapper = mapper;
+            _cloudinaryService = cloudinaryService;
         }
 
         // GET: api/rooms
         [HttpGet]
         public async Task<ActionResult<PagedResult<RoomDetailDTO>>> GetRooms(
+        [FromQuery] string? search = null,
         [FromQuery] string? status = null,
+        [FromQuery] string? cleaningStatus = null,
         [FromQuery] int? roomTypeId = null,
         [FromQuery] int? floor = null,
         [FromQuery] int page = 1,
@@ -37,13 +42,20 @@ namespace backend.Controllers
             .Include(r => r.RoomType)
             .ThenInclude(rt => rt!.RoomTypeAmenities)
             .ThenInclude(rta => rta.Amenity)
+            .Include(r => r.RoomImages)
             .Include(r => r.RoomInventory)
             .ThenInclude(ri => ri.Equipment)
             .AsNoTracking();
 
             // Áp dụng filter
+            if (!string.IsNullOrWhiteSpace(search))
+                query = query.Where(r => r.RoomNumber.Contains(search.Trim()));
+
             if (!string.IsNullOrEmpty(status))
                 query = query.Where(r => r.Status == status);
+
+            if (!string.IsNullOrEmpty(cleaningStatus))
+                query = query.Where(r => r.CleaningStatus == cleaningStatus);
 
             if (roomTypeId.HasValue)
                 query = query.Where(r => r.RoomTypeId == roomTypeId.Value);
@@ -91,6 +103,7 @@ namespace backend.Controllers
         {
             var room = await _context.Rooms
                 .Include(r => r.RoomType).ThenInclude(rt => rt!.RoomTypeAmenities).ThenInclude(rta => rta.Amenity)
+                .Include(r => r.RoomImages)
                 .Include(r => r.RoomInventory)
                 .ThenInclude(ri => ri.Equipment)
                 .AsNoTracking()
@@ -110,6 +123,19 @@ namespace backend.Controllers
             //if (!validation.IsValid) return BadRequest(validation.Errors);
 
             var room = _mapper.Map<Room>(dto);
+            room.Status ??= RoomStatuses.Available;
+            room.CleaningStatus ??= RoomCleaningStatuses.Dirty;
+            if (dto.ImageUrls?.Any() == true)
+            {
+                room.RoomImages = dto.ImageUrls
+                    .Where(url => !string.IsNullOrWhiteSpace(url))
+                    .Select((url, index) => new RoomImage
+                    {
+                        ImageUrl = url.Trim(),
+                        IsPrimary = index == 0
+                    })
+                    .ToList();
+            }
 
             // Thêm inventory nếu có
             if (dto.InitialInventories?.Any() == true)
@@ -139,17 +165,35 @@ namespace backend.Controllers
             //var validation = await _updateValidator.ValidateAsync(dto);
             //if (!validation.IsValid) return BadRequest(validation.Errors);
 
-            var room = await _context.Rooms.FindAsync(id);
+            var room = await _context.Rooms
+                .Include(r => r.RoomImages)
+                .FirstOrDefaultAsync(r => r.Id == id);
             if (room == null) return NotFound();
 
-            _mapper.Map(dto, room); // chỉ map field không null
+            var currentRoomNumber = room.RoomNumber;
 
             // Business rule: không cho đổi số phòng nếu đã có booking
-            if (!string.IsNullOrEmpty(dto.RoomNumber) && dto.RoomNumber != room.RoomNumber)
+            if (!string.IsNullOrEmpty(dto.RoomNumber) && dto.RoomNumber != currentRoomNumber)
             {
                 var hasBooking = await _context.BookingDetails
                     .AnyAsync(bd => bd.RoomId == id && bd.CheckOutDate >= DateTime.Today);
                 if (hasBooking) return BadRequest("Phòng đã có đặt phòng, không thể đổi số phòng");
+            }
+
+            _mapper.Map(dto, room); // chỉ map field không null
+
+            if (dto.ImageUrls != null)
+            {
+                _context.RoomImages.RemoveRange(room.RoomImages);
+                room.RoomImages = dto.ImageUrls
+                    .Where(url => !string.IsNullOrWhiteSpace(url))
+                    .Select((url, index) => new RoomImage
+                    {
+                        RoomId = room.Id,
+                        ImageUrl = url.Trim(),
+                        IsPrimary = index == 0
+                    })
+                    .ToList();
             }
 
             await _context.SaveChangesAsync();
@@ -234,6 +278,7 @@ namespace backend.Controllers
                 .Include(r => r.RoomType)
                     .ThenInclude(rt => rt!.RoomTypeAmenities)
                     .ThenInclude(rta => rta.Amenity)
+                .Include(r => r.RoomImages)
                 .Include(r => r.RoomInventory)
                 .ThenInclude(ri => ri.Equipment)
                 .AsNoTracking()
@@ -371,6 +416,7 @@ namespace backend.Controllers
             var updatedRoom = await _context.Rooms
                 .Include(r => r.RoomType)
                 .ThenInclude(rt => rt!.RoomTypeAmenities).ThenInclude(a => a.Amenity)
+                .Include(r => r.RoomImages)
                 .Include(r => r.RoomInventory)
                 .ThenInclude(ri => ri.Equipment)
                 .FirstOrDefaultAsync(r => r.Id == id);
@@ -463,10 +509,11 @@ namespace backend.Controllers
         }
 
         [HttpPost("{id}/clone")]
-        public async Task<ActionResult<RoomDTO>> CloneRoom(int id, [FromBody] CloneRoomRequest request)
+        public async Task<ActionResult<RoomDetailDTO>> CloneRoom(int id, [FromBody] CloneRoomRequest request)
         {
             var originalRoom = await _context.Rooms
                 .Include(r => r.RoomInventory)
+                .Include(r => r.RoomImages)
                 .FirstOrDefaultAsync(r => r.Id == id);
 
             if (originalRoom == null)
@@ -503,11 +550,91 @@ namespace backend.Controllers
                 });
             }
 
+            foreach (var image in originalRoom.RoomImages)
+            {
+                _context.RoomImages.Add(new RoomImage
+                {
+                    RoomId = newRoom.Id,
+                    ImageUrl = image.ImageUrl,
+                    IsPrimary = image.IsPrimary
+                });
+            }
+
             await _context.SaveChangesAsync();
 
-            // Map sang DTO
-            var result = _mapper.Map<RoomDTO>(newRoom);
+            var createdRoom = await _context.Rooms
+                .Include(r => r.RoomType)
+                .ThenInclude(rt => rt!.RoomTypeAmenities)
+                .ThenInclude(rta => rta.Amenity)
+                .Include(r => r.RoomImages)
+                .Include(r => r.RoomInventory)
+                .ThenInclude(ri => ri.Equipment)
+                .AsNoTracking()
+                .FirstAsync(r => r.Id == newRoom.Id);
+
+            var result = _mapper.Map<RoomDetailDTO>(createdRoom);
             return Ok(result);
+        }
+
+        [HttpGet("image-library")]
+        public async Task<ActionResult<List<string>>> GetImageLibrary()
+        {
+            var images = await _context.RoomImages
+                .AsNoTracking()
+                .Where(ri => !string.IsNullOrWhiteSpace(ri.ImageUrl))
+                .OrderByDescending(ri => ri.Id)
+                .Select(ri => ri.ImageUrl)
+                .Distinct()
+                .ToListAsync();
+
+            return Ok(images);
+        }
+
+        [HttpPost("upload-image")]
+        [Consumes("multipart/form-data")]
+        [RequestSizeLimit(20_000_000)]
+        public async Task<ActionResult<object>> UploadRoomImage([FromForm] IFormFile file, [FromForm] string? roomName = null)
+        {
+            if (file == null || file.Length <= 0)
+            {
+                return BadRequest("Vui lòng chọn ảnh phòng.");
+            }
+
+            var folderName = Slugify(roomName);
+            var folder = string.IsNullOrWhiteSpace(folderName)
+                ? "home/RoomImage/general"
+                : $"home/RoomImage/{folderName}";
+
+            var uploadedUrl = await _cloudinaryService.UploadImageAsync(file, folder);
+            if (string.IsNullOrWhiteSpace(uploadedUrl))
+            {
+                return StatusCode(500, "Upload ảnh phòng lên Cloudinary thất bại.");
+            }
+
+            return Ok(new { url = uploadedUrl, folder });
+        }
+
+        private static string Slugify(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return string.Empty;
+            }
+
+            var builder = new StringBuilder();
+            foreach (var ch in value.Trim().ToLowerInvariant())
+            {
+                if (char.IsLetterOrDigit(ch))
+                {
+                    builder.Append(ch);
+                }
+                else if (builder.Length > 0 && builder[^1] != '-')
+                {
+                    builder.Append('-');
+                }
+            }
+
+            return builder.ToString().Trim('-');
         }
     }
 }

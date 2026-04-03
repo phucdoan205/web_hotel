@@ -1,134 +1,163 @@
-// src/components/admin/rooms/BulkCreateModal.jsx
-import { useState } from 'react';
+import { useState } from "react";
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  Button,
   Alert,
-  Box,
-  CircularProgress,
-  Typography,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   FormControl,
   InputLabel,
-  Select,
   MenuItem,
-} from '@mui/material';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { roomApi } from '../../../api/admin/roomApi';
+  Select,
+  Stack,
+  TextField,
+} from "@mui/material";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { roomsApi } from "../../../api/admin/roomsApi";
 
-export default function BulkCreateModal({ open, onClose }) {
+const initialForm = {
+  roomTypeId: "",
+  startNumber: "101",
+  count: 5,
+  floor: 1,
+  status: "Available",
+  cleaningStatus: "Dirty",
+};
+
+export default function BulkCreateModal({ open, onClose, roomTypes = [] }) {
   const queryClient = useQueryClient();
-
-  const [form, setForm] = useState({
-    roomTypeId: '',
-    startNumber: '101',
-    count: 5,
-    floor: 1,
-  });
-
-  const [errorMsg, setErrorMsg] = useState('');
-
-  // Fetch Room Types (PagedResponse)
-  const { data: roomTypes = [], isLoading: loadingTypes } = useQuery({
-    queryKey: ['roomTypes'],
-    queryFn: async () => {
-      const res = await roomApi.getRoomTypes();
-      console.log('RoomTypes API response:', res.data); // debug
-      return res.data.items || [];
-    },
-    staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    enabled: open,                    // chỉ fetch khi modal mở
-  });
+  const [form, setForm] = useState(initialForm);
+  const [errorMsg, setErrorMsg] = useState("");
 
   const mutation = useMutation({
-    mutationFn: (data) => {
-      if (!data.roomTypeId) throw new Error('Vui lòng chọn loại phòng');
+    mutationFn: async (payload) => {
+      const startNumber = Number(payload.startNumber);
+      const rooms = Array.from({ length: Number(payload.count) }, (_, index) => ({
+        roomNumber: String(startNumber + index),
+        roomTypeId: Number(payload.roomTypeId),
+        floor: Number(payload.floor),
+        status: payload.status,
+        cleaningStatus: payload.cleaningStatus,
+      }));
 
-      const rooms = [];
-      let current = parseInt(data.startNumber, 10);
-
-      for (let i = 0; i < data.count; i++) {
-        rooms.push({
-          roomNumber: current.toString().padStart(3, '0'),
-          roomTypeId: Number(data.roomTypeId),
-          floor: data.floor,
-          status: 'Available',
-          cleaningStatus: 'Dirty',
-        });
-        current++;
-      }
-
-      return roomApi.bulkCreateRooms({ rooms });
+      return roomsApi.bulkCreateRooms({ rooms });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['rooms']);
-      alert(`Tạo thành công ${form.count} phòng!`);
+      queryClient.invalidateQueries({ queryKey: ["rooms"] });
+      setForm(initialForm);
+      setErrorMsg("");
       onClose();
-      setForm({ roomTypeId: '', startNumber: '101', count: 5, floor: 1 });
     },
-    onError: (err) => {
-      const msg = err.response?.data?.message || err.message || 'Tạo phòng thất bại';
-      setErrorMsg(msg);
+    onError: (error) => {
+      setErrorMsg(error.response?.data?.message ?? error.message);
     },
   });
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    setErrorMsg('');
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    setErrorMsg("");
     mutation.mutate(form);
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>
-        <Typography variant="h6" component="div">
-          Tạo Nhiều Phòng (Bulk Create)
-        </Typography>
-      </DialogTitle>
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
+      <DialogTitle>Thêm nhiều phòng cùng lúc</DialogTitle>
 
       <form onSubmit={handleSubmit}>
         <DialogContent>
-          {errorMsg && <Alert severity="error" sx={{ mb: 3 }}>{errorMsg}</Alert>}
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            {errorMsg ? <Alert severity="error">{errorMsg}</Alert> : null}
 
-          <Box sx={{ mb: 3 }}>
             <FormControl fullWidth>
               <InputLabel>Loại phòng</InputLabel>
               <Select
-                value={form.roomTypeId}
                 label="Loại phòng"
-                onChange={(e) => setForm({ ...form, roomTypeId: e.target.value })}
-                disabled={loadingTypes}
+                value={form.roomTypeId}
+                onChange={(event) =>
+                  setForm((prev) => ({ ...prev, roomTypeId: event.target.value }))
+                }
               >
-                {loadingTypes ? (
-                  <MenuItem disabled>
-                    <CircularProgress size={20} sx={{ mr: 1 }} /> Đang tải...
+                {roomTypes.map((roomType) => (
+                  <MenuItem key={roomType.id} value={roomType.id}>
+                    {roomType.name}
                   </MenuItem>
-                ) : roomTypes.length === 0 ? (
-                  <MenuItem disabled>Không có loại phòng</MenuItem>
-                ) : (
-                  roomTypes.map((rt) => (
-                    <MenuItem key={rt.id} value={rt.id}>
-                      {rt.name}
-                    </MenuItem>
-                  ))
-                )}
+                ))}
               </Select>
             </FormControl>
-          </Box>
 
-          <TextField fullWidth label="Số phòng bắt đầu" value={form.startNumber} onChange={e => setForm({ ...form, startNumber: e.target.value })} sx={{ mb: 2 }} />
-          <TextField fullWidth label="Số lượng" type="number" value={form.count} onChange={e => setForm({ ...form, count: +e.target.value })} sx={{ mb: 2 }} />
-          <TextField fullWidth label="Tầng" type="number" value={form.floor} onChange={e => setForm({ ...form, floor: +e.target.value })} />
+            <TextField
+              label="Số phòng bắt đầu"
+              value={form.startNumber}
+              onChange={(event) =>
+                setForm((prev) => ({ ...prev, startNumber: event.target.value }))
+              }
+            />
+
+            <TextField
+              label="Số lượng"
+              type="number"
+              value={form.count}
+              onChange={(event) =>
+                setForm((prev) => ({ ...prev, count: event.target.value }))
+              }
+            />
+
+            <TextField
+              label="Tầng"
+              type="number"
+              value={form.floor}
+              onChange={(event) =>
+                setForm((prev) => ({ ...prev, floor: event.target.value }))
+              }
+            />
+
+            <FormControl fullWidth>
+              <InputLabel>Trạng thái phòng</InputLabel>
+              <Select
+                label="Trạng thái phòng"
+                value={form.status}
+                onChange={(event) =>
+                  setForm((prev) => ({ ...prev, status: event.target.value }))
+                }
+              >
+                <MenuItem value="Available">Available</MenuItem>
+                <MenuItem value="Occupied">Occupied</MenuItem>
+                <MenuItem value="Maintenance">Maintenance</MenuItem>
+                <MenuItem value="Cleaning">Cleaning</MenuItem>
+              </Select>
+            </FormControl>
+
+            <FormControl fullWidth>
+              <InputLabel>Trạng thái dọn phòng</InputLabel>
+              <Select
+                label="Trạng thái dọn phòng"
+                value={form.cleaningStatus}
+                onChange={(event) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    cleaningStatus: event.target.value,
+                  }))
+                }
+              >
+                <MenuItem value="Dirty">Dirty</MenuItem>
+                <MenuItem value="InProgress">InProgress</MenuItem>
+                <MenuItem value="Clean">Clean</MenuItem>
+                <MenuItem value="Inspected">Inspected</MenuItem>
+                <MenuItem value="Pickup">Pickup</MenuItem>
+              </Select>
+            </FormControl>
+          </Stack>
         </DialogContent>
 
         <DialogActions>
           <Button onClick={onClose}>Hủy</Button>
-          <Button type="submit" variant="contained" disabled={mutation.isPending || !form.roomTypeId}>
-            {mutation.isPending ? 'Đang tạo...' : `Tạo ${form.count} phòng`}
+          <Button
+            type="submit"
+            variant="contained"
+            disabled={mutation.isPending || !form.roomTypeId}
+          >
+            {mutation.isPending ? "Đang tạo..." : "Tạo phòng"}
           </Button>
         </DialogActions>
       </form>

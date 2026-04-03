@@ -1,6 +1,5 @@
-import React from 'react';
-import RoomTypeManagement from '../../components/admin/roomtypes/RoomTypeManagement';
+import AdminRoomPage from "./AdminRoomPage";
 
-export default function RoomTypesPage() {
-  return <RoomTypeManagement />;
+export default function AdminRoomTypesPage() {
+  return <AdminRoomPage />;
 }

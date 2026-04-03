@@ -8,6 +8,8 @@ namespace backend.DTOs.Room
         public string RoomNumber { get; set; } = null!;
         public int? Floor { get; set; }
         public string? Status { get; set; } = "Available";
+        public string? CleaningStatus { get; set; } = "Dirty";
+        public List<string>? ImageUrls { get; set; }
 
         public List<CreateRoomInventoryDTO>? InitialInventories { get; set; }
     }

@@ -9,5 +9,7 @@ namespace backend.DTOs.Room
         public string? RoomNumber { get; set; }
         public int? Floor { get; set; }
         public string? Status { get; set; }
+        public string? CleaningStatus { get; set; }
+        public List<string>? ImageUrls { get; set; }
     }
 }

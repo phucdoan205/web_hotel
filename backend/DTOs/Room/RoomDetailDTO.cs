@@ -22,6 +22,7 @@ namespace backend.DTOs.Room
         public DateTime? DeletedAt { get; set; }
 
         public List<string> Amenities { get; set; } = new();
+        public List<string> ImageUrls { get; set; } = new();
         public List<RoomInventoryDTO> Inventory { get; set; } = new();
     }
 }
