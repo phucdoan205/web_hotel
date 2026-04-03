@@ -27,6 +27,7 @@ import AdminReportsPage from "../pages/admin/AdminReportsPage";
 import AdminBookingPage from "../pages/admin/AdminBookingPage";
 import AdminRoomInventoryPage from "../pages/admin/AdminRoomInventoryPage";
 import AdminStaffPage from "../pages/admin/AdminStaffPage";
+import AdminEquipmentPage from "../pages/admin/AdminEquipmentPage";
 
 // Pages receptionist
 import ReceptionistCheckInOutPage from "../pages/receptionist/ReceptionistCheckInOutPage";
@@ -92,6 +93,7 @@ const AppRoutes = () => {
         <Route path="reports" element={<AdminReportsPage />} />
         <Route path="bookings" element={<AdminBookingPage />} />
         <Route path="room-inventory" element={<AdminRoomInventoryPage />} />
+        <Route path="equipment" element={<AdminEquipmentPage />} />
         <Route path="staff" element={<AdminStaffPage />} />
       </Route>
 
