@@ -1,12 +1,58 @@
-import axios from 'axios';
+import apiClient from "../client";
 
-const API_BASE = 'http://localhost:5291/api';
+const buildEquipmentFormData = (payload) => {
+  const formData = new FormData();
 
-export const equipmentApi = {
-  getEquipments: (params) => axios.get(`${API_BASE}/Equipment`, { params }),
-  getById: (id) => axios.get(`${API_BASE}/Equipment/${id}`),
-  create: (data) => axios.post(`${API_BASE}/Equipment`, data),
-  update: (id, data) => axios.put(`${API_BASE}/Equipment/${id}`, data),
-  delete: (id) => axios.delete(`${API_BASE}/Equipment/${id}`),
-  toggleActive: (id) => axios.patch(`${API_BASE}/Equipment/${id}/toggle-active`),
+  Object.entries(payload).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === "") {
+      return;
+    }
+
+    formData.append(key, value);
+  });
+
+  return formData;
+};
+
+export const getEquipmentList = async (params) => {
+  const response = await apiClient.get("/Equipments", { params });
+  return response.data;
+};
+
+export const getEquipmentSummary = async () => {
+  const response = await apiClient.get("/Equipments/summary");
+  return response.data;
+};
+
+export const getEquipmentById = async (equipmentId) => {
+  const response = await apiClient.get(`/Equipments/${equipmentId}`);
+  return response.data;
+};
+
+export const createEquipment = async (payload) => {
+  const response = await apiClient.post(
+    "/Equipments",
+    buildEquipmentFormData(payload),
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    },
+  );
+
+  return response.data;
+};
+
+export const updateEquipment = async (equipmentId, payload) => {
+  const response = await apiClient.put(
+    `/Equipments/${equipmentId}`,
+    buildEquipmentFormData(payload),
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    },
+  );
+
+  return response.data;
 };

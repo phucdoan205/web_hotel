@@ -27,9 +27,6 @@ import AdminReportsPage from "../pages/admin/AdminReportsPage";
 import AdminBookingPage from "../pages/admin/AdminBookingPage";
 import AdminRoomInventoryPage from "../pages/admin/AdminRoomInventoryPage";
 import AdminStaffPage from "../pages/admin/AdminStaffPage";
-import AdminRoomPage from "../pages/admin/AdminRoomPage";
-import AdminRoomDetailPage from "../pages/admin/AdminRoomDetailPage";
-import AdminRoomTypesPage from "../pages/admin/AdminRoomTypesPage";
 import AdminEquipmentPage from "../pages/admin/AdminEquipmentPage";
 
 // Pages receptionist
@@ -90,9 +87,6 @@ const AppRoutes = () => {
       {/* 3. Admin Routes (Dùng AdminLayout) */}
       <Route path="/admin" element={<AdminLayout />}>
         <Route index element={<AdminDashboardPage />} />
-        <Route path="room-types" element={<AdminRoomTypesPage />} />
-        <Route path="rooms" element={<AdminRoomPage />} />
-        <Route path="rooms/:id" element={<AdminRoomDetailPage />} />
         <Route path="dashboard" element={<AdminDashboardPage />} />
         <Route path="settings" element={<AdminSettingsPage />} />
         <Route path="audit-log" element={<AdminAuditLogPage />} />
@@ -101,7 +95,6 @@ const AppRoutes = () => {
         <Route path="room-inventory" element={<AdminRoomInventoryPage />} />
         <Route path="equipment" element={<AdminEquipmentPage />} />
         <Route path="staff" element={<AdminStaffPage />} />
-        <Route path="equipment" element={<AdminEquipmentPage />} />
       </Route>
 
       {/* 4. Receptionist Routes (Dùng ReceptionistLayout) */}

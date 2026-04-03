@@ -21,7 +21,7 @@ const Sidebar = () => {
     { name: "Staff", icon: Users, path: "/admin/staff" },
     { name: "Room Management", icon: Building, path: "/admin/rooms", },
     { name: "Room Type Management", icon: Factory, path: "/admin/room-types", },
-    { name: "Inventory", icon: Boxes, path: "/admin/equipment" },
+    { name: "Vật tư", icon: Boxes, path: "/admin/equipment" },
     { name: "Reports", icon: BarChart3, path: "/admin/reports" },
     { name: "Audit Log", icon: History, path: "/admin/audit-log" },
   ];
