@@ -10,6 +10,7 @@ import CleaningModal from '../../components/admin/rooms/CleaningModal';
 import RoomForm from '../../components/admin/rooms/RoomForm';
 import RoomDetailModal from '../../components/admin/rooms/RoomDetailModal';
 import RoomInventoryModal from '../../components/admin/rooms/RoomInventoryModal';
+import RoomCloneModal from '../../components/admin/rooms/RoomCloneModal';
 
 export default function AdminRoomsPage() {
   const queryClient = useQueryClient();
@@ -20,6 +21,7 @@ export default function AdminRoomsPage() {
   const [openDetail, setOpenDetail] = useState(false);
   const [openInventory, setOpenInventory] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState(null);
+  const [openClone, setOpenClone] = useState(false);
 
   // Fetch danh sách phòng
   const { data: rooms = [], isLoading } = useQuery({
@@ -48,6 +50,11 @@ export default function AdminRoomsPage() {
   const handleOpenInventory = (room) => {
     setSelectedRoom(room);
     setOpenInventory(true);
+  };
+
+  const handleOpenClone = (room) => {
+    setSelectedRoom(room);
+    setOpenClone(true);
   };
 
   return (
@@ -81,6 +88,7 @@ export default function AdminRoomsPage() {
             onClean={handleOpenCleaning}
             onDetail={handleOpenDetail}
             onOpenInventory={handleOpenInventory}
+            onClone={handleOpenClone}
           />
         </>
       )}
@@ -114,6 +122,12 @@ export default function AdminRoomsPage() {
         onClose={() => setOpenInventory(false)}
         roomId={selectedRoom?.id}
         roomNumber={selectedRoom?.roomNumber}
+      />
+
+      <RoomCloneModal
+        open={openClone}
+        onClose={() => setOpenClone(false)}
+        room={selectedRoom}
       />
     </Box>
   );

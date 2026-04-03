@@ -46,7 +46,15 @@ namespace backend.Mappers
             CreateMap<CreateRoomInventoryDTO, RoomInventory>();
             CreateMap<UpdateRoomInventoryDTO, RoomInventory>()
                 .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
-
+            
+            CreateMap<Room, RoomDTO>()
+                .ForMember(dest => dest.ID, opt => opt.MapFrom(src => src.Id))
+                .ForMember(dest => dest.Status, opt => opt.MapFrom(src => 
+                    src.Status == "Available"));
+            CreateMap<RoomDTO, Room>()
+                .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.ID))
+                .ForMember(dest => dest.RoomInventory, opt => opt.Ignore())
+                .ForMember(dest => dest.BookingDetails, opt => opt.Ignore());
             CreateMap<Room, RoomDetailDTO>()
                 .ForMember(dest => dest.RoomTypeName, opt => opt.MapFrom(src => src.RoomType != null ? src.RoomType.Name : string.Empty))
                 .ForMember(dest => dest.BasePrice, opt => opt.MapFrom(src => src.RoomType != null ? src.RoomType.BasePrice : 0))

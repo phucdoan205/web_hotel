@@ -20,6 +20,7 @@ export const roomApi = {
   updateRoom: (id, data) => axios.put(`${API_BASE}/Rooms/${id}`, data),
   deleteRoom: (id) => axios.delete(`${API_BASE}/Rooms/${id}`),
   restoreRoom: (id) => axios.post(`${API_BASE}/Rooms/${id}/restore`),
+  cloneRoom: (roomId, data) => axios.post(`${API_BASE}/Rooms/${roomId}/clone`, data),
 
   updateRoomStatus: (id, status) =>
     axios.patch(`${API_BASE}/Rooms/${id}/status`, { status }),

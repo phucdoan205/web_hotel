@@ -461,5 +461,53 @@ namespace backend.Controllers
                 Rooms = createdDtos
             });
         }
+
+        [HttpPost("{id}/clone")]
+        public async Task<ActionResult<RoomDTO>> CloneRoom(int id, [FromBody] CloneRoomRequest request)
+        {
+            var originalRoom = await _context.Rooms
+                .Include(r => r.RoomInventory)
+                .FirstOrDefaultAsync(r => r.Id == id);
+
+            if (originalRoom == null)
+                return NotFound(new { message = "Không tìm thấy phòng" });
+
+            if (await _context.Rooms.AnyAsync(r => r.RoomNumber == request.NewRoomNumber))
+                return BadRequest(new { message = $"Số phòng {request.NewRoomNumber} đã tồn tại." });
+
+            var newRoom = new Room
+            {
+                RoomTypeId = originalRoom.RoomTypeId,
+                RoomNumber = request.NewRoomNumber,
+                Floor = originalRoom.Floor,
+                Status = originalRoom.Status,
+                CleaningStatus = originalRoom.CleaningStatus,
+                IsDeleted = false,
+                LastCleaningUpdatedAt = DateTime.UtcNow
+            };
+
+            _context.Rooms.Add(newRoom);
+            await _context.SaveChangesAsync();
+
+            // Clone RoomInventory
+            foreach (var item in originalRoom.RoomInventory)
+            {
+                _context.RoomInventory.Add(new RoomInventory
+                {
+                    RoomId = newRoom.Id,
+                    EquipmentId = item.EquipmentId,
+                    Note = item.Note,
+                    Quantity = item.Quantity,
+                    PriceIfLost = item.PriceIfLost,
+                    IsActive = item.IsActive
+                });
+            }
+
+            await _context.SaveChangesAsync();
+
+            // Map sang DTO
+            var result = _mapper.Map<RoomDTO>(newRoom);
+            return Ok(result);
+        }
     }
 }
