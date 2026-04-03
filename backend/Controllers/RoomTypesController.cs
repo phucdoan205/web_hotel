@@ -5,6 +5,7 @@ using backend.Models;
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Text;
 
 namespace backend.Controllers
 {
@@ -13,16 +14,19 @@ namespace backend.Controllers
     public class RoomTypesController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly CloudinaryService _cloudinaryService;
         //private readonly IValidator<CreateRoomTypeDTO> _createValidator;
         //private readonly IValidator<UpdateRoomTypeDTO> _updateValidator;
 
         public RoomTypesController(
-            AppDbContext context
+            AppDbContext context,
+            CloudinaryService cloudinaryService
             //IValidator<CreateRoomTypeDTO> createValidator,
             //IValidator<UpdateRoomTypeDTO> updateValidator
             )
         {
             _context = context;
+            _cloudinaryService = cloudinaryService;
             //_createValidator = createValidator;
             //_updateValidator = updateValidator;
         }
@@ -39,6 +43,11 @@ namespace backend.Controllers
                 Size = roomType.Size,
                 BedType = roomType.BedType,
                 Description = roomType.Description,
+                PrimaryImageUrl = roomType.RoomImages
+                    .Where(ri => !string.IsNullOrWhiteSpace(ri.ImageUrl))
+                    .OrderByDescending(ri => ri.IsPrimary ?? false)
+                    .Select(ri => ri.ImageUrl)
+                    .FirstOrDefault(),
                 RoomCount = roomType.Rooms.Count(r => !r.IsDeleted)
             };
         }
@@ -77,6 +86,7 @@ namespace backend.Controllers
         {
             var query = _context.RoomTypes
                 .Include(rt => rt.Rooms)
+                .Include(rt => rt.RoomImages)
                 .AsNoTracking()
                 .AsQueryable();
 
@@ -147,7 +157,11 @@ namespace backend.Controllers
             {
                 roomType.RoomImages = dto.ImageUrls
                     .Where(url => !string.IsNullOrWhiteSpace(url))
-                    .Select(url => new RoomImage { ImageUrl = url.Trim() })
+                    .Select((url, index) => new RoomImage
+                    {
+                        ImageUrl = url.Trim(),
+                        IsPrimary = index == 0
+                    })
                     .ToList();
             }
 
@@ -168,7 +182,9 @@ namespace backend.Controllers
         [HttpPut("{id:int}")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateRoomTypeDTO dto)
         {
-            var roomType = await _context.RoomTypes.FirstOrDefaultAsync(rt => rt.Id == id);
+            var roomType = await _context.RoomTypes
+                .Include(rt => rt.RoomImages)
+                .FirstOrDefaultAsync(rt => rt.Id == id);
             if (roomType == null)
             {
                 return NotFound();
@@ -197,6 +213,33 @@ namespace backend.Controllers
                 roomType.BedType = string.IsNullOrWhiteSpace(dto.BedType) ? null : dto.BedType.Trim();
             if (dto.Description != null)
                 roomType.Description = string.IsNullOrWhiteSpace(dto.Description) ? null : dto.Description.Trim();
+            if (dto.ImageUrls != null)
+            {
+                var oldUrls = roomType.RoomImages
+                    .Where(ri => !string.IsNullOrWhiteSpace(ri.ImageUrl))
+                    .Select(ri => ri.ImageUrl)
+                    .ToList();
+                var nextUrls = dto.ImageUrls
+                    .Where(url => !string.IsNullOrWhiteSpace(url))
+                    .Select(url => url.Trim())
+                    .Distinct()
+                    .ToList();
+
+                _context.RoomImages.RemoveRange(roomType.RoomImages);
+                roomType.RoomImages = nextUrls
+                    .Select((url, index) => new RoomImage
+                    {
+                        RoomTypeId = roomType.Id,
+                        ImageUrl = url,
+                        IsPrimary = index == 0
+                    })
+                    .ToList();
+
+                foreach (var oldUrl in oldUrls.Except(nextUrls))
+                {
+                    await _cloudinaryService.DeleteImageByUrlAsync(oldUrl);
+                }
+            }
 
             await _context.SaveChangesAsync();
             return NoContent();
@@ -240,6 +283,7 @@ namespace backend.Controllers
             var query = _context.RoomTypes
                 .IgnoreQueryFilters()
                 .Include(rt => rt.Rooms)
+                .Include(rt => rt.RoomImages)
                 .Where(rt => rt.IsDeleted);
 
             if (!string.IsNullOrWhiteSpace(search))
@@ -276,6 +320,53 @@ namespace backend.Controllers
             await _context.SaveChangesAsync();
 
             return NoContent();
+        }
+
+        [HttpPost("upload-image")]
+        [Consumes("multipart/form-data")]
+        [RequestSizeLimit(20_000_000)]
+        public async Task<ActionResult<object>> UploadRoomTypeImage([FromForm] IFormFile file, [FromForm] string? roomTypeName = null)
+        {
+            if (file == null || file.Length <= 0)
+            {
+                return BadRequest("Vui lòng chọn ảnh loại phòng.");
+            }
+
+            var folderName = Slugify(roomTypeName);
+            var folder = string.IsNullOrWhiteSpace(folderName)
+                ? "home/room/general"
+                : $"home/room/{folderName}";
+
+            var uploadedUrl = await _cloudinaryService.UploadImageAsync(file, folder);
+            if (string.IsNullOrWhiteSpace(uploadedUrl))
+            {
+                return StatusCode(500, "Upload ảnh loại phòng lên Cloudinary thất bại.");
+            }
+
+            return Ok(new { url = uploadedUrl, folder });
+        }
+
+        private static string Slugify(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return string.Empty;
+            }
+
+            var builder = new StringBuilder();
+            foreach (var ch in value.Trim().ToLowerInvariant())
+            {
+                if (char.IsLetterOrDigit(ch))
+                {
+                    builder.Append(ch);
+                }
+                else if (builder.Length > 0 && builder[^1] != '-')
+                {
+                    builder.Append('-');
+                }
+            }
+
+            return builder.ToString().Trim('-');
         }
     }
 }

@@ -64,6 +64,12 @@ namespace backend.Mappers
                             .Where(rta => rta.Amenity != null)
                             .Select(rta => rta.Amenity.Name)
                         : Enumerable.Empty<string>()))
+                .ForMember(dest => dest.ImageUrls, opt => opt.MapFrom(src =>
+                    src.RoomType != null
+                        ? src.RoomType.RoomImages
+                            .Where(ri => !string.IsNullOrWhiteSpace(ri.ImageUrl))
+                            .Select(ri => ri.ImageUrl)
+                        : Enumerable.Empty<string>()))
                 .ForMember(dest => dest.Inventory, opt => opt.MapFrom(src => src.RoomInventory));
             CreateMap<CreateRoomDTO, Room>()
                 .ForMember(dest => dest.RoomInventory, opt => opt.Ignore())

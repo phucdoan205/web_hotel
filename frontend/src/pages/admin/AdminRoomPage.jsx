@@ -52,7 +52,11 @@ export default function AdminRoomPage() {
     return params;
   }, [filters]);
 
-  const { data: roomsResponse, isLoading: isRoomsLoading } = useQuery({
+  const {
+    data: roomsResponse,
+    isLoading: isRoomsLoading,
+    error: roomsError,
+  } = useQuery({
     queryKey: ["rooms", roomQueryParams],
     queryFn: () => roomsApi.getRooms(roomQueryParams),
   });
@@ -122,6 +126,13 @@ export default function AdminRoomPage() {
           ))}
         </div>
       </div>
+
+      {roomsError ? (
+        <div className="rounded-[24px] border border-rose-200 bg-rose-50 px-5 py-4 text-sm font-semibold text-rose-700">
+          Không tải được danh sách phòng. Khả năng cao backend `Rooms` đang trả lỗi.
+          {` ${roomsError.message || ""}`.trim()}
+        </div>
+      ) : null}
 
       {tab === 0 ? (
         <RoomTable

@@ -10,6 +10,7 @@
         public decimal? Size { get; set; }
         public string? BedType { get; set; }
         public string? Description { get; set; }
+        public string? PrimaryImageUrl { get; set; }
         public int RoomCount { get; set; }
     }
 }

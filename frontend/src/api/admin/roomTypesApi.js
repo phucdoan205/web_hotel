@@ -25,6 +25,21 @@ export const roomTypesApi = {
     const response = await apiClient.put(`/RoomTypes/${id}`, payload);
     return response.data;
   },
+  uploadRoomTypeImage: async ({ file, roomTypeName }) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    if (roomTypeName) {
+      formData.append("roomTypeName", roomTypeName);
+    }
+
+    const response = await apiClient.post("/RoomTypes/upload-image", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+
+    return response.data;
+  },
   deleteRoomType: async (id) => {
     const response = await apiClient.delete(`/RoomTypes/${id}`);
     return response.data;

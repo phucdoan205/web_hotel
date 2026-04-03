@@ -51,23 +51,4 @@ export const roomsApi = {
     });
     return response.data;
   },
-  getImageLibrary: async () => {
-    const response = await apiClient.get("/Rooms/image-library");
-    return response.data ?? [];
-  },
-  uploadRoomImage: async ({ file, roomName }) => {
-    const formData = new FormData();
-    formData.append("file", file);
-    if (roomName) {
-      formData.append("roomName", roomName);
-    }
-
-    const response = await apiClient.post("/Rooms/upload-image", formData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    });
-
-    return response.data;
-  },
 };

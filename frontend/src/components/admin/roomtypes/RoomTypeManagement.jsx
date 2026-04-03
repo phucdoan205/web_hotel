@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Button, Paper, Stack, TextField, Typography } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { roomTypesApi } from "../../../api/admin/roomTypesApi";
 import RoomTypeForm from "./RoomTypeForm";
@@ -47,62 +46,50 @@ export default function RoomTypeManagement() {
     },
   });
 
-  const handleSave = (payload) => {
-    if (editingRoomType?.id) {
-      updateMutation.mutate({ id: editingRoomType.id, payload });
-      return;
-    }
-
-    createMutation.mutate(payload);
-  };
-
   const roomTypes = data?.items ?? [];
 
   return (
-    <Stack spacing={2}>
-      <Paper sx={{ p: 2 }}>
-        <Stack
-          direction={{ xs: "column", md: "row" }}
-          justifyContent="space-between"
-          spacing={2}
-        >
+    <div className="space-y-4">
+      <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <Typography variant="h6">Loại phòng</Typography>
-            <Typography variant="body2" color="text.secondary">
-              Quản lý danh sách loại phòng và tiện ích đi kèm.
-            </Typography>
+            <h2 className="text-2xl font-black text-slate-900">Danh sách loại phòng</h2>
+            <p className="mt-1 text-sm font-medium text-slate-500">
+              Quản lý loại phòng, ảnh hiển thị và nhóm tiện ích đi kèm.
+            </p>
           </div>
 
-          <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
-            <TextField
-              label="Tìm loại phòng"
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
+              placeholder="Tìm loại phòng"
+              className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition-all focus:border-orange-300 focus:bg-white"
             />
-            <Button
-              variant="contained"
+            <button
+              type="button"
               onClick={() => {
                 setEditingRoomType(null);
                 setOpenForm(true);
               }}
+              className="rounded-2xl bg-orange-600 px-5 py-3 text-sm font-black uppercase tracking-wide text-white shadow-lg shadow-orange-100 transition-all hover:bg-orange-700"
             >
               Thêm loại phòng
-            </Button>
-          </Stack>
-        </Stack>
-      </Paper>
+            </button>
+          </div>
+        </div>
+      </div>
 
       <RoomTypeTable
         roomTypes={roomTypes}
         isLoading={isLoading}
-        onEdit={(roomType) => {
-          setEditingRoomType(roomType);
+        onEdit={async (roomType) => {
+          const detail = await roomTypesApi.getRoomTypeById(roomType.id);
+          setEditingRoomType(detail);
           setOpenForm(true);
         }}
         onDelete={(roomType) => {
-          if (!window.confirm(`Xóa loại phòng ${roomType.name}?`)) {
-            return;
-          }
+          if (!window.confirm(`Xóa loại phòng ${roomType.name}?`)) return;
           deleteMutation.mutate(roomType.id);
         }}
         onManageAmenities={(roomType) =>
@@ -118,7 +105,14 @@ export default function RoomTypeManagement() {
         key={`${editingRoomType?.id ?? "new"}-${openForm ? "open" : "closed"}`}
         open={openForm}
         initialData={editingRoomType}
-        onSave={handleSave}
+        onSave={(payload) => {
+          if (editingRoomType?.id) {
+            updateMutation.mutate({ id: editingRoomType.id, payload });
+            return;
+          }
+
+          createMutation.mutate(payload);
+        }}
         onCancel={() => {
           setOpenForm(false);
           setEditingRoomType(null);
@@ -137,6 +131,6 @@ export default function RoomTypeManagement() {
           })
         }
       />
-    </Stack>
+    </div>
   );
 }
