@@ -319,6 +319,9 @@ namespace backend.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ItemCode")
+                        .IsUnique();
+
                     b.ToTable("Equipments");
                 });
 
