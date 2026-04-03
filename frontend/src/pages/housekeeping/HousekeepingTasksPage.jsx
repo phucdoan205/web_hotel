@@ -219,14 +219,20 @@ export default function HousekeepingTasksPage() {
                     <td className="px-8 py-5">
                       <div className="flex flex-wrap gap-2">
                         {task.cleaningStatus === "Dirty" || task.cleaningStatus === "Pickup" ? (
-                          <button
-                            type="button"
-                            onClick={() => acceptMutation.mutate(task.roomId)}
-                            disabled={acceptMutation.isPending}
-                            className="rounded-2xl bg-blue-600 px-4 py-2 text-xs font-black uppercase tracking-wide text-white transition-all hover:bg-blue-700 disabled:opacity-60"
-                          >
-                            Nhận nhiệm vụ
-                          </button>
+                          task.isLockedByOther ? (
+                            <span className="rounded-2xl bg-gray-100 px-4 py-2 text-xs font-black uppercase tracking-wide text-gray-400">
+                              Đã có người nhận
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => acceptMutation.mutate(task.roomId)}
+                              disabled={acceptMutation.isPending}
+                              className="rounded-2xl bg-blue-600 px-4 py-2 text-xs font-black uppercase tracking-wide text-white transition-all hover:bg-blue-700 disabled:opacity-60"
+                            >
+                              {task.isAssignedToCurrentUser ? "Tiếp tục checklist" : "Nhận nhiệm vụ"}
+                            </button>
+                          )
                         ) : (
                           <button
                             type="button"

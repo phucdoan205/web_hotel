@@ -52,6 +52,7 @@ builder.Services.AddFluentValidationClientsideAdapters();
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 builder.Services.AddHttpClient();
 builder.Services.AddScoped<CloudinaryService>();
+builder.Services.AddSingleton<backend.Services.HousekeepingTaskLockService>();
 builder.Services.AddScoped<IJwtService, JwtService>(); 
 builder.Services.AddSingleton<NotificationRealtimeService>();
 builder.Services.AddScoped<NotificationService>();

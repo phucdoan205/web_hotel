@@ -27,7 +27,7 @@ export default function HousekeepingRoomInspectionDetailPage() {
   const [search, setSearch] = useState("");
   const [selectedItem, setSelectedItem] = useState(null);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error } = useQuery({
     queryKey: ["housekeepingTaskDetail", roomId],
     queryFn: () => housekeepingApi.getTaskDetail(roomId),
     enabled: Boolean(roomId),
@@ -100,6 +100,10 @@ export default function HousekeepingRoomInspectionDetailPage() {
           <div className="h-6 w-56 animate-pulse rounded-full bg-gray-100" />
           <div className="mt-6 h-40 animate-pulse rounded-[2rem] bg-gray-100" />
         </div>
+      ) : error ? (
+        <div className="rounded-[2rem] border border-rose-100 bg-rose-50 p-8 text-sm font-bold text-rose-700">
+          {error.response?.data || "Bạn không thể mở checklist này vì phòng đã được tài khoản khác nhận nhiệm vụ."}
+        </div>
       ) : data ? (
         <>
           <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
@@ -153,7 +157,7 @@ export default function HousekeepingRoomInspectionDetailPage() {
                 <button
                   type="button"
                   onClick={() => completeMutation.mutate()}
-                  disabled={completeMutation.isPending || data.cleaningStatus !== "InProgress"}
+                  disabled={completeMutation.isPending || data.cleaningStatus !== "InProgress" || data.isLockedByOther}
                   className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-500 px-5 py-4 text-sm font-black uppercase tracking-wide text-white transition-all hover:bg-emerald-600 disabled:opacity-60"
                 >
                   <CheckCircle2 className="size-4" />
