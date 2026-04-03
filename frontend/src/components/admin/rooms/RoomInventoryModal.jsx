@@ -20,7 +20,6 @@ import {
   Checkbox,
   Box,
   Autocomplete,
-  Alert,
 } from '@mui/material';
 import { Inventory as InventoryIcon, Delete as DeleteIcon, DeleteSweep as DeleteSweepIcon, Add as AddIcon } from '@mui/icons-material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -43,14 +42,12 @@ export default function RoomInventoryModal({
     priceIfLost: 0,
   });
 
-  // Lấy danh sách vật tư của phòng
   const { data: inventoryItems = [] } = useQuery({
     queryKey: ['roomInventory', roomId],
     queryFn: () => roomApi.getInventoryByRoom(roomId).then((res) => res.data),
     enabled: open,
   });
 
-  // Gợi ý thiết bị từ Equipment
   const { data: equipmentSuggestions = [] } = useQuery({
     queryKey: ['equipmentSuggestions'],
     queryFn: () => roomApi.getEquipments({ isActive: true }).then((res) => res.data?.items || []),
@@ -64,17 +61,11 @@ export default function RoomInventoryModal({
       setInventoryInputValue('');
       setInventoryForm({ equipmentId: null, itemName: '', quantity: 1, priceIfLost: 0 });
     },
-    onError: (err) => {
-      alert(err.response?.data?.message || 'Thêm vật tư thất bại');
-    },
   });
 
   const deleteInventoryMutation = useMutation({
     mutationFn: (id) => roomApi.deleteInventory(id),
     onSuccess: () => queryClient.invalidateQueries(['roomInventory', roomId]),
-    onError: (err) => {
-      alert(err.response?.data?.message || 'Xóa vật tư thất bại');
-    },
   });
 
   const handleAddInventory = () => {
@@ -96,13 +87,8 @@ export default function RoomInventoryModal({
   };
 
   const handleAddAllEquipment = async () => {
-    const existingNames = new Set(inventoryItems.map(item => 
-      (item.equipmentName || item.itemName).toLowerCase()
-    ));
-
-    const toAdd = equipmentSuggestions.filter(eq => 
-      !existingNames.has(eq.name.toLowerCase())
-    );
+    const existing = new Set(inventoryItems.map(item => (item.equipmentName || item.itemName).toLowerCase()));
+    const toAdd = equipmentSuggestions.filter(eq => !existing.has(eq.name.toLowerCase()));
 
     if (toAdd.length === 0) {
       alert('Tất cả thiết bị đã được thêm vào phòng này.');
@@ -111,26 +97,21 @@ export default function RoomInventoryModal({
 
     if (!window.confirm(`Thêm ${toAdd.length} thiết bị vào phòng?`)) return;
 
-    try {
-      for (const eq of toAdd) {
-        await roomApi.createInventory({
-          roomId,
-          equipmentId: eq.id,
-          itemName: eq.name,
-          quantity: 1,
-          priceIfLost: 0,
-          isActive: true,
-        });
-      }
-      queryClient.invalidateQueries(['roomInventory', roomId]);
-      alert(`Đã thêm ${toAdd.length} thiết bị thành công!`);
-    } catch (err) {
-      alert('Có lỗi khi thêm một số thiết bị');
+    for (const eq of toAdd) {
+      await roomApi.createInventory({
+        roomId,
+        equipmentId: eq.id,
+        itemName: eq.name,
+        quantity: 1,
+        priceIfLost: 0,
+        isActive: true,
+      });
     }
+    queryClient.invalidateQueries(['roomInventory', roomId]);
   };
 
   const toggleSelection = (id) => {
-    setSelectedToDelete(prev =>
+    setSelectedToDelete(prev => 
       prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
     );
   };
@@ -146,33 +127,23 @@ export default function RoomInventoryModal({
     if (selectedToDelete.length === 0) return;
     if (!window.confirm(`Xóa ${selectedToDelete.length} vật tư đã chọn?`)) return;
 
-    try {
-      await Promise.all(selectedToDelete.map(id => roomApi.deleteInventory(id)));
-      queryClient.invalidateQueries(['roomInventory', roomId]);
-      setSelectedToDelete([]);
-      alert('Đã xóa thành công');
-    } catch (err) {
-      alert('Xóa một số vật tư thất bại');
-    }
+    await Promise.all(selectedToDelete.map(id => roomApi.deleteInventory(id)));
+    queryClient.invalidateQueries(['roomInventory', roomId]);
+    setSelectedToDelete([]);
   };
 
   const handleDeleteAll = async () => {
     if (inventoryItems.length === 0) return;
-    if (!window.confirm(`XÓA HẾT ${inventoryItems.length} vật tư trong phòng này?`)) return;
+    if (!window.confirm(`XÓA HẾT ${inventoryItems.length} vật tư?`)) return;
 
-    try {
-      const ids = inventoryItems.map(item => item.id).filter(Boolean);
-      await Promise.all(ids.map(id => roomApi.deleteInventory(id)));
-      queryClient.invalidateQueries(['roomInventory', roomId]);
-      setSelectedToDelete([]);
-      alert('Đã xóa tất cả vật tư');
-    } catch (err) {
-      alert('Xóa tất cả thất bại');
-    }
+    const ids = inventoryItems.map(item => item.id).filter(Boolean);
+    await Promise.all(ids.map(id => roomApi.deleteInventory(id)));
+    queryClient.invalidateQueries(['roomInventory', roomId]);
+    setSelectedToDelete([]);
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+    <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
       <DialogTitle>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <InventoryIcon color="primary" />
@@ -181,13 +152,17 @@ export default function RoomInventoryModal({
       </DialogTitle>
 
       <DialogContent>
-        {/* Phần thêm nhanh từ Equipment */}
-        <Box sx={{ mb: 3, p: 2, bgcolor: '#f8f9fa', borderRadius: 2 }}>
-          <Typography variant="subtitle2" gutterBottom>Thêm từ thiết bị có sẵn</Typography>
-          <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} sm={6}>
+        <Box sx={{ mb: 4, p: 3, bgcolor: '#f8f9fa', borderRadius: 2 }}>
+          <Typography variant="subtitle1" gutterBottom fontWeight="bold">
+            Thêm từ thiết bị có sẵn
+          </Typography>
+
+          {/* === PHẦN MỚI - SỬ DỤNG FLEX ĐỂ AUTOCOMPLETE RỘNG TỐI ĐA === */}
+          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+            <Box sx={{ flex: '1 1 400px', minWidth: '300px' }}>
               <Autocomplete
                 freeSolo
+                fullWidth
                 options={equipmentSuggestions}
                 getOptionLabel={(opt) => opt.name || ''}
                 inputValue={inventoryInputValue}
@@ -200,44 +175,66 @@ export default function RoomInventoryModal({
                       quantity: 1,
                       priceIfLost: 0,
                     });
+                  } else {
+                    setInventoryForm({ equipmentId: null, itemName: '', quantity: 1, priceIfLost: 0 });
                   }
                 }}
-                renderInput={(params) => <TextField {...params} label="Chọn thiết bị" size="small" />}
+                renderInput={(params) => (
+                  <TextField 
+                    {...params} 
+                    label="Chọn thiết bị" 
+                    size="small" 
+                    fullWidth 
+                    sx={{ 
+                      '& .MuiInputBase-root': { 
+                        minHeight: '48px',
+                        fontSize: '1rem'
+                      } 
+                    }}
+                  />
+                )}
+                sx={{
+                  '& .MuiAutocomplete-popper': {
+                    minWidth: '100% !important',
+                    width: 'auto !important',
+                  },
+                }}
               />
-            </Grid>
-            <Grid item xs={12} sm={2}>
+            </Box>
+
+            <Box sx={{ width: 140 }}>
               <TextField 
                 fullWidth 
-                label="SL" 
+                label="Số lượng" 
                 type="number" 
                 size="small" 
                 value={inventoryForm.quantity} 
                 onChange={e => setInventoryForm({ ...inventoryForm, quantity: +e.target.value })} 
+                sx={{ '& .MuiInputBase-root': { minHeight: '48px' } }}
               />
-            </Grid>
-            <Grid item xs={12} sm={2}>
-              <Button 
-                fullWidth 
-                variant="contained" 
-                onClick={handleAddInventory} 
-                disabled={!inventoryForm.itemName.trim()}
-              >
-                Thêm
-              </Button>
-            </Grid>
-            <Grid item xs={12} sm={2}>
-              <Button 
-                fullWidth 
-                variant="outlined" 
-                onClick={handleAddAllEquipment}
-              >
-                Thêm tất cả
-              </Button>
-            </Grid>
-          </Grid>
+            </Box>
+
+            <Button 
+              variant="contained" 
+              onClick={handleAddInventory} 
+              disabled={!inventoryForm.itemName.trim()}
+              startIcon={<AddIcon />}
+              sx={{ height: '48px', px: 3, whiteSpace: 'nowrap' }}
+            >
+              Thêm
+            </Button>
+
+            <Button 
+              variant="outlined" 
+              onClick={handleAddAllEquipment}
+              sx={{ height: '48px', px: 3, whiteSpace: 'nowrap' }}
+            >
+              Thêm tất cả thiết bị chưa có
+            </Button>
+          </Box>
         </Box>
 
-        {/* Danh sách vật tư */}
+        {/* Phần danh sách vật tư giữ nguyên */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
           <Typography variant="h6">Danh sách vật tư hiện có</Typography>
           {inventoryItems.length > 0 && (
@@ -253,7 +250,7 @@ export default function RoomInventoryModal({
         </Box>
 
         {inventoryItems.length > 0 ? (
-          <TableContainer component={Paper}>
+          <TableContainer component={Paper} sx={{ mb: 3 }}>
             <Table size="small">
               <TableHead>
                 <TableRow>
