@@ -93,7 +93,8 @@ export default function RoomDetailModal({
   if (!initialRoom) return null;
 
   const roomType = roomTypeData || {};
-  const amenities = roomType.roomTypeAmenities?.map((rta) => rta.amenity?.name || rta.name).filter(Boolean) || [];
+  console.log(roomType.amenities)
+  const amenities = roomType.amenities?.map((rta) => rta).filter(Boolean) || [];
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
