@@ -2,6 +2,7 @@ using AutoMapper;
 using backend.DTOs;
 using backend.DTOs.Amenity;
 using backend.DTOs.Attraction;
+using backend.DTOs.Equipment;
 using backend.DTOs.Room;
 using backend.DTOs.RoomInventory;
 using backend.DTOs.RoomType;
@@ -101,6 +102,19 @@ namespace backend.Mappers
                 .ForAllMembers(opt => opt.Condition((src, dest, srcValue) => srcValue != null));
 
             CreateMap<Amenity, AmenityDTO>();
+
+            CreateMap<Equipment, EquipmentDTO>();
+
+            CreateMap<CreateEquipmentDTO, Equipment>()
+                .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
+                .ForMember(dest => dest.IsActive, opt => opt.MapFrom(src => true))
+                .ForMember(dest => dest.InUseQuantity, opt => opt.MapFrom(src => 0))
+                .ForMember(dest => dest.DamagedQuantity, opt => opt.MapFrom(src => 0))
+                .ForMember(dest => dest.LiquidatedQuantity, opt => opt.MapFrom(src => 0))
+                .ForMember(dest => dest.InStockQuantity, opt => opt.MapFrom(src => src.TotalQuantity));
+
+            CreateMap<UpdateEquipmentDTO, Equipment>()
+                .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
         }
     }
 }

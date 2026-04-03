@@ -153,6 +153,7 @@ export default function RoomDetailModal({ open, onClose, room: initialRoom }) {
       },
     });
   };
+  console.log('RoomDetailModal render with initialRoom:', initialRoom);
 
   // Handlers cho vật tư
   const handleAddInventory = () => {
@@ -406,7 +407,7 @@ export default function RoomDetailModal({ open, onClose, room: initialRoom }) {
                       <TableBody>
                         {inventoryItems.map((item, i) => (
                           <TableRow key={item.id ?? i}>
-                            <TableCell>{item.itemName}</TableCell>
+                            <TableCell>{item.equipmentName}</TableCell>
                             <TableCell align="center">{item.quantity}</TableCell>
                             <TableCell align="right">{item.priceIfLost?.toLocaleString('vi-VN')} ₫</TableCell>
                             <TableCell align="center">
@@ -437,7 +438,7 @@ export default function RoomDetailModal({ open, onClose, room: initialRoom }) {
                     {inventoryItems.map((item, i) => (
                       <Grid item xs={12} sm={6} key={item.id ?? i}>
                         <Paper variant="outlined" sx={{ p: 2 }}>
-                          <Typography fontWeight="bold">{item.itemName}</Typography>
+                          <Typography fontWeight="bold">{item.equipmentName}</Typography>
                           <Typography variant="body2">
                             Số lượng: <strong>{item.quantity}</strong>
                           </Typography>
