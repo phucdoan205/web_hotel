@@ -18,6 +18,7 @@ namespace backend.Data
         public DbSet<Membership> Memberships { get; set; }
 
         public DbSet<Amenity> Amenities { get; set; }
+        public DbSet<Equipment> Equipments { get; set; }
         public DbSet<RoomType> RoomTypes { get; set; }
         public DbSet<Room> Rooms { get; set; }
         public DbSet<RoomTypeAmenity> RoomTypeAmenities { get; set; }
@@ -54,6 +55,60 @@ namespace backend.Data
 
             modelBuilder.Entity<RoomTypeAmenity>()
                 .HasKey(rta => new { rta.RoomTypeId, rta.AmenityId });
+
+            modelBuilder.Entity<Equipment>(entity =>
+            {
+                entity.Property(e => e.ItemCode)
+                    .HasColumnType("varchar(50)")
+                    .HasMaxLength(50);
+
+                entity.Property(e => e.Name)
+                    .HasMaxLength(255);
+
+                entity.Property(e => e.Category)
+                    .HasMaxLength(100);
+
+                entity.Property(e => e.Unit)
+                    .HasMaxLength(50);
+
+                entity.Property(e => e.Supplier)
+                    .HasMaxLength(255);
+
+                entity.Property(e => e.BasePrice)
+                    .HasColumnType("decimal(18,2)");
+
+                entity.Property(e => e.DefaultPriceIfLost)
+                    .HasColumnType("decimal(18,2)");
+
+                entity.Property(e => e.CreatedAt)
+                    .HasColumnType("datetime");
+
+                entity.Property(e => e.UpdatedAt)
+                    .HasColumnType("datetime");
+
+                entity.HasIndex(e => e.ItemCode)
+                    .IsUnique();
+            });
+
+            modelBuilder.Entity<RoomInventory>(entity =>
+            {
+                entity.Property(ri => ri.PriceIfLost)
+                    .HasColumnType("decimal(18,2)");
+
+                entity.HasOne(ri => ri.Equipment)
+                    .WithMany(e => e.RoomInventories)
+                    .HasForeignKey(ri => ri.EquipmentId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<LossAndDamage>(entity =>
+            {
+                entity.Property(ld => ld.PenaltyAmount)
+                    .HasColumnType("decimal(18,2)");
+
+                entity.Property(ld => ld.CreatedAt)
+                    .HasColumnType("datetime");
+            });
 
             modelBuilder.Entity<Notification>(entity =>
             {

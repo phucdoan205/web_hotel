@@ -43,8 +43,14 @@ namespace backend.Mappers
                 .ForMember(dest => dest.EquipmentName, opt => opt.MapFrom(src => src.Equipment != null ? src.Equipment.Name : null))
                 .ForMember(dest => dest.EquipmentCode, opt => opt.MapFrom(src => src.Equipment != null ? src.Equipment.ItemCode : null))
                 .ForMember(dest => dest.RoomNumber, opt => opt.MapFrom(src => src.Room != null ? src.Room.RoomNumber : null));
-            CreateMap<CreateRoomInventoryDTO, RoomInventory>();
+            CreateMap<CreateRoomInventoryDTO, RoomInventory>()
+                .ForMember(dest => dest.Equipment, opt => opt.Ignore())
+                .ForMember(dest => dest.Room, opt => opt.Ignore())
+                .ForMember(dest => dest.LossAndDamages, opt => opt.Ignore());
             CreateMap<UpdateRoomInventoryDTO, RoomInventory>()
+                .ForMember(dest => dest.Equipment, opt => opt.Ignore())
+                .ForMember(dest => dest.Room, opt => opt.Ignore())
+                .ForMember(dest => dest.LossAndDamages, opt => opt.Ignore())
                 .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
             
             CreateMap<Room, RoomDTO>()

@@ -29,6 +29,48 @@ namespace backend.Controllers
             //_cloneValidator = cloneValidator;
         }
 
+        private async Task<Equipment?> ResolveEquipmentAsync(int? equipmentId, string? itemName, decimal? priceIfLost)
+        {
+            if (equipmentId.HasValue)
+            {
+                return await _context.Equipments.FirstOrDefaultAsync(e => e.Id == equipmentId.Value && e.IsActive);
+            }
+
+            if (string.IsNullOrWhiteSpace(itemName))
+            {
+                return null;
+            }
+
+            var normalizedName = itemName.Trim();
+            var equipment = await _context.Equipments.FirstOrDefaultAsync(e => e.Name == normalizedName);
+            if (equipment != null)
+            {
+                return equipment;
+            }
+
+            var now = DateTime.UtcNow;
+            equipment = new Equipment
+            {
+                ItemCode = $"EQ-{now:yyyyMMddHHmmssfff}",
+                Name = normalizedName,
+                Category = "General",
+                Unit = "Item",
+                TotalQuantity = 0,
+                InUseQuantity = 0,
+                DamagedQuantity = 0,
+                LiquidatedQuantity = 0,
+                InStockQuantity = 0,
+                BasePrice = priceIfLost ?? 0,
+                DefaultPriceIfLost = priceIfLost ?? 0,
+                IsActive = true,
+                CreatedAt = now
+            };
+
+            _context.Equipments.Add(equipment);
+            await _context.SaveChangesAsync();
+            return equipment;
+        }
+
         private static RoomInventoryDTO MapRoomInventory(RoomInventory item)
         {
             return new RoomInventoryDTO

@@ -9,6 +9,7 @@ import {
   History,
   Settings,
   Hotel,
+  Boxes,
 } from "lucide-react";
 
 const Sidebar = () => {
@@ -22,6 +23,7 @@ const Sidebar = () => {
       icon: Building,
       path: "/admin/room-inventory",
     },
+    { name: "Vật tư", icon: Boxes, path: "/admin/equipment" },
     { name: "Reports", icon: BarChart3, path: "/admin/reports" },
     { name: "Audit Log", icon: History, path: "/admin/audit-log" },
   ];

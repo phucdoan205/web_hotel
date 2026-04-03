@@ -99,6 +99,7 @@ const AppRoutes = () => {
         <Route path="reports" element={<AdminReportsPage />} />
         <Route path="bookings" element={<AdminBookingPage />} />
         <Route path="room-inventory" element={<AdminRoomInventoryPage />} />
+        <Route path="equipment" element={<AdminEquipmentPage />} />
         <Route path="staff" element={<AdminStaffPage />} />
         <Route path="equipment" element={<AdminEquipmentPage />} />
       </Route>
