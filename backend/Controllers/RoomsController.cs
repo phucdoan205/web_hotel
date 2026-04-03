@@ -38,6 +38,7 @@ namespace backend.Controllers
             .ThenInclude(rt => rt!.RoomTypeAmenities)
             .ThenInclude(rta => rta.Amenity)
             .Include(r => r.RoomInventory)
+            .ThenInclude(ri => ri.Equipment)
             .AsNoTracking();
 
             // Áp dụng filter
@@ -91,6 +92,7 @@ namespace backend.Controllers
             var room = await _context.Rooms
                 .Include(r => r.RoomType).ThenInclude(rt => rt!.RoomTypeAmenities).ThenInclude(rta => rta.Amenity)
                 .Include(r => r.RoomInventory)
+                .ThenInclude(ri => ri.Equipment)
                 .AsNoTracking()
                 .FirstOrDefaultAsync(r => r.Id == id);
 
@@ -233,6 +235,7 @@ namespace backend.Controllers
                     .ThenInclude(rt => rt!.RoomTypeAmenities)
                     .ThenInclude(rta => rta.Amenity)
                 .Include(r => r.RoomInventory)
+                .ThenInclude(ri => ri.Equipment)
                 .AsNoTracking()
                 .ToListAsync();
 
@@ -369,6 +372,7 @@ namespace backend.Controllers
                 .Include(r => r.RoomType)
                 .ThenInclude(rt => rt!.RoomTypeAmenities).ThenInclude(a => a.Amenity)
                 .Include(r => r.RoomInventory)
+                .ThenInclude(ri => ri.Equipment)
                 .FirstOrDefaultAsync(r => r.Id == id);
 
             var resultDto = _mapper.Map<RoomDetailDTO>(updatedRoom);

@@ -35,9 +35,14 @@ namespace backend.Controllers
             {
                 Id = item.Id,
                 RoomId = item.RoomId ?? 0,
-                ItemName = item.ItemName,
+                EquipmentId = item.EquipmentId,
+                EquipmentName = item.Equipment?.Name,
+                EquipmentCode = item.Equipment?.ItemCode,
                 Quantity = item.Quantity,
                 PriceIfLost = item.PriceIfLost,
+                ItemType = item.ItemType,
+                Note = item.Note,
+                IsActive = item.IsActive,
                 RoomNumber = item.Room?.RoomNumber
             };
         }
@@ -56,9 +61,10 @@ namespace backend.Controllers
 
             var items = await _context.RoomInventory
                 .Include(ri => ri.Room)
+                .Include(ri => ri.Equipment)
                 .Where(ri => ri.RoomId == roomId && ri.Room != null && !ri.Room.IsDeleted)
                 .AsNoTracking()
-                .OrderBy(ri => ri.ItemName)
+                .OrderBy(ri => ri.Equipment != null ? ri.Equipment.Name : ri.ItemType)
                 .ToListAsync();
 
             return Ok(items.Select(MapRoomInventory).ToList());
@@ -73,12 +79,27 @@ namespace backend.Controllers
             //    return BadRequest(validation.Errors);
             //}
 
+            if (dto.EquipmentId.HasValue)
+            {
+                var equipmentExists = await _context.Equipments
+                    .AsNoTracking()
+                    .AnyAsync(e => e.Id == dto.EquipmentId.Value && e.IsActive);
+
+                if (!equipmentExists)
+                {
+                    return BadRequest("Equipment khong ton tai hoac da ngung su dung.");
+                }
+            }
+
             var entity = new RoomInventory
             {
                 RoomId = dto.RoomId,
-                ItemName = dto.ItemName.Trim(),
+                EquipmentId = dto.EquipmentId,
                 Quantity = dto.Quantity,
-                PriceIfLost = dto.PriceIfLost
+                PriceIfLost = dto.PriceIfLost,
+                ItemType = string.IsNullOrWhiteSpace(dto.ItemType) ? null : dto.ItemType.Trim(),
+                Note = dto.Note,
+                IsActive = dto.IsActive
             };
 
             _context.RoomInventory.Add(entity);
@@ -86,6 +107,7 @@ namespace backend.Controllers
 
             var created = await _context.RoomInventory
                 .Include(ri => ri.Room)
+                .Include(ri => ri.Equipment)
                 .AsNoTracking()
                 .FirstAsync(ri => ri.Id == entity.Id);
 
@@ -97,6 +119,7 @@ namespace backend.Controllers
         {
             var item = await _context.RoomInventory
                 .Include(ri => ri.Room)
+                .Include(ri => ri.Equipment)
                 .FirstOrDefaultAsync(ri => ri.Id == id);
 
             if (item == null)
@@ -115,26 +138,30 @@ namespace backend.Controllers
             //    return BadRequest(validation.Errors);
             //}
 
-            if (!string.IsNullOrWhiteSpace(dto.ItemName))
+            if (dto.EquipmentId.HasValue)
             {
-                var newItemName = dto.ItemName.Trim();
-                var duplicated = await _context.RoomInventory.AnyAsync(ri =>
-                    ri.Id != id &&
-                    ri.RoomId == item.RoomId &&
-                    ri.ItemName == newItemName);
+                var equipmentExists = await _context.Equipments
+                    .AsNoTracking()
+                    .AnyAsync(e => e.Id == dto.EquipmentId.Value && e.IsActive);
 
-                if (duplicated)
+                if (!equipmentExists)
                 {
-                    return BadRequest("Vat dung nay da ton tai trong phong.");
+                    return BadRequest("Equipment khong ton tai hoac da ngung su dung.");
                 }
 
-                item.ItemName = newItemName;
+                item.EquipmentId = dto.EquipmentId.Value;
             }
 
             if (dto.Quantity.HasValue)
                 item.Quantity = dto.Quantity.Value;
             if (dto.PriceIfLost.HasValue)
                 item.PriceIfLost = dto.PriceIfLost.Value;
+            if (dto.ItemType != null)
+                item.ItemType = string.IsNullOrWhiteSpace(dto.ItemType) ? null : dto.ItemType.Trim();
+            if (dto.Note != null)
+                item.Note = dto.Note;
+            if (dto.IsActive.HasValue)
+                item.IsActive = dto.IsActive.Value;
 
             await _context.SaveChangesAsync();
             return NoContent();
@@ -181,6 +208,7 @@ namespace backend.Controllers
             //}
 
             var source = await _context.RoomInventory
+                .Include(ri => ri.Equipment)
                 .AsNoTracking()
                 .FirstOrDefaultAsync(ri => ri.Id == dto.SourceInventoryId);
 
@@ -195,17 +223,32 @@ namespace backend.Controllers
             }
 
             var targetRoomId = dto.TargetRoomId ?? source.RoomId.Value;
-            var finalItemName = string.IsNullOrWhiteSpace(dto.NewItemName)
-                ? source.ItemName
-                : dto.NewItemName.Trim();
             var finalQuantity = dto.NewQuantity ?? source.Quantity ?? 0;
+            var finalEquipmentId = dto.NewEquipmentId ?? source.EquipmentId;
+            var finalItemType = dto.NewItemType ?? source.ItemType;
+            var finalNote = dto.NewNote ?? source.Note;
+
+            if (finalEquipmentId.HasValue)
+            {
+                var equipmentExists = await _context.Equipments
+                    .AsNoTracking()
+                    .AnyAsync(e => e.Id == finalEquipmentId.Value && e.IsActive);
+
+                if (!equipmentExists)
+                {
+                    return BadRequest("Equipment khong ton tai hoac da ngung su dung.");
+                }
+            }
 
             var clone = new RoomInventory
             {
                 RoomId = targetRoomId,
-                ItemName = finalItemName,
+                EquipmentId = finalEquipmentId,
                 Quantity = finalQuantity,
-                PriceIfLost = source.PriceIfLost
+                PriceIfLost = source.PriceIfLost,
+                ItemType = finalItemType,
+                Note = finalNote,
+                IsActive = source.IsActive
             };
 
             _context.RoomInventory.Add(clone);
@@ -213,6 +256,7 @@ namespace backend.Controllers
 
             var created = await _context.RoomInventory
                 .Include(ri => ri.Room)
+                .Include(ri => ri.Equipment)
                 .AsNoTracking()
                 .FirstAsync(ri => ri.Id == clone.Id);
 
