@@ -93,23 +93,20 @@ namespace backend.Controllers
             {
                 UserId = dto.UserId,
                 GuestId = dto.GuestId,
-                VoucherId = null,                    // Yêu cầu 2: VoucherID mặc định là null
+                VoucherId = null,                    // Mặc định là null
                 BookingCode = $"BK-{DateTime.UtcNow:yyyyMMddHHmmssfff}",
                 Status = "Pending"
             };
 
-            decimal totalAmount = 0;
-
             foreach (var detailDto in dto.BookingDetails)
             {
-                // Yêu cầu 4: Lấy PricePerNight từ RoomType
+                // Lấy giá từ RoomType (Yêu cầu 4)
                 var roomType = await _context.RoomTypes
+                    .AsNoTracking()
                     .FirstOrDefaultAsync(rt => rt.Id == detailDto.RoomTypeId);
 
                 if (roomType == null)
                     return BadRequest($"Loại phòng ID {detailDto.RoomTypeId} không tồn tại.");
-
-                var pricePerNight = roomType.BasePrice;   // Lấy giá từ RoomType
 
                 var detail = new BookingDetail
                 {
@@ -117,18 +114,16 @@ namespace backend.Controllers
                     RoomTypeId = detailDto.RoomTypeId,
                     CheckInDate = detailDto.CheckInDate,
                     CheckOutDate = detailDto.CheckOutDate,
-                    PricePerNight = pricePerNight
+                    PricePerNight = roomType.BasePrice   // Lấy giá từ RoomType
                 };
 
                 booking.BookingDetails.Add(detail);
-                totalAmount += pricePerNight * (detailDto.CheckOutDate - detailDto.CheckInDate).Days;
             }
-
-            booking.TotalAmount = totalAmount;   // Tính tổng tiền
 
             _context.Bookings.Add(booking);
             await _context.SaveChangesAsync();
 
+            // Load lại để trả về
             var created = await _context.Bookings
                 .Include(b => b.Guest)
                 .Include(b => b.BookingDetails)
@@ -141,14 +136,11 @@ namespace backend.Controllers
                 _mapper.Map<BookingResponseDTO>(created));
         }
 
-        // PATCH: api/Bookings/{id}/status - Cập nhật status (Yêu cầu 1)
+        // PATCH: api/Bookings/{id}/status - Cập nhật status
         [HttpPatch("{id:int}/status")]
         public async Task<IActionResult> UpdateBookingStatus(int id, [FromBody] BookingStatusUpdateDTO dto)
         {
-            var booking = await _context.Bookings
-                .Include(b => b.BookingDetails)
-                .FirstOrDefaultAsync(b => b.Id == id);
-
+            var booking = await _context.Bookings.FindAsync(id);
             if (booking == null)
                 return NotFound("Không tìm thấy booking.");
 
@@ -158,9 +150,9 @@ namespace backend.Controllers
             return NoContent();
         }
 
-        // PUT: api/Bookings/{id}/change-room - Chuyển đổi phòng (Yêu cầu 3)
+        // PUT: api/Bookings/{id}/change-room - Chuyển đổi phòng (tính tiền chênh lệch)
         [HttpPut("{id:int}/change-room")]
-        public async Task<IActionResult> ChangeRoom(int id, [FromBody] ChangeRoomRequestDTO request)
+        public async Task<ActionResult<object>> ChangeRoom(int id, [FromBody] ChangeRoomRequestDTO request)
         {
             var bookingDetail = await _context.BookingDetails
                 .Include(bd => bd.Booking)
@@ -170,37 +162,33 @@ namespace backend.Controllers
             if (bookingDetail == null)
                 return NotFound("Không tìm thấy chi tiết booking.");
 
-            // Lấy thông tin phòng mới
             var newRoomType = await _context.RoomTypes.FindAsync(request.NewRoomTypeId);
             if (newRoomType == null)
                 return BadRequest("Loại phòng mới không tồn tại.");
 
-            decimal oldPrice = bookingDetail.PricePerNight;
-            decimal newPrice = newRoomType.BasePrice;
-
-            // Tính số ngày
             int nights = (bookingDetail.CheckOutDate - bookingDetail.CheckInDate).Days;
             if (nights <= 0) nights = 1;
 
-            decimal oldTotal = oldPrice * nights;
-            decimal newTotal = newPrice * nights;
+            decimal oldPriceTotal = bookingDetail.PricePerNight * nights;
+            decimal newPriceTotal = newRoomType.BasePrice * nights;
 
-            // Cập nhật
+            // Cập nhật thông tin phòng mới
             bookingDetail.RoomTypeId = request.NewRoomTypeId;
             bookingDetail.RoomId = request.NewRoomId;
-            bookingDetail.PricePerNight = newPrice;
-
-            // Cập nhật tổng tiền của Booking
-            var booking = bookingDetail.Booking;
-            booking.TotalAmount = booking.TotalAmount - oldTotal + newTotal;
+            bookingDetail.PricePerNight = newRoomType.BasePrice;
 
             await _context.SaveChangesAsync();
 
+            decimal difference = newPriceTotal - oldPriceTotal;
+
             return Ok(new
             {
-                Message = "Chuyển phòng thành công",
-                AdditionalAmount = newTotal > oldTotal ? newTotal - oldTotal : 0,
-                RefundAmount = newTotal < oldTotal ? oldTotal - newTotal : 0
+                message = "Chuyển phòng thành công",
+                oldPricePerNight = bookingDetail.PricePerNight, // giá cũ
+                newPricePerNight = newRoomType.BasePrice,
+                nights = nights,
+                amountDifference = difference,   // > 0 = phải bù, < 0 = được hoàn
+                isAdditionalPayment = difference > 0
             });
         }
     }
