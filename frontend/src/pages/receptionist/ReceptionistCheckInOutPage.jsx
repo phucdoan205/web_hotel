@@ -10,6 +10,7 @@ import {
 const ReceptionistCheckInOutPage = () => {
   // Mặc định là 'in' (Check-in Tab)
   const [activeTab, setActiveTab] = useState("in");
+  const [guestTableData, setGuestTableData] = useState([]);
 
   const checkInData = [
     {
@@ -45,6 +46,40 @@ const ReceptionistCheckInOutPage = () => {
     },
   ];
 
+  const stayData = [
+    {
+      name: "Bennedict Cumberbatch",
+      id: "#BK-90218",
+      room: "Twin Standard",
+      date: "May 13, 2024",
+      payment: "Paid",
+    },
+    {
+      name: "Benedict Wong",
+      id: "#BK-90215",
+      room: "Superior King",
+      date: "May 12, 2024",
+      payment: "Unpaid",
+    },
+  ];
+
+  const handleTabSwitch = (tab) => {
+    setActiveTab(tab);
+    switch (tab) {
+      case "in":
+        setGuestTableData(checkInData);
+        break;
+      case "out":
+        setGuestTableData(checkOutData);
+        break;
+      case "stay":
+        setGuestTableData(stayData);
+        break;
+      default:
+        setGuestTableData([]);
+    }
+  };
+
   return (
     <div className="p-8 space-y-8 animate-in fade-in duration-700">
       <div className="flex justify-between items-end">
@@ -63,16 +98,22 @@ const ReceptionistCheckInOutPage = () => {
       <div className="flex items-center justify-between">
         <div className="flex bg-white p-1.5 rounded-2xl border border-gray-100 shadow-sm">
           <button
-            onClick={() => setActiveTab("in")}
+            onClick={() => handleTabSwitch("in")}
             className={`px-8 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${activeTab === "in" ? "bg-blue-600 text-white shadow-lg shadow-blue-100" : "text-gray-400 hover:text-gray-600"}`}
           >
             Check-in
           </button>
           <button
-            onClick={() => setActiveTab("out")}
+            onClick={() => handleTabSwitch("out")}
             className={`px-8 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${activeTab === "out" ? "bg-rose-500 text-white shadow-lg shadow-rose-100" : "text-gray-400 hover:text-gray-600"}`}
           >
             Check-out
+          </button>
+          <button
+            onClick={() => handleTabSwitch("stay")}
+            className={`px-8 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${activeTab === "stay" ? "bg-emerald-500 text-white shadow-lg shadow-emerald-100" : "text-gray-400 hover:text-gray-600"}`}
+          >
+            Lưu trú
           </button>
         </div>
       </div>
@@ -80,7 +121,7 @@ const ReceptionistCheckInOutPage = () => {
       {/* Dynamic Table Content */}
       <GuestTable
         activeTab={activeTab}
-        data={activeTab === "in" ? checkInData : checkOutData}
+        data={guestTableData}
       />
 
       {/* Widgets Grid */}
