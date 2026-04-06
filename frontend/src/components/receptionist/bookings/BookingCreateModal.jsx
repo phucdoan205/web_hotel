@@ -9,8 +9,10 @@ import { roomsApi } from "../../../api/admin/roomsApi";
 const BookingCreateModal = ({ open, onClose }) => {
     const queryClient = useQueryClient();
 
-    const [selectedRooms, setSelectedRooms] = useState([]); 
+    const [selectedRooms, setSelectedRooms] = useState([]);
     const [guestInfo, setGuestInfo] = useState({ name: "", phone: "", email: "" });
+    const [checkInDate, setCheckInDate] = useState(new Date().toISOString().split('T')[0]); // mặc định là ngày hôm nay
+    const [checkOutDate, setCheckOutDate] = useState(new Date(Date.now() + 86400000).toISOString().split('T')[0]); // mặc định là ngày mai
 
     // Lấy danh sách loại phòng
     const { data: roomTypes = [], isLoading: loadingTypes } = useQuery({
@@ -26,17 +28,24 @@ const BookingCreateModal = ({ open, onClose }) => {
     const { data: allRooms = [], isLoading: loadingRooms } = useQuery({
         queryKey: ["rooms", "for-booking"],
         queryFn: async () => {
-            const res = await roomsApi.getRooms({ 
+            const res = await roomsApi.getRooms({
                 status: "",           // không lọc status
-                pageSize: 200 
+                pageSize: 200
             });
             // Chỉ lấy Available và Occupied
-            return (res.items || []).filter(room => 
+            return (res.items || []).filter(room =>
                 room.status === "Available" || room.status === "Occupied"
             );
         },
         enabled: open,
     });
+
+    const resetForm = () => {
+        setSelectedRooms([]);
+        setGuestInfo({ name: "", phone: "", email: "" });
+        setCheckInDate(new Date().toISOString().split('T')[0]);
+        setCheckOutDate(new Date(Date.now() + 86400000).toISOString().split('T')[0]);
+    }
 
     // Mutation tạo booking
     const createMutation = useMutation({
@@ -53,8 +62,7 @@ const BookingCreateModal = ({ open, onClose }) => {
                 alert("Tạo booking thành công nhưng có lỗi cập nhật trạng thái phòng.");
             }
             onClose();
-            setSelectedRooms([]);
-            setGuestInfo({ name: "", phone: "", email: "" });
+            resetForm();
         },
         onError: (err) => {
             alert(err.response?.data?.message || "❌ Có lỗi khi tạo booking");
@@ -88,18 +96,34 @@ const BookingCreateModal = ({ open, onClose }) => {
             return;
         }
 
+        if (!validateDates()) {
+            return;
+        }
+
         const payload = {
             guestId: 1,
             bookingDetails: selectedRooms.map((room) => ({
                 roomTypeId: room.roomTypeId || room.roomType?.id,
                 roomId: room.id,
-                checkInDate: "2026-04-06",
-                checkOutDate: "2026-04-08",
+                checkInDate: checkInDate,
+                checkOutDate: checkOutDate,
             })),
         };
 
         createMutation.mutate(payload);
     };
+
+    const validateDates = () => {
+        if (!checkInDate || !checkOutDate) {
+            alert("Vui lòng chọn ngày check-in và check-out!");
+            return false;
+        }
+        if (checkInDate >= checkOutDate) {
+            alert("Ngày check-out phải sau ngày check-in!");
+            return false;
+        }
+        return true;
+    }
 
     if (!open) return null;
 
@@ -108,7 +132,7 @@ const BookingCreateModal = ({ open, onClose }) => {
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
             <div className="bg-white w-full max-w-6xl rounded-3xl shadow-2xl overflow-hidden max-h-[95vh] flex flex-col">
-                
+
                 {/* Header */}
                 <div className="px-8 py-6 border-b flex items-center justify-between bg-gray-50">
                     <div>
@@ -124,7 +148,7 @@ const BookingCreateModal = ({ open, onClose }) => {
                     {/* Sidebar: Thông tin khách */}
                     <div className="w-96 border-r p-6 bg-gray-50 flex flex-col">
                         <h3 className="font-bold text-lg mb-5">Thông tin khách hàng</h3>
-                        
+
                         <div className="space-y-5">
                             <div>
                                 <label className="block text-xs font-bold text-gray-600 mb-1">Họ và tên *</label>
@@ -156,6 +180,34 @@ const BookingCreateModal = ({ open, onClose }) => {
                                     onChange={(e) => setGuestInfo({ ...guestInfo, email: e.target.value })}
                                     className="w-full px-4 py-3 border border-gray-300 rounded-2xl focus:border-orange-500 outline-none"
                                     placeholder="Email (tùy chọn)"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-xs font-bold text-gray-600 mb-1">
+                                    Ngày Check-in *
+                                </label>
+                                <input
+                                    type="date"
+                                    value={checkInDate}
+                                    onChange={(e) => setCheckInDate(e.target.value)}
+                                    min={new Date().toISOString().split('T')[0]} // không cho chọn ngày quá khứ
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-2xl focus:border-orange-500 outline-none"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-gray-600 mb-1">
+                                    Ngày Check-out *
+                                </label>
+                                <input
+                                    type="date"
+                                    value={checkOutDate}
+                                    onChange={(e) => setCheckOutDate(e.target.value)}
+                                    min={checkInDate || new Date().toISOString().split('T')[0]}
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-2xl focus:border-orange-500 outline-none"
                                 />
                             </div>
                         </div>
@@ -200,13 +252,12 @@ const BookingCreateModal = ({ open, onClose }) => {
                                                         <div
                                                             key={room.id}
                                                             onClick={() => toggleRoomSelection(room)}
-                                                            className={`border-2 rounded-3xl p-5 cursor-pointer transition-all hover:shadow-md relative ${
-                                                                isOccupied 
-                                                                    ? "border-gray-300 bg-gray-50 opacity-75" 
-                                                                    : isSelected 
-                                                                        ? "border-orange-500 bg-orange-50" 
+                                                            className={`border-2 rounded-3xl p-5 cursor-pointer transition-all hover:shadow-md relative ${isOccupied
+                                                                    ? "border-gray-300 bg-gray-50 opacity-75"
+                                                                    : isSelected
+                                                                        ? "border-orange-500 bg-orange-50"
                                                                         : "border-gray-200 hover:border-orange-300"
-                                                            }`}
+                                                                }`}
                                                             title={isOccupied ? "Phòng này đang có khách đang lưu trú" : ""}
                                                         >
                                                             {/* Badge Occupied */}
