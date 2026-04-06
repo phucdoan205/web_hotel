@@ -2,7 +2,7 @@
 import React from "react";
 import { Search, Calendar, Filter, Plus } from "lucide-react";
 
-const BookingFilters = ({ filters, onFilterChange, onOpenCreate }) => {
+const BookingFilters = ({ filters, onFilterChange, onOpenCreate, roomTypes }) => {
   return (
     <div className="bg-white px-4 py-4 rounded-2xl border border-gray-100 shadow-sm text-sm">
       <div className="flex flex-col lg:flex-row gap-4 lg:items-center">
@@ -50,10 +50,11 @@ const BookingFilters = ({ filters, onFilterChange, onOpenCreate }) => {
             className="px-4 py-1 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:border-blue-500"
           >
             <option value="">Tất cả loại phòng</option>
-            {/* Bạn có thể load từ API sau */}
-            <option value="1">Deluxe</option>
-            <option value="2">Standard</option>
-            <option value="3">Suite</option>
+            {roomTypes.map((roomType) => (
+              <option key={roomType.id} value={roomType.id}>
+                {roomType.name}
+              </option>
+            ))}
           </select>
         </div>
 

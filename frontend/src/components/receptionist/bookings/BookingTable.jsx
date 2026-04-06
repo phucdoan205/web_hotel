@@ -2,26 +2,42 @@
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { bookingsApi } from "../../../api/admin/bookingsApi";
-import { Pencil, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
+import {Eye, Trash2, ChevronLeft, ChevronRight, CheckCircle } from "lucide-react";
 
-const BookingTable = ({ filters, onPageChange }) => {
+const BookingTable = ({ filters, onPageChange, onCheckIn }) => {
   const { data, isLoading, error } = useQuery({
     queryKey: ["bookings", filters],
-    queryFn: () => bookingsApi.getBookings({
-      search: filters.search,
-      status: filters.status,
-      roomTypeId: filters.roomTypeId,
-      checkInFrom: filters.checkInFrom,
-      checkInTo: filters.checkInTo,
-      page: filters.page,
-      pageSize: filters.pageSize,
-    }),
+    queryFn: async () => {
+      const res = await bookingsApi.getBookings({
+        search: filters.search,
+        status: filters.status,
+        roomTypeId: filters.roomTypeId,
+        checkInFrom: filters.checkInFrom,
+        checkInTo: filters.checkInTo,
+        page: filters.page,
+        pageSize: filters.pageSize,
+      });
+      console.log("Bookings response:", res);
+      return res;
+    },
     keepPreviousData: true,
   });
 
   const bookings = data?.items || [];
   const totalCount = data?.totalCount || 0;
   const totalPages = Math.ceil(totalCount / (filters.pageSize || 10));
+
+  // Kiểm tra ngày check-in có phải là hôm nay không
+  const isToday = (dateString) => {
+    if (!dateString) return false;
+    const checkInDate = new Date(dateString.split("T")[0]);
+    const today = new Date();
+    return (
+      checkInDate.getFullYear() === today.getFullYear() &&
+      checkInDate.getMonth() === today.getMonth() &&
+      checkInDate.getDate() === today.getDate()
+    );
+  };
 
   const getStatusStyle = (status) => {
     switch (status?.toLowerCase()) {
@@ -45,9 +61,7 @@ const BookingTable = ({ filters, onPageChange }) => {
               <th className="px-4 py-2 text-left">Booking ID</th>
               <th className="px-4 py-2 text-left">Khách hàng</th>
               <th className="px-4 py-2 text-left">Ngày check In</th>
-              <th className="px-4 py-2 text-left">Ngày check Out</th>
               <th className="px-4 py-2 text-left">Loại phòng</th>
-              <th className="px-4 py-2 text-center">Số tiền</th>
               <th className="px-4 py-2 text-center">Trạng thái</th>
               <th className="px-4 py-2 text-right">Thao tác</th>
             </tr>
@@ -58,39 +72,61 @@ const BookingTable = ({ filters, onPageChange }) => {
             ) : bookings.length === 0 ? (
               <tr><td colSpan={7} className="py-12 text-center text-gray-500">Chưa có booking nào</td></tr>
             ) : (
-              bookings.map((booking) => (
-                <tr key={booking.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-2 font-bold text-sm text-blue-600">{booking.bookingCode}</td>
-                  <td className="px-4 py-2 font-semibold text-sm">{booking.guestName || "—"}</td>
-                  <td className="px-4 py-2 text-sm text-gray-600">
-                    {booking.bookingDetails?.[0]?.checkInDate?.split("T")[0]}
-                  </td>
-                  <td className="px-4 py-2 text-sm text-gray-600">
-                    {booking.bookingDetails?.[0]?.checkOutDate?.split("T")[0]}
-                  </td>
-                  <td className="px-4 py-2 text-sm">
-                    {booking.bookingDetails?.[0]?.roomTypeName || "—"}
-                  </td>
-                  <td className="px-4 py-2 text-center font-bold text-gray-900">
-                    {(booking.totalAmount || 0).toLocaleString("vi-VN")} ₫
-                  </td>
-                  <td className="px-4 py-2 text-center">
-                    <span className={`inline-block px-4 py-1 rounded-full text-xs font-bold ${getStatusStyle(booking.status)}`}>
-                      {booking.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-2">
-                    <div className="flex justify-end gap-1">
-                      <button className="p-2 hover:bg-blue-100 rounded-xl text-blue-600 transition-all">
-                        <Pencil size={18} />
-                      </button>
-                      <button className="p-2 hover:bg-red-100 rounded-xl text-red-600 transition-all">
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))
+              bookings.map((booking) => {
+                const checkInDate = booking.bookingDetails?.[0]?.checkInDate;
+                const canCheckIn = booking.status === "Confirmed" && isToday(checkInDate);
+
+                return (
+                  <tr key={booking.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-4 py-2 font-bold text-sm text-blue-600">{booking.bookingCode}</td>
+                    <td className="px-4 py-2 font-semibold text-sm">
+                      {booking.guestName || booking.guest?.name || "—"}
+                    </td>
+                    <td className="px-4 py-2 text-sm text-gray-600">
+                      {checkInDate ? checkInDate.split("T")[0] : "—"}
+                    </td>
+                    <td className="px-4 py-2 text-sm">
+                      {booking.bookingDetails?.[0]?.roomTypeName || "—"}
+                    </td>
+                    <td className="px-4 py-2 text-center">
+                      <span className={`inline-block px-4 py-1 rounded-full text-xs font-bold ${getStatusStyle(booking.status)}`}>
+                        {booking.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2">
+                      <div className="flex justify-end gap-2">
+                        {/* Nút xem chi tiết */}
+                        <button
+                          className="p-2 hover:bg-sky-100 rounded-xl text-sky-600 transition-all"
+                          title="Sửa booking"
+                        >
+                          <Eye size={18} />   {/* ← Icon mới, đẹp và rõ ràng hơn Pencil */}
+                        </button>
+
+                        {/* Nút Nhận phòng - Chỉ hiển thị khi là ngày hôm nay và trạng thái Confirmed */}
+                        {canCheckIn && (
+                          <button
+                            onClick={() => onCheckIn(booking.id)}
+                            className="flex items-center gap-1 px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-2xl transition-all shadow-sm"
+                            title="Nhận phòng ngay"
+                          >
+                            <CheckCircle size={16} />
+                            Nhận phòng
+                          </button>
+                        )}
+
+                        {/* Nút Xóa */}
+                        <button
+                          className="p-2 hover:bg-red-100 rounded-xl text-red-600 transition-all"
+                          title="Xóa booking"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
@@ -102,11 +138,21 @@ const BookingTable = ({ filters, onPageChange }) => {
           Hiển thị {bookings.length} / {totalCount} booking
         </p>
         <div className="flex items-center gap-2">
-          <button onClick={() => onPageChange(filters.page - 1)} disabled={filters.page <= 1}>
+          <button
+            onClick={() => onPageChange(filters.page - 1)}
+            disabled={filters.page <= 1}
+            className="p-2 hover:bg-gray-100 rounded-xl disabled:opacity-40"
+          >
             <ChevronLeft size={18} />
           </button>
-          <span className="text-sm font-medium">Trang {filters.page} / {totalPages || 1}</span>
-          <button onClick={() => onPageChange(filters.page + 1)} disabled={filters.page >= totalPages}>
+          <span className="text-sm font-medium px-3">
+            Trang {filters.page} / {totalPages || 1}
+          </span>
+          <button
+            onClick={() => onPageChange(filters.page + 1)}
+            disabled={filters.page >= totalPages}
+            className="p-2 hover:bg-gray-100 rounded-xl disabled:opacity-40"
+          >
             <ChevronRight size={18} />
           </button>
         </div>
@@ -116,15 +162,3 @@ const BookingTable = ({ filters, onPageChange }) => {
 };
 
 export default BookingTable;
-    // // Lấy danh sách loại phòng + phòng khả dụng
-    // const { data: roomTypes = [], isLoading } = useQuery({
-    //     queryKey: ["roomTypes"],
-    //     queryFn: async () => {
-    //         const res = await roomTypesApi.getRoomTypes({ pageSize: 100 });
-    //         // console.log("Loaded room types:", res.items);
-    //         return res.items;
-    //     },
-    //     enable: open,
-    //     staleTime: 5 * 60 * 1000,
-    //     refetchOnWindowFocus: false
-    // });

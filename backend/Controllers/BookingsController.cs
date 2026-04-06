@@ -25,10 +25,13 @@ namespace backend.Controllers
         // GET: api/Bookings
         [HttpGet]
         public async Task<ActionResult<PagedResponse<BookingResponseDTO>>> GetBookings(
-            [FromQuery] string? search = null,
-            [FromQuery] string? status = null,
-            [FromQuery] int page = 1,
-            [FromQuery] int pageSize = 10)
+    [FromQuery] string? search = null,
+    [FromQuery] string? status = null,
+    [FromQuery] string? roomTypeId = null,      // Lọc theo loại phòng
+    [FromQuery] DateTime? checkInFrom = null,   // Lọc theo ngày check-in từ
+    [FromQuery] DateTime? checkInTo = null,     // Lọc theo ngày check-in đến
+    [FromQuery] int page = 1,
+    [FromQuery] int pageSize = 10)
         {
             var query = _context.Bookings
                 .Include(b => b.Guest)
@@ -38,19 +41,46 @@ namespace backend.Controllers
                     .ThenInclude(bd => bd.RoomType)
                 .AsNoTracking();
 
+            // 1. Tìm kiếm (BookingCode, Tên khách, Số phòng)
             if (!string.IsNullOrWhiteSpace(search))
             {
                 var normalized = search.Trim().ToLower();
                 query = query.Where(b =>
                     b.BookingCode.ToLower().Contains(normalized) ||
-                    (b.Guest != null && b.Guest.Name.ToLower().Contains(normalized)));
+                    (b.Guest != null && b.Guest.Name.ToLower().Contains(normalized)) ||
+                    b.BookingDetails.Any(bd => bd.Room != null &&
+                        bd.Room.RoomNumber.ToLower().Contains(normalized)));
             }
 
+            // 2. Lọc theo Status
             if (!string.IsNullOrWhiteSpace(status))
+            {
                 query = query.Where(b => b.Status == status);
+            }
 
+            // 3. Lọc theo Loại phòng (RoomTypeId)
+            if (!string.IsNullOrWhiteSpace(roomTypeId) && int.TryParse(roomTypeId, out int rtId))
+            {
+                query = query.Where(b => b.BookingDetails.Any(bd => bd.RoomTypeId == rtId));
+            }
+
+            // 4. Lọc theo ngày Check-in
+            if (checkInFrom.HasValue)
+            {
+                var fromDate = checkInFrom.Value.Date;
+                query = query.Where(b => b.BookingDetails.Any(bd => bd.CheckInDate.Date >= fromDate));
+            }
+
+            if (checkInTo.HasValue)
+            {
+                var toDate = checkInTo.Value.Date;
+                query = query.Where(b => b.BookingDetails.Any(bd => bd.CheckInDate.Date <= toDate));
+            }
+
+            // Đếm tổng số bản ghi
             var totalCount = await query.CountAsync();
 
+            // Lấy dữ liệu + phân trang (giữ nguyên OrderByDescending(b => b.Id) như code gốc)
             var bookings = await query
                 .OrderByDescending(b => b.Id)
                 .Skip((page - 1) * pageSize)
@@ -58,6 +88,7 @@ namespace backend.Controllers
                 .ToListAsync();
 
             var dtos = _mapper.Map<List<BookingResponseDTO>>(bookings);
+
             return Ok(new PagedResponse<BookingResponseDTO>(dtos, totalCount, page, pageSize));
         }
 
