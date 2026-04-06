@@ -30,11 +30,11 @@ const ReceptionistBookingsPage = (open) => {
   };
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="px-4 py-2 space-y-4">
       <div>
         <h1 className="text-3xl font-black text-gray-900 tracking-tight">
           Quản lý Booking
-        </h1>
+        </h1> 
         <p className="text-sm font-medium text-gray-500 mt-1">
           Xem và quản lý tất cả đặt phòng của khách hàng
         </p>

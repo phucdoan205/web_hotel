@@ -34,21 +34,24 @@ const BookingTable = ({ filters, onPageChange }) => {
     }
   };
 
+  console.log("Loaded bookings:", bookings);
+
   if (error) return <div className="text-red-500 p-8 text-center">Lỗi tải dữ liệu booking</div>;
 
   return (
     <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full">
-          <thead className="bg-gray-50">
-            <tr className="text-xs font-black text-gray-500 uppercase tracking-widest">
-              <th className="px-8 py-5 text-left">Booking ID</th>
-              <th className="px-6 py-5 text-left">Khách hàng</th>
-              <th className="px-6 py-5 text-left">Ngày lưu trú</th>
-              <th className="px-6 py-5 text-left">Loại phòng</th>
-              <th className="px-6 py-5 text-center">Số tiền</th>
-              <th className="px-6 py-5 text-center">Trạng thái</th>
-              <th className="px-8 py-5 text-right">Thao tác</th>
+          <thead className="bg-gray-100">
+            <tr className="text-sm font-black text-gray-500 uppercase tracking-widest">
+              <th className="px-4 py-2 text-left">Booking ID</th>
+              <th className="px-4 py-2 text-left">Khách hàng</th>
+              <th className="px-4 py-2 text-left">Ngày check In</th>
+              <th className="px-4 py-2 text-left">Ngày check Out</th>
+              <th className="px-4 py-2 text-left">Loại phòng</th>
+              <th className="px-4 py-2 text-center">Số tiền</th>
+              <th className="px-4 py-2 text-center">Trạng thái</th>
+              <th className="px-4 py-2 text-right">Thao tác</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -59,28 +62,31 @@ const BookingTable = ({ filters, onPageChange }) => {
             ) : (
               bookings.map((booking) => (
                 <tr key={booking.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-8 py-5 font-bold text-blue-600">{booking.bookingCode}</td>
-                  <td className="px-6 py-5 font-semibold">{booking.guestName || "—"}</td>
-                  <td className="px-6 py-5 text-sm text-gray-600">
-                    {booking.checkInDate} → {booking.checkOutDate}
+                  <td className="px-4 py-2 font-bold text-sm text-blue-600">{booking.bookingCode}</td>
+                  <td className="px-4 py-2 font-semibold text-sm">{booking.guestName || "—"}</td>
+                  <td className="px-4 py-2 text-sm text-gray-600">
+                    {booking.bookingDetails?.[0]?.checkInDate?.split("T")[0]}
                   </td>
-                  <td className="px-6 py-5 text-sm">
+                  <td className="px-4 py-2 text-sm text-gray-600">
+                    {booking.bookingDetails?.[0]?.checkOutDate?.split("T")[0]}
+                  </td>
+                  <td className="px-4 py-2 text-sm">
                     {booking.bookingDetails?.[0]?.roomTypeName || "—"}
                   </td>
-                  <td className="px-6 py-5 text-center font-bold text-gray-900">
+                  <td className="px-4 py-2 text-center font-bold text-gray-900">
                     {(booking.totalAmount || 0).toLocaleString("vi-VN")} ₫
                   </td>
-                  <td className="px-6 py-5 text-center">
+                  <td className="px-4 py-2 text-center">
                     <span className={`inline-block px-4 py-1 rounded-full text-xs font-bold ${getStatusStyle(booking.status)}`}>
                       {booking.status}
                     </span>
                   </td>
-                  <td className="px-8 py-5">
+                  <td className="px-4 py-2">
                     <div className="flex justify-end gap-3">
-                      <button className="p-2 hover:bg-blue-50 rounded-xl text-blue-600 transition-all">
+                      <button className="p-2 hover:bg-blue-100 rounded-xl text-blue-600 transition-all">
                         <Pencil size={18} />
                       </button>
-                      <button className="p-2 hover:bg-red-50 rounded-xl text-red-600 transition-all">
+                      <button className="p-2 hover:bg-red-100 rounded-xl text-red-600 transition-all">
                         <Trash2 size={18} />
                       </button>
                     </div>

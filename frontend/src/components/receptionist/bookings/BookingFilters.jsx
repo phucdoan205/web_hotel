@@ -4,18 +4,18 @@ import { Search, Calendar, Filter, Plus } from "lucide-react";
 
 const BookingFilters = ({ filters, onFilterChange, onOpenCreate }) => {
   return (
-    <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
+    <div className="bg-white px-4 py-4 rounded-2xl border border-gray-100 shadow-sm text-sm">
       <div className="flex flex-col lg:flex-row gap-4 lg:items-center">
-        
+
         {/* Search */}
         <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size="18" />
           <input
             type="text"
             value={filters.search}
             onChange={(e) => onFilterChange("search", e.target.value)}
             placeholder="Tìm theo Booking ID, Tên khách hoặc Phòng..."
-            className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:border-blue-500 focus:bg-white outline-none"
+            className="w-full pl-11 pr-4 py-1 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:border-blue-500 focus:bg-white outline-none"
           />
         </div>
 
@@ -27,14 +27,14 @@ const BookingFilters = ({ filters, onFilterChange, onOpenCreate }) => {
               type="date"
               value={filters.checkInFrom}
               onChange={(e) => onFilterChange("checkInFrom", e.target.value)}
-              className="pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm w-40 focus:border-blue-500"
+              className="pl-10 pr-4 py-1 bg-gray-50 border border-gray-200 rounded-2xl text-sm w-40 focus:border-blue-500"
             />
           </div>
 
           <select
             value={filters.status}
             onChange={(e) => onFilterChange("status", e.target.value)}
-            className="px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:border-blue-500"
+            className="px-4 py-1 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:border-blue-500"
           >
             <option value="">Tất cả trạng thái</option>
             <option value="Pending">Pending</option>
@@ -47,7 +47,7 @@ const BookingFilters = ({ filters, onFilterChange, onOpenCreate }) => {
           <select
             value={filters.roomTypeId}
             onChange={(e) => onFilterChange("roomTypeId", e.target.value)}
-            className="px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:border-blue-500"
+            className="px-4 py-1 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:border-blue-500"
           >
             <option value="">Tất cả loại phòng</option>
             {/* Bạn có thể load từ API sau */}
@@ -60,7 +60,7 @@ const BookingFilters = ({ filters, onFilterChange, onOpenCreate }) => {
         {/* Button Thêm Booking */}
         <button
           onClick={onOpenCreate}
-          className="flex items-center gap-2 bg-orange-600 hover:bg-orange-700 text-white px-6 py-3 rounded-2xl text-sm font-black uppercase tracking-widest transition-all shadow-lg shadow-orange-200"
+          className="flex items-center gap-2 bg-orange-600 hover:bg-orange-700 text-white px-6 py-1 rounded-2xl text-sm font-semibold uppercase tracking-widest transition-all shadow-lg shadow-orange-200"
         >
           <Plus size={18} />
           Thêm Booking Mới
