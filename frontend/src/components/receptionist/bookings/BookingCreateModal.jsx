@@ -134,7 +134,7 @@ const BookingCreateModal = ({ open, onClose }) => {
             <div className="bg-white w-full max-w-6xl rounded-3xl shadow-2xl overflow-hidden max-h-[95vh] flex flex-col">
 
                 {/* Header */}
-                <div className="px-8 py-6 border-b flex items-center justify-between bg-gray-50">
+                <div className="px-8 py-2 border-b flex items-center justify-between bg-gray-50">
                     <div>
                         <h2 className="text-2xl font-black text-gray-900">Tạo Booking Mới</h2>
                         <p className="text-sm text-gray-500">Chọn phòng và nhập thông tin khách hàng</p>
@@ -146,87 +146,87 @@ const BookingCreateModal = ({ open, onClose }) => {
 
                 <div className="flex flex-1 overflow-hidden">
                     {/* Sidebar: Thông tin khách */}
-                    <div className="w-96 border-r p-6 bg-gray-50 flex flex-col">
-                        <h3 className="font-bold text-lg mb-5">Thông tin khách hàng</h3>
+                    <div className="w-96 border-r px-6 py-2 bg-gray-50 flex flex-col">
+                        <h3 className="font-bold text-lg mb-1">Thông tin đặt phòng</h3>
 
-                        <div className="space-y-5">
+                        <div className="space-y-2">
                             <div>
-                                <label className="block text-xs font-bold text-gray-600 mb-1">Họ và tên *</label>
+                                <label className="block text-md font-bold text-gray-600 mb-1">Họ và tên *</label>
                                 <input
                                     type="text"
                                     value={guestInfo.name}
                                     onChange={(e) => setGuestInfo({ ...guestInfo, name: e.target.value })}
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-2xl focus:border-orange-500 outline-none"
+                                    className="w-full px-4 py-1 border border-gray-300 rounded-2xl focus:border-orange-500 outline-none"
                                     placeholder="Nhập họ tên khách hàng"
                                 />
                             </div>
 
                             <div>
-                                <label className="block text-xs font-bold text-gray-600 mb-1">Số điện thoại</label>
+                                <label className="block text-md font-bold text-gray-600 mb-1">Số điện thoại</label>
                                 <input
                                     type="tel"
                                     value={guestInfo.phone}
                                     onChange={(e) => setGuestInfo({ ...guestInfo, phone: e.target.value })}
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-2xl focus:border-orange-500 outline-none"
+                                    className="w-full px-4 py-1 border border-gray-300 rounded-2xl focus:border-orange-500 outline-none"
                                     placeholder="Số điện thoại"
                                 />
                             </div>
 
                             <div>
-                                <label className="block text-xs font-bold text-gray-600 mb-1">Email</label>
+                                <label className="block text-md font-bold text-gray-600 mb-1">Email</label>
                                 <input
                                     type="email"
                                     value={guestInfo.email}
                                     onChange={(e) => setGuestInfo({ ...guestInfo, email: e.target.value })}
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-2xl focus:border-orange-500 outline-none"
+                                    className="w-full px-4 py-1 border border-gray-300 rounded-2xl focus:border-orange-500 outline-none"
                                     placeholder="Email (tùy chọn)"
                                 />
                             </div>
+
+                            <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label className="block text-md font-bold text-gray-600 mb-1">
+                                        Ngày Check-in *
+                                    </label>
+                                    <input
+                                        type="date"
+                                        value={checkInDate}
+                                        onChange={(e) => setCheckInDate(e.target.value)}
+                                        min={new Date().toISOString().split('T')[0]} // không cho chọn ngày quá khứ
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-2xl focus:border-orange-500 outline-none"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-md font-bold text-gray-600 mb-1">
+                                        Ngày Check-out *
+                                    </label>
+                                    <input
+                                        type="date"
+                                        value={checkOutDate}
+                                        onChange={(e) => setCheckOutDate(e.target.value)}
+                                        min={checkInDate || new Date().toISOString().split('T')[0]}
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-2xl focus:border-orange-500 outline-none"
+                                    />
+                                </div>
+                            </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-xs font-bold text-gray-600 mb-1">
-                                    Ngày Check-in *
-                                </label>
-                                <input
-                                    type="date"
-                                    value={checkInDate}
-                                    onChange={(e) => setCheckInDate(e.target.value)}
-                                    min={new Date().toISOString().split('T')[0]} // không cho chọn ngày quá khứ
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-2xl focus:border-orange-500 outline-none"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-xs font-bold text-gray-600 mb-1">
-                                    Ngày Check-out *
-                                </label>
-                                <input
-                                    type="date"
-                                    value={checkOutDate}
-                                    onChange={(e) => setCheckOutDate(e.target.value)}
-                                    min={checkInDate || new Date().toISOString().split('T')[0]}
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-2xl focus:border-orange-500 outline-none"
-                                />
-                            </div>
-                        </div>
-
-                        <div className="mt-auto pt-8">
-                            <div className="bg-white p-5 rounded-2xl border border-orange-200 text-center">
-                                <p className="text-sm">Đã chọn <span className="font-black text-orange-600 text-lg">{selectedRooms.length}</span> phòng</p>
+                        <div className="mt-4">
+                            <div className="bg-white px-5 py-1 rounded-2xl border border-orange-200 text-center">
+                                <p className="text-sm">Đã chọn <span className="font-semibold text-orange-600 text-lg">{selectedRooms.length}</span> phòng</p>
                             </div>
                         </div>
                     </div>
 
-                    {/* Main: Danh sách phòng - GIỮ NGUYÊN GIAO DIỆN CŨ */}
-                    <div className="flex-1 p-8 overflow-y-auto">
-                        <h3 className="font-bold text-xl mb-6">Chọn phòng</h3>
+                    {/* Main: Danh sách phòng*/}
+                    <div className="flex-1 px-8 py-2 overflow-y-auto">
+                        <h3 className="font-bold text-xl mb-1">Chọn phòng</h3>
 
                         {isLoading ? (
                             <div className="text-center py-12">Đang tải danh sách phòng...</div>
                         ) : (
-                            <div className="space-y-10">
+                            <div className="space-y-2">
                                 {roomTypes.map((roomType) => {
                                     const roomsOfType = allRooms.filter(
                                         (room) => room.roomTypeId === roomType.id
@@ -236,9 +236,9 @@ const BookingCreateModal = ({ open, onClose }) => {
 
                                     return (
                                         <div key={roomType.id}>
-                                            <div className="flex items-center justify-between mb-4">
-                                                <h4 className="font-semibold text-lg">{roomType.name}</h4>
-                                                <p className="font-bold text-orange-600">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <h4 className="font-bold text-lg">{roomType.name}</h4>
+                                                <p className="font-semibold text-orange-600">
                                                     {(roomType.basePrice || 0).toLocaleString("vi-VN")} ₫/đêm
                                                 </p>
                                             </div>
@@ -252,11 +252,11 @@ const BookingCreateModal = ({ open, onClose }) => {
                                                         <div
                                                             key={room.id}
                                                             onClick={() => toggleRoomSelection(room)}
-                                                            className={`border-2 rounded-3xl p-5 cursor-pointer transition-all hover:shadow-md relative ${isOccupied
-                                                                    ? "border-gray-300 bg-gray-50 opacity-75"
-                                                                    : isSelected
-                                                                        ? "border-orange-500 bg-orange-50"
-                                                                        : "border-gray-200 hover:border-orange-300"
+                                                            className={`border-2 rounded-3xl px-5 py-2 cursor-pointer transition-all hover:shadow-md relative ${isOccupied
+                                                                ? "border-gray-300 bg-gray-50 opacity-75"
+                                                                : isSelected
+                                                                    ? "border-orange-500 bg-orange-50"
+                                                                    : "border-gray-200 hover:border-orange-300"
                                                                 }`}
                                                             title={isOccupied ? "Phòng này đang có khách đang lưu trú" : ""}
                                                         >
@@ -270,7 +270,7 @@ const BookingCreateModal = ({ open, onClose }) => {
 
                                                             <div className="flex justify-between items-start">
                                                                 <div>
-                                                                    <p className="font-black text-2xl">{room.roomNumber}</p>
+                                                                    <p className="font-black font-semibold text-2xl">{room.roomNumber}</p>
                                                                     <p className="text-xs text-gray-500">Tầng {room.floor}</p>
                                                                 </div>
                                                                 {isSelected && !isOccupied && (
@@ -280,9 +280,9 @@ const BookingCreateModal = ({ open, onClose }) => {
                                                                 )}
                                                             </div>
 
-                                                            <div className="mt-4 text-sm space-y-1">
+                                                            <div className="text-sm space-y-1">
                                                                 <p>Sức chứa: {roomType.capacityAdults} NL, {roomType.capacityChildren} TE</p>
-                                                                <p className="font-bold text-orange-600">
+                                                                <p className="font-semibold text-orange-600">
                                                                     {(roomType.basePrice || 0).toLocaleString("vi-VN")} ₫/đêm
                                                                 </p>
                                                             </div>
@@ -307,17 +307,17 @@ const BookingCreateModal = ({ open, onClose }) => {
                 </div>
 
                 {/* Footer */}
-                <div className="border-t px-8 py-6 bg-gray-50 flex justify-end gap-4">
+                <div className="border-t px-8 py-2 bg-gray-50 flex justify-end gap-4">
                     <button
                         onClick={onClose}
-                        className="px-8 py-3.5 font-bold text-gray-600 hover:bg-gray-100 rounded-2xl"
+                        className="px-4 py-2 font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-2xl"
                     >
                         Hủy
                     </button>
                     <button
                         onClick={handleCreateBooking}
                         disabled={selectedRooms.length === 0 || createMutation.isPending}
-                        className="px-10 py-3.5 bg-orange-600 hover:bg-orange-700 disabled:bg-gray-300 text-white font-black rounded-2xl transition-all"
+                        className="px-4 py-2 bg-orange-600 hover:bg-orange-700 disabled:bg-gray-300 text-white font-black rounded-2xl transition-all"
                     >
                         Xác nhận đặt {selectedRooms.length} phòng
                     </button>
