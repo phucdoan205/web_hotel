@@ -1,6 +1,6 @@
 // src/components/receptionist/bookings/BookingCreateModal.jsx
 import React, { useState } from "react";
-import { X } from "lucide-react";
+import { X, AlertTriangle } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { bookingsApi } from "../../../api/admin/bookingsApi";
 import { roomTypesApi } from "../../../api/admin/roomTypesApi";
@@ -22,15 +22,18 @@ const BookingCreateModal = ({ open, onClose }) => {
         enabled: open,
     });
 
-    // Lấy danh sách phòng trống
+    // Lấy cả phòng Available và Occupied
     const { data: allRooms = [], isLoading: loadingRooms } = useQuery({
-        queryKey: ["rooms", "available"],
+        queryKey: ["rooms", "for-booking"],
         queryFn: async () => {
             const res = await roomsApi.getRooms({ 
-                status: "Available", 
-                pageSize: 100 
+                status: "",           // không lọc status
+                pageSize: 200 
             });
-            return res.items || [];
+            // Chỉ lấy Available và Occupied
+            return (res.items || []).filter(room => 
+                room.status === "Available" || room.status === "Occupied"
+            );
         },
         enabled: open,
     });
@@ -38,23 +41,17 @@ const BookingCreateModal = ({ open, onClose }) => {
     // Mutation tạo booking
     const createMutation = useMutation({
         mutationFn: (payload) => bookingsApi.createBooking(payload),
-        onSuccess: async (newBooking) => {
-            // === PHẦN QUAN TRỌNG: Đổi trạng thái phòng thành Occupied ===
+        onSuccess: async () => {
             try {
                 for (const room of selectedRooms) {
                     await roomsApi.updateRoomStatus(room.id, "Occupied");
                 }
-                
-                // Refresh lại dữ liệu
                 queryClient.invalidateQueries({ queryKey: ["rooms"] });
                 queryClient.invalidateQueries({ queryKey: ["bookings"] });
-                
-                alert("✅ Tạo booking và cập nhật trạng thái phòng thành công!");
+                alert("✅ Tạo booking thành công!");
             } catch (err) {
-                console.error("Lỗi khi cập nhật trạng thái phòng:", err);
-                alert("Tạo booking thành công nhưng có lỗi khi đổi trạng thái phòng.");
+                alert("Tạo booking thành công nhưng có lỗi cập nhật trạng thái phòng.");
             }
-
             onClose();
             setSelectedRooms([]);
             setGuestInfo({ name: "", phone: "", email: "" });
@@ -66,6 +63,11 @@ const BookingCreateModal = ({ open, onClose }) => {
 
     // Toggle chọn phòng
     const toggleRoomSelection = (room) => {
+        if (room.status === "Occupied") {
+            alert("Phòng này đang có khách đang lưu trú, không thể chọn!");
+            return;
+        }
+
         setSelectedRooms((prev) => {
             const exists = prev.some(r => r.id === room.id);
             if (exists) {
@@ -87,11 +89,11 @@ const BookingCreateModal = ({ open, onClose }) => {
         }
 
         const payload = {
-            guestId: 1, // TODO: sau này thay bằng logic tạo/tìm Guest thực tế
+            guestId: 1,
             bookingDetails: selectedRooms.map((room) => ({
                 roomTypeId: room.roomTypeId || room.roomType?.id,
                 roomId: room.id,
-                checkInDate: "2026-04-06",   // Nên thay bằng DatePicker sau
+                checkInDate: "2026-04-06",
                 checkOutDate: "2026-04-08",
             })),
         };
@@ -165,7 +167,7 @@ const BookingCreateModal = ({ open, onClose }) => {
                         </div>
                     </div>
 
-                    {/* Main: Danh sách phòng */}
+                    {/* Main: Danh sách phòng - GIỮ NGUYÊN GIAO DIỆN CŨ */}
                     <div className="flex-1 p-8 overflow-y-auto">
                         <h3 className="font-bold text-xl mb-6">Chọn phòng</h3>
 
@@ -192,23 +194,35 @@ const BookingCreateModal = ({ open, onClose }) => {
                                             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                                                 {roomsOfType.map((room) => {
                                                     const isSelected = selectedRooms.some(r => r.id === room.id);
+                                                    const isOccupied = room.status === "Occupied";
 
                                                     return (
                                                         <div
                                                             key={room.id}
                                                             onClick={() => toggleRoomSelection(room)}
-                                                            className={`border-2 rounded-3xl p-5 cursor-pointer transition-all hover:shadow-md ${
-                                                                isSelected 
-                                                                    ? "border-orange-500 bg-orange-50" 
-                                                                    : "border-gray-200 hover:border-orange-300"
+                                                            className={`border-2 rounded-3xl p-5 cursor-pointer transition-all hover:shadow-md relative ${
+                                                                isOccupied 
+                                                                    ? "border-gray-300 bg-gray-50 opacity-75" 
+                                                                    : isSelected 
+                                                                        ? "border-orange-500 bg-orange-50" 
+                                                                        : "border-gray-200 hover:border-orange-300"
                                                             }`}
+                                                            title={isOccupied ? "Phòng này đang có khách đang lưu trú" : ""}
                                                         >
+                                                            {/* Badge Occupied */}
+                                                            {isOccupied && (
+                                                                <div className="absolute -top-2 -right-2 bg-rose-500 text-white text-[10px] font-bold px-3 py-1 rounded-full flex items-center gap-1 shadow">
+                                                                    <AlertTriangle size={14} />
+                                                                    OCCUPIED
+                                                                </div>
+                                                            )}
+
                                                             <div className="flex justify-between items-start">
                                                                 <div>
                                                                     <p className="font-black text-2xl">{room.roomNumber}</p>
                                                                     <p className="text-xs text-gray-500">Tầng {room.floor}</p>
                                                                 </div>
-                                                                {isSelected && (
+                                                                {isSelected && !isOccupied && (
                                                                     <div className="w-6 h-6 bg-orange-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
                                                                         ✓
                                                                     </div>
@@ -221,6 +235,14 @@ const BookingCreateModal = ({ open, onClose }) => {
                                                                     {(roomType.basePrice || 0).toLocaleString("vi-VN")} ₫/đêm
                                                                 </p>
                                                             </div>
+
+                                                            {/* Thông báo khi hover hoặc hiển thị */}
+                                                            {isOccupied && (
+                                                                <div className="mt-3 text-rose-600 text-xs font-medium flex items-center gap-1">
+                                                                    <AlertTriangle size={16} />
+                                                                    Phòng này đang có khách đang lưu trú
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     );
                                                 })}
