@@ -34,8 +34,6 @@ const BookingTable = ({ filters, onPageChange }) => {
     }
   };
 
-  console.log("Loaded bookings:", bookings);
-
   if (error) return <div className="text-red-500 p-8 text-center">Lỗi tải dữ liệu booking</div>;
 
   return (
