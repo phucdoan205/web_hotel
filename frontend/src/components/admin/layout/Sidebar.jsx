@@ -10,6 +10,8 @@ import {
   Settings,
   Hotel,
   Boxes,
+  Ticket,
+  Award,
 } from "lucide-react";
 
 const menuItems = [
@@ -20,6 +22,8 @@ const menuItems = [
   { name: "Vật tư", icon: Boxes, path: "/admin/equipment" },
   { name: "Reports", icon: BarChart3, path: "/admin/reports" },
   { name: "Audit Log", icon: History, path: "/admin/audit-log" },
+  { name: "Vouchers", icon: Ticket, path: "/admin/vouchers" },
+  { name: "Memberships", icon: Award, path: "/admin/memberships" },
 ];
 
 function SidebarItem({ item, isBottom = false }) {

@@ -1,0 +1,20 @@
+COLUMN_NAME                                                                                                                     
+--------------------------------------------------------------------------------------------------------------------------------
+id                                                                                                                              
+role_id                                                                                                                         
+membership_id                                                                                                                   
+full_name                                                                                                                       
+email                                                                                                                           
+phone                                                                                                                           
+password_hash                                                                                                                   
+status                                                                                                                          
+TotalSpending                                                                                                                   
+RoleId                                                                                                                          
+MembershipId                                                                                                                    
+FullName                                                                                                                        
+GoogleId                                                                                                                        
+AvatarUrl                                                                                                                       
+DateOfBirth                                                                                                                     
+PasswordHash                                                                                                                    
+
+(16 rows affected)

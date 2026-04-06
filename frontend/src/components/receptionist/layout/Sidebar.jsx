@@ -11,6 +11,8 @@ import {
   BarChart3,
   Settings,
   LogOut,
+  Ticket,
+  UserPlus
 } from "lucide-react";
 
 const Sidebar = () => {
@@ -35,6 +37,8 @@ const Sidebar = () => {
       path: "/receptionist/room-status",
     },
     { title: "POS", icon: Calculator, path: "/receptionist/pos" },
+    { title: "Vouchers", icon: Ticket, path: "/receptionist/vouchers" },
+    { title: "KH Vãng Lai", icon: UserPlus, path: "/receptionist/walkin-register" },
   ];
 
   const secondaryItems = [

@@ -1,0 +1,50 @@
+﻿TABLE_NAME                                                                                                                       COLUMN_NAME                                                            
+                                                         
+-------------------------------------------------------------------------------------------------------------------------------- -----------------------------------------------------------------------
+---------------------------------------------------------
+Memberships                                                                                                                      discount_percent                                                       
+                                                         
+Memberships                                                                                                                      id                                                                     
+                                                         
+Memberships                                                                                                                      min_points                                                             
+                                                         
+Memberships                                                                                                                      tier_name                                                              
+                                                         
+Notifications                                                                                                                    Content                                                                
+                                                         
+Notifications                                                                                                                    Created_At                                                             
+                                                         
+Notifications                                                                                                                    Id                                                                     
+                                                         
+Notifications                                                                                                                    Is_Read                                                                
+                                                         
+Notifications                                                                                                                    Reference_Link                                                         
+                                                         
+Notifications                                                                                                                    Title                                                                  
+                                                         
+Notifications                                                                                                                    Type                                                                   
+                                                         
+Notifications                                                                                                                    User_Id                                                                
+                                                         
+Vouchers                                                                                                                         code                                                                   
+                                                         
+Vouchers                                                                                                                         discount_type                                                          
+                                                         
+Vouchers                                                                                                                         discount_value                                                         
+                                                         
+Vouchers                                                                                                                         id                                                                     
+                                                         
+Vouchers                                                                                                                         IsActive                                                               
+                                                         
+Vouchers                                                                                                                         min_booking_value                                                      
+                                                         
+Vouchers                                                                                                                         usage_limit                                                            
+                                                         
+Vouchers                                                                                                                         UserId                                                                 
+                                                         
+Vouchers                                                                                                                         valid_from                                                             
+                                                         
+Vouchers                                                                                                                         valid_to                                                               
+                                                         
+
+(22 rows affected)

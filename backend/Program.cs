@@ -26,9 +26,10 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("FrontendDev", policy =>
     {
-        policy.WithOrigins("http://localhost:5173", "http://127.0.0.1:5173")
+        policy.SetIsOriginAllowed(origin => true) // Allow any localhost port
             .AllowAnyHeader()
-            .AllowAnyMethod();
+            .AllowAnyMethod()
+            .AllowCredentials(); // If using credentials, otherwise remove
     });
 });
 
@@ -56,6 +57,8 @@ builder.Services.AddSingleton<backend.Services.HousekeepingTaskLockService>();
 builder.Services.AddScoped<IJwtService, JwtService>(); 
 builder.Services.AddSingleton<NotificationRealtimeService>();
 builder.Services.AddScoped<NotificationService>();
+builder.Services.AddScoped<backend.Services.IEmailService, backend.Services.EmailService>();
+builder.Services.AddHostedService<backend.Services.BirthdayVoucherCronJob>();
 
 //builder.Services.AddValidatorsFromAssemblyContaining<CreateRoomDtoValidator>();
 //builder.Services.AddScoped<IValidator<BulkCreateRoomDTO>, BulkCreateRoomDtoValidator>();

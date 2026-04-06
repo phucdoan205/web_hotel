@@ -1,0 +1,45 @@
+﻿  Determining projects to restore...
+P:\web_hotel\backend\backend.csproj : warning NU1903: Package 'AutoMapper' 12.0.1 has a known high severity vulnerability, https://github.com/advisories/GHSA-rvv3-g6hj-g44x
+  All projects are up-to-date for restore.
+P:\web_hotel\backend\backend.csproj : warning NU1903: Package 'AutoMapper' 12.0.1 has a known high severity vulnerability, https://github.com/advisories/GHSA-rvv3-g6hj-g44x
+P:\web_hotel\backend\Models\Notification.cs(5,10): error CS0246: The type or namespace name 'ColumnAttribute' could not be found (are you missing a using directive or an assembly reference?) [P:\web_hotel\backend\backend.csproj]
+P:\web_hotel\backend\Models\Notification.cs(5,10): error CS0246: The type or namespace name 'Column' could not be found (are you missing a using directive or an assembly reference?) [P:\web_hotel\backend\backend.csproj]
+P:\web_hotel\backend\Models\Notification.cs(8,10): error CS0246: The type or namespace name 'ColumnAttribute' could not be found (are you missing a using directive or an assembly reference?) [P:\web_hotel\backend\backend.csproj]
+P:\web_hotel\backend\Models\Notification.cs(8,10): error CS0246: The type or namespace name 'Column' could not be found (are you missing a using directive or an assembly reference?) [P:\web_hotel\backend\backend.csproj]
+P:\web_hotel\backend\Models\Notification.cs(11,10): error CS0246: The type or namespace name 'ColumnAttribute' could not be found (are you missing a using directive or an assembly reference?) [P:\web_hotel\backend\backend.csproj]
+P:\web_hotel\backend\Models\Notification.cs(11,10): error CS0246: The type or namespace name 'Column' could not be found (are you missing a using directive or an assembly reference?) [P:\web_hotel\backend\backend.csproj]
+P:\web_hotel\backend\Models\Notification.cs(14,10): error CS0246: The type or namespace name 'ColumnAttribute' could not be found (are you missing a using directive or an assembly reference?) [P:\web_hotel\backend\backend.csproj]
+P:\web_hotel\backend\Models\Notification.cs(14,10): error CS0246: The type or namespace name 'Column' could not be found (are you missing a using directive or an assembly reference?) [P:\web_hotel\backend\backend.csproj]
+P:\web_hotel\backend\Models\Notification.cs(17,10): error CS0246: The type or namespace name 'ColumnAttribute' could not be found (are you missing a using directive or an assembly reference?) [P:\web_hotel\backend\backend.csproj]
+P:\web_hotel\backend\Models\Notification.cs(17,10): error CS0246: The type or namespace name 'Column' could not be found (are you missing a using directive or an assembly reference?) [P:\web_hotel\backend\backend.csproj]
+P:\web_hotel\backend\Models\Notification.cs(20,10): error CS0246: The type or namespace name 'ColumnAttribute' could not be found (are you missing a using directive or an assembly reference?) [P:\web_hotel\backend\backend.csproj]
+P:\web_hotel\backend\Models\Notification.cs(20,10): error CS0246: The type or namespace name 'Column' could not be found (are you missing a using directive or an assembly reference?) [P:\web_hotel\backend\backend.csproj]
+P:\web_hotel\backend\Models\Notification.cs(23,10): error CS0246: The type or namespace name 'ColumnAttribute' could not be found (are you missing a using directive or an assembly reference?) [P:\web_hotel\backend\backend.csproj]
+P:\web_hotel\backend\Models\Notification.cs(23,10): error CS0246: The type or namespace name 'Column' could not be found (are you missing a using directive or an assembly reference?) [P:\web_hotel\backend\backend.csproj]
+P:\web_hotel\backend\Models\Notification.cs(26,10): error CS0246: The type or namespace name 'ColumnAttribute' could not be found (are you missing a using directive or an assembly reference?) [P:\web_hotel\backend\backend.csproj]
+P:\web_hotel\backend\Models\Notification.cs(26,10): error CS0246: The type or namespace name 'Column' could not be found (are you missing a using directive or an assembly reference?) [P:\web_hotel\backend\backend.csproj]
+
+Build FAILED.
+
+P:\web_hotel\backend\backend.csproj : warning NU1903: Package 'AutoMapper' 12.0.1 has a known high severity vulnerability, https://github.com/advisories/GHSA-rvv3-g6hj-g44x
+P:\web_hotel\backend\backend.csproj : warning NU1903: Package 'AutoMapper' 12.0.1 has a known high severity vulnerability, https://github.com/advisories/GHSA-rvv3-g6hj-g44x
+P:\web_hotel\backend\Models\Notification.cs(5,10): error CS0246: The type or namespace name 'ColumnAttribute' could not be found (are you missing a using directive or an assembly reference?) [P:\web_hotel\backend\backend.csproj]
+P:\web_hotel\backend\Models\Notification.cs(5,10): error CS0246: The type or namespace name 'Column' could not be found (are you missing a using directive or an assembly reference?) [P:\web_hotel\backend\backend.csproj]
+P:\web_hotel\backend\Models\Notification.cs(8,10): error CS0246: The type or namespace name 'ColumnAttribute' could not be found (are you missing a using directive or an assembly reference?) [P:\web_hotel\backend\backend.csproj]
+P:\web_hotel\backend\Models\Notification.cs(8,10): error CS0246: The type or namespace name 'Column' could not be found (are you missing a using directive or an assembly reference?) [P:\web_hotel\backend\backend.csproj]
+P:\web_hotel\backend\Models\Notification.cs(11,10): error CS0246: The type or namespace name 'ColumnAttribute' could not be found (are you missing a using directive or an assembly reference?) [P:\web_hotel\backend\backend.csproj]
+P:\web_hotel\backend\Models\Notification.cs(11,10): error CS0246: The type or namespace name 'Column' could not be found (are you missing a using directive or an assembly reference?) [P:\web_hotel\backend\backend.csproj]
+P:\web_hotel\backend\Models\Notification.cs(14,10): error CS0246: The type or namespace name 'ColumnAttribute' could not be found (are you missing a using directive or an assembly reference?) [P:\web_hotel\backend\backend.csproj]
+P:\web_hotel\backend\Models\Notification.cs(14,10): error CS0246: The type or namespace name 'Column' could not be found (are you missing a using directive or an assembly reference?) [P:\web_hotel\backend\backend.csproj]
+P:\web_hotel\backend\Models\Notification.cs(17,10): error CS0246: The type or namespace name 'ColumnAttribute' could not be found (are you missing a using directive or an assembly reference?) [P:\web_hotel\backend\backend.csproj]
+P:\web_hotel\backend\Models\Notification.cs(17,10): error CS0246: The type or namespace name 'Column' could not be found (are you missing a using directive or an assembly reference?) [P:\web_hotel\backend\backend.csproj]
+P:\web_hotel\backend\Models\Notification.cs(20,10): error CS0246: The type or namespace name 'ColumnAttribute' could not be found (are you missing a using directive or an assembly reference?) [P:\web_hotel\backend\backend.csproj]
+P:\web_hotel\backend\Models\Notification.cs(20,10): error CS0246: The type or namespace name 'Column' could not be found (are you missing a using directive or an assembly reference?) [P:\web_hotel\backend\backend.csproj]
+P:\web_hotel\backend\Models\Notification.cs(23,10): error CS0246: The type or namespace name 'ColumnAttribute' could not be found (are you missing a using directive or an assembly reference?) [P:\web_hotel\backend\backend.csproj]
+P:\web_hotel\backend\Models\Notification.cs(23,10): error CS0246: The type or namespace name 'Column' could not be found (are you missing a using directive or an assembly reference?) [P:\web_hotel\backend\backend.csproj]
+P:\web_hotel\backend\Models\Notification.cs(26,10): error CS0246: The type or namespace name 'ColumnAttribute' could not be found (are you missing a using directive or an assembly reference?) [P:\web_hotel\backend\backend.csproj]
+P:\web_hotel\backend\Models\Notification.cs(26,10): error CS0246: The type or namespace name 'Column' could not be found (are you missing a using directive or an assembly reference?) [P:\web_hotel\backend\backend.csproj]
+    2 Warning(s)
+    16 Error(s)
+
+Time Elapsed 00:00:03.98

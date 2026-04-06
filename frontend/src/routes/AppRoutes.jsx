@@ -30,6 +30,8 @@ import AdminStaffPage from "../pages/admin/AdminStaffPage";
 import AdminEquipmentPage from "../pages/admin/AdminEquipmentPage";
 import AdminRoomPage from "../pages/admin/AdminRoomPage";
 import AdminRoomTypesPage from "../pages/admin/AdminRoomTypesPage";
+import AdminVouchersPage from "../pages/admin/AdminVouchersPage";
+import AdminMembershipsPage from "../pages/admin/AdminMembershipsPage";
 
 // Pages receptionist
 import ReceptionistCheckInOutPage from "../pages/receptionist/ReceptionistCheckInOutPage";
@@ -41,6 +43,8 @@ import ReceptionistRoomStatusPage from "../pages/receptionist/ReceptionistRoomSt
 import ReceptionistSettingsPage from "../pages/receptionist/ReceptionistSettingsPage";
 import ReceptionistPOSServicePage from "../pages/receptionist/ReceptionistPOSServicePage";
 import ReceptionistDashboardPage from "../pages/receptionist/ReceptionistDashboardPage";
+import ReceptionistVoucherPage from "../pages/receptionist/ReceptionistVoucherPage";
+import ReceptionistWalkinPage from "../pages/receptionist/ReceptionistWalkinPage";
 
 // Pages housekeeping
 import HousekeepingSettingsPage from "../pages/housekeeping/HousekeepingSettingsPage";
@@ -99,6 +103,8 @@ const AppRoutes = () => {
         <Route path="room-inventory" element={<AdminRoomInventoryPage />} />
         <Route path="equipment" element={<AdminEquipmentPage />} />
         <Route path="staff" element={<AdminStaffPage />} />
+        <Route path="vouchers" element={<AdminVouchersPage />} />
+        <Route path="memberships" element={<AdminMembershipsPage />} />
       </Route>
 
       {/* 4. Receptionist Routes (Dùng ReceptionistLayout) */}
@@ -113,6 +119,8 @@ const AppRoutes = () => {
         <Route path="room-status" element={<ReceptionistRoomStatusPage />} />
         <Route path="settings" element={<ReceptionistSettingsPage />} />
         <Route path="pos" element={<ReceptionistPOSServicePage />} />
+        <Route path="vouchers" element={<ReceptionistVoucherPage />} />
+        <Route path="walkin-register" element={<ReceptionistWalkinPage />} />
       </Route>
 
       {/* 5. Housekeeping Routes (Dùng HousekeepingLayout) */}
