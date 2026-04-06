@@ -82,7 +82,7 @@ const BookingTable = ({ filters, onPageChange }) => {
                     </span>
                   </td>
                   <td className="px-4 py-2">
-                    <div className="flex justify-end gap-3">
+                    <div className="flex justify-end gap-1">
                       <button className="p-2 hover:bg-blue-100 rounded-xl text-blue-600 transition-all">
                         <Pencil size={18} />
                       </button>
