@@ -221,6 +221,51 @@ namespace backend.Controllers
             return NoContent();
         }
 
+        // PATCH: api/Bookings/{id}/cancel - Hủy booking
+        [HttpPatch("{id:int}/cancel")]
+        public async Task<IActionResult> CancelBooking(int id)
+        {
+            var booking = await _context.Bookings
+                .Include(b => b.BookingDetails)
+                .FirstOrDefaultAsync(b => b.Id == id);
+
+            if (booking == null)
+                return NotFound("Không tìm thấy booking.");
+
+            if (booking.Status == "Cancelled")
+                return BadRequest("Booking này đã bị hủy trước đó.");
+
+            if (booking.Status == "Completed" || booking.Status == "CheckedIn")
+                return BadRequest("Không thể hủy booking đã check-in hoặc hoàn thành.");
+
+            // 1. Đổi trạng thái Booking thành Cancelled
+            booking.Status = "Cancelled";
+
+            // 2. Giải phóng các phòng đang Occupied thuộc booking này
+            foreach (var detail in booking.BookingDetails)
+            {
+                if (detail.RoomId.HasValue)
+                {
+                    var room = await _context.Rooms.FindAsync(detail.RoomId.Value);
+                    if (room != null && room.Status == RoomStatuses.Occupied)
+                    {
+                        room.Status = RoomStatuses.Available;
+                        // Có thể cập nhật CleaningStatus nếu cần
+                        // room.CleaningStatus = RoomCleaningStatuses.Dirty;
+                    }
+                }
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                message = "Booking đã được hủy thành công.",
+                bookingId = booking.Id,
+                newStatus = booking.Status
+            });
+        }
+
         // PUT: api/Bookings/{id}/change-room - Chuyển đổi phòng (tính tiền chênh lệch)
         [HttpPut("{id:int}/change-room")]
         public async Task<ActionResult<object>> ChangeRoom(int id, [FromBody] ChangeRoomRequestDTO request)
@@ -261,6 +306,99 @@ namespace backend.Controllers
                 amountDifference = difference,   // > 0 = phải bù, < 0 = được hoàn
                 isAdditionalPayment = difference > 0
             });
+        }
+
+        // GET: api/Bookings/arrivals - Khách đến hôm nay
+        [HttpGet("arrivals")]
+        public async Task<ActionResult<PagedResponse<BookingResponseDTO>>> GetArrivals(
+            [FromQuery] DateTime? date = null,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 20)
+        {
+            var targetDate = date?.Date ?? DateTime.UtcNow.Date;
+
+            var query = _context.Bookings
+                .Include(b => b.Guest)
+                .Include(b => b.BookingDetails)
+                    .ThenInclude(bd => bd.Room)
+                .Include(b => b.BookingDetails)
+                    .ThenInclude(bd => bd.RoomType)
+                .Where(b => b.Status == "Confirmed" || b.Status == "Pending")
+                .Where(b => b.BookingDetails.Any(bd =>
+                    bd.CheckInDate.Date == targetDate))
+                .AsNoTracking();
+
+            var totalCount = await query.CountAsync();
+
+            var bookings = await query
+                .OrderBy(b => b.BookingDetails.Min(bd => bd.CheckInDate))
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var dtos = _mapper.Map<List<BookingResponseDTO>>(bookings);
+
+            return Ok(new PagedResponse<BookingResponseDTO>(dtos, totalCount, page, pageSize));
+        }
+
+        // GET: api/Bookings/in-house - Khách đang lưu trú
+        [HttpGet("in-house")]
+        public async Task<ActionResult<PagedResponse<BookingResponseDTO>>> GetInHouse(
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 20)
+        {
+            var query = _context.Bookings
+                .Include(b => b.Guest)
+                .Include(b => b.BookingDetails)
+                    .ThenInclude(bd => bd.Room)
+                .Include(b => b.BookingDetails)
+                    .ThenInclude(bd => bd.RoomType)
+                .Where(b => b.Status == "CheckedIn")
+                .AsNoTracking();
+
+            var totalCount = await query.CountAsync();
+
+            var bookings = await query
+                .OrderByDescending(b => b.Id)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var dtos = _mapper.Map<List<BookingResponseDTO>>(bookings);
+
+            return Ok(new PagedResponse<BookingResponseDTO>(dtos, totalCount, page, pageSize));
+        }
+
+        // GET: api/Bookings/departures - Khách dự kiến check-out hôm nay
+        [HttpGet("departures")]
+        public async Task<ActionResult<PagedResponse<BookingResponseDTO>>> GetDepartures(
+            [FromQuery] DateTime? date = null,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 20)
+        {
+            var targetDate = date?.Date ?? DateTime.UtcNow.Date;
+
+            var query = _context.Bookings
+                .Include(b => b.Guest)
+                .Include(b => b.BookingDetails)
+                    .ThenInclude(bd => bd.Room)
+                .Include(b => b.BookingDetails)
+                    .ThenInclude(bd => bd.RoomType)
+                .Where(b => b.Status == "CheckedIn")
+                .Where(b => b.BookingDetails.Any(bd => bd.CheckOutDate.Date == targetDate))
+                .AsNoTracking();
+
+            var totalCount = await query.CountAsync();
+
+            var bookings = await query
+                .OrderBy(b => b.BookingDetails.Min(bd => bd.CheckOutDate))
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var dtos = _mapper.Map<List<BookingResponseDTO>>(bookings);
+
+            return Ok(new PagedResponse<BookingResponseDTO>(dtos, totalCount, page, pageSize));
         }
     }
 }

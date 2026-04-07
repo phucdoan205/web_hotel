@@ -22,6 +22,8 @@ namespace backend.Mappers
 
             CreateMap<Booking, BookingResponseDTO>()
                 .ForMember(dest => dest.GuestName, opt => opt.MapFrom(src => src.Guest != null ? src.Guest.Name : null))
+                .ForMember(dest => dest.GuestPhone, opt => opt.MapFrom(src => src.Guest != null ? src.Guest.Phone : null))
+                .ForMember(dest => dest.GuestEmail, opt => opt.MapFrom(src => src.Guest != null ? src.Guest.Email : null))
                 .ForMember(dest => dest.BookingDetails, opt => opt.MapFrom(src => src.BookingDetails));
             CreateMap<BookingCreateDTO, Booking>()
                 .ForMember(dest => dest.BookingDetails, opt => opt.Ignore());

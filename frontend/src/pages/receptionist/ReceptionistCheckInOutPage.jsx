@@ -1,83 +1,60 @@
 import React, { useState } from "react";
 import GuestFlowStats from "../../components/receptionist/checkinout/GuestFlowStats";
 import GuestTable from "../../components/receptionist/checkinout/GuestTable";
-import {
-  RecentCheckIns,
-  PendingCleanups,
-  WalkInAction,
-} from "../../components/receptionist/checkinout/QuickWidgets";
+import { useQuery } from "@tanstack/react-query";
+import { bookingsApi } from "../../api/admin/bookingsApi";
 
 const ReceptionistCheckInOutPage = () => {
   // Mặc định là 'in' (Check-in Tab)
   const [activeTab, setActiveTab] = useState("in");
   const [guestTableData, setGuestTableData] = useState([]);
 
-  const checkInData = [
-    {
-      name: "Aria Walker",
-      id: "#BK-90210",
-      room: "Deluxe Ocean View",
-      date: "May 12, 2024",
-      payment: "Paid",
-    },
-    {
-      name: "Julian Martinez",
-      id: "#BK-90211",
-      room: "Suite Executive",
-      date: "May 12, 2024",
-      payment: "Partial",
-    },
-  ];
+  // === API Calls cho 3 tab ===
+  const arrivalsQuery = useQuery({
+    queryKey: ["arrivals"],
+    queryFn: () => bookingsApi.getArrivals({ date: new Date() }),
+    enabled: activeTab === "in",
+  });
 
-  const checkOutData = [
-    {
-      name: "Robert Sterling",
-      id: "#BK-90218",
-      room: "Twin Standard",
-      date: "May 13, 2024",
-      payment: "Paid",
-    },
-    {
-      name: "Elena Lopez",
-      id: "#BK-90215",
-      room: "Superior King",
-      date: "May 12, 2024",
-      payment: "Unpaid",
-    },
-  ];
+  const inHouseQuery = useQuery({
+    queryKey: ["in-house"],
+    queryFn: () => bookingsApi.getInHouse(),
+    enabled: activeTab === "stay",
+  });
 
-  const stayData = [
-    {
-      name: "Bennedict Cumberbatch",
-      id: "#BK-90218",
-      room: "Twin Standard",
-      date: "May 13, 2024",
-      payment: "Paid",
-    },
-    {
-      name: "Benedict Wong",
-      id: "#BK-90215",
-      room: "Superior King",
-      date: "May 12, 2024",
-      payment: "Unpaid",
-    },
-  ];
+  const departuresQuery = useQuery({
+    queryKey: ["departures"],
+    queryFn: () => bookingsApi.getDepartures({ date: new Date() }),
+    enabled: activeTab === "out",
+  });
+
+  console.log("Arrivals Data:", arrivalsQuery.data);
+  console.log("In-House Data:", inHouseQuery.data);
+  console.log("Departures Data:", departuresQuery.data);
+
+  const isLoading =
+    (activeTab === "in" && arrivalsQuery.isLoading) ||
+    (activeTab === "stay" && inHouseQuery.isLoading) ||
+    (activeTab === "out" && departuresQuery.isLoading);
 
   const handleTabSwitch = (tab) => {
     setActiveTab(tab);
     switch (tab) {
       case "in":
-        setGuestTableData(checkInData);
-        break;
-      case "out":
-        setGuestTableData(checkOutData);
+        if (arrivalsQuery.data) setGuestTableData(arrivalsQuery.data.items);
         break;
       case "stay":
-        setGuestTableData(stayData);
+        if (inHouseQuery.data) setGuestTableData(inHouseQuery.data.items);
         break;
-      default:
-        setGuestTableData([]);
+      case "out":
+        if (departuresQuery.data) setGuestTableData(departuresQuery.data.items);
+        break;
     }
+  };
+
+  const handleViewDetail = (booking) => {
+    setSelectedBooking(booking);
+    setModalOpen(true);
   };
 
   return (
@@ -104,16 +81,16 @@ const ReceptionistCheckInOutPage = () => {
             Check-in
           </button>
           <button
-            onClick={() => handleTabSwitch("out")}
-            className={`px-8 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${activeTab === "out" ? "bg-rose-500 text-white shadow-lg shadow-rose-100" : "text-gray-400 hover:text-gray-600"}`}
-          >
-            Check-out
-          </button>
-          <button
             onClick={() => handleTabSwitch("stay")}
             className={`px-8 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${activeTab === "stay" ? "bg-emerald-500 text-white shadow-lg shadow-emerald-100" : "text-gray-400 hover:text-gray-600"}`}
           >
             Lưu trú
+          </button>
+          <button
+            onClick={() => handleTabSwitch("out")}
+            className={`px-8 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${activeTab === "out" ? "bg-rose-500 text-white shadow-lg shadow-rose-100" : "text-gray-400 hover:text-gray-600"}`}
+          >
+            Check-out
           </button>
         </div>
       </div>
@@ -123,13 +100,6 @@ const ReceptionistCheckInOutPage = () => {
         activeTab={activeTab}
         data={guestTableData}
       />
-
-      {/* Widgets Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <RecentCheckIns />
-        <PendingCleanups />
-        <WalkInAction />
-      </div>
     </div>
   );
 };

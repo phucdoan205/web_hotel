@@ -7,6 +7,8 @@ namespace backend.DTOs
         public int? UserId { get; set; }
         public int? GuestId { get; set; }
         public string? GuestName { get; set; }
+        public string? GuestPhone { get; set; }
+        public string? GuestEmail { get; set; }
         public int? VoucherId { get; set; }
         public string? Status { get; set; }
         public DateTime CreatedAt { get; set; }

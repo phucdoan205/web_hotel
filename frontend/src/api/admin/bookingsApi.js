@@ -8,6 +8,19 @@ export const bookingsApi = {
     return response.data;
   },
 
+  getArrivals: async (params = {}) => {
+    const response = await apiClient.get("/Bookings/arrivals", { params });
+    return response.data;
+  },
+  getInHouse: async (params = {}) => {
+    const response = await apiClient.get("/Bookings/in-house", { params });
+    return response.data;
+  },
+  getDepartures: async (params = {}) => {
+    const response = await apiClient.get("/Bookings/departures", { params });
+    return response.data;
+  },
+
   // Lấy chi tiết một booking
   getBookingById: async (id) => {
     const response = await apiClient.get(`/Bookings/${id}`);
@@ -31,10 +44,9 @@ export const bookingsApi = {
     const response = await apiClient.put(`/Bookings/${bookingId}/change-room`, payload);
     return response.data;
   },
-
-  // Hủy booking
-  cancelBooking: async (id) => {
-    const response = await apiClient.delete(`/Bookings/${id}`);
+  
+  cancelBooking: async (bookingId) => {
+    const response = await apiClient.patch(`/Bookings/${bookingId}/cancel`);
     return response.data;
   },
 };

@@ -1,10 +1,17 @@
 // src/components/receptionist/bookings/BookingTable.jsx
 import React from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { bookingsApi } from "../../../api/admin/bookingsApi";
-import {Eye, Trash2, ChevronLeft, ChevronRight, CheckCircle } from "lucide-react";
+import { Eye, Trash2, ChevronLeft, ChevronRight, CheckCircle } from "lucide-react";
+import { useState } from "react";
+import BookingDetailModal from "./BookingDetailModal";
 
 const BookingTable = ({ filters, onPageChange, onCheckIn }) => {
+  const queryClient = useQueryClient();
+
+  const [selectedBooking, setSelectedBooking] = useState(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+
   const { data, isLoading, error } = useQuery({
     queryKey: ["bookings", filters],
     queryFn: async () => {
@@ -23,6 +30,18 @@ const BookingTable = ({ filters, onPageChange, onCheckIn }) => {
     keepPreviousData: true,
   });
 
+  const handleCancelBooking = async (bookingId) => {
+    if (!window.confirm(`Bạn chắc chắn muốn hủy booking #${bookingId}?`))
+      return;
+
+    try {
+      await bookingsApi.cancelBooking(bookingId);
+      queryClient.invalidateQueries({ queryKey: ["bookings"] });
+      alert("Booking đã được hủy thành công.");
+    } catch (err) {
+      alert("Hủy booking thất bại: " + (err.response?.data?.message || err.message));
+    }
+  };
   const bookings = data?.items || [];
   const totalCount = data?.totalCount || 0;
   const totalPages = Math.ceil(totalCount / (filters.pageSize || 10));
@@ -97,10 +116,14 @@ const BookingTable = ({ filters, onPageChange, onCheckIn }) => {
                       <div className="flex justify-end gap-2">
                         {/* Nút xem chi tiết */}
                         <button
+                          onClick={() => {
+                            setSelectedBooking(booking);
+                            setIsDetailOpen(true);
+                          }}
                           className="p-2 hover:bg-sky-100 rounded-xl text-sky-600 transition-all"
-                          title="Sửa booking"
+                          title="Xem chi tiết"
                         >
-                          <Eye size={18} />   {/* ← Icon mới, đẹp và rõ ràng hơn Pencil */}
+                          <Eye size={18} />
                         </button>
 
                         {/* Nút Nhận phòng - Chỉ hiển thị khi là ngày hôm nay và trạng thái Confirmed */}
@@ -115,10 +138,11 @@ const BookingTable = ({ filters, onPageChange, onCheckIn }) => {
                           </button>
                         )}
 
-                        {/* Nút Xóa */}
+                        {/* Nút Hủy Booking */}
                         <button
+                          onClick={() => handleCancelBooking(booking.id)}
                           className="p-2 hover:bg-red-100 rounded-xl text-red-600 transition-all"
-                          title="Xóa booking"
+                          title="Hủy booking"
                         >
                           <Trash2 size={18} />
                         </button>
@@ -157,6 +181,12 @@ const BookingTable = ({ filters, onPageChange, onCheckIn }) => {
           </button>
         </div>
       </div>
+
+      <BookingDetailModal
+        open={isDetailOpen}
+        onClose={() => setIsDetailOpen(false)}
+        booking={selectedBooking}
+      />
     </div>
   );
 };

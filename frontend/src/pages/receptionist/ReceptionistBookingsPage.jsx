@@ -5,6 +5,7 @@ import BookingTable from "../../components/receptionist/bookings/BookingTable";
 import BookingCreateModal from "../../components/receptionist/bookings/BookingCreateModal";
 import { roomTypesApi } from "../../api/admin/roomTypesApi";
 import { useQuery } from "@tanstack/react-query";
+import BookingDetailModal from "../../components/receptionist/bookings/BookingDetailModal";
 
 const ReceptionistBookingsPage = (open) => {
   const [filters, setFilters] = useState({
@@ -33,7 +34,7 @@ const ReceptionistBookingsPage = (open) => {
   };
 
   const handlePageChange = (newPage) => {
-    
+
     setFilters((prev) => ({ ...prev, page: newPage }));
   };
 
