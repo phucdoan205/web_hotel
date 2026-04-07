@@ -15,9 +15,6 @@ const GuestTable = ({ activeTab, data }) => {
               className="pl-10 pr-4 py-2.5 bg-gray-50 border-none rounded-xl text-xs w-80 focus:ring-2 focus:ring-blue-500/10"
             />
           </div>
-          <button className="flex items-center gap-2 px-4 py-2.5 border border-gray-100 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-50 transition-all">
-            <SlidersHorizontal size={14} /> Filters
-          </button>
         </div>
       </div>
 

@@ -182,8 +182,8 @@ namespace backend.Controllers
                 {
                     RoomId = detailDto.RoomId,
                     RoomTypeId = detailDto.RoomTypeId,
-                    CheckInDate = detailDto.CheckInDate,
-                    CheckOutDate = detailDto.CheckOutDate,
+                    CheckInDate = detailDto.CheckInDate.AddHours(14),   // Mặc định giờ check-in là 14:00
+                    CheckOutDate = detailDto.CheckOutDate.AddHours(12), // Mặc định giờ check-out là 12:00
                     PricePerNight = roomType.BasePrice
                 };
 
