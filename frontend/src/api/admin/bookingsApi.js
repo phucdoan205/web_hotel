@@ -45,8 +45,21 @@ export const bookingsApi = {
     return response.data;
   },
   
+  // Huỷ booking
   cancelBooking: async (bookingId) => {
     const response = await apiClient.patch(`/Bookings/${bookingId}/cancel`);
+    return response.data;
+  },
+
+  // Check-in
+  checkIn: async (bookingId) => {
+    const response = await apiClient.patch(`/Bookings/${bookingId}/check-in`);
+    return response.data;
+  },
+
+  // Check-out
+  checkOut: async (bookingId) => {
+    const response = await apiClient.patch(`/Bookings/${bookingId}/check-out`);
     return response.data;
   },
 };

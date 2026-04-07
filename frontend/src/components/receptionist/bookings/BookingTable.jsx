@@ -134,7 +134,6 @@ const BookingTable = ({ filters, onPageChange, onCheckIn }) => {
                             title="Nhận phòng ngay"
                           >
                             <CheckCircle size={16} />
-                            Nhận phòng
                           </button>
                         )}
 

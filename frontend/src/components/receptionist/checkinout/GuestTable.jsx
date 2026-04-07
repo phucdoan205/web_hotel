@@ -1,9 +1,12 @@
 import React, { useState, useMemo } from "react";
-import { Search, SlidersHorizontal, MoreVertical } from "lucide-react";
+import { Search, SlidersHorizontal, MoreVertical, CheckCircle, SquareArrowRightExit } from "lucide-react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { bookingsApi } from "../../../api/admin/bookingsApi";
 
 const GuestTable = ({ activeTab, data }) => {
   const [search, setSearch] = useState("");
   const [roomFilter, setRoomFilter] = useState("");
+  const queryClient = useQueryClient();
 
   // 🎯 Filter logic
   const filteredData = useMemo(() => {
@@ -14,13 +17,78 @@ const GuestTable = ({ activeTab, data }) => {
 
       const matchRoom = roomFilter
         ? booking.bookingDetails.some((d) =>
-            d.roomNumber.includes(roomFilter)
-          )
+          d.roomNumber.includes(roomFilter)
+        )
         : true;
 
       return matchSearch && matchRoom;
     });
   }, [data, search, roomFilter]);
+
+  const checkInMutation = useMutation({
+    mutationFn: (bookingId) => bookingsApi.checkIn(bookingId),
+    onSuccess: (_, bookingId) => {
+      queryClient.setQueryData(["arrivals"], (oldData) => {
+        if (!oldData) return oldData;
+
+        return {
+          ...oldData,
+          items: oldData.items.filter((b) => b.id !== bookingId),
+        };
+      });
+
+      // 🔥 cập nhật tab lưu trú
+      queryClient.invalidateQueries({ queryKey: ["in-house"] });
+      queryClient.invalidateQueries({ queryKey: ["bookings"] });
+
+      alert("Check-in successful");
+    },
+    onError: (error) => {
+      const message =
+        error?.response?.data?.message || // backend trả về
+        error?.response?.data ||         // trường hợp trả string
+        error.message ||                // lỗi JS
+        "Check-in failed";
+
+      alert(message);
+    }
+  });
+
+  const checkOutMutation = useMutation({
+    mutationFn: (bookingId) => bookingsApi.checkOut(bookingId),
+    onSuccess: (_, bookingId) => {
+      queryClient.setQueryData(["in-house"], (oldData) => {
+        if (!oldData) return oldData;
+
+        return {
+          ...oldData,
+          items: oldData.items.filter((b) => b.id !== bookingId),
+        };
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["departures"] });
+      queryClient.invalidateQueries({ queryKey: ["bookings"] });
+
+      alert("Check-out successful");
+    },
+    onError: (error) => {
+      const message =
+        error?.response?.data?.message || // backend trả về
+        error?.response?.data ||         // trường hợp trả string
+        error.message ||                // lỗi JS
+        "Check-in failed";
+
+      alert(message);
+    }
+  });
+
+  const handleCheckIn = async (bookingId) => {
+    await checkInMutation.mutateAsync(bookingId);
+  };
+
+  const handleCheckOut = async (bookingId) => {
+    await checkOutMutation.mutateAsync(bookingId);
+  };
 
   return (
     <div className="bg-white rounded-[2.5rem] border border-gray-50 shadow-sm overflow-hidden">
@@ -114,17 +182,25 @@ const GuestTable = ({ activeTab, data }) => {
 
                   <td className="px-6 py-5">
                     <div className="flex items-center justify-end gap-2">
-                      <button
-                        className={`${
-                          activeTab === "in"
-                            ? "bg-blue-600 hover:bg-blue-700"
-                            : "bg-rose-500 hover:bg-rose-600"
-                        } text-white px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg`}
-                      >
-                        {activeTab === "in"
-                          ? "Check-in"
-                          : "Check-out"}
-                      </button>
+                      {
+                        activeTab === "in" ? (
+                          <button
+                            onClick={() => handleCheckIn(booking.id)}
+                            className="flex items-center gap-1 px-4 py-1.5 bg-emerald-600 hover:bg-emerald-300 text-white text-xs font-semibold rounded-2xl transition-all shadow-sm"
+                            title="Nhận phòng"
+                          >
+                            <CheckCircle size={16} />
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleCheckOut(booking.id)}
+                            className="flex items-center gap-1 px-4 py-1.5 bg-rose-800 hover:bg-rose-400 text-white text-xs font-semibold rounded-2xl transition-all shadow-sm"
+                            title="Trả phòng"
+                          >
+                            <SquareArrowRightExit size={16} />
+                          </button>
+                        )
+                      }
                     </div>
                   </td>
                 </tr>
@@ -135,7 +211,7 @@ const GuestTable = ({ activeTab, data }) => {
                   colSpan="5"
                   className="text-center py-10 text-gray-400 text-sm"
                 >
-                  No data found 
+                  No data found
                 </td>
               </tr>
             )}

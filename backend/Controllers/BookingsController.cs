@@ -25,13 +25,13 @@ namespace backend.Controllers
         // GET: api/Bookings
         [HttpGet]
         public async Task<ActionResult<PagedResponse<BookingResponseDTO>>> GetBookings(
-    [FromQuery] string? search = null,
-    [FromQuery] string? status = null,
-    [FromQuery] string? roomTypeId = null,      // Lọc theo loại phòng
-    [FromQuery] DateTime? checkInFrom = null,   // Lọc theo ngày check-in từ
-    [FromQuery] DateTime? checkInTo = null,     // Lọc theo ngày check-in đến
-    [FromQuery] int page = 1,
-    [FromQuery] int pageSize = 10)
+        [FromQuery] string? search = null,
+        [FromQuery] string? status = null,
+        [FromQuery] string? roomTypeId = null,      // Lọc theo loại phòng
+        [FromQuery] DateTime? checkInFrom = null,   // Lọc theo ngày check-in từ
+        [FromQuery] DateTime? checkInTo = null,     // Lọc theo ngày check-in đến
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10)
         {
             var query = _context.Bookings
                 .Include(b => b.Guest)
@@ -219,6 +219,88 @@ namespace backend.Controllers
             await _context.SaveChangesAsync();
 
             return NoContent();
+        }
+
+        // PATCH: api/Bookings/{id}/check-in - Check-in khách
+        [HttpPatch("{id:int}/check-in")]
+        public async Task<IActionResult> CheckIn(int id)
+        {
+            var booking = await _context.Bookings
+                .Include(b => b.BookingDetails)
+                .FirstOrDefaultAsync(b => b.Id == id);
+
+            if (booking == null)
+                return NotFound("Không tìm thấy booking.");
+
+            if (booking.Status != "Confirmed")
+                return BadRequest("Chỉ có thể check-in cho booking có trạng thái 'Confirmed'.");
+
+            // Cập nhật trạng thái Booking
+            booking.Status = "CheckedIn";
+
+            // Cập nhật trạng thái các phòng liên quan thành Occupied
+            foreach (var detail in booking.BookingDetails)
+            {
+                if (detail.RoomId.HasValue)
+                {
+                    var room = await _context.Rooms.FindAsync(detail.RoomId.Value);
+                    if (room != null)
+                    {
+                        room.Status = RoomStatuses.Occupied;
+                    }
+                }
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                message = "Khách đã được check-in thành công.",
+                bookingId = booking.Id,
+                newStatus = booking.Status
+            });
+        }
+
+        // PATCH: api/Bookings/{id}/check-out - Check-out khách
+        [HttpPatch("{id:int}/check-out")]
+        public async Task<IActionResult> CheckOut(int id)
+        {
+            var booking = await _context.Bookings
+                .Include(b => b.BookingDetails)
+                .FirstOrDefaultAsync(b => b.Id == id);
+
+            if (booking == null)
+                return NotFound("Không tìm thấy booking.");
+
+            if (booking.Status != "CheckedIn")
+                return BadRequest("Chỉ có thể check-out cho booking có trạng thái 'CheckedIn'.");
+
+            // Cập nhật trạng thái Booking
+            booking.Status = "Completed";
+
+            // Cập nhật trạng thái các phòng liên quan thành Available
+            foreach (var detail in booking.BookingDetails)
+            {
+                if (detail.RoomId.HasValue)
+                {
+                    var room = await _context.Rooms.FindAsync(detail.RoomId.Value);
+                    if (room != null)
+                    {
+                        room.Status = RoomStatuses.Available;
+                        // Có thể cập nhật CleaningStatus nếu cần
+                        // room.CleaningStatus = RoomCleaningStatuses.Dirty;
+                    }
+                }
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                message = "Khách đã được check-out thành công.",
+                bookingId = booking.Id,
+                newStatus = booking.Status
+            });
         }
 
         // PATCH: api/Bookings/{id}/cancel - Hủy booking
