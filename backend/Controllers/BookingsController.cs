@@ -287,8 +287,7 @@ namespace backend.Controllers
                     if (room != null)
                     {
                         room.Status = RoomStatuses.Available;
-                        // Có thể cập nhật CleaningStatus nếu cần
-                        // room.CleaningStatus = RoomCleaningStatuses.Dirty;
+                        room.CleaningStatus = RoomCleaningStatuses.Dirty;
                     }
                 }
             }
