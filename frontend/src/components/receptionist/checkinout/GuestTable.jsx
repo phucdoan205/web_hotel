@@ -1,23 +1,69 @@
-import React from "react";
+import React, { useState, useMemo } from "react";
 import { Search, SlidersHorizontal, MoreVertical } from "lucide-react";
 
 const GuestTable = ({ activeTab, data }) => {
+  const [search, setSearch] = useState("");
+  const [roomFilter, setRoomFilter] = useState("");
+
+  // 🎯 Filter logic
+  const filteredData = useMemo(() => {
+    return data.filter((booking) => {
+      const matchSearch = booking.guestName
+        .toLowerCase()
+        .includes(search.toLowerCase());
+
+      const matchRoom = roomFilter
+        ? booking.bookingDetails.some((d) =>
+            d.roomNumber.includes(roomFilter)
+          )
+        : true;
+
+      return matchSearch && matchRoom;
+    });
+  }, [data, search, roomFilter]);
+
   return (
     <div className="bg-white rounded-[2.5rem] border border-gray-50 shadow-sm overflow-hidden">
-      {/* Table Header với thanh Search */}
+      {/* HEADER */}
       <div className="p-6 border-b border-gray-50 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
+          {/* 🔍 Search */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400" />
             <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
               type="text"
-              placeholder={`Search ${activeTab === "in" ? "check-in" : "check-out"}...`}
-              className="pl-10 pr-4 py-2.5 bg-gray-50 border-none rounded-xl text-xs w-80 focus:ring-2 focus:ring-blue-500/10"
+              placeholder="Search guest..."
+              className="pl-10 pr-4 py-2.5 bg-gray-50 rounded-xl text-xs w-64 focus:ring-2 focus:ring-blue-500/10"
+            />
+          </div>
+
+          {/* 🎯 Filter Room */}
+          <div className="relative">
+            <SlidersHorizontal className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400" />
+            <input
+              value={roomFilter}
+              onChange={(e) => setRoomFilter(e.target.value)}
+              placeholder="Filter room..."
+              className="pl-10 pr-4 py-2.5 bg-gray-50 rounded-xl text-xs w-40 focus:ring-2 focus:ring-blue-500/10"
             />
           </div>
         </div>
+
+        {/* Reset */}
+        <button
+          onClick={() => {
+            setSearch("");
+            setRoomFilter("");
+          }}
+          className="text-xs font-bold text-gray-400 hover:text-gray-600"
+        >
+          Reset
+        </button>
       </div>
 
+      {/* TABLE */}
       <div className="overflow-x-auto">
         <table className="w-full text-left">
           <thead className="bg-gray-50/50">
@@ -31,45 +77,68 @@ const GuestTable = ({ activeTab, data }) => {
               <th className="px-6 py-5 text-center">Action</th>
             </tr>
           </thead>
+
           <tbody className="divide-y divide-gray-50">
-            {data.map((booking, i) => (
-              <tr
-                key={i}
-                className="hover:bg-gray-50/30 transition-colors group"
-              >
-                <td className="px-8 py-5">
-                  <div className="flex items-center gap-3">
-                    <div className="size-8 rounded-full bg-blue-100 flex items-center justify-center text-[10px] font-black text-blue-600">
-                      {booking.guestName.charAt(0)}
+            {filteredData.length > 0 ? (
+              filteredData.map((booking, i) => (
+                <tr
+                  key={i}
+                  className="hover:bg-gray-50/30 transition-colors group"
+                >
+                  <td className="px-8 py-5">
+                    <div className="flex items-center gap-3">
+                      <div className="size-8 rounded-full bg-blue-100 flex items-center justify-center text-[10px] font-black text-blue-600">
+                        {booking.guestName.charAt(0)}
+                      </div>
+                      <span className="font-bold text-gray-900 text-sm">
+                        {booking.guestName}
+                      </span>
                     </div>
-                    <span className="font-bold text-gray-900 text-sm">
-                      {booking.guestName}
-                    </span>
-                  </div>
-                </td>
-                <td className="px-6 py-5 text-xs font-bold text-gray-400">
-                  {booking.bookingCode}
-                </td>
-                <td className="px-6 py-5 text-xs font-medium text-gray-500">
-                  {activeTab === "in" ? booking.bookingDetails[0].checkInDate : booking.bookingDetails[0].checkOutDate}
-                </td>
-                <td className="px-6 py-5 text-xs font-medium text-gray-600">
-                  {booking.bookingDetails.map((detail) => detail.roomNumber).join(", ")}
-                </td>
-                <td className="px-6 py-5">
-                  <div className="flex items-center justify-end gap-2">
-                    <button
-                      className={`${activeTab === "in" ? "bg-blue-600 hover:bg-blue-700 shadow-blue-100" : "bg-rose-500 hover:bg-rose-600 shadow-rose-100"} text-white px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg`}
-                    >
-                      {activeTab === "in" ? "Check-in" : "Check-out"}
-                    </button>
-                    <button className="p-2 text-gray-300 hover:text-gray-600">
-                      <MoreVertical size={16} />
-                    </button>
-                  </div>
+                  </td>
+
+                  <td className="px-6 py-5 text-xs font-bold text-gray-400">
+                    {booking.bookingCode}
+                  </td>
+
+                  <td className="px-6 py-5 text-xs font-medium text-gray-500">
+                    {activeTab === "in"
+                      ? booking.bookingDetails[0]?.checkInDate
+                      : booking.bookingDetails[0]?.checkOutDate}
+                  </td>
+
+                  <td className="px-6 py-5 text-xs font-medium text-gray-600">
+                    {booking.bookingDetails
+                      .map((d) => d.roomNumber)
+                      .join(", ")}
+                  </td>
+
+                  <td className="px-6 py-5">
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        className={`${
+                          activeTab === "in"
+                            ? "bg-blue-600 hover:bg-blue-700"
+                            : "bg-rose-500 hover:bg-rose-600"
+                        } text-white px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg`}
+                      >
+                        {activeTab === "in"
+                          ? "Check-in"
+                          : "Check-out"}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td
+                  colSpan="5"
+                  className="text-center py-10 text-gray-400 text-sm"
+                >
+                  No data found 
                 </td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
       </div>
