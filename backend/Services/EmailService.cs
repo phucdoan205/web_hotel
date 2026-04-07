@@ -7,27 +7,41 @@ namespace backend.Services
     {
         Task SendEmailAsync(string toEmail, string subject, string body);
         Task SendBirthdayVoucherEmailAsync(string toEmail, string voucherCode, decimal discountAmount);
+        Task SendVoucherEmailAsync(string toEmail, string voucherCode, decimal discountAmount, string title);
     }
 
     public class EmailService : IEmailService
     {
-        // Sử dụng một tài khoản email chung chung hoặc cấu hình appsettings.
-        // Tạm thời hardcode tài khoản để demo theo yêu cầu code nhanh.
-        private readonly string _fromEmail = "hotelvoucherservice2026@gmail.com";
-        private readonly string _appPassword = "dummy_app_password_here"; // Cần thay bằng app password thật
+        private readonly IConfiguration _config;
+
+        public EmailService(IConfiguration config)
+        {
+            _config = config;
+        }
 
         public async Task SendEmailAsync(string toEmail, string subject, string body)
         {
-            var smtpClient = new SmtpClient("smtp.gmail.com")
+            var host = _config["Email:Host"] ?? "smtp.gmail.com";
+            var port = _config.GetValue<int>("Email:Port", 587);
+            var fromEmail = _config["Email:FromEmail"];
+            var appPassword = _config["Email:AppPassword"];
+
+            if (string.IsNullOrEmpty(fromEmail) || string.IsNullOrEmpty(appPassword) || appPassword == "yourapppasswordhere")
             {
-                Port = 587,
-                Credentials = new NetworkCredential(_fromEmail, _appPassword),
+                Console.WriteLine($"[Email Service Mock] Gửi mail tới {toEmail} thành công! (Do chưa cấu hình App Password thật trong appsettings.json)");
+                return;
+            }
+
+            var smtpClient = new SmtpClient(host)
+            {
+                Port = port,
+                Credentials = new NetworkCredential(fromEmail, appPassword),
                 EnableSsl = true,
             };
 
             var mailMessage = new MailMessage
             {
-                From = new MailAddress(_fromEmail),
+                From = new MailAddress(fromEmail),
                 Subject = subject,
                 Body = body,
                 IsBodyHtml = true,
@@ -36,10 +50,8 @@ namespace backend.Services
 
             try
             {
-                // Comment lại phần thực sự gửi mail nếu chưa có pass thật để khỏi bị crash
-                // await smtpClient.SendMailAsync(mailMessage);
-                await Task.CompletedTask;
-                Console.WriteLine($"[Email Service] Gửi mail tới {toEmail} thành công! (Mock)");
+                await smtpClient.SendMailAsync(mailMessage);
+                Console.WriteLine($"[Email Service] Gửi mail tới {toEmail} thành công qua SMTP!");
             }
             catch (Exception ex)
             {
@@ -49,19 +61,23 @@ namespace backend.Services
 
         public async Task SendBirthdayVoucherEmailAsync(string toEmail, string voucherCode, decimal discountAmount)
         {
-            string subject = "Chúc mừng sinh nhật! Quà tặng từ khách sạn";
+            await SendVoucherEmailAsync(toEmail, voucherCode, discountAmount, "Chúc Mừng Sinh Nhật!");
+        }
+
+        public async Task SendVoucherEmailAsync(string toEmail, string voucherCode, decimal discountAmount, string title)
+        {
+            string subject = $"{title} - Quà tặng từ khách sạn";
             string body = $@"
                 <div style='font-family: Arial, sans-serif; padding: 20px;'>
-                    <h2 style='color: #d9534f;'>Chúc Mừng Sinh Nhật!</h2>
+                    <h2 style='color: #d9534f;'>{title}</h2>
                     <p>Chào bạn,</p>
-                    <p>Nhân dịp sinh nhật của bạn, chúng tôi dành tặng bạn một Voucher giảm giá cực kỳ đặc biệt!</p>
+                    <p>Chúng tôi dành tặng bạn một Voucher giảm giá cực kỳ đặc biệt!</p>
                     <div style='background-color: #f9f9f9; padding: 15px; border-radius: 8px; text-align: center; margin: 20px 0;'>
                         <h3 style='margin: 0; color: #333;'>Mã Voucher của bạn:</h3>
                         <p style='font-size: 24px; font-weight: bold; color: #d9534f; margin: 10px 0;'>{voucherCode}</p>
                         <p style='margin: 0;'>Giảm giá: <strong>{discountAmount:N0} VND</strong></p>
                     </div>
-                    <p>Voucher này chỉ sử dụng được 1 lần và gắn liên với tài khoản của bạn. Vui lòng đưa mã này cho lễ tân khi thanh toán.</p>
-                    <p>Chúc bạn một ngày sinh nhật thật ý nghĩa!</p>
+                    <p>Voucher này chỉ sử dụng được 1 lần và gắn liền với tài khoản của bạn. Vui lòng đưa mã này cho lễ tân khi thanh toán.</p>
                     <p>Trân trọng,<br/>Đội ngũ Khách sạn</p>
                 </div>
             ";

@@ -14,7 +14,10 @@ const AdminVouchersPage = () => {
         discountType: "fixed",
         discountValue: 0,
         usageLimit: 1,
-        userId: ""
+        userId: "",
+        targetAudience: "All",
+        validFrom: "",
+        validTo: ""
     });
 
     const [sendEmail, setSendEmail] = useState(false);
@@ -78,12 +81,13 @@ const AdminVouchersPage = () => {
 
     const handleCreate = async () => {
         try {
-            // Nếu userId rỗng thì gán null
             const payload = {
                 ...newVoucher,
                 userId: newVoucher.userId === "" ? null : parseInt(newVoucher.userId),
+                validFrom: newVoucher.validFrom || null,
+                validTo: newVoucher.validTo || null,
                 sendEmail,
-                customerEmail
+                customerEmail: newVoucher.targetAudience === 'SpecificUser' ? customerEmail : undefined
             };
             const res = await fetch("http://localhost:5291/api/Vouchers", {
                 method: "POST",
@@ -93,7 +97,7 @@ const AdminVouchersPage = () => {
             if (res.ok) {
                 setOpenModal(false);
                 fetchVouchers();
-                setNewVoucher({ code: "", discountType: "fixed", discountValue: 0, usageLimit: 1, userId: "" });
+                setNewVoucher({ code: "", discountType: "fixed", discountValue: 0, usageLimit: 1, userId: "", targetAudience: "All", validFrom: "", validTo: "" });
                 setSendEmail(false);
                 setCustomerEmail("");
             } else {
@@ -156,19 +160,64 @@ const AdminVouchersPage = () => {
                             value={newVoucher.discountValue} 
                             onChange={(e) => setNewVoucher({...newVoucher, discountValue: e.target.value})} 
                         />
+                        <TextField 
+                            label="Thời gian bắt đầu (Valid From)" 
+                            type="datetime-local"
+                            InputLabelProps={{ shrink: true }}
+                            value={newVoucher.validFrom} 
+                            onChange={(e) => setNewVoucher({...newVoucher, validFrom: e.target.value})} 
+                        />
+                        <TextField 
+                            label="Thời gian hết hạn (Valid To)" 
+                            type="datetime-local"
+                            InputLabelProps={{ shrink: true }}
+                            value={newVoucher.validTo} 
+                            onChange={(e) => setNewVoucher({...newVoucher, validTo: e.target.value})} 
+                        />
+                        <TextField 
+                            label="Giới hạn số lần dùng" 
+                            type="number"
+                            value={newVoucher.usageLimit} 
+                            onChange={(e) => setNewVoucher({...newVoucher, usageLimit: parseInt(e.target.value) || 1})} 
+                        />
                         <FormControl>
-                            <InputLabel>Khách hàng (Tùy chọn)</InputLabel>
+                            <InputLabel>Đối tượng áp dụng</InputLabel>
                             <Select
-                                value={newVoucher.userId}
-                                label="Khách hàng (Tùy chọn)"
-                                onChange={handleUserChange}
+                                value={newVoucher.targetAudience}
+                                label="Đối tượng áp dụng"
+                                onChange={(e) => {
+                                    setNewVoucher({...newVoucher, targetAudience: e.target.value, userId: ""});
+                                    if (e.target.value !== 'SpecificUser' && e.target.value !== 'All') {
+                                        setSendEmail(true);
+                                    } else {
+                                        setSendEmail(false);
+                                    }
+                                }}
                             >
-                                <MenuItem value="">-- Dành cho tất cả mọi người --</MenuItem>
-                                {users.map(u => (
-                                    <MenuItem key={u.id} value={u.id}>{u.fullName} - {u.email}</MenuItem>
-                                ))}
+                                <MenuItem value="All">Tất cả khách hàng (Không email)</MenuItem>
+                                <MenuItem value="SpecificUser">Một khách hàng cụ thể</MenuItem>
+                                <MenuItem value="Staff">Nhân viên & Staff</MenuItem>
+                                <MenuItem value="LoyalCustomer">Khách hàng VIP (Thân thiết)</MenuItem>
+                                <MenuItem value="BirthdayMonth">Khách có sinh nhật tháng này</MenuItem>
+                                <MenuItem value="NewRegistration">Thành viên đăng ký mới (Tuần này)</MenuItem>
                             </Select>
                         </FormControl>
+
+                        {newVoucher.targetAudience === 'SpecificUser' && (
+                            <FormControl>
+                                <InputLabel>Chọn Khách hàng (Cụ thể)</InputLabel>
+                                <Select
+                                    value={newVoucher.userId}
+                                    label="Chọn Khách hàng (Cụ thể)"
+                                    onChange={handleUserChange}
+                                >
+                                    <MenuItem value="">-- Vui lòng chọn --</MenuItem>
+                                    {users.map(u => (
+                                        <MenuItem key={u.id} value={u.id}>{u.fullName} - {u.email}</MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                        )}
 
                         {sendEmail && (
                             <Box display="flex" flexDirection="column" gap={1} mt={1} p={2} sx={{ bgcolor: '#f5f5f5', borderRadius: 1 }}>

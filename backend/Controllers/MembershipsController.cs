@@ -22,6 +22,27 @@ namespace backend.Controllers
             return Ok(await _context.Memberships.OrderBy(m => m.MinPoints).ToListAsync());
         }
 
+        [HttpGet("users")]
+        public async Task<IActionResult> GetMembershipUsers()
+        {
+            var users = await _context.Users
+                .Include(u => u.Membership)
+                .Where(u => u.TotalSpending > 0 || u.MembershipId != null || u.IsBlacklisted)
+                .OrderByDescending(u => u.TotalSpending)
+                .Select(u => new
+                {
+                    u.Id,
+                    u.FullName,
+                    u.Email,
+                    u.TotalSpending,
+                    TierName = u.IsBlacklisted ? "Banned (Khóa Hạng)" : (u.Membership != null ? u.Membership.TierName : "Chưa có hạng"),
+                    u.IsBlacklisted
+                })
+                .ToListAsync();
+
+            return Ok(users);
+        }
+
         [HttpPost]
         public async Task<IActionResult> CreateMembership([FromBody] Membership membership)
         {

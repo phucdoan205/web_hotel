@@ -27,6 +27,9 @@ namespace backend.Models
         public string? AvatarUrl { get; set; }
         public DateTime? DateOfBirth { get; set; }
 
+        [Column("created_at")]
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
         [Column("password_hash")]
         public string PasswordHash { get; set; } = null!;
 
@@ -40,5 +43,8 @@ namespace backend.Models
         public ICollection<AuditLog> AuditLogs { get; set; } = new List<AuditLog>();
         public ICollection<Notification> Notifications { get; set; } = new List<Notification>();
         public decimal TotalSpending { get; set; } = 0;
+
+        [Column("is_blacklisted")]
+        public bool IsBlacklisted { get; set; } = false;
     }
 }
