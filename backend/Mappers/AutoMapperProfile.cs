@@ -28,7 +28,7 @@ namespace backend.Mappers
 
             CreateMap<BookingDetailCreateDTO, BookingDetail>();
 
-            CreateMap<Booking, BookingDetailResponseDTO>()
+            CreateMap<BookingDetail, BookingDetailResponseDTO>()
                 .ForMember(dest => dest.RoomNumber, opt => opt.MapFrom(src => src.Room != null ? src.Room.RoomNumber : null))
                 .ForMember(dest => dest.RoomTypeName, opt => opt.MapFrom(src => src.RoomType != null ? src.RoomType.Name : null));
 

@@ -101,7 +101,9 @@ const BookingCreateModal = ({ open, onClose }) => {
         }
 
         const payload = {
-            guestId: 1,
+            guestName: guestInfo.name,
+            guestPhone: guestInfo.phone,
+            guestEmail: guestInfo.email,
             bookingDetails: selectedRooms.map((room) => ({
                 roomTypeId: room.roomTypeId || room.roomType?.id,
                 roomId: room.id,

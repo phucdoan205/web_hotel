@@ -116,22 +116,61 @@ namespace backend.Controllers
             if (dto.BookingDetails == null || !dto.BookingDetails.Any())
                 return BadRequest("Phải có ít nhất một chi tiết phòng.");
 
-            var guestExists = await _context.Guests.AnyAsync(g => g.Id == dto.GuestId);
-            if (!guestExists)
-                return BadRequest("Khách hàng không tồn tại.");
+            // ====================== XỬ LÝ GUEST - TẠO MỚI NẾU CHƯA CÓ ======================
+            int guestId;
 
+            // Trường hợp 1: Client truyền GuestId rõ ràng
+            if (dto.GuestId.HasValue && dto.GuestId.Value > 0)
+            {
+                var existingGuest = await _context.Guests
+                    .AnyAsync(g => g.Id == dto.GuestId.Value);
+
+                if (!existingGuest)
+                    return BadRequest($"Khách hàng ID {dto.GuestId.Value} không tồn tại.");
+
+                guestId = dto.GuestId.Value;
+            }
+            else
+            {
+                // Trường hợp 2: Không truyền GuestId -> Kiểm tra GuestPhone đã tồn tại hay không
+                if (string.IsNullOrWhiteSpace(dto.GuestName))
+                    return BadRequest("Tên khách hàng là bắt buộc khi tạo khách mới (GuestName).");
+
+                var existingGuest = await _context.Guests
+                    .FirstOrDefaultAsync(g => g.Phone == dto.GuestPhone);
+
+                if (existingGuest != null)
+                {
+                    guestId = existingGuest.Id;
+                }
+                else
+                {
+                    var newGuest = new Guest
+                    {
+                        Name = dto.GuestName.Trim(),
+                        Phone = string.IsNullOrWhiteSpace(dto.GuestPhone) ? null : dto.GuestPhone.Trim(),
+                        Email = string.IsNullOrWhiteSpace(dto.GuestEmail) ? null : dto.GuestEmail.Trim()
+                    };
+
+                    _context.Guests.Add(newGuest);
+                    await _context.SaveChangesAsync();        // ← Save để lấy ID
+
+                    guestId = newGuest.Id;
+                }
+            }
+
+            // ====================== TẠO BOOKING ======================
             var booking = new Booking
             {
                 UserId = dto.UserId,
-                GuestId = dto.GuestId,
-                VoucherId = null,                    // Mặc định là null
+                GuestId = guestId,
+                VoucherId = dto.VoucherId,
                 BookingCode = $"BK-{DateTime.UtcNow:yyyyMMddHHmmssfff}",
                 Status = "Pending"
             };
 
             foreach (var detailDto in dto.BookingDetails)
             {
-                // Lấy giá từ RoomType (Yêu cầu 4)
                 var roomType = await _context.RoomTypes
                     .AsNoTracking()
                     .FirstOrDefaultAsync(rt => rt.Id == detailDto.RoomTypeId);
@@ -145,7 +184,7 @@ namespace backend.Controllers
                     RoomTypeId = detailDto.RoomTypeId,
                     CheckInDate = detailDto.CheckInDate,
                     CheckOutDate = detailDto.CheckOutDate,
-                    PricePerNight = roomType.BasePrice   // Lấy giá từ RoomType
+                    PricePerNight = roomType.BasePrice
                 };
 
                 booking.BookingDetails.Add(detail);
@@ -154,19 +193,20 @@ namespace backend.Controllers
             _context.Bookings.Add(booking);
             await _context.SaveChangesAsync();
 
-            // Load lại để trả về
+            // Load đầy đủ để trả về (bao gồm Guest.Name)
             var created = await _context.Bookings
                 .Include(b => b.Guest)
                 .Include(b => b.BookingDetails)
                     .ThenInclude(bd => bd.Room)
                 .Include(b => b.BookingDetails)
                     .ThenInclude(bd => bd.RoomType)
+                .AsNoTracking()
                 .FirstAsync(b => b.Id == booking.Id);
 
-            return CreatedAtAction(nameof(GetBooking), new { id = booking.Id },
-                _mapper.Map<BookingResponseDTO>(created));
-        }
+            var responseDto = _mapper.Map<BookingResponseDTO>(created);
 
+            return CreatedAtAction(nameof(CreateBooking), new { id = booking.Id }, responseDto);
+        }
         // PATCH: api/Bookings/{id}/status - Cập nhật status
         [HttpPatch("{id:int}/status")]
         public async Task<IActionResult> UpdateBookingStatus(int id, [FromBody] BookingStatusUpdateDTO dto)
