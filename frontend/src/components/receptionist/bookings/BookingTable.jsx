@@ -1,6 +1,6 @@
 // src/components/receptionist/bookings/BookingTable.jsx
 import React from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { bookingsApi } from "../../../api/admin/bookingsApi";
 import { Eye, Trash2, ChevronLeft, ChevronRight, CheckCircle } from "lucide-react";
 import { useState } from "react";
@@ -24,7 +24,6 @@ const BookingTable = ({ filters, onPageChange, onCheckIn }) => {
         page: filters.page,
         pageSize: filters.pageSize,
       });
-      console.log("Bookings response:", res);
       return res;
     },
     keepPreviousData: true,
@@ -67,6 +66,39 @@ const BookingTable = ({ filters, onPageChange, onCheckIn }) => {
       case "cancelled": return "bg-rose-100 text-rose-700";
       default: return "bg-gray-100 text-gray-600";
     }
+  };
+
+  const checkInMutation = useMutation({
+    mutationFn: (bookingId) => bookingsApi.checkIn(bookingId),
+    onSuccess: (_, bookingId) => {
+      queryClient.setQueryData(["arrivals"], (oldData) => {
+        if (!oldData) return oldData;
+
+        return {
+          ...oldData,
+          items: oldData.items.filter((b) => b.id !== bookingId),
+        };
+      });
+
+      // 🔥 cập nhật tab lưu trú
+      queryClient.invalidateQueries({ queryKey: ["in-house"] });
+      queryClient.invalidateQueries({ queryKey: ["bookings"] });
+
+      alert("Check-in successful");
+    },
+    onError: (error) => {
+      const message =
+        error?.response?.data?.message || // backend trả về
+        error?.response?.data ||         // trường hợp trả string
+        error.message ||                // lỗi JS
+        "Check-in failed";
+
+      alert(message);
+    }
+  });
+
+  const handleCheckIn = async (bookingId) => {
+    await checkInMutation.mutateAsync(bookingId);
   };
 
   if (error) return <div className="text-red-500 p-8 text-center">Lỗi tải dữ liệu booking</div>;
@@ -129,7 +161,7 @@ const BookingTable = ({ filters, onPageChange, onCheckIn }) => {
                         {/* Nút Nhận phòng - Chỉ hiển thị khi là ngày hôm nay và trạng thái Confirmed */}
                         {canCheckIn && (
                           <button
-                            onClick={() => onCheckIn(booking.id)}
+                            onClick={() => handleCheckIn(booking.id)}
                             className="flex items-center gap-1 px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-2xl transition-all shadow-sm"
                             title="Nhận phòng ngay"
                           >
