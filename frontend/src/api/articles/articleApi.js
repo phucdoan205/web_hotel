@@ -81,6 +81,10 @@ export const deleteArticle = async (articleId) => {
   await apiClient.delete(`/Articles/${articleId}`);
 };
 
+export const hardDeleteArticle = async (articleId) => {
+  await apiClient.delete(`/Articles/${articleId}/hard-delete`);
+};
+
 export const restoreArticle = async (articleId) => {
   await apiClient.post(`/Articles/${articleId}/restore`);
 };

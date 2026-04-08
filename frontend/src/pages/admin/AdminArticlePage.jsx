@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { CheckCircle2, Eye, RefreshCw, RotateCcw, Search, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import ArticleTrashDialog from "../../components/articles/ArticleTrashDialog";
-import { approveArticle, deleteArticle, getArticles, restoreArticle } from "../../api/articles/articleApi";
+import { approveArticle, deleteArticle, getArticles, hardDeleteArticle, restoreArticle } from "../../api/articles/articleApi";
 
 const filterOptions = [
   { value: "all", label: "Tất cả" },
@@ -95,6 +95,8 @@ const AdminArticlePage = () => {
     try {
       if (dialogState.mode === "restore") {
         await restoreArticle(dialogState.article.id);
+      } else if (dialogState.mode === "hardDelete") {
+        await hardDeleteArticle(dialogState.article.id);
       } else {
         await deleteArticle(dialogState.article.id);
       }

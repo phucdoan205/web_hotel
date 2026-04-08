@@ -489,6 +489,30 @@ namespace backend.Controllers
             return Forbid();
         }
 
+        [HttpDelete("{id:int}/hard-delete")]
+        public async Task<IActionResult> HardDeleteArticle(int id)
+        {
+            var currentUser = await RequireCurrentUserAsync();
+            if (currentUser == null)
+            {
+                return Unauthorized();
+            }
+
+            if (!IsAdmin(currentUser))
+            {
+                return Forbid();
+            }
+
+            var article = await _context.Articles.IgnoreQueryFilters().FirstOrDefaultAsync(a => a.Id == id);
+            if (article == null)
+            {
+                return NotFound("Khong tim thay bai viet.");
+            }
+
+            await HardDeleteArticleAsync(article);
+            return NoContent();
+        }
+
         [HttpPost("{id:int}/restore")]
         public async Task<IActionResult> RestoreArticle(int id)
         {
@@ -521,7 +545,10 @@ namespace backend.Controllers
 
             article.IsDeleted = false;
             article.DeletedAt = null;
-            article.Status = article.IsApproved;
+            article.IsApproved = true;
+            article.Status = true;
+            article.ApprovedAt ??= DateTime.UtcNow;
+            article.PublishedAt ??= DateTime.UtcNow;
             article.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
@@ -651,18 +678,30 @@ namespace backend.Controllers
 
         private async Task HardDeleteArticleAsync(Article article)
         {
-            var comments = await _context.ArticleComments.Where(c => c.ArticleId == article.Id).ToListAsync();
+            var comments = await _context.ArticleComments
+                .Where(c => c.ArticleId == article.Id)
+                .OrderByDescending(c => c.ParentCommentId.HasValue)
+                .ToListAsync();
+
             if (comments.Count > 0)
             {
                 _context.ArticleComments.RemoveRange(comments);
+                await _context.SaveChangesAsync();
             }
 
-            _context.Articles.Remove(article);
-            await _context.SaveChangesAsync();
+            await _context.Database.ExecuteSqlInterpolatedAsync(
+                $"DELETE FROM Articles WHERE Id = {article.Id}");
 
             if (!string.IsNullOrWhiteSpace(article.ThumbnailUrl))
             {
-                await _cloudinaryService.DeleteImageByUrlAsync(article.ThumbnailUrl);
+                try
+                {
+                    await _cloudinaryService.DeleteImageByUrlAsync(article.ThumbnailUrl);
+                }
+                catch
+                {
+                    // Keep database deletion successful even if remote image cleanup fails.
+                }
             }
         }
 
