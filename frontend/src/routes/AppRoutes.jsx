@@ -41,6 +41,7 @@ import ReceptionistRoomStatusPage from "../pages/receptionist/ReceptionistRoomSt
 import ReceptionistSettingsPage from "../pages/receptionist/ReceptionistSettingsPage";
 import ReceptionistPOSServicePage from "../pages/receptionist/ReceptionistPOSServicePage";
 import ReceptionistDashboardPage from "../pages/receptionist/ReceptionistDashboardPage";
+import ReceptionistBookingPaymentPage from "../pages/receptionist/ReceptionistBookingPaymentPage";
 
 // Pages housekeeping
 import HousekeepingSettingsPage from "../pages/housekeeping/HousekeepingSettingsPage";
@@ -107,6 +108,7 @@ const AppRoutes = () => {
         <Route path="dashboard" element={<ReceptionistDashboardPage />} />
         <Route path="check-in-out" element={<ReceptionistCheckInOutPage />} />
         <Route path="bookings" element={<ReceptionistBookingsPage />} />
+        <Route path="bookings/:id/payment-qr" element={<ReceptionistBookingPaymentPage />} />
         <Route path="posts" element={<ReceptionistContentManagementPage />} />
         <Route path="guests" element={<ReceptionistGuestManagementPage />} />
         <Route path="reports" element={<ReceptionistReportsPage />} />

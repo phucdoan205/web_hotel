@@ -1,139 +1,280 @@
-import React from "react";
-import { X, Calendar, User, CreditCard, Clock } from "lucide-react";
+import React, { useMemo, useState } from "react";
+import {
+  Banknote,
+  Calendar,
+  CheckCircle2,
+  Clock,
+  CreditCard,
+  QrCode,
+  User,
+  X,
+} from "lucide-react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
+import { bookingsApi } from "../../../api/admin/bookingsApi";
 
-export default function BookingDetailModal({ open, onClose, booking }) {
+const formatCurrency = (amount) => `${(amount || 0).toLocaleString("vi-VN")} đ`;
+
+const getStatusStyle = (status) => {
+  switch (status) {
+    case "Confirmed":
+      return "bg-emerald-100 text-emerald-700";
+    case "Pending":
+      return "bg-amber-100 text-amber-700";
+    case "Cancelled":
+      return "bg-rose-100 text-rose-700";
+    case "CheckedIn":
+      return "bg-sky-100 text-sky-700";
+    case "Completed":
+      return "bg-violet-100 text-violet-700";
+    default:
+      return "bg-gray-100 text-gray-600";
+  }
+};
+
+export default function BookingDetailModal({ open, onClose, booking, onBookingUpdated }) {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [cashPromptOpen, setCashPromptOpen] = useState(false);
+  const [inlineMessage, setInlineMessage] = useState(null);
+
+  const bookingDetails = booking?.bookingDetails || [];
+  const totalAmount = useMemo(
+    () =>
+      bookingDetails.reduce((sum, detail) => {
+        const checkIn = detail.checkInDate ? new Date(detail.checkInDate) : null;
+        const checkOut = detail.checkOutDate ? new Date(detail.checkOutDate) : null;
+        const nights =
+          checkIn && checkOut
+            ? Math.max(1, Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24)))
+            : 1;
+
+        return sum + (detail.pricePerNight || 0) * nights;
+      }, 0),
+    [bookingDetails]
+  );
+
+  const updateStatusMutation = useMutation({
+    mutationFn: ({ id, status }) => bookingsApi.updateBookingStatus(id, status),
+    onSuccess: (_, variables) => {
+      const nextBooking = { ...booking, status: variables.status };
+      queryClient.invalidateQueries({ queryKey: ["bookings"] });
+      queryClient.invalidateQueries({ queryKey: ["booking", String(variables.id)] });
+      setInlineMessage({
+        type: "success",
+        message: "Đã xác nhận thanh toán tiền mặt.",
+      });
+      setCashPromptOpen(false);
+      onBookingUpdated?.(nextBooking);
+    },
+    onError: () => {
+      setInlineMessage({
+        type: "warning",
+        message: "Không thể cập nhật trạng thái booking lúc này.",
+      });
+    },
+  });
+
+  const handleConfirmCashPayment = () => {
+    if (!booking?.id) return;
+    updateStatusMutation.mutate({ id: booking.id, status: "Confirmed" });
+  };
+
+  const handleOpenQrPage = () => {
+    if (!booking?.id) return;
+    navigate(`/receptionist/bookings/${booking.id}/payment-qr`);
+  };
+
   if (!open || !booking) return null;
 
-  const detail = booking.bookingDetails?.[0] || {};
-  const guest = booking.guest || {};
-  const nights = detail.checkOutDate && detail.checkInDate
-    ? Math.ceil((new Date(detail.checkOutDate) - new Date(detail.checkInDate)) / (1000 * 3600 * 24))
-    : 0;
-
-  const totalAmount = (detail.pricePerNight || 0) * nights;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[95vh] overflow-hidden shadow-2xl">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b px-8 py-6 bg-gray-50">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+      <div className="flex max-h-[95vh] w-full max-w-3xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl">
+        <div className="flex items-center justify-between border-b bg-gray-50 px-8 py-6">
           <div>
             <h2 className="text-2xl font-black text-gray-900">Chi tiết Booking</h2>
-            <p className="text-sm text-gray-500 mt-1">Mã: <span className="font-mono font-bold">{booking.bookingCode}</span></p>
+            <p className="mt-1 text-sm text-gray-500">
+              Mã: <span className="font-mono font-bold">{booking.bookingCode}</span>
+            </p>
           </div>
-          <button
-            onClick={onClose}
-            className="p-3 hover:bg-gray-200 rounded-2xl transition-all"
-          >
+          <button onClick={onClose} className="rounded-2xl p-3 transition hover:bg-gray-200">
             <X size={24} className="text-gray-500" />
           </button>
         </div>
 
-        <div className="p-8 space-y-8 overflow-y-auto max-h-[calc(95vh-140px)]">
-          {/* Thông tin khách hàng */}
+        <div className="max-h-[calc(95vh-204px)] space-y-8 overflow-y-auto px-8 py-8">
+          {inlineMessage ? (
+            <div
+              className={`rounded-3xl border px-5 py-4 ${
+                inlineMessage.type === "success"
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+                  : "border-amber-200 bg-amber-50 text-amber-900"
+              }`}
+            >
+              <p className="font-bold">{inlineMessage.message}</p>
+            </div>
+          ) : null}
+
+          {cashPromptOpen ? (
+            <div className="rounded-3xl border border-sky-200 bg-sky-50 px-5 py-4">
+              <p className="text-lg font-black text-sky-900">Xác nhận thanh toán tiền mặt</p>
+              <div className="mt-4 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setCashPromptOpen(false)}
+                  className="rounded-2xl bg-white px-4 py-2 font-bold text-slate-600 transition hover:bg-slate-100"
+                >
+                  Không
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmCashPayment}
+                  disabled={updateStatusMutation.isPending}
+                  className="rounded-2xl bg-emerald-600 px-4 py-2 font-black text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300"
+                >
+                  {updateStatusMutation.isPending ? "Đang cập nhật..." : "Có, đã nhận tiền mặt"}
+                </button>
+              </div>
+            </div>
+          ) : null}
+
           <div>
-            <div className="flex items-center gap-3 mb-4">
+            <div className="mb-4 flex items-center gap-3">
               <User className="text-orange-600" size={28} />
               <h3 className="text-lg font-bold text-gray-800">Thông tin khách hàng</h3>
             </div>
-            <div className="bg-gray-50 rounded-2xl p-6 grid grid-cols-2 gap-4 text-sm">
+            <div className="grid grid-cols-2 gap-4 rounded-2xl bg-gray-50 p-6 text-sm">
               <div>
                 <p className="text-gray-500">Tên khách</p>
-                <p className="font-semibold text-gray-900 mt-1">
+                <p className="mt-1 font-semibold text-gray-900">
                   {booking.guestName || booking.guest?.name || "—"}
                 </p>
               </div>
               <div>
                 <p className="text-gray-500">Số điện thoại</p>
-                <p className="font-semibold text-gray-900 mt-1">
+                <p className="mt-1 font-semibold text-gray-900">
                   {booking.guestPhone || booking.guest?.phone || "—"}
                 </p>
               </div>
               <div className="col-span-2">
                 <p className="text-gray-500">Email</p>
-                <p className="font-semibold text-gray-900 mt-1">
+                <p className="mt-1 font-semibold text-gray-900">
                   {booking.guestEmail || booking.guest?.email || "—"}
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Thông tin đặt phòng */}
           <div>
-            <div className="flex items-center gap-3 mb-4">
+            <div className="mb-4 flex items-center gap-3">
               <Calendar className="text-orange-600" size={28} />
               <h3 className="text-lg font-bold text-gray-800">Thông tin đặt phòng</h3>
             </div>
 
-            {booking.bookingDetails && booking.bookingDetails.length > 0 ? (
-              booking.bookingDetails.map((detail, index) => (
-                <div key={index} className="bg-white border border-gray-100 rounded-2xl p-6 mb-4">
-                  <div className="flex justify-between">
-                    <div>
-                      <p className="text-gray-500 text-xs">SỐ PHÒNG</p>
-                      <p className="text-2xl font-black text-gray-900 mt-1">
-                        {detail.room?.roomNumber || detail.roomNumber || "—"}
-                      </p>
+            {bookingDetails.length > 0 ? (
+              <div className="space-y-4">
+                {bookingDetails.map((detail, index) => (
+                  <div
+                    key={detail.id || index}
+                    className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm"
+                  >
+                    <div className="flex justify-between gap-4">
+                      <div>
+                        <p className="text-xs text-gray-500">SỐ PHÒNG</p>
+                        <p className="mt-1 text-2xl font-black text-gray-900">
+                          {detail.room?.roomNumber || detail.roomNumber || "—"}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-gray-500">LOẠI PHÒNG</p>
+                        <p className="mt-1 text-lg font-semibold">
+                          {detail.roomTypeName || detail.roomType?.name || "—"}
+                        </p>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-gray-500 text-xs">LOẠI PHÒNG</p>
-                      <p className="font-semibold text-lg mt-1">
-                        {detail.roomTypeName || detail.roomType?.name || "—"}
-                      </p>
-                    </div>
-                  </div>
 
-                  <div className="grid grid-cols-2 gap-6 mt-6">
-                    <div>
-                      <p className="text-gray-500 text-xs">CHECK-IN</p>
-                      <p className="font-semibold mt-1">
-                        {detail.checkInDate ? new Date(detail.checkInDate).toLocaleDateString("vi-VN") : "—"}
-                      </p>
+                    <div className="mt-6 grid grid-cols-2 gap-6">
+                      <div>
+                        <p className="text-xs text-gray-500">CHECK-IN</p>
+                        <p className="mt-1 font-semibold">
+                          {detail.checkInDate
+                            ? new Date(detail.checkInDate).toLocaleDateString("vi-VN")
+                            : "—"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">CHECK-OUT</p>
+                        <p className="mt-1 font-semibold">
+                          {detail.checkOutDate
+                            ? new Date(detail.checkOutDate).toLocaleDateString("vi-VN")
+                            : "—"}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-gray-500 text-xs">CHECK-OUT</p>
-                      <p className="font-semibold mt-1">
-                        {detail.checkOutDate ? new Date(detail.checkOutDate).toLocaleDateString("vi-VN") : "—"}
-                      </p>
-                    </div>
-                  </div>
 
-                  <div className="mt-6 pt-6 border-t flex justify-between text-sm">
-                    <span className="text-gray-600">Giá mỗi đêm</span>
-                    <span className="font-semibold">
-                      {(detail.pricePerNight || 0).toLocaleString("vi-VN")} ₫
-                    </span>
+                    <div className="mt-6 flex justify-between border-t pt-6 text-sm">
+                      <span className="text-gray-600">Giá mỗi đêm</span>
+                      <span className="font-semibold">{formatCurrency(detail.pricePerNight)}</span>
+                    </div>
                   </div>
-                </div>
-              ))
+                ))}
+              </div>
             ) : (
               <p className="text-gray-500">Không có thông tin chi tiết phòng</p>
             )}
           </div>
 
-          {/* Trạng thái */}
-          <div className="flex items-center gap-3">
-            <Clock className="text-orange-600" size={28} />
-            <div>
-              <p className="text-gray-500">Trạng thái hiện tại</p>
-              <span className={`inline-block px-5 py-2 rounded-2xl text-sm font-bold mt-2 ${booking.status === "Confirmed" ? "bg-emerald-100 text-emerald-700" :
-                  booking.status === "Pending" ? "bg-amber-100 text-amber-700" :
-                    booking.status === "Cancelled" ? "bg-red-100 text-red-700" : "bg-gray-100 text-gray-600"
-                }`}>
-                {booking.status || "Unknown"}
-              </span>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="flex items-center gap-3 rounded-3xl border border-gray-100 bg-gray-50 p-5">
+              <Clock className="text-orange-600" size={28} />
+              <div>
+                <p className="text-gray-500">Trạng thái hiện tại</p>
+                <span
+                  className={`mt-2 inline-block rounded-2xl px-5 py-2 text-sm font-bold ${getStatusStyle(
+                    booking.status
+                  )}`}
+                >
+                  {booking.status || "Unknown"}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 rounded-3xl border border-gray-100 bg-gray-50 p-5">
+              <CreditCard className="text-orange-600" size={28} />
+              <div>
+                <p className="text-gray-500">Tổng thanh toán</p>
+                <p className="mt-2 text-2xl font-black text-gray-900">{formatCurrency(totalAmount)}</p>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="border-t px-8 py-6 flex justify-end">
-          <button
-            onClick={onClose}
-            className="px-8 py-3 bg-gray-900 hover:bg-black text-white font-semibold rounded-2xl transition-all"
-          >
-            Đóng
-          </button>
+        <div className="sticky bottom-0 border-t bg-white px-8 py-5">
+          <div className="flex flex-wrap justify-end gap-3">
+            <button
+              type="button"
+              onClick={handleOpenQrPage}
+              className="inline-flex items-center gap-2 rounded-2xl bg-sky-100 px-4 py-3 font-bold text-sky-700 transition hover:bg-sky-200"
+            >
+              <QrCode size={18} />
+              Mã QR
+            </button>
+            <button
+              type="button"
+              onClick={() => setCashPromptOpen(true)}
+              disabled={booking.status === "Confirmed" || booking.status === "CheckedIn" || booking.status === "Completed"}
+              className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-4 py-3 font-black text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300"
+            >
+              <Banknote size={18} />
+              Thanh toán tiền mặt
+            </button>
+            <button
+              onClick={onClose}
+              className="rounded-2xl bg-gray-900 px-8 py-3 font-semibold text-white transition hover:bg-black"
+            >
+              Đóng
+            </button>
+          </div>
         </div>
       </div>
     </div>

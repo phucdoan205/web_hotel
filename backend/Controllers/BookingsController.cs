@@ -22,6 +22,16 @@ namespace backend.Controllers
             _mapper = mapper;
         }
 
+        private static string GenerateBookingCode(string? guestPhone, DateTime timestamp)
+        {
+            var digitsOnly = new string((guestPhone ?? string.Empty).Where(char.IsDigit).ToArray());
+            var phoneSuffix = digitsOnly.Length >= 3
+                ? digitsOnly[^3..]
+                : digitsOnly.PadLeft(3, '0');
+
+            return $"BK-{timestamp:yyyyMMddHHmm}{phoneSuffix}";
+        }
+
         // GET: api/Bookings
         [HttpGet]
         public async Task<ActionResult<PagedResponse<BookingResponseDTO>>> GetBookings(
@@ -165,7 +175,7 @@ namespace backend.Controllers
                 UserId = dto.UserId,
                 GuestId = guestId,
                 VoucherId = dto.VoucherId,
-                BookingCode = $"BK-{DateTime.UtcNow:yyyyMMddHHmmssfff}",
+                BookingCode = GenerateBookingCode(dto.GuestPhone, DateTime.Now),
                 Status = "Pending"
             };
 
