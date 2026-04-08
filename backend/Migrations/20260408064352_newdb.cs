@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace backend.Migrations
 {
     /// <inheritdoc />
-    public partial class @new : Migration
+    public partial class newdb : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -207,7 +207,10 @@ namespace backend.Migrations
                     ValidFrom = table.Column<DateTime>(type: "datetime2", nullable: true),
                     ValidTo = table.Column<DateTime>(type: "datetime2", nullable: true),
                     UsageLimit = table.Column<int>(type: "int", nullable: true),
-                    UsageCount = table.Column<int>(type: "int", nullable: false)
+                    UsageCount = table.Column<int>(type: "int", nullable: false),
+                    IsPrivate = table.Column<bool>(type: "bit", nullable: false),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
                 },
                 constraints: table =>
                 {
