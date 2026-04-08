@@ -5,7 +5,7 @@ const formatDiscount = (voucher) =>
     ? `${voucher.discountValue}%`
     : `${voucher.discountValue}`;
 
-const VoucherEmailPreview = ({ voucher, message, onSend, recipientsPreview = [] }) => {
+const VoucherEmailPreview = ({ voucher, message, recipientsPreview = [] }) => {
   if (!voucher) return null;
 
   return (
@@ -52,25 +52,14 @@ const VoucherEmailPreview = ({ voucher, message, onSend, recipientsPreview = [] 
 
       <div className="px-6 py-5">
         {recipientsPreview.length > 0 ? (
-          <div className="mb-4 rounded-2xl bg-slate-50 px-4 py-3 text-xs font-semibold text-slate-500">
+          <div className="rounded-2xl bg-slate-50 px-4 py-3 text-xs font-semibold text-slate-500">
             Gửi tới: {recipientsPreview.join(", ")}
           </div>
-        ) : null}
-
-        <div className="flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white px-4 py-4">
-          <div>
-            <div className="text-sm font-black text-slate-900">Sẵn sàng gửi email</div>
-            <div className="mt-1 text-xs font-medium text-slate-500">
-              Mẫu email sẽ hiển thị chuyên nghiệp hơn khi gửi thật tới khách hàng.
-            </div>
+        ) : (
+          <div className="rounded-2xl bg-slate-50 px-4 py-3 text-xs font-semibold text-slate-500">
+            Mẫu xem trước này mô phỏng giao diện email khách hàng sẽ nhận được.
           </div>
-          <button
-            onClick={onSend}
-            className="rounded-2xl bg-[#0085FF] px-5 py-3 text-sm font-black text-white shadow-lg shadow-blue-100 transition hover:bg-blue-600"
-          >
-            Gửi email
-          </button>
-        </div>
+        )}
       </div>
     </div>
   );

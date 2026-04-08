@@ -128,7 +128,6 @@ const SendVoucherModal = ({ vouchers = [], initialVoucher = null, onClose, onSen
                     ? recipients.split(",").map((item) => item.trim()).filter(Boolean)
                     : []
                 }
-                onSend={() => {}}
               />
             </div>
           </div>
