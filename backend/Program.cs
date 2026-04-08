@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens; 
 using System.Text;
 using backend.Data.Interceptors;
+using backend.Services;
 using backend.DTOs.Room;
 using backend.DTOs.RoomInventory;
 //using backend.Validators;
@@ -56,6 +57,7 @@ builder.Services.AddSingleton<backend.Services.HousekeepingTaskLockService>();
 builder.Services.AddScoped<IJwtService, JwtService>(); 
 builder.Services.AddSingleton<NotificationRealtimeService>();
 builder.Services.AddScoped<NotificationService>();
+builder.Services.AddScoped<IEmailService, SmtpEmailService>();
 
 //builder.Services.AddValidatorsFromAssemblyContaining<CreateRoomDtoValidator>();
 //builder.Services.AddScoped<IValidator<BulkCreateRoomDTO>, BulkCreateRoomDtoValidator>();

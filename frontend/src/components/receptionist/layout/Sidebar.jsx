@@ -4,7 +4,7 @@ import {
   LayoutDashboard,
   ArrowLeftRight,
   CalendarCheck,
-  Users,
+  Gift,
   FileText,
   BedDouble,
   Calculator,
@@ -27,7 +27,7 @@ const Sidebar = () => {
       path: "/receptionist/check-in-out",
     },
     { title: "Bookings", icon: CalendarCheck, path: "/receptionist/bookings" },
-    { title: "Guests", icon: Users, path: "/receptionist/guests" },
+    { title: "Vouchers", icon: Gift, path: "/receptionist/vouchers" },
     { title: "Quản lý Bài viết", icon: FileText, path: "/receptionist/posts" },
     {
       title: "Room Status",

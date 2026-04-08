@@ -35,7 +35,7 @@ import AdminRoomTypesPage from "../pages/admin/AdminRoomTypesPage";
 import ReceptionistCheckInOutPage from "../pages/receptionist/ReceptionistCheckInOutPage";
 import ReceptionistBookingsPage from "../pages/receptionist/ReceptionistBookingsPage";
 import ReceptionistContentManagementPage from "../pages/receptionist/ReceptionistContentManagementPage";
-import ReceptionistGuestManagementPage from "../pages/receptionist/ReceptionistGuestManagementPage";
+import ReceptionistVoucherPage from "../pages/receptionist/ReceptionistVoucherPage";
 import ReceptionistReportsPage from "../pages/receptionist/ReceptionistReportsPage";
 import ReceptionistRoomStatusPage from "../pages/receptionist/ReceptionistRoomStatusPage";
 import ReceptionistSettingsPage from "../pages/receptionist/ReceptionistSettingsPage";
@@ -110,7 +110,7 @@ const AppRoutes = () => {
         <Route path="bookings" element={<ReceptionistBookingsPage />} />
         <Route path="bookings/:id/payment-qr" element={<ReceptionistBookingPaymentPage />} />
         <Route path="posts" element={<ReceptionistContentManagementPage />} />
-        <Route path="guests" element={<ReceptionistGuestManagementPage />} />
+        <Route path="vouchers" element={<ReceptionistVoucherPage />} />
         <Route path="reports" element={<ReceptionistReportsPage />} />
         <Route path="room-status" element={<ReceptionistRoomStatusPage />} />
         <Route path="settings" element={<ReceptionistSettingsPage />} />

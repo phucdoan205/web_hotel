@@ -11,5 +11,8 @@ namespace backend.DTOs
         public DateTime? ValidTo { get; set; }
         public int? UsageLimit { get; set; }
         public int UsageCount { get; set; }
+        public bool IsPrivate { get; set; }
+        public bool IsDeleted { get; set; }
+        public DateTime? DeletedAt { get; set; }
     }
 }
