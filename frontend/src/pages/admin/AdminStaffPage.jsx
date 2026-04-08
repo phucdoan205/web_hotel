@@ -87,8 +87,8 @@ const AdminStaffPage = () => {
         typeof responseMessage === "string" && responseMessage.trim()
           ? responseMessage
           : fetchError.message === "Network Error"
-            ? `Cannot load staff data from backend. Check backend is running at ${API_BASE_URL}.`
-            : "Cannot load staff data from backend.";
+            ? `Không thể tải dữ liệu nhân sự từ backend. Hãy kiểm tra backend đang chạy tại ${API_BASE_URL}.`
+            : "Không thể tải dữ liệu nhân sự từ backend.";
 
       setError(message);
     } finally {
@@ -217,9 +217,9 @@ const AdminStaffPage = () => {
       const message =
         uploadError.response?.data?.message ||
         uploadError.response?.data ||
-        "Cannot upload avatar.";
+        "Không thể tải ảnh đại diện lên.";
 
-      setError(typeof message === "string" ? message : "Cannot upload avatar.");
+      setError(typeof message === "string" ? message : "Không thể tải ảnh đại diện lên.");
     } finally {
       setIsUploadingAvatar(false);
       event.target.value = "";
@@ -269,7 +269,7 @@ const AdminStaffPage = () => {
 
       if (isCreateMode) {
         if (!payload.password) {
-          setError("Password is required to create a staff account.");
+          setError("Mật khẩu là bắt buộc khi tạo tài khoản nhân sự.");
           setIsSubmitting(false);
           return;
         }
@@ -311,9 +311,9 @@ const AdminStaffPage = () => {
       const message =
         submitError.response?.data?.message ||
         submitError.response?.data ||
-        "Cannot update this staff member.";
+        "Không thể cập nhật nhân sự này.";
 
-      setError(typeof message === "string" ? message : "Cannot update this staff member.");
+      setError(typeof message === "string" ? message : "Không thể cập nhật nhân sự này.");
     } finally {
       setIsSubmitting(false);
     }
@@ -350,7 +350,7 @@ const AdminStaffPage = () => {
       const message =
         statusError.response?.data?.message ||
         statusError.response?.data ||
-        "Cannot update staff status.";
+        "Không thể cập nhật trạng thái nhân sự.";
 
       setStaff((current) =>
         current.map((staffMember) =>
@@ -361,7 +361,7 @@ const AdminStaffPage = () => {
       );
 
       setError(
-        typeof message === "string" ? message : "Cannot update staff status.",
+        typeof message === "string" ? message : "Không thể cập nhật trạng thái nhân sự.",
       );
     } finally {
       setStatusUpdatingId(null);
@@ -376,8 +376,8 @@ const AdminStaffPage = () => {
           roleId === 1
             ? "Admin"
             : roleId === 4
-              ? "HouseKeeping"
-              : "Receptionist",
+              ? "Buồng phòng"
+              : "Lễ tân",
       }));
 
   return (
@@ -391,7 +391,7 @@ const AdminStaffPage = () => {
                 type="text"
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
-                placeholder="Search by id, name, email or role..."
+                placeholder="Tìm theo mã, họ tên, email hoặc vai trò..."
                 className="w-full pl-11 pr-4 py-3 bg-gray-100/50 border-none rounded-2xl text-sm focus:ring-2 focus:ring-orange-100 outline-none transition-all"
               />
             </div>
@@ -403,7 +403,7 @@ const AdminStaffPage = () => {
               className="flex items-center gap-2 px-6 py-3 bg-sky-600 rounded-2xl text-sm font-bold text-white hover:bg-sky-700 transition-all shadow-lg shadow-sky-100"
             >
               <UserPlus className="size-5" />
-              Add Staff Account
+              Thêm tài khoản nhân sự
             </button>
             <button
               type="button"
@@ -411,15 +411,15 @@ const AdminStaffPage = () => {
               className="flex items-center gap-2 px-6 py-3 bg-orange-600 rounded-2xl text-sm font-bold text-white hover:bg-orange-700 transition-all shadow-lg shadow-orange-100"
             >
               <RefreshCw className="size-5" />
-              Refresh List
+              Tải lại danh sách
             </button>
           </div>
         </div>
 
         <div className="mt-8">
-          <h1 className="text-3xl font-black text-gray-900">Staff Management</h1>
+          <h1 className="text-3xl font-black text-gray-900">Quản lý nhân sự</h1>
           <p className="text-sm font-bold text-gray-400 mt-1">
-            Quan ly staff khach san.
+            Quản lý nhân sự khách sạn.
           </p>
         </div>
 
@@ -451,12 +451,12 @@ const AdminStaffPage = () => {
             <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
               <div>
                 <h2 className="text-xl font-black text-gray-900">
-                  {isCreateMode ? "Add Staff Account" : "Edit Staff"}
+                  {isCreateMode ? "Thêm tài khoản nhân sự" : "Chỉnh sửa nhân sự"}
                 </h2>
                 <p className="text-sm font-semibold text-gray-400 mt-1">
                   {isCreateMode
-                    ? "Create a new staff account for admin, housekeeping or receptionist."
-                    : "Update staff profile, avatar, role and date of birth."}
+                    ? "Tạo tài khoản mới cho quản trị viên, buồng phòng hoặc lễ tân."
+                    : "Cập nhật hồ sơ, ảnh đại diện, vai trò và ngày sinh của nhân sự."}
                 </p>
               </div>
               <button
@@ -471,7 +471,7 @@ const AdminStaffPage = () => {
             <form onSubmit={handleSaveEdit} className="p-6 space-y-6">
               {isEditMode && isLoadingEditDetail ? (
                 <div className="rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-600">
-                  Loading staff detail...
+                  Đang tải thông tin nhân sự...
                 </div>
               ) : null}
 
@@ -490,7 +490,7 @@ const AdminStaffPage = () => {
                 {isEditMode ? (
                   <label className="inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-slate-100 text-sm font-bold text-slate-700 hover:bg-slate-200 transition-all cursor-pointer">
                     <ImageUp className="size-4" />
-                    {isUploadingAvatar ? "Uploading..." : "Upload New Avatar"}
+                    {isUploadingAvatar ? "Đang tải ảnh..." : "Tải ảnh đại diện mới"}
                     <input
                       type="file"
                       accept="image/*"
@@ -502,7 +502,7 @@ const AdminStaffPage = () => {
                 ) : isCreateMode ? (
                   <label className="inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-slate-100 text-sm font-bold text-slate-700 hover:bg-slate-200 transition-all cursor-pointer">
                     <ImageUp className="size-4" />
-                    Choose Avatar
+                    Chọn ảnh đại diện
                     <input
                       type="file"
                       accept="image/*"
@@ -514,14 +514,14 @@ const AdminStaffPage = () => {
 
                 {formData.avatarUrl || pendingAvatarPreview ? (
                   <p className="text-xs font-semibold text-gray-400 text-center break-all">
-                    {isEditMode ? "Cloudinary URL updated" : "Avatar preview ready"}
+                    {isEditMode ? "Ảnh đại diện đã được cập nhật" : "Ảnh xem trước đã sẵn sàng"}
                   </p>
                 ) : null}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <label className="flex flex-col gap-2">
-                  <span className="text-sm font-bold text-gray-700">Full Name</span>
+                  <span className="text-sm font-bold text-gray-700">Họ và tên</span>
                   <input
                     name="fullName"
                     value={formData.fullName}
@@ -544,7 +544,7 @@ const AdminStaffPage = () => {
                 </label>
 
                 <label className="flex flex-col gap-2">
-                  <span className="text-sm font-bold text-gray-700">Phone</span>
+                  <span className="text-sm font-bold text-gray-700">Số điện thoại</span>
                   <input
                     name="phone"
                     value={formData.phone}
@@ -554,7 +554,7 @@ const AdminStaffPage = () => {
                 </label>
 
                 <label className="flex flex-col gap-2">
-                  <span className="text-sm font-bold text-gray-700">Date of Birth</span>
+                  <span className="text-sm font-bold text-gray-700">Ngày sinh</span>
                   <input
                     type="date"
                     name="dateOfBirth"
@@ -565,14 +565,14 @@ const AdminStaffPage = () => {
                 </label>
 
                 <label className="flex flex-col gap-2">
-                  <span className="text-sm font-bold text-gray-700">Role</span>
+                  <span className="text-sm font-bold text-gray-700">Vai trò</span>
                   <select
                     name="roleId"
                     value={formData.roleId}
                     onChange={handleFormChange}
                     className="rounded-2xl bg-gray-50 border border-gray-200 px-4 py-3 text-sm outline-none focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
                   >
-                    <option value="">Select role</option>
+                    <option value="">Chọn vai trò</option>
                     {roleOptions.map((role) => (
                       <option key={role.id} value={role.id}>
                         {role.name}
@@ -583,7 +583,7 @@ const AdminStaffPage = () => {
 
                 <label className="flex flex-col gap-2 md:col-span-2">
                   <span className="text-sm font-bold text-gray-700">
-                    {isCreateMode ? "Password" : "New Password"}
+                    {isCreateMode ? "Mật khẩu" : "Mật khẩu mới"}
                   </span>
                   <input
                     type="password"
@@ -593,8 +593,8 @@ const AdminStaffPage = () => {
                     required={isCreateMode}
                     placeholder={
                       isCreateMode
-                        ? "Enter initial password"
-                        : "Leave blank to keep current password"
+                        ? "Nhập mật khẩu khởi tạo"
+                        : "Để trống nếu muốn giữ mật khẩu hiện tại"
                     }
                     className="rounded-2xl bg-gray-50 border border-gray-200 px-4 py-3 text-sm outline-none focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
                   />
@@ -607,7 +607,7 @@ const AdminStaffPage = () => {
                   onClick={closeEditModal}
                   className="px-5 py-3 rounded-2xl text-sm font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-all"
                 >
-                  Cancel
+                  Hủy
                 </button>
                 <button
                   type="submit"
@@ -615,10 +615,10 @@ const AdminStaffPage = () => {
                   className="px-5 py-3 rounded-2xl text-sm font-bold text-white bg-orange-600 hover:bg-orange-700 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {isSubmitting
-                    ? "Saving..."
+                    ? "Đang lưu..."
                     : isCreateMode
-                      ? "Create Account"
-                      : "Save Changes"}
+                      ? "Tạo tài khoản"
+                      : "Lưu thay đổi"}
                 </button>
               </div>
             </form>

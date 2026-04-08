@@ -70,6 +70,18 @@ builder.Services.AddAutoMapper(typeof(AutoMapperProfile));
 
 var app = builder.Build();
 
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await db.Database.ExecuteSqlRawAsync(@"
+IF COL_LENGTH('Vouchers', 'IsActive') IS NULL
+BEGIN
+    ALTER TABLE Vouchers
+    ADD IsActive bit NOT NULL CONSTRAINT DF_Vouchers_IsActive DEFAULT(1);
+END
+");
+}
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();

@@ -4,11 +4,11 @@ import { Search } from "lucide-react";
 const VoucherFilters = ({ search, setSearch, activeTab, setActiveTab }) => {
   const tabs = [
     { key: "All", label: "Tất cả" },
-    { key: "Active", label: "Đang dùng" },
+    { key: "Active", label: "Active" },
+    { key: "Deactive", label: "Deactive" },
     { key: "Expired", label: "Hết hạn" },
     { key: "Private", label: "Riêng" },
     { key: "Public", label: "Công khai" },
-    { key: "Deleted", label: "Đã xóa" },
   ];
 
   return (
@@ -17,7 +17,7 @@ const VoucherFilters = ({ search, setSearch, activeTab, setActiveTab }) => {
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-gray-400 group-focus-within:text-[#0085FF] transition-colors" />
         <input
           type="text"
-          placeholder="Tìm theo mã, loại, hoặc giá trị..."
+          placeholder="Tìm theo mã, loại hoặc giá trị..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="w-full pl-11 pr-4 py-3 bg-gray-50/50 border-none rounded-2xl text-xs font-bold focus:ring-2 focus:ring-blue-500/10 outline-none transition-all"

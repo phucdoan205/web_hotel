@@ -6,19 +6,40 @@ export const generateCode = (prefix = "VCHR") => {
   return `${prefix}-${r}`;
 };
 
+const normalizeVoucher = (voucher = {}) => ({
+  id: voucher.id ?? voucher.Id ?? null,
+  code: voucher.code ?? voucher.Code ?? "",
+  discountType: voucher.discountType ?? voucher.DiscountType ?? "",
+  discountValue: voucher.discountValue ?? voucher.DiscountValue ?? 0,
+  minBookingValue: voucher.minBookingValue ?? voucher.MinBookingValue ?? null,
+  validFrom: voucher.validFrom ?? voucher.ValidFrom ?? null,
+  validTo: voucher.validTo ?? voucher.ValidTo ?? null,
+  usageLimit: voucher.usageLimit ?? voucher.UsageLimit ?? null,
+  usageCount: voucher.usageCount ?? voucher.UsageCount ?? 0,
+  isPrivate: voucher.isPrivate ?? voucher.IsPrivate ?? false,
+  isActive: voucher.isActive ?? voucher.IsActive ?? false,
+  isDeleted: voucher.isDeleted ?? voucher.IsDeleted ?? false,
+  deletedAt: voucher.deletedAt ?? voucher.DeletedAt ?? null,
+});
+
 export const useVoucherData = () => {
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState("All");
   const [vouchers, setVouchers] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const fetch = async () => {
     setLoading(true);
+    setError("");
     try {
       const res = await vouchersApi.listVouchers({ includeDeleted: true });
-      setVouchers(res.data ?? []);
+      const rawItems = Array.isArray(res.data) ? res.data : [];
+      setVouchers(rawItems.map(normalizeVoucher));
     } catch (e) {
       console.error(e);
+      setVouchers([]);
+      setError(e?.response?.data?.message || e?.message || "Khong tai duoc danh sach voucher");
     } finally {
       setLoading(false);
     }
@@ -46,49 +67,48 @@ export const useVoucherData = () => {
     return res;
   };
 
-  const sendToUsers = async (payload) => {
-    return vouchersApi.sendVoucherToUsers(payload);
-  };
-
-  const sendToBirthdays = async (payload) => {
-    return vouchersApi.sendVoucherToBirthdays(payload);
-  };
+  const sendToUsers = async (payload) => vouchersApi.sendVoucherToUsers(payload);
+  const sendToBirthdays = async (payload) => vouchersApi.sendVoucherToBirthdays(payload);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    const result = vouchers.filter((v) => {
-      if (q) {
-        return (
-          String(v.code).toLowerCase().includes(q) ||
-          String(v.discountValue).toLowerCase().includes(q) ||
-          String(v.discountType).toLowerCase().includes(q)
-        );
-      }
+    const now = new Date();
+    const result = vouchers.filter((voucher) => {
+      const matchesSearch =
+        !q ||
+        String(voucher.code ?? "").toLowerCase().includes(q) ||
+        String(voucher.discountValue ?? "").toLowerCase().includes(q) ||
+        String(voucher.discountType ?? "").toLowerCase().includes(q);
+
+      if (!matchesSearch) return false;
 
       if (activeTab === "Active") {
-        return !v.isDeleted && v.isActive && new Date(v.validFrom) <= new Date() && new Date(v.validTo) >= new Date();
+        return !voucher.isDeleted && voucher.isActive;
+      }
+
+      if (activeTab === "Deactive") {
+        return !voucher.isDeleted && !voucher.isActive;
       }
 
       if (activeTab === "Expired") {
-        return !v.isDeleted && v.isActive && new Date(v.validTo) < new Date();
+        return !voucher.isDeleted && !!voucher.validTo && new Date(voucher.validTo) < now;
       }
 
       if (activeTab === "Deleted") {
-        return v.isDeleted === true;
+        return voucher.isDeleted === true;
       }
 
       if (activeTab === "Private") {
-        return v.isPrivate === true;
+        return !voucher.isDeleted && voucher.isPrivate === true;
       }
 
       if (activeTab === "Public") {
-        return !v.isPrivate;
+        return !voucher.isDeleted && !voucher.isPrivate;
       }
 
       return true;
     });
 
-    // sort newest created (higher id) first
     result.sort((a, b) => (b.id ?? 0) - (a.id ?? 0));
     return result;
   }, [vouchers, search, activeTab]);
@@ -101,6 +121,7 @@ export const useVoucherData = () => {
     vouchers,
     filteredVouchers: filtered,
     loading,
+    error,
     create,
     update,
     remove,

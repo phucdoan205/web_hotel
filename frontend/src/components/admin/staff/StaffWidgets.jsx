@@ -22,19 +22,19 @@ const StaffWidgets = ({ totalCount, activeCount, deletedCount }) => {
     <div className="flex flex-col md:flex-row gap-6 mt-8">
       <WidgetCard
         icon={Users}
-        label="Total Staff"
+        label="Tổng nhân sự"
         value={totalCount}
         colorClass="bg-orange-50 text-orange-600"
       />
       <WidgetCard
         icon={CheckCircle}
-        label="Active Staff"
+        label="Nhân sự đang hoạt động"
         value={activeCount}
         colorClass="bg-emerald-50 text-emerald-600"
       />
       <WidgetCard
         icon={UserMinus}
-        label="Deleted Staff"
+        label="Nhân sự đã khóa"
         value={deletedCount}
         colorClass="bg-rose-50 text-rose-600"
       />
