@@ -1,0 +1,210 @@
+import React, { useEffect, useState } from "react";
+import { CheckCircle2, RefreshCw, Search, Trash2 } from "lucide-react";
+import { approveArticle, deleteArticle, getArticles } from "../../api/articles/articleApi";
+
+const filterOptions = [
+  { value: "all", label: "Tất cả" },
+  { value: "approved", label: "Đã duyệt" },
+  { value: "pending", label: "Chưa duyệt" },
+];
+
+const AdminArticlePage = () => {
+  const [articles, setArticles] = useState([]);
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState("all");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const loadArticles = async () => {
+    setLoading(true);
+    setError("");
+
+    try {
+      const approval = filter === "all" ? undefined : filter;
+      const data = await getArticles({
+        scope: "admin",
+        approval,
+        search: search.trim() || undefined,
+      });
+      setArticles(data);
+    } catch (fetchError) {
+      setError(fetchError?.response?.data || "Không tải được bài viết cho admin.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadArticles();
+  }, [filter]);
+
+  const handleApprove = async (articleId) => {
+    try {
+      await approveArticle(articleId);
+      await loadArticles();
+    } catch (approveError) {
+      setError(approveError?.response?.data || "Không duyệt được bài viết.");
+    }
+  };
+
+  const handleDelete = async (articleId) => {
+    const confirmed = window.confirm("Admin sẽ xóa vĩnh viễn bài viết này. Tiếp tục?");
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      await deleteArticle(articleId);
+      await loadArticles();
+    } catch (deleteError) {
+      setError(deleteError?.response?.data || "Không xóa được bài viết.");
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+        <div>
+          <h1 className="text-3xl font-black text-gray-900">Duyệt bài viết</h1>
+          <p className="mt-1 text-sm font-medium text-gray-500">
+            Chỉ bài viết đã duyệt mới hiển thị cho người dùng khác xem, ngoại trừ housekeeping.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={loadArticles}
+          className="inline-flex items-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-bold text-gray-700 shadow-sm ring-1 ring-gray-200"
+        >
+          <RefreshCw className="size-4" />
+          Làm mới
+        </button>
+      </div>
+
+      <div className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-gray-100">
+        <div className="flex flex-col gap-3 lg:flex-row">
+          <div className="relative flex-1">
+            <Search className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
+            <input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  loadArticles();
+                }
+              }}
+              placeholder="Tìm theo tiêu đề, tác giả..."
+              className="w-full rounded-2xl border border-gray-200 bg-gray-50 py-3 pl-11 pr-4 text-sm outline-none focus:border-sky-300 focus:bg-white focus:ring-2 focus:ring-sky-100"
+            />
+          </div>
+
+          <select
+            value={filter}
+            onChange={(event) => setFilter(event.target.value)}
+            className="rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-700 outline-none"
+          >
+            {filterOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {error ? (
+        <div className="rounded-2xl border border-rose-100 bg-rose-50 px-5 py-4 text-sm font-semibold text-rose-600">
+          {String(error)}
+        </div>
+      ) : null}
+
+      <div className="overflow-hidden rounded-[2rem] bg-white shadow-sm ring-1 ring-gray-100">
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-left">
+            <thead className="bg-slate-50">
+              <tr>
+                {["Bài viết", "Tác giả", "Danh mục", "Trạng thái", "Ngày hiển thị", "Tác vụ"].map((header) => (
+                  <th key={header} className="px-4 py-4 text-xs font-black uppercase tracking-wider text-slate-500">
+                    {header}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {loading ? (
+                <tr>
+                  <td colSpan={6} className="px-4 py-10 text-center text-sm font-semibold text-gray-400">
+                    Đang tải bài viết...
+                  </td>
+                </tr>
+              ) : articles.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-4 py-10 text-center text-sm font-semibold text-gray-400">
+                    Không có bài viết phù hợp bộ lọc.
+                  </td>
+                </tr>
+              ) : (
+                articles.map((article) => (
+                  <tr key={article.id}>
+                    <td className="px-4 py-4">
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={article.thumbnailUrl || "https://placehold.co/120x120/e2e8f0/64748b?text=News"}
+                          alt={article.title}
+                          className="size-14 rounded-2xl object-cover ring-1 ring-gray-100"
+                        />
+                        <div>
+                          <p className="text-sm font-black text-slate-900">{article.title}</p>
+                          <p className="mt-1 line-clamp-2 text-xs font-medium text-slate-500">
+                            {article.summary || "Chưa có mô tả ngắn."}
+                          </p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-4 text-sm font-semibold text-slate-600">{article.authorName || "-"}</td>
+                    <td className="px-4 py-4 text-sm font-semibold text-slate-600">{article.categoryName || "-"}</td>
+                    <td className="px-4 py-4">
+                      <span className={`rounded-full px-3 py-1 text-xs font-black uppercase tracking-wide ${article.isApproved ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"}`}>
+                        {article.isApproved ? "Đã duyệt" : "Chưa duyệt"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-4 text-sm font-semibold text-slate-600">
+                      {article.publishedAt ? new Date(article.publishedAt).toLocaleString("vi-VN") : "Chưa hiển thị"}
+                    </td>
+                    <td className="px-4 py-4">
+                      <div className="flex items-center gap-2">
+                        {!article.isApproved ? (
+                          <button
+                            type="button"
+                            onClick={() => handleApprove(article.id)}
+                            className="inline-flex items-center gap-2 rounded-xl bg-emerald-50 px-4 py-2 text-sm font-bold text-emerald-600"
+                          >
+                            <CheckCircle2 className="size-4" />
+                            Duyệt
+                          </button>
+                        ) : null}
+
+                        {!article.isApproved ? (
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(article.id)}
+                            className="inline-flex items-center gap-2 rounded-xl bg-rose-50 px-4 py-2 text-sm font-bold text-rose-600"
+                          >
+                            <Trash2 className="size-4" />
+                            Hard delete
+                          </button>
+                        ) : null}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default AdminArticlePage;

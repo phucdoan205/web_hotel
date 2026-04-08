@@ -27,6 +27,7 @@ namespace backend.Data
 
         public DbSet<ArticleCategory> ArticleCategories { get; set; }
         public DbSet<Article> Articles { get; set; }
+        public DbSet<ArticleComment> ArticleComments { get; set; }
         public DbSet<Attraction> Attractions { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
         public DbSet<Notification> Notifications { get; set; }
@@ -201,6 +202,54 @@ namespace backend.Data
 
                 entity.Property(ld => ld.ImageUrl)
                     .HasColumnType("nvarchar(max)");
+            });
+
+            modelBuilder.Entity<Article>(entity =>
+            {
+                entity.Property(a => a.Title).HasMaxLength(255);
+                entity.Property(a => a.Slug).HasMaxLength(255);
+                entity.Property(a => a.CreatedAt).HasColumnType("datetime");
+                entity.Property(a => a.UpdatedAt).HasColumnType("datetime");
+                entity.Property(a => a.ApprovedAt).HasColumnType("datetime");
+                entity.Property(a => a.DeletedAt).HasColumnType("datetime");
+                entity.HasIndex(a => a.Slug).IsUnique(false);
+
+                entity.HasOne(a => a.Author)
+                    .WithMany(u => u.Articles)
+                    .HasForeignKey(a => a.AuthorId)
+                    .OnDelete(DeleteBehavior.NoAction);
+
+                entity.HasOne(a => a.ApprovedBy)
+                    .WithMany()
+                    .HasForeignKey(a => a.ApprovedById)
+                    .OnDelete(DeleteBehavior.NoAction);
+            });
+
+            modelBuilder.Entity<ArticleComment>(entity =>
+            {
+                entity.Property(c => c.Content).HasColumnType("nvarchar(max)");
+                entity.Property(c => c.CreatedAt).HasColumnType("datetime");
+                entity.Property(c => c.UpdatedAt).HasColumnType("datetime");
+
+                entity.HasOne(c => c.Article)
+                    .WithMany(a => a.Comments)
+                    .HasForeignKey(c => c.ArticleId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(c => c.User)
+                    .WithMany(u => u.ArticleComments)
+                    .HasForeignKey(c => c.UserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(c => c.TaggedUser)
+                    .WithMany()
+                    .HasForeignKey(c => c.TaggedUserId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasOne(c => c.ParentComment)
+                    .WithMany(c => c.Replies)
+                    .HasForeignKey(c => c.ParentCommentId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             // Soft-delete

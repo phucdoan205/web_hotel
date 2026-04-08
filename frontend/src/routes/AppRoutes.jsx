@@ -30,6 +30,7 @@ import AdminStaffPage from "../pages/admin/AdminStaffPage";
 import AdminEquipmentPage from "../pages/admin/AdminEquipmentPage";
 import AdminRoomPage from "../pages/admin/AdminRoomPage";
 import AdminRoomTypesPage from "../pages/admin/AdminRoomTypesPage";
+import AdminArticlePage from "../pages/admin/AdminArticlePage";
 
 // Pages receptionist
 import ReceptionistCheckInOutPage from "../pages/receptionist/ReceptionistCheckInOutPage";
@@ -100,6 +101,7 @@ const AppRoutes = () => {
         <Route path="room-inventory" element={<AdminRoomInventoryPage />} />
         <Route path="equipment" element={<AdminEquipmentPage />} />
         <Route path="staff" element={<AdminStaffPage />} />
+        <Route path="articles" element={<AdminArticlePage />} />
       </Route>
 
       {/* 4. Receptionist Routes (Dùng ReceptionistLayout) */}

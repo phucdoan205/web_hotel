@@ -20,6 +20,7 @@ namespace backend.Models
         public Membership? Membership { get; set; }
         public ICollection<Booking> Bookings { get; set; } = new List<Booking>();
         public ICollection<Article> Articles { get; set; } = new List<Article>();
+        public ICollection<ArticleComment> ArticleComments { get; set; } = new List<ArticleComment>();
         public ICollection<Review> Reviews { get; set; } = new List<Review>();
         public ICollection<AuditLog> AuditLogs { get; set; } = new List<AuditLog>();
         public ICollection<Notification> Notifications { get; set; } = new List<Notification>();
