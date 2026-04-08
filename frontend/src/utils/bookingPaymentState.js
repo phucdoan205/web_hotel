@@ -46,6 +46,7 @@ export const isBookingDeleteLocked = (booking) => {
   const paymentState = getBookingPaymentState(booking);
   return (
     paymentState.hasAnyPayment ||
+    booking?.status === "Cancelled" ||
     booking?.status === "Confirmed" ||
     booking?.status === "CheckedIn" ||
     booking?.status === "Completed"
