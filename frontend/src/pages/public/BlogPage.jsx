@@ -54,7 +54,7 @@ const BlogPage = () => {
             Hotel News
           </p>
           <h1 className="mt-4 max-w-3xl text-4xl font-black leading-tight md:text-5xl">
-            Bài viết được admin duyệt sẽ hiển thị tại đây cho guest, user và public.
+            Bài viết.
           </h1>
           <p className="mt-4 max-w-2xl text-sm font-medium text-slate-200">
             Theo dõi tin tức khách sạn, ưu đãi, hướng dẫn và trao đổi dưới từng bài viết.

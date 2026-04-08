@@ -8,6 +8,15 @@ const buildArticleFormData = (payload) => {
       return;
     }
 
+    if (Array.isArray(value)) {
+      if (value.length === 0) {
+        return;
+      }
+
+      formData.append(key, value.join("\n"));
+      return;
+    }
+
     formData.append(key, value);
   });
 
@@ -70,6 +79,10 @@ export const approveArticle = async (articleId) => {
 
 export const deleteArticle = async (articleId) => {
   await apiClient.delete(`/Articles/${articleId}`);
+};
+
+export const restoreArticle = async (articleId) => {
+  await apiClient.post(`/Articles/${articleId}/restore`);
 };
 
 export const getArticleComments = async (articleId) => {

@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using backend.Data;
 using backend.DTOs.Article;
@@ -32,9 +33,11 @@ namespace backend.Controllers
         {
             var currentUser = await ResolveCurrentUserAsync();
             var normalizedScope = (scope ?? "public").Trim().ToLowerInvariant();
+            var normalizedApproval = approval?.Trim().ToLowerInvariant();
             var isAdminScope = normalizedScope == "admin";
             var isAuthorScope = normalizedScope == "author";
             var isPublicScope = !isAdminScope && !isAuthorScope;
+            var includeDeleted = (isAdminScope || isAuthorScope) && normalizedApproval == "deleted";
 
             if (isAdminScope && !IsAdmin(currentUser))
             {
@@ -51,7 +54,7 @@ namespace backend.Controllers
                 return Ok(new List<ArticleListItemDTO>());
             }
 
-            var query = isAdminScope
+            var query = (isAdminScope || includeDeleted)
                 ? _context.Articles.IgnoreQueryFilters().AsQueryable()
                 : _context.Articles.AsQueryable();
 
@@ -75,12 +78,11 @@ namespace backend.Controllers
                 query = query.Where(a => a.IsApproved && a.Status && !a.IsDeleted);
             }
 
-            var normalizedApproval = approval?.Trim().ToLowerInvariant();
-            if (isAdminScope)
+            if (isAdminScope || isAuthorScope)
             {
                 if (normalizedApproval == "approved")
                 {
-                    query = query.Where(a => a.IsApproved);
+                    query = query.Where(a => a.IsApproved && !a.IsDeleted);
                 }
                 else if (normalizedApproval == "pending")
                 {
@@ -116,6 +118,7 @@ namespace backend.Controllers
                     Slug = a.Slug,
                     Summary = a.Summary,
                     ThumbnailUrl = a.ThumbnailUrl,
+                    GalleryUrls = SplitGalleryUrls(a.GalleryUrls),
                     PublishedAt = a.PublishedAt,
                     CreatedAt = a.CreatedAt,
                     Status = a.Status,
@@ -229,6 +232,7 @@ namespace backend.Controllers
                 Summary = NormalizeOptional(request.Summary),
                 Content = NormalizeOptional(request.Content),
                 Tags = NormalizeTags(request.Tags),
+                GalleryUrls = NormalizeGalleryUrls(request.GalleryUrls, request.ThumbnailUrl),
                 PublishedAt = null,
                 Status = false,
                 IsApproved = false,
@@ -307,6 +311,7 @@ namespace backend.Controllers
             article.Summary = NormalizeOptional(request.Summary);
             article.Content = NormalizeOptional(request.Content);
             article.Tags = NormalizeTags(request.Tags);
+            article.GalleryUrls = NormalizeGalleryUrls(request.GalleryUrls, request.ThumbnailUrl);
             article.UpdatedAt = DateTime.UtcNow;
             article.Status = false;
 
@@ -455,26 +460,72 @@ namespace backend.Controllers
                     return Forbid();
                 }
 
-                if (article.IsApproved)
-                {
-                    article.IsDeleted = true;
-                    article.DeletedAt = DateTime.UtcNow;
-                    article.Status = false;
-                    await _context.SaveChangesAsync();
-                    return NoContent();
-                }
+                article.IsDeleted = true;
+                article.DeletedAt = DateTime.UtcNow;
+                article.Status = false;
+                article.UpdatedAt = DateTime.UtcNow;
 
-                await HardDeleteArticleAsync(article);
+                await _context.SaveChangesAsync();
                 return NoContent();
             }
 
             if (IsAdmin(currentUser))
             {
-                await HardDeleteArticleAsync(article);
+                if (!article.IsApproved)
+                {
+                    await HardDeleteArticleAsync(article);
+                    return NoContent();
+                }
+
+                article.IsDeleted = true;
+                article.DeletedAt = DateTime.UtcNow;
+                article.Status = false;
+                article.UpdatedAt = DateTime.UtcNow;
+
+                await _context.SaveChangesAsync();
                 return NoContent();
             }
 
             return Forbid();
+        }
+
+        [HttpPost("{id:int}/restore")]
+        public async Task<IActionResult> RestoreArticle(int id)
+        {
+            var currentUser = await RequireCurrentUserAsync();
+            if (currentUser == null)
+            {
+                return Unauthorized();
+            }
+
+            var article = await _context.Articles.IgnoreQueryFilters().FirstOrDefaultAsync(a => a.Id == id);
+            if (article == null)
+            {
+                return NotFound("Khong tim thay bai viet.");
+            }
+
+            if (IsReceptionist(currentUser) && article.AuthorId != currentUser.Id)
+            {
+                return Forbid();
+            }
+
+            if (!IsAdmin(currentUser) && !IsReceptionist(currentUser))
+            {
+                return Forbid();
+            }
+
+            if (!article.IsDeleted)
+            {
+                return BadRequest("Bai viet khong nam trong thung rac.");
+            }
+
+            article.IsDeleted = false;
+            article.DeletedAt = null;
+            article.Status = article.IsApproved;
+            article.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+            return NoContent();
         }
 
         [HttpGet("{id:int}/comments")]
@@ -629,6 +680,7 @@ namespace backend.Controllers
                 Slug = article.Slug,
                 Summary = article.Summary,
                 ThumbnailUrl = article.ThumbnailUrl,
+                GalleryUrls = SplitGalleryUrls(article.GalleryUrls),
                 Content = article.Content,
                 PublishedAt = article.PublishedAt,
                 CreatedAt = article.CreatedAt,
@@ -688,13 +740,12 @@ namespace backend.Controllers
                 baseSlug = $"article-{DateTime.UtcNow:yyyyMMddHHmmss}";
             }
 
-            var slug = baseSlug;
-            var suffix = 2;
-
-            while (await _context.Articles.IgnoreQueryFilters().AnyAsync(a => a.Slug == slug && (!ignoreArticleId.HasValue || a.Id != ignoreArticleId.Value)))
+            string slug;
+            do
             {
-                slug = $"{baseSlug}-{suffix++}";
+                slug = $"{baseSlug}-{RandomNumberGenerator.GetInt32(1000, 10000)}";
             }
+            while (await _context.Articles.IgnoreQueryFilters().AnyAsync(a => a.Slug == slug && (!ignoreArticleId.HasValue || a.Id != ignoreArticleId.Value)));
 
             return slug;
         }
@@ -716,10 +767,34 @@ namespace backend.Controllers
             return normalized.Count == 0 ? null : string.Join(",", normalized);
         }
 
+        private static string? NormalizeGalleryUrls(string? galleryUrls, string? thumbnailUrl = null)
+        {
+            var normalized = SplitGalleryUrls(galleryUrls);
+
+            if (!string.IsNullOrWhiteSpace(thumbnailUrl))
+            {
+                var thumbnail = thumbnailUrl.Trim();
+                if (!normalized.Contains(thumbnail, StringComparer.OrdinalIgnoreCase))
+                {
+                    normalized.Insert(0, thumbnail);
+                }
+            }
+
+            return normalized.Count == 0 ? null : string.Join("\n", normalized);
+        }
+
         private static List<string> SplitTags(string? tags)
         {
             return (tags ?? string.Empty)
                 .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+
+        private static List<string> SplitGalleryUrls(string? galleryUrls)
+        {
+            return (galleryUrls ?? string.Empty)
+                .Split(new[] { '\n', '\r', ',' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
         }

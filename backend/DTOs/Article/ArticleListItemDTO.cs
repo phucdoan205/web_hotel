@@ -11,6 +11,7 @@ namespace backend.DTOs.Article
         public string? Slug { get; set; }
         public string? Summary { get; set; }
         public string? ThumbnailUrl { get; set; }
+        public List<string> GalleryUrls { get; set; } = new();
         public DateTime? PublishedAt { get; set; }
         public DateTime CreatedAt { get; set; }
         public bool Status { get; set; }

@@ -1,21 +1,25 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ImagePlus,
+  Eye,
   Palette,
   Pencil,
   Plus,
   RefreshCw,
+  RotateCcw,
   Search,
   Tag,
   Trash2,
   Type,
   X,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import apiClient from "../../api/client";
+import ArticleTrashDialog from "../../components/articles/ArticleTrashDialog";
 import {
   createArticle,
   deleteArticle,
   getArticles,
+  restoreArticle,
   updateArticle,
   uploadArticleImages,
 } from "../../api/articles/articleApi";
@@ -35,19 +39,32 @@ const emptyCategoryForm = {
 
 const statusOptions = [
   { value: "all", label: "Tất cả" },
-  { value: "pending", label: "Chưa duyệt" },
+  { value: "pending", label: "Chờ duyệt" },
   { value: "approved", label: "Đã duyệt" },
+  { value: "deleted", label: "Thùng rác" },
 ];
 
 const getStatusBadge = (article) => {
   if (article.isDeleted) {
-    return "Đã ẩn";
+    return "Thùng rác";
   }
 
-  return article.isApproved ? "Đã duyệt" : "Chưa duyệt";
+  return article.isApproved ? "Đã duyệt" : "Chờ duyệt";
+};
+
+const getStatusBadgeClass = (article) => {
+  if (article.isDeleted) {
+    return "bg-slate-100 text-slate-600";
+  }
+
+  return article.isApproved ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600";
 };
 
 const formatPublishedText = (article) => {
+  if (article.isDeleted && article.updatedAt) {
+    return new Date(article.updatedAt).toLocaleString("vi-VN");
+  }
+
   if (!article.publishedAt) {
     return "Chờ admin duyệt";
   }
@@ -67,6 +84,7 @@ const ToolbarButton = ({ children, onClick, title }) => (
 );
 
 const ReceptionistContentManagementPage = () => {
+  const navigate = useNavigate();
   const editorRef = useRef(null);
   const [articles, setArticles] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -76,15 +94,18 @@ const ReceptionistContentManagementPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [uploadingImages, setUploadingImages] = useState(false);
   const [creatingCategory, setCreatingCategory] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState("");
+  const [actionError, setActionError] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [editingArticle, setEditingArticle] = useState(null);
   const [showCategoryForm, setShowCategoryForm] = useState(false);
   const [formData, setFormData] = useState(emptyForm);
   const [categoryForm, setCategoryForm] = useState(emptyCategoryForm);
   const [uploadedImages, setUploadedImages] = useState([]);
+  const [dialogState, setDialogState] = useState({ open: false, mode: "delete", article: null });
 
-  const loadPageData = async () => {
+  const loadPageData = useCallback(async () => {
     setLoading(true);
     setError("");
 
@@ -102,18 +123,15 @@ const ReceptionistContentManagementPage = () => {
       setArticles(articleData);
       setCategories(categoryData.data ?? []);
     } catch (fetchError) {
-      setError(
-        fetchError?.response?.data ||
-          "Không tải được danh sách bài viết của lễ tân.",
-      );
+      setError(fetchError?.response?.data || "Không tải được danh sách bài viết.");
     } finally {
       setLoading(false);
     }
-  };
+  }, [search, statusFilter]);
 
   useEffect(() => {
     loadPageData();
-  }, [statusFilter]);
+  }, [loadPageData]);
 
   const filteredArticles = useMemo(() => {
     const keyword = search.trim().toLowerCase();
@@ -122,7 +140,7 @@ const ReceptionistContentManagementPage = () => {
     }
 
     return articles.filter((article) =>
-      [article.title, article.summary, article.categoryName]
+      [article.title, article.summary, article.categoryName, article.slug]
         .filter(Boolean)
         .some((value) => value.toLowerCase().includes(keyword)),
     );
@@ -155,6 +173,11 @@ const ReceptionistContentManagementPage = () => {
       });
 
       const nextContent = detail.data.content ?? "";
+      const galleryUrls = detail.data.galleryUrls?.length
+        ? detail.data.galleryUrls
+        : detail.data.thumbnailUrl
+          ? [detail.data.thumbnailUrl]
+          : [];
 
       setEditingArticle(detail.data);
       setFormData({
@@ -163,9 +186,9 @@ const ReceptionistContentManagementPage = () => {
         content: nextContent,
         categoryId: detail.data.categoryId ? String(detail.data.categoryId) : "",
         tags: (detail.data.tags ?? []).join(", "),
-        thumbnailUrl: detail.data.thumbnailUrl ?? "",
+        thumbnailUrl: detail.data.thumbnailUrl ?? galleryUrls[0] ?? "",
       });
-      setUploadedImages(detail.data.thumbnailUrl ? [detail.data.thumbnailUrl] : []);
+      setUploadedImages(galleryUrls);
       setModalOpen(true);
 
       requestAnimationFrame(() => {
@@ -199,7 +222,7 @@ const ReceptionistContentManagementPage = () => {
     syncEditorContent();
   };
 
-  const handleImageUpload = async (event) => {
+  const handleGalleryUpload = async (event) => {
     const files = Array.from(event.target.files ?? []);
     if (files.length === 0) {
       return;
@@ -215,27 +238,17 @@ const ReceptionistContentManagementPage = () => {
       }
 
       setUploadedImages((current) => {
-        const next = [...current, ...urls];
-        return Array.from(new Set(next));
-      });
+        const next = Array.from(new Set([...current, ...urls]));
 
-      setFormData((current) => ({
-        ...current,
-        thumbnailUrl: current.thumbnailUrl || urls[0],
-      }));
+        setFormData((previous) => ({
+          ...previous,
+          thumbnailUrl: previous.thumbnailUrl || next[0] || "",
+        }));
 
-      urls.forEach((url) => {
-        applyCommand(
-          "insertHTML",
-          `<p><img src="${url}" alt="Ảnh bài viết" style="max-width:100%;border-radius:18px;display:block;margin:12px 0;" /></p>`,
-        );
+        return next;
       });
     } catch (uploadError) {
-      setError(
-        uploadError?.response?.data ||
-          uploadError?.message ||
-          "Không tải được ảnh bài viết.",
-      );
+      setError(uploadError?.response?.data || uploadError?.message || "Không tải được ảnh bài viết.");
     } finally {
       setUploadingImages(false);
       event.target.value = "";
@@ -284,6 +297,7 @@ const ReceptionistContentManagementPage = () => {
         categoryId: formData.categoryId ? Number(formData.categoryId) : "",
         tags: formData.tags.trim(),
         thumbnailUrl: formData.thumbnailUrl || uploadedImages[0] || "",
+        galleryUrls: uploadedImages,
       };
 
       if (editingArticle) {
@@ -301,22 +315,41 @@ const ReceptionistContentManagementPage = () => {
     }
   };
 
-  const handleDelete = async (article) => {
-    const confirmed = window.confirm(
-      article.isApproved
-        ? "Bài viết đã duyệt sẽ được xóa mềm. Tiếp tục?"
-        : "Bài viết chưa duyệt sẽ bị xóa vĩnh viễn. Tiếp tục?",
-    );
+  const openActionDialog = (mode, article) => {
+    setActionError("");
+    setDialogState({ open: true, mode, article });
+  };
 
-    if (!confirmed) {
+  const closeActionDialog = () => {
+    if (actionLoading) {
       return;
     }
 
+    setActionError("");
+    setDialogState({ open: false, mode: "delete", article: null });
+  };
+
+  const handleDialogConfirm = async () => {
+    if (!dialogState.article) {
+      return;
+    }
+
+    setActionLoading(true);
+    setActionError("");
+
     try {
-      await deleteArticle(article.id);
+      if (dialogState.mode === "restore") {
+        await restoreArticle(dialogState.article.id);
+      } else {
+        await deleteArticle(dialogState.article.id);
+      }
+
+      setDialogState({ open: false, mode: "delete", article: null });
       await loadPageData();
-    } catch (deleteError) {
-      setError(deleteError?.response?.data || "Không xóa được bài viết.");
+    } catch (actionRequestError) {
+      setActionError(actionRequestError?.response?.data || "Không thực hiện được thao tác.");
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -327,7 +360,7 @@ const ReceptionistContentManagementPage = () => {
           <div>
             <h1 className="text-3xl font-black text-gray-900">Quản lý bài viết</h1>
             <p className="mt-1 text-sm font-medium text-gray-500">
-              Lễ tân được tạo, sửa và xóa bài viết. Khi sửa bài đã duyệt, bài sẽ quay lại trạng thái chờ duyệt.
+              Lễ tân tạo bài, gửi duyệt, xem bài và quản lý các bài đã vào thùng rác.
             </p>
           </div>
 
@@ -363,7 +396,7 @@ const ReceptionistContentManagementPage = () => {
                     loadPageData();
                   }
                 }}
-                placeholder="Tìm theo tiêu đề, mô tả, danh mục..."
+                placeholder="Tìm theo tiêu đề, mô tả, slug..."
                 className="w-full rounded-2xl border border-gray-200 bg-gray-50 py-3 pl-11 pr-4 text-sm outline-none focus:border-sky-300 focus:bg-white focus:ring-2 focus:ring-sky-100"
               />
             </div>
@@ -390,10 +423,10 @@ const ReceptionistContentManagementPage = () => {
 
         <div className="overflow-hidden rounded-[2rem] bg-white shadow-sm ring-1 ring-gray-100">
           <div className="overflow-x-auto">
-            <table className="min-w-full text-left">
+            <table className="min-w-full table-fixed text-left">
               <thead className="bg-slate-50">
                 <tr>
-                  {["Bài viết", "Danh mục", "Ngày hiển thị", "Trạng thái", "Tác vụ"].map((header) => (
+                  {["Bài viết", "Danh mục", "Slug", "Ngày hiển thị", "Trạng thái", "Tác vụ"].map((header) => (
                     <th key={header} className="px-4 py-4 text-xs font-black uppercase tracking-wider text-slate-500">
                       {header}
                     </th>
@@ -403,63 +436,90 @@ const ReceptionistContentManagementPage = () => {
               <tbody className="divide-y divide-gray-100">
                 {loading ? (
                   <tr>
-                    <td colSpan={5} className="px-4 py-10 text-center text-sm font-semibold text-gray-400">
+                    <td colSpan={6} className="px-4 py-10 text-center text-sm font-semibold text-gray-400">
                       Đang tải bài viết...
                     </td>
                   </tr>
                 ) : filteredArticles.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-4 py-10 text-center text-sm font-semibold text-gray-400">
+                    <td colSpan={6} className="px-4 py-10 text-center text-sm font-semibold text-gray-400">
                       Chưa có bài viết nào phù hợp.
                     </td>
                   </tr>
                 ) : (
                   filteredArticles.map((article) => (
                     <tr key={article.id}>
-                      <td className="px-4 py-4">
-                        <div className="flex items-center gap-3">
+                      <td className="px-4 py-4 align-top">
+                        <div className="flex items-start gap-3">
                           <img
                             src={article.thumbnailUrl || "https://placehold.co/120x120/e2e8f0/64748b?text=News"}
                             alt={article.title}
-                            className="size-14 rounded-2xl object-cover ring-1 ring-gray-100"
+                            className="size-14 shrink-0 rounded-2xl object-cover ring-1 ring-gray-100"
                           />
-                          <div>
-                            <p className="text-sm font-black text-slate-900">{article.title}</p>
-                            <p className="mt-1 line-clamp-2 text-xs font-medium text-slate-500">
+                          <div className="min-w-0">
+                            <p className="break-words text-sm font-black text-slate-900">{article.title}</p>
+                            <p className="mt-1 line-clamp-2 break-words text-xs font-medium text-slate-500">
                               {article.summary || "Chưa có mô tả ngắn."}
                             </p>
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-4 text-sm font-semibold text-slate-600">
+                      <td className="px-4 py-4 align-top text-sm font-semibold text-slate-600">
                         {article.categoryName || "-"}
                       </td>
-                      <td className="px-4 py-4 text-sm font-semibold text-slate-600">
+                      <td className="px-4 py-4 align-top text-xs font-semibold text-slate-500 break-all">
+                        {article.slug || "-"}
+                      </td>
+                      <td className="px-4 py-4 align-top text-sm font-semibold text-slate-600">
                         {formatPublishedText(article)}
                       </td>
-                      <td className="px-4 py-4">
-                        <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-black uppercase tracking-wide text-sky-600">
+                      <td className="px-4 py-4 align-top">
+                        <span className={`rounded-full px-3 py-1 text-xs font-black uppercase tracking-wide ${getStatusBadgeClass(article)}`}>
                           {getStatusBadge(article)}
                         </span>
                       </td>
-                      <td className="px-4 py-4">
-                        <div className="flex items-center gap-2">
+                      <td className="px-4 py-4 align-top">
+                        <div className="flex flex-wrap items-center gap-2">
                           <button
                             type="button"
-                            onClick={() => openEditModal(article)}
-                            className="inline-flex items-center gap-2 rounded-xl bg-slate-100 px-4 py-2 text-sm font-bold text-slate-700"
+                            onClick={() => navigate(`/articles/${article.slug || article.id}`)}
+                            className="inline-flex items-center gap-2 rounded-xl bg-sky-50 px-3 py-2 text-sm font-bold text-sky-700"
                           >
-                            <Pencil className="size-4" />
-                            Sửa
+                            <Eye className="size-4" />
+                            Xem
                           </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDelete(article)}
-                            className="inline-flex items-center gap-2 rounded-xl bg-rose-50 px-4 py-2 text-sm font-bold text-rose-600"
-                          >
-                            <Trash2 className="size-4" />
-                            Xóa
-                          </button>
+
+                          {!article.isDeleted ? (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => openEditModal(article)}
+                                className="inline-flex items-center gap-2 rounded-xl bg-slate-100 px-3 py-2 text-sm font-bold text-slate-700"
+                              >
+                                <Pencil className="size-4" />
+                                Sửa
+                              </button>
+                              {article.isApproved ? (
+                                <button
+                                  type="button"
+                                  onClick={() => openActionDialog("delete", article)}
+                                  className="inline-flex items-center gap-2 rounded-xl bg-rose-50 px-3 py-2 text-sm font-bold text-rose-600"
+                                >
+                                  <Trash2 className="size-4" />
+                                  Thùng rác
+                                </button>
+                              ) : null}
+                            </>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => openActionDialog("restore", article)}
+                              className="inline-flex items-center gap-2 rounded-xl bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-600"
+                            >
+                              <RotateCcw className="size-4" />
+                              Khôi phục
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -473,7 +533,7 @@ const ReceptionistContentManagementPage = () => {
 
       {modalOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4 backdrop-blur-sm">
-          <div className="h-[92vh] w-full max-w-6xl overflow-y-auto rounded-[2rem] bg-white shadow-2xl">
+          <div className="h-[92vh] w-full max-w-6xl overflow-x-hidden overflow-y-auto rounded-[2rem] bg-white shadow-2xl">
             <div className="flex items-start justify-between border-b border-gray-100 px-6 py-5">
               <div>
                 <h2 className="text-2xl font-black text-slate-900">
@@ -485,8 +545,8 @@ const ReceptionistContentManagementPage = () => {
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="grid gap-6 p-6 lg:grid-cols-[1fr_320px]">
-              <div className="space-y-5">
+            <form onSubmit={handleSubmit} className="grid gap-6 overflow-x-hidden p-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+              <div className="min-w-0 space-y-5">
                 <label className="flex flex-col gap-2">
                   <span className="text-sm font-bold text-slate-700">Tiêu đề</span>
                   <input
@@ -494,7 +554,7 @@ const ReceptionistContentManagementPage = () => {
                     value={formData.title}
                     onChange={handleInputChange}
                     required
-                    className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-sky-300 focus:bg-white focus:ring-2 focus:ring-sky-100"
+                    className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-sky-300 focus:bg-white focus:ring-2 focus:ring-sky-100"
                   />
                 </label>
 
@@ -505,7 +565,7 @@ const ReceptionistContentManagementPage = () => {
                     value={formData.summary}
                     onChange={handleInputChange}
                     rows={3}
-                    className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-sky-300 focus:bg-white focus:ring-2 focus:ring-sky-100"
+                    className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-sky-300 focus:bg-white focus:ring-2 focus:ring-sky-100"
                   />
                 </label>
 
@@ -532,17 +592,6 @@ const ReceptionistContentManagementPage = () => {
                     <ToolbarButton title="Cỡ chữ vừa" onClick={() => applyCommand("fontSize", "3")}>
                       A
                     </ToolbarButton>
-                    <label className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50">
-                      <ImagePlus className="size-4" />
-                      {uploadingImages ? "Đang tải ảnh..." : "Chèn ảnh"}
-                      <input
-                        type="file"
-                        accept="image/*"
-                        multiple
-                        onChange={handleImageUpload}
-                        className="hidden"
-                      />
-                    </label>
                   </div>
 
                   <div
@@ -550,7 +599,7 @@ const ReceptionistContentManagementPage = () => {
                     contentEditable
                     suppressContentEditableWarning
                     onInput={syncEditorContent}
-                    className="min-h-[420px] rounded-[1.75rem] border border-gray-200 bg-gray-50 px-4 py-4 text-sm leading-7 text-slate-700 outline-none focus:border-sky-300 focus:bg-white focus:ring-2 focus:ring-sky-100"
+                    className="min-h-[420px] max-w-full overflow-x-hidden rounded-[1.75rem] border border-gray-200 bg-gray-50 px-4 py-4 text-sm leading-7 text-slate-700 outline-none [overflow-wrap:anywhere] focus:border-sky-300 focus:bg-white focus:ring-2 focus:ring-sky-100"
                   />
                 </div>
               </div>
@@ -618,16 +667,18 @@ const ReceptionistContentManagementPage = () => {
                 </label>
 
                 <div className="rounded-[1.5rem] bg-white p-4 ring-1 ring-gray-100">
-                  <p className="text-sm font-bold text-slate-700">Ảnh bài viết</p>
+                  <p className="text-sm font-bold text-slate-700">Ảnh hiển thị và gallery</p>
+                  <p className="mt-1 text-xs font-medium text-slate-500">
+                    Chọn ảnh ở đây để làm nền cover bên ngoài bài và hiển thị dải ảnh ở cuối bài viết.
+                  </p>
 
                   <label className="mt-4 inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border border-gray-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-100">
-                    <ImagePlus className="size-4" />
-                    {uploadingImages ? "Đang tải ảnh..." : "Chọn nhiều ảnh"}
+                    {uploadingImages ? "Đang tải ảnh..." : "Chọn ảnh"}
                     <input
                       type="file"
                       accept="image/*"
                       multiple
-                      onChange={handleImageUpload}
+                      onChange={handleGalleryUpload}
                       className="hidden"
                     />
                   </label>
@@ -644,9 +695,7 @@ const ReceptionistContentManagementPage = () => {
                               thumbnailUrl: url,
                             }))
                           }
-                          className={`w-full overflow-hidden rounded-2xl text-left ring-2 transition ${
-                            formData.thumbnailUrl === url ? "ring-sky-400" : "ring-transparent"
-                          }`}
+                          className={`w-full overflow-hidden rounded-2xl text-left ring-2 transition ${formData.thumbnailUrl === url ? "ring-sky-400" : "ring-transparent"}`}
                         >
                           <div className="flex items-center gap-3 bg-slate-50 p-3">
                             <img
@@ -656,7 +705,7 @@ const ReceptionistContentManagementPage = () => {
                             />
                             <div className="min-w-0 flex-1">
                               <p className="truncate text-sm font-bold text-slate-800">
-                                Ảnh bài viết {index + 1}
+                                {formData.thumbnailUrl === url ? "Ảnh cover đang chọn" : `Ảnh gallery ${index + 1}`}
                               </p>
                               <p className="truncate text-xs font-medium text-slate-500">
                                 {url.split("/").pop()}
@@ -698,6 +747,16 @@ const ReceptionistContentManagementPage = () => {
           </div>
         </div>
       ) : null}
+
+      <ArticleTrashDialog
+        open={dialogState.open}
+        article={dialogState.article}
+        mode={dialogState.mode}
+        isPending={actionLoading}
+        error={actionError}
+        onClose={closeActionDialog}
+        onConfirm={handleDialogConfirm}
+      />
     </>
   );
 };

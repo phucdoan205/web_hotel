@@ -10,6 +10,7 @@ namespace backend.DTOs.Article
         public string? Content { get; set; }
         public string? Tags { get; set; }
         public string? ThumbnailUrl { get; set; }
+        public string? GalleryUrls { get; set; }
         public IFormFile? ThumbnailFile { get; set; }
         public List<IFormFile>? ImageFiles { get; set; }
     }

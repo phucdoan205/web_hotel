@@ -208,6 +208,7 @@ namespace backend.Data
             {
                 entity.Property(a => a.Title).HasMaxLength(255);
                 entity.Property(a => a.Slug).HasMaxLength(255);
+                entity.Property(a => a.GalleryUrls).HasColumnType("nvarchar(max)");
                 entity.Property(a => a.CreatedAt).HasColumnType("datetime");
                 entity.Property(a => a.UpdatedAt).HasColumnType("datetime");
                 entity.Property(a => a.ApprovedAt).HasColumnType("datetime");
