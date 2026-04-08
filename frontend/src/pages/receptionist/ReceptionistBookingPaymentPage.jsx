@@ -270,8 +270,8 @@ const ReceptionistBookingPaymentPage = () => {
               <div className="rounded-[28px] bg-gradient-to-r from-white to-sky-50 px-4 py-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-3xl font-black uppercase tracking-tight text-slate-900">VU DUY THAI</p>
-                    <p className="mt-1 text-2xl text-slate-700">0347474278</p>
+                    <p className="text-3xl font-black uppercase tracking-tight text-slate-900">QR THANH TOÁN</p>
+                    <p className="mt-1 text-2xl text-slate-700">1234567890</p>
                   </div>
                   <div className="rounded-2xl bg-sky-100 p-3 text-sky-700">
                     <QrCode size={22} />
