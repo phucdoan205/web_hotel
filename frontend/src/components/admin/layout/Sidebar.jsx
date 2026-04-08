@@ -16,11 +16,11 @@ import {
 const menuItems = [
   { name: "Dashboard", icon: LayoutDashboard, path: "/admin/dashboard" },
   { name: "Bookings", icon: CalendarCheck2, path: "/admin/bookings" },
-  { name: "Staff", icon: Users, path: "/admin/staff" },
-  { name: "Bai viet", icon: FileText, path: "/admin/articles" },
-  { name: "Quan ly phong", icon: Building, path: "/admin/rooms" },
-  { name: "Vat tu", icon: Boxes, path: "/admin/equipment" },
-  { name: "Reports", icon: BarChart3, path: "/admin/reports" },
+  { name: "Nhân viên", icon: Users, path: "/admin/staff" },
+  { name: "Bài viết", icon: FileText, path: "/admin/articles" },
+  { name: "Quản lý phòng", icon: Building, path: "/admin/rooms" },
+  { name: "Vật tư", icon: Boxes, path: "/admin/equipment" },
+  { name: "Báo cáo", icon: BarChart3, path: "/admin/reports" },
   { name: "Audit Log", icon: History, path: "/admin/audit-log" },
 ];
 

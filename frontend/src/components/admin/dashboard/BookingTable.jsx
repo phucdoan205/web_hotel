@@ -1,81 +1,63 @@
-import React from "react";
-import { MoreHorizontal } from "lucide-react";
+const statusStyles = {
+  Confirmed: "bg-emerald-50 text-emerald-600 border-emerald-100",
+  Pending: "bg-orange-50 text-orange-600 border-orange-100",
+  Cancelled: "bg-rose-50 text-rose-600 border-rose-100",
+  CheckedIn: "bg-sky-50 text-sky-600 border-sky-100",
+  Completed: "bg-slate-100 text-slate-600 border-slate-200",
+};
 
-const BookingTable = () => {
-  const bookings = [
-    {
-      id: "#BK-9021",
-      guest: "John Doe",
-      room: "Deluxe Suite - 402",
-      price: "$1,200",
-      status: "CONFIRMED",
-    },
-    {
-      id: "#BK-9022",
-      guest: "Alice Smith",
-      room: "Standard - 105",
-      price: "$450",
-      status: "PENDING",
-    },
-    {
-      id: "#BK-9023",
-      guest: "Bruce Wayne",
-      room: "Penthouse - 801",
-      price: "$3,500",
-      status: "CANCELLED",
-    },
-  ];
-
-  const statusStyles = {
-    CONFIRMED: "bg-emerald-50 text-emerald-600 border-emerald-100",
-    PENDING: "bg-orange-50 text-orange-600 border-orange-100",
-    CANCELLED: "bg-rose-50 text-rose-600 border-rose-100",
-  };
-
+const BookingTable = ({ bookings = [] }) => {
   return (
-    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-50 mt-6">
-      <div className="flex justify-between items-center mb-6">
-        <h3 className="font-bold text-gray-900 text-lg">Recent Bookings</h3>
-        <button className="text-sky-600 text-sm font-semibold hover:underline">
-          View All
-        </button>
+    <div className="mt-6 rounded-2xl border border-gray-50 bg-white p-6 shadow-sm">
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-bold text-gray-900">Booking mới nhất</h3>
+          <p className="text-sm font-medium text-gray-400">
+            Danh sách booking mới được lấy trực tiếp từ hệ thống
+          </p>
+        </div>
       </div>
+
       <div className="overflow-x-auto">
         <table className="w-full text-left">
           <thead>
-            <tr className="text-gray-400 text-xs font-semibold uppercase tracking-wider border-b border-gray-50">
-              <th className="pb-4">Booking ID</th>
-              <th className="pb-4">Guest Name</th>
-              <th className="pb-4">Room</th>
-              <th className="pb-4">Price</th>
-              <th className="pb-4">Status</th>
-              <th className="pb-4 text-right">Action</th>
+            <tr className="border-b border-gray-50 text-xs font-semibold uppercase tracking-wider text-gray-400">
+              <th className="pb-4">Mã booking</th>
+              <th className="pb-4">Khách hàng</th>
+              <th className="pb-4">Phòng</th>
+              <th className="pb-4">Tổng tiền</th>
+              <th className="pb-4">Trạng thái</th>
+              <th className="pb-4">Ngày tạo</th>
             </tr>
           </thead>
+
           <tbody className="divide-y divide-gray-50 text-sm">
-            {bookings.map((b) => (
-              <tr
-                key={b.id}
-                className="group hover:bg-gray-50/50 transition-colors"
-              >
-                <td className="py-4 font-semibold text-gray-900">{b.id}</td>
-                <td className="py-4 text-gray-600">{b.guest}</td>
-                <td className="py-4 text-gray-600">{b.room}</td>
-                <td className="py-4 font-bold text-gray-900">{b.price}</td>
-                <td className="py-4">
-                  <span
-                    className={`px-3 py-1 rounded-lg text-[10px] font-bold border ${statusStyles[b.status]}`}
-                  >
-                    {b.status}
-                  </span>
-                </td>
-                <td className="py-4 text-right">
-                  <button className="p-1 hover:bg-gray-200 rounded-lg transition-colors">
-                    <MoreHorizontal className="size-5 text-gray-400" />
-                  </button>
+            {bookings.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="py-10 text-center text-sm font-medium text-gray-400">
+                  Chưa có booking nào để hiển thị.
                 </td>
               </tr>
-            ))}
+            ) : (
+              bookings.map((booking) => (
+                <tr key={booking.id} className="transition-colors hover:bg-gray-50/50">
+                  <td className="py-4 font-semibold text-gray-900">{booking.bookingCode}</td>
+                  <td className="py-4 text-gray-600">{booking.guestName || "Khách vãng lai"}</td>
+                  <td className="py-4 text-gray-600">{booking.roomLabel}</td>
+                  <td className="py-4 font-bold text-gray-900">{booking.totalLabel}</td>
+                  <td className="py-4">
+                    <span
+                      className={`rounded-lg border px-3 py-1 text-[10px] font-bold ${
+                        statusStyles[booking.status] || "bg-slate-100 text-slate-600 border-slate-200"
+                      }`}
+                    >
+                      {booking.status || "Chưa rõ"}
+                    </span>
+                  </td>
+                  <td className="py-4 text-gray-500">{booking.createdLabel}</td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
