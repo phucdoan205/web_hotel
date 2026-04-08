@@ -4,6 +4,7 @@ using backend.Models;
 using backend.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Linq;
 using Microsoft.Extensions.Logging;
 
 namespace backend.Controllers
@@ -35,6 +36,7 @@ namespace backend.Controllers
             }
 
             var list = await query
+                .OrderByDescending(v => v.Id)
                 .Select(v => new VoucherDTO
                 {
                     Id = v.Id,
@@ -47,6 +49,7 @@ namespace backend.Controllers
                     UsageLimit = v.UsageLimit,
                     UsageCount = v.UsageCount,
                     IsPrivate = v.IsPrivate,
+                    IsActive = v.IsActive,
                     IsDeleted = v.IsDeleted,
                     DeletedAt = v.DeletedAt
                 })
@@ -73,6 +76,7 @@ namespace backend.Controllers
                 UsageLimit = v.UsageLimit,
                 UsageCount = v.UsageCount,
                 IsPrivate = v.IsPrivate,
+                IsActive = v.IsActive,
                 IsDeleted = v.IsDeleted,
                 DeletedAt = v.DeletedAt
             };
@@ -83,6 +87,11 @@ namespace backend.Controllers
         public async Task<IActionResult> Create([FromBody] VoucherDTO dto)
         {
             if (string.IsNullOrWhiteSpace(dto.Code)) return BadRequest("Code is required");
+
+            if (dto.ValidFrom.HasValue && dto.ValidTo.HasValue && dto.ValidFrom.Value > dto.ValidTo.Value)
+            {
+                return BadRequest("Invalid date range: ValidFrom must be before ValidTo");
+            }
 
             var v = new Voucher
             {
@@ -95,6 +104,7 @@ namespace backend.Controllers
                 UsageLimit = dto.UsageLimit,
                 UsageCount = dto.UsageCount,
                 IsPrivate = dto.IsPrivate,
+                IsActive = true,
                 IsDeleted = false,
                 DeletedAt = null
             };
@@ -112,6 +122,11 @@ namespace backend.Controllers
             var v = await _context.Vouchers.FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted);
             if (v == null) return NotFound();
 
+            if (dto.ValidFrom.HasValue && dto.ValidTo.HasValue && dto.ValidFrom.Value > dto.ValidTo.Value)
+            {
+                return BadRequest("Invalid date range: ValidFrom must be before ValidTo");
+            }
+
             v.Code = dto.Code ?? v.Code;
             v.DiscountType = dto.DiscountType ?? v.DiscountType;
             v.DiscountValue = dto.DiscountValue;
@@ -120,6 +135,7 @@ namespace backend.Controllers
             v.ValidTo = dto.ValidTo;
             v.UsageLimit = dto.UsageLimit;
             v.IsPrivate = dto.IsPrivate;
+            v.IsActive = dto.IsActive;
 
             await _context.SaveChangesAsync();
 
@@ -242,11 +258,33 @@ namespace backend.Controllers
             var v = await _context.Vouchers.FirstOrDefaultAsync(x => x.Id == id);
             if (v == null) return NotFound();
 
-            v.IsDeleted = !v.IsDeleted;
-            v.DeletedAt = v.IsDeleted ? DateTime.UtcNow : null;
+            v.IsActive = !v.IsActive;
             await _context.SaveChangesAsync();
 
-            return Ok(new { isDeleted = v.IsDeleted });
+            return Ok(new { isActive = v.IsActive });
+        }
+
+        public class TestSmtpRequest
+        {
+            public string To { get; set; } = string.Empty;
+            public string Subject { get; set; } = "Test email";
+            public string Body { get; set; } = "Test body";
+        }
+
+        [HttpPost("test-smtp")]
+        public async Task<IActionResult> TestSmtp([FromBody] TestSmtpRequest req)
+        {
+            if (string.IsNullOrWhiteSpace(req.To)) return BadRequest("To is required");
+            try
+            {
+                await _emailService.SendEmailAsync(req.To, req.Subject, req.Body);
+                return Ok(new { ok = true });
+            }
+            catch (System.Exception ex)
+            {
+                _logger?.LogError(ex, "SMTP test send failed");
+                return StatusCode(500, new { ok = false, error = ex.Message });
+            }
         }
     }
 }

@@ -56,7 +56,7 @@ export const useVoucherData = () => {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return vouchers.filter((v) => {
+    const result = vouchers.filter((v) => {
       if (q) {
         return (
           String(v.code).toLowerCase().includes(q) ||
@@ -66,11 +66,11 @@ export const useVoucherData = () => {
       }
 
       if (activeTab === "Active") {
-        return !v.isDeleted && new Date(v.validFrom) <= new Date() && new Date(v.validTo) >= new Date();
+        return !v.isDeleted && v.isActive && new Date(v.validFrom) <= new Date() && new Date(v.validTo) >= new Date();
       }
 
       if (activeTab === "Expired") {
-        return !v.isDeleted && new Date(v.validTo) < new Date();
+        return !v.isDeleted && v.isActive && new Date(v.validTo) < new Date();
       }
 
       if (activeTab === "Deleted") {
@@ -87,6 +87,10 @@ export const useVoucherData = () => {
 
       return true;
     });
+
+    // sort newest created (higher id) first
+    result.sort((a, b) => (b.id ?? 0) - (a.id ?? 0));
+    return result;
   }, [vouchers, search, activeTab]);
 
   return {

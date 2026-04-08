@@ -1,10 +1,10 @@
 import React from "react";
 import { Eye, ChevronLeft, ChevronRight } from "lucide-react";
 
-const VoucherTable = ({ data = [], onEdit, onDelete, onSend }) => {
+const VoucherTable = ({ data = [], onEdit, onDelete, onSend, onToggle }) => {
   return (
     <div className="bg-white rounded-[2.5rem] border border-gray-50 shadow-sm overflow-hidden">
-      <table className="w-full text-left">
+      <table className="w-full text-left table-fixed">
         <thead className="bg-gray-50/50 border-b border-gray-50">
           <tr className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em]">
             <th className="px-8 py-5">Mã</th>
@@ -42,13 +42,13 @@ const VoucherTable = ({ data = [], onEdit, onDelete, onSend }) => {
                   <button
                     type="button"
                     onClick={() => typeof onToggle === 'function' && onToggle(v)}
-                    className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors ${!v.isDeleted ? 'bg-blue-500' : 'bg-rose-400'}`}
-                    title={!v.isDeleted ? 'Set deleted' : 'Set active'}
+                    className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors ${v.isActive ? 'bg-blue-500' : 'bg-rose-400'}`}
+                    title={v.isActive ? 'Set deactive' : 'Set active'}
                   >
-                    <span className={`absolute top-1 size-5 rounded-full bg-white shadow-sm ${!v.isDeleted ? 'left-6' : 'left-1'}`} />
+                    <span className={`absolute top-1 size-5 rounded-full bg-white shadow-sm ${v.isActive ? 'left-6' : 'left-1'}`} />
                   </button>
-                  <span className={`min-w-[52px] text-xs font-bold ${!v.isDeleted ? 'text-blue-600' : 'text-rose-500'}`}>
-                    {!v.isDeleted ? 'Active' : 'Deleted'}
+                  <span className={`min-w-[52px] text-xs font-bold ${v.isActive ? 'text-blue-600' : 'text-rose-500'}`}>
+                    {v.isDeleted ? 'Deleted' : (v.isActive ? 'Active' : 'Deactive')}
                   </span>
                 </div>
               </td>

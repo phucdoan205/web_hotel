@@ -15,6 +15,7 @@ namespace backend.Models
         public int? UsageLimit { get; set; }
         public int UsageCount { get; set; }
         public bool IsPrivate { get; set; }
+        public bool IsActive { get; set; } = true;
         public bool IsDeleted { get; set; }
         public DateTime? DeletedAt { get; set; }
         public ICollection<Booking> Bookings { get; set; } = new List<Booking>();
