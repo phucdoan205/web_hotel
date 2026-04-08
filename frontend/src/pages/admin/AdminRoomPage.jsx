@@ -8,7 +8,6 @@ import CleaningModal from "../../components/admin/rooms/CleaningModal";
 import DeleteRoomDialog from "../../components/admin/rooms/DeleteRoomDialog";
 import RoomDetailModal from "../../components/admin/rooms/RoomDetailModal";
 import RoomInventoryModal from "../../components/admin/rooms/RoomInventoryModal";
-import RoomCloneModal from "../../components/admin/rooms/RoomCloneModal";
 import RoomTypeManagement from "../../components/admin/roomtypes/RoomTypeManagement";
 import { roomsApi } from "../../api/admin/roomsApi";
 import { roomTypesApi } from "../../api/admin/roomTypesApi";
@@ -37,7 +36,6 @@ export default function AdminRoomPage() {
   const [openCleaning, setOpenCleaning] = useState(false);
   const [openDetail, setOpenDetail] = useState(false);
   const [openInventory, setOpenInventory] = useState(false);
-  const [openClone, setOpenClone] = useState(false);
 
   const roomQueryParams = useMemo(() => {
     const params = {
@@ -173,10 +171,6 @@ export default function AdminRoomPage() {
             setSelectedRoom(room);
             setOpenInventory(true);
           }}
-          onClone={(room) => {
-            setSelectedRoom(room);
-            setOpenClone(true);
-          }}
         />
       ) : (
         <RoomTypeManagement />
@@ -187,6 +181,7 @@ export default function AdminRoomPage() {
         open={formState.open}
         initialData={formState.room}
         roomTypes={roomTypes}
+        rooms={rooms}
         onClose={() => setFormState({ open: false, room: null })}
       />
 
@@ -236,13 +231,6 @@ export default function AdminRoomPage() {
         roomId={selectedRoom?.id}
         roomNumber={selectedRoom?.roomNumber}
         onClose={() => setOpenInventory(false)}
-      />
-
-      <RoomCloneModal
-        key={`${selectedRoom?.id ?? "clone"}-${openClone ? "open" : "closed"}`}
-        open={openClone}
-        room={selectedRoom}
-        onClose={() => setOpenClone(false)}
       />
     </div>
   );

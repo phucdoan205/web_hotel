@@ -36,7 +36,6 @@ export default function RoomTable({
   onRestore,
   onOpenInventory,
   onClean,
-  onClone,
 }) {
   const totalPages = Math.max(1, Math.ceil((totalCount || 0) / filters.pageSize));
 
@@ -233,7 +232,6 @@ export default function RoomTable({
                         <button type="button" onClick={() => onEdit(room)} className="rounded-xl bg-sky-50 px-3 py-2 text-xs font-black text-sky-700 transition-all hover:bg-sky-100">Sửa</button>
                         <button type="button" onClick={() => onClean(room)} className="rounded-xl bg-amber-50 px-3 py-2 text-xs font-black text-amber-700 transition-all hover:bg-amber-100">Dọn phòng</button>
                         <button type="button" onClick={() => onOpenInventory(room)} className="rounded-xl bg-violet-50 px-3 py-2 text-xs font-black text-violet-700 transition-all hover:bg-violet-100">Vật tư</button>
-                        <button type="button" onClick={() => onClone(room)} className="rounded-xl bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-700 transition-all hover:bg-emerald-100">Clone</button>
                         {room.status === "OutOfOrder" ? (
                           <button type="button" onClick={() => onRestore(room)} className="rounded-xl bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-700 transition-all hover:bg-emerald-100">Khôi phục</button>
                         ) : (
