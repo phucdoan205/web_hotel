@@ -1,52 +1,57 @@
 import React, { useState } from "react";
 import GuestFlowStats from "../../components/receptionist/checkinout/GuestFlowStats";
 import GuestTable from "../../components/receptionist/checkinout/GuestTable";
-import {
-  RecentCheckIns,
-  PendingCleanups,
-  WalkInAction,
-} from "../../components/receptionist/checkinout/QuickWidgets";
+import { useQuery } from "@tanstack/react-query";
+import { bookingsApi } from "../../api/admin/bookingsApi";
 
 const ReceptionistCheckInOutPage = () => {
-  // Mặc định là 'in' (Check-in Tab)
   const [activeTab, setActiveTab] = useState("in");
 
-  const checkInData = [
-    {
-      name: "Aria Walker",
-      id: "#BK-90210",
-      room: "Deluxe Ocean View",
-      date: "May 12, 2024",
-      payment: "Paid",
-    },
-    {
-      name: "Julian Martinez",
-      id: "#BK-90211",
-      room: "Suite Executive",
-      date: "May 12, 2024",
-      payment: "Partial",
-    },
-  ];
+  // ✅ Arrivals (Check-in)
+  const arrivalsQuery = useQuery({
+    queryKey: ["arrivals"],
+    queryFn: () => bookingsApi.getArrivals({ date: new Date() }),
+    enabled: activeTab === "in",
+    staleTime: 1000 * 60 * 5, // cache 5 phút
+  });
 
-  const checkOutData = [
-    {
-      name: "Robert Sterling",
-      id: "#BK-90218",
-      room: "Twin Standard",
-      date: "May 13, 2024",
-      payment: "Paid",
-    },
-    {
-      name: "Elena Lopez",
-      id: "#BK-90215",
-      room: "Superior King",
-      date: "May 12, 2024",
-      payment: "Unpaid",
-    },
-  ];
+  // ✅ In-house (đang ở)
+  const inHouseQuery = useQuery({
+    queryKey: ["in-house"],
+    queryFn: () => bookingsApi.getInHouse(),
+    enabled: activeTab === "stay",
+    staleTime: 1000 * 60 * 5,
+  });
+
+  // ✅ Departures (Check-out)
+  const departuresQuery = useQuery({
+    queryKey: ["departures"],
+    queryFn: () => bookingsApi.getDepartures({ date: new Date() }),
+    enabled: activeTab === "out",
+    staleTime: 1000 * 60 * 5,
+  });
+
+  // 🎯 Lấy data theo tab (KHÔNG cần useState)
+  const data =
+    activeTab === "in"
+      ? arrivalsQuery.data?.items || []
+      : activeTab === "stay"
+      ? inHouseQuery.data?.items || []
+      : departuresQuery.data?.items || [];
+
+  const isLoading =
+    (activeTab === "in" && arrivalsQuery.isLoading) ||
+    (activeTab === "stay" && inHouseQuery.isLoading) ||
+    (activeTab === "out" && departuresQuery.isLoading);
+
+  const isError =
+    (activeTab === "in" && arrivalsQuery.isError) ||
+    (activeTab === "stay" && inHouseQuery.isError) ||
+    (activeTab === "out" && departuresQuery.isError);
 
   return (
     <div className="p-8 space-y-8 animate-in fade-in duration-700">
+      {/* Header */}
       <div className="flex justify-between items-end">
         <div>
           <h1 className="text-3xl font-black text-gray-900 tracking-tight">
@@ -59,36 +64,54 @@ const ReceptionistCheckInOutPage = () => {
         <GuestFlowStats />
       </div>
 
-      {/* Tab Switcher */}
+      {/* Tabs */}
       <div className="flex items-center justify-between">
         <div className="flex bg-white p-1.5 rounded-2xl border border-gray-100 shadow-sm">
           <button
             onClick={() => setActiveTab("in")}
-            className={`px-8 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${activeTab === "in" ? "bg-blue-600 text-white shadow-lg shadow-blue-100" : "text-gray-400 hover:text-gray-600"}`}
+            className={`px-8 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${
+              activeTab === "in"
+                ? "bg-blue-600 text-white shadow-lg shadow-blue-100"
+                : "text-gray-400 hover:text-gray-600"
+            }`}
           >
             Check-in
           </button>
+
+          <button
+            onClick={() => setActiveTab("stay")}
+            className={`px-8 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${
+              activeTab === "stay"
+                ? "bg-emerald-500 text-white shadow-lg shadow-emerald-100"
+                : "text-gray-400 hover:text-gray-600"
+            }`}
+          >
+            Lưu trú
+          </button>
+
           <button
             onClick={() => setActiveTab("out")}
-            className={`px-8 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${activeTab === "out" ? "bg-rose-500 text-white shadow-lg shadow-rose-100" : "text-gray-400 hover:text-gray-600"}`}
+            className={`px-8 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${
+              activeTab === "out"
+                ? "bg-rose-500 text-white shadow-lg shadow-rose-100"
+                : "text-gray-400 hover:text-gray-600"
+            }`}
           >
             Check-out
           </button>
         </div>
       </div>
 
-      {/* Dynamic Table Content */}
-      <GuestTable
-        activeTab={activeTab}
-        data={activeTab === "in" ? checkInData : checkOutData}
-      />
-
-      {/* Widgets Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <RecentCheckIns />
-        <PendingCleanups />
-        <WalkInAction />
-      </div>
+      {/* Table */}
+      {isLoading ? (
+        <div className="text-center py-10 text-gray-400">Loading...</div>
+      ) : isError ? (
+        <div className="text-center py-10 text-red-400">
+          Error loading data 😢
+        </div>
+      ) : (
+        <GuestTable activeTab={activeTab} data={data} />
+      )}
     </div>
   );
 };

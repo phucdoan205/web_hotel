@@ -20,8 +20,19 @@ namespace backend.Mappers
             CreateMap<UserUpdateDTO, User>()
                 .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
 
-            CreateMap<Booking, BookingResponseDTO>();
-            CreateMap<BookingCreateDTO, Booking>();
+            CreateMap<Booking, BookingResponseDTO>()
+                .ForMember(dest => dest.GuestName, opt => opt.MapFrom(src => src.Guest != null ? src.Guest.Name : null))
+                .ForMember(dest => dest.GuestPhone, opt => opt.MapFrom(src => src.Guest != null ? src.Guest.Phone : null))
+                .ForMember(dest => dest.GuestEmail, opt => opt.MapFrom(src => src.Guest != null ? src.Guest.Email : null))
+                .ForMember(dest => dest.BookingDetails, opt => opt.MapFrom(src => src.BookingDetails));
+            CreateMap<BookingCreateDTO, Booking>()
+                .ForMember(dest => dest.BookingDetails, opt => opt.Ignore());
+
+            CreateMap<BookingDetailCreateDTO, BookingDetail>();
+
+            CreateMap<BookingDetail, BookingDetailResponseDTO>()
+                .ForMember(dest => dest.RoomNumber, opt => opt.MapFrom(src => src.Room != null ? src.Room.RoomNumber : null))
+                .ForMember(dest => dest.RoomTypeName, opt => opt.MapFrom(src => src.RoomType != null ? src.RoomType.Name : null));
 
             CreateMap<Voucher, VoucherDTO>();
             CreateMap<VoucherDTO, Voucher>();

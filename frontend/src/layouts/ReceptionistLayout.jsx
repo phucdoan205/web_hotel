@@ -24,7 +24,7 @@ const ReceptionistLayout = () => {
 
         {/* 2.2. Nội dung trang (Outlet) */}
         {/* p-8: tạo khoảng cách đệm cho nội dung quản trị */}
-        <main className="p-8 flex-1">
+        <main className="flex-1">
           <div className="max-w-7xl mx-auto">
              <Outlet />
           </div>
