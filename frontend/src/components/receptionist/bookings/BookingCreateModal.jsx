@@ -181,7 +181,7 @@ const BookingCreateModal = ({ open, onClose, onNotice }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-      <div className="flex max-h-[95vh] w-full max-w-6xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl">
+      <div className="flex h-[95vh] w-full max-w-6xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl">
         <div className="flex items-center justify-between border-b bg-gray-50 px-8 py-4">
           <div>
             <h2 className="text-2xl font-black text-gray-900">Tạo Booking Mới</h2>
@@ -192,7 +192,7 @@ const BookingCreateModal = ({ open, onClose, onNotice }) => {
           </button>
         </div>
 
-        <div className="flex-1 overflow-hidden">
+        <div className="min-h-0 flex-1 overflow-hidden">
           {(inlineNotice || showConfirmation) && (
             <div className="border-b bg-white px-8 py-4">
               {inlineNotice ? (
@@ -279,8 +279,8 @@ const BookingCreateModal = ({ open, onClose, onNotice }) => {
             </div>
           )}
 
-          <div className="flex h-full overflow-hidden">
-            <div className="flex w-96 flex-col border-r bg-gray-50 px-6 py-4">
+          <div className="flex h-full min-h-0 overflow-hidden">
+            <div className="flex w-96 min-h-0 flex-col overflow-y-auto border-r bg-gray-50 px-6 py-4">
               <h3 className="mb-2 text-lg font-bold">Thông tin đặt phòng</h3>
 
               <div className="space-y-3">
@@ -366,7 +366,7 @@ const BookingCreateModal = ({ open, onClose, onNotice }) => {
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-8 py-4">
+            <div className="min-h-0 flex-1 overflow-y-auto px-8 py-4">
               <h3 className="mb-3 text-xl font-bold">Chọn phòng</h3>
 
               {isLoading ? (

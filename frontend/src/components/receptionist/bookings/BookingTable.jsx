@@ -1,8 +1,17 @@
 import React, { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle, ChevronLeft, ChevronRight, Eye, Trash2, TriangleAlert } from "lucide-react";
+import {
+  CheckCircle,
+  ChevronLeft,
+  ChevronRight,
+  CircleCheckBig,
+  Eye,
+  Trash2,
+  TriangleAlert,
+} from "lucide-react";
 import { bookingsApi } from "../../../api/admin/bookingsApi";
 import BookingDetailModal from "./BookingDetailModal";
+import { getBookingPaymentState, isBookingDeleteLocked } from "../../../utils/bookingPaymentState";
 
 const BookingTable = ({ filters, onPageChange }) => {
   const queryClient = useQueryClient();
@@ -140,6 +149,8 @@ const BookingTable = ({ filters, onPageChange }) => {
                   const firstCheckInDate = booking.bookingDetails?.[0]?.checkInDate;
                   const canCheckIn = booking.status === "Confirmed" && isToday(firstCheckInDate);
                   const bookingDetails = booking.bookingDetails || [];
+                  const paymentState = getBookingPaymentState(booking);
+                  const deleteLocked = isBookingDeleteLocked(booking);
 
                   return (
                     <tr key={booking.id} className="transition-colors hover:bg-gray-50">
@@ -191,11 +202,17 @@ const BookingTable = ({ filters, onPageChange }) => {
                       <td className="px-4 py-3 align-top text-center">
                         <span
                           className={`inline-block rounded-full px-4 py-1 text-xs font-bold ${getStatusStyle(
-                            booking.status
+                            paymentState.allPaid ? "confirmed" : booking.status
                           )}`}
                         >
-                          {booking.status}
+                          {paymentState.allPaid ? "Confirmed" : booking.status}
                         </span>
+                        {paymentState.hasAnyPayment ? (
+                          <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-bold text-emerald-700">
+                            <CircleCheckBig size={12} />
+                            Đã có thanh toán
+                          </div>
+                        ) : null}
                       </td>
                       <td className="px-4 py-3 align-top">
                         <div className="flex justify-end gap-2">
@@ -220,13 +237,15 @@ const BookingTable = ({ filters, onPageChange }) => {
                             </button>
                           ) : null}
 
-                          <button
-                            onClick={() => setCancelTarget(booking)}
-                            className="rounded-xl p-2 text-red-600 transition-all hover:bg-red-100"
-                            title="Hủy booking"
-                          >
-                            <Trash2 size={18} />
-                          </button>
+                          {!deleteLocked ? (
+                            <button
+                              onClick={() => setCancelTarget(booking)}
+                              className="rounded-xl p-2 text-red-600 transition-all hover:bg-red-100"
+                              title="Hủy booking"
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                          ) : null}
                         </div>
                       </td>
                     </tr>

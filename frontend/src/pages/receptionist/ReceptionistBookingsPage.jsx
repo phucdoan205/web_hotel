@@ -6,16 +6,18 @@ import BookingTable from "../../components/receptionist/bookings/BookingTable";
 import BookingCreateModal from "../../components/receptionist/bookings/BookingCreateModal";
 import { roomTypesApi } from "../../api/admin/roomTypesApi";
 
+const initialFilters = {
+  search: "",
+  status: "",
+  roomTypeId: "",
+  checkInFrom: "",
+  checkInTo: "",
+  page: 1,
+  pageSize: 10,
+};
+
 const ReceptionistBookingsPage = () => {
-  const [filters, setFilters] = useState({
-    search: "",
-    status: "",
-    roomTypeId: "",
-    checkInFrom: "",
-    checkInTo: "",
-    page: 1,
-    pageSize: 10,
-  });
+  const [filters, setFilters] = useState(initialFilters);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [screenNotice, setScreenNotice] = useState(null);
 
@@ -35,6 +37,16 @@ const ReceptionistBookingsPage = () => {
   }, [screenNotice]);
 
   const handleFilterChange = (key, value) => {
+    if (key === "checkInDate") {
+      setFilters((prev) => ({
+        ...prev,
+        checkInFrom: value,
+        checkInTo: value,
+        page: 1,
+      }));
+      return;
+    }
+
     setFilters((prev) => ({
       ...prev,
       [key]: value,
@@ -82,9 +94,7 @@ const ReceptionistBookingsPage = () => {
       ) : null}
 
       <div>
-        <h1 className="text-3xl font-black tracking-tight text-gray-900">
-          Quản lý Booking
-        </h1>
+        <h1 className="text-3xl font-black tracking-tight text-gray-900">Quản lý Booking</h1>
         <p className="mt-1 text-sm font-medium text-gray-500">
           Xem và quản lý tất cả đặt phòng của khách hàng
         </p>
@@ -94,6 +104,7 @@ const ReceptionistBookingsPage = () => {
         filters={filters}
         onFilterChange={handleFilterChange}
         onOpenCreate={() => setIsCreateModalOpen(true)}
+        onClearFilters={() => setFilters(initialFilters)}
         roomTypes={roomTypes}
       />
 

@@ -1,8 +1,21 @@
 import { useMemo, useState } from "react";
-import { ArrowLeft, Building2, CircleDollarSign, Copy, QrCode, Smartphone } from "lucide-react";
-import { useNavigate, useParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import {
+  ArrowLeft,
+  Building2,
+  CircleCheckBig,
+  CircleDollarSign,
+  Copy,
+  QrCode,
+  Smartphone,
+} from "lucide-react";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { bookingsApi } from "../../api/admin/bookingsApi";
+import {
+  isBookingDetailPaid,
+  markBookingAllPaid,
+  markBookingDetailPaid,
+} from "../../utils/bookingPaymentState";
 
 const formatCurrency = (amount) => `${amount.toLocaleString("vi-VN")} đ`;
 
@@ -16,23 +29,31 @@ const buildPseudoQr = (seed) => {
       const index = (row * size + col) % normalized.length;
       const charCode = normalized.charCodeAt(index) || 0;
       const dark = (charCode + row * 7 + col * 11) % 3 === 0;
-      cells.push(
-        <div
-          key={`${row}-${col}`}
-          className={dark ? "bg-slate-700" : "bg-white"}
-        />
-      );
+      cells.push(<div key={`${row}-${col}`} className={dark ? "bg-slate-700" : "bg-white"} />);
     }
   }
 
   return cells;
 };
 
+const getDetailTotal = (detail) => {
+  const checkIn = detail?.checkInDate ? new Date(detail.checkInDate) : null;
+  const checkOut = detail?.checkOutDate ? new Date(detail.checkOutDate) : null;
+  const nights =
+    checkIn && checkOut ? Math.max(1, Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24))) : 1;
+
+  return (detail?.pricePerNight || 0) * nights;
+};
+
 const ReceptionistBookingPaymentPage = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
+  const detailId = Number(searchParams.get("detailId"));
   const [paymentMethod, setPaymentMethod] = useState("bank");
   const [copied, setCopied] = useState(false);
+  const [confirmMessage, setConfirmMessage] = useState("");
 
   const { data: booking, isLoading } = useQuery({
     queryKey: ["booking", id],
@@ -40,22 +61,62 @@ const ReceptionistBookingPaymentPage = () => {
     enabled: Boolean(id),
   });
 
+  const selectedDetail = useMemo(
+    () => booking?.bookingDetails?.find((detail) => detail.id === detailId) || null,
+    [booking, detailId]
+  );
+
+  const isSingleRoomPayment = Boolean(selectedDetail);
+  const isCancelled = booking?.status === "Cancelled";
   const totalAmount = useMemo(() => {
-    const details = booking?.bookingDetails || [];
+    if (selectedDetail) return getDetailTotal(selectedDetail);
 
-    return details.reduce((sum, detail) => {
-      const checkIn = detail.checkInDate ? new Date(detail.checkInDate) : null;
-      const checkOut = detail.checkOutDate ? new Date(detail.checkOutDate) : null;
-      const nights =
-        checkIn && checkOut
-          ? Math.max(1, Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24)))
-          : 1;
-
-      return sum + (detail.pricePerNight || 0) * nights;
-    }, 0);
-  }, [booking]);
+    return (booking?.bookingDetails || []).reduce((sum, detail) => sum + getDetailTotal(detail), 0);
+  }, [booking, selectedDetail]);
 
   const bankTransferContent = `HOTEL PAYMENT ${booking?.bookingCode || ""} ${formatCurrency(totalAmount)}`;
+  const singleRoomPaid = selectedDetail ? isBookingDetailPaid(booking, selectedDetail.id) : false;
+  const alreadyPaid = isSingleRoomPayment ? singleRoomPaid : booking?.status === "Confirmed";
+
+  const confirmOnlineMutation = useMutation({
+    mutationFn: async () => {
+      if (!booking) return null;
+      if (booking.status === "Cancelled") {
+        throw new Error("Booking đã hủy, không thể xác nhận thanh toán.");
+      }
+
+      if (selectedDetail?.id) {
+        markBookingDetailPaid(booking.id, selectedDetail.id);
+        const allDetailsPaid = (booking.bookingDetails || []).every(
+          (detail) => detail.id === selectedDetail.id || isBookingDetailPaid(booking, detail.id)
+        );
+
+        if (allDetailsPaid) {
+          markBookingAllPaid(booking);
+          await bookingsApi.updateBookingStatus(booking.id, "Confirmed");
+          return { scope: "all" };
+        }
+
+        return { scope: "detail" };
+      }
+
+      markBookingAllPaid(booking);
+      await bookingsApi.updateBookingStatus(booking.id, "Confirmed");
+      return { scope: "all" };
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ["bookings"] });
+      queryClient.invalidateQueries({ queryKey: ["booking", id] });
+      setConfirmMessage(
+        result?.scope === "detail"
+          ? "Đã xác nhận thanh toán online cho phòng này."
+          : "Đã xác nhận thanh toán online cho toàn bộ booking."
+      );
+    },
+    onError: (error) => {
+      setConfirmMessage(error.message || "Không thể xác nhận thanh toán cho booking đã hủy.");
+    },
+  });
 
   const handleCopy = async () => {
     try {
@@ -79,17 +140,44 @@ const ReceptionistBookingPaymentPage = () => {
             <ArrowLeft size={16} />
             Quay lại bookings
           </button>
-          <h1 className="text-3xl font-black text-slate-900">Mã QR thanh toán</h1>
+          <h1 className="text-3xl font-black text-slate-900">
+            {isSingleRoomPayment ? "Mã QR thanh toán phòng" : "Mã QR thanh toán tất cả"}
+          </h1>
           <p className="mt-1 text-sm text-slate-500">
-            Chọn hình thức thanh toán cho booking {booking?.bookingCode || id}
+            {isSingleRoomPayment
+              ? `Thanh toán cho phòng ${selectedDetail?.roomNumber || selectedDetail?.room?.roomNumber || "--"}`
+              : `Thanh toán toàn bộ booking ${booking?.bookingCode || id}`}
           </p>
         </div>
 
         <div className="rounded-3xl bg-gradient-to-r from-sky-600 to-cyan-500 px-5 py-4 text-white shadow-lg">
-          <p className="text-xs font-bold uppercase tracking-[0.25em] text-white/75">Tổng thanh toán</p>
+          <p className="text-xs font-bold uppercase tracking-[0.25em] text-white/75">
+            {isSingleRoomPayment ? "Thanh toán phòng này" : "Tổng thanh toán"}
+          </p>
           <p className="mt-2 text-3xl font-black">{formatCurrency(totalAmount)}</p>
         </div>
       </div>
+
+      {confirmMessage ? (
+        <div
+          className={`rounded-3xl px-5 py-4 ${
+            confirmMessage.includes("không thể") || confirmMessage.includes("đã hủy")
+              ? "border border-amber-200 bg-amber-50 text-amber-900"
+              : "border border-emerald-200 bg-emerald-50 text-emerald-900"
+          }`}
+        >
+          <div className="flex items-center gap-3">
+            <CircleCheckBig className="text-emerald-600" size={22} />
+            <p className="font-bold">{confirmMessage}</p>
+          </div>
+        </div>
+      ) : null}
+
+      {isCancelled ? (
+        <div className="rounded-3xl border border-rose-200 bg-rose-50 px-5 py-4 text-rose-900">
+          <p className="font-bold">Booking này đã hủy nên không thể thanh toán.</p>
+        </div>
+      ) : null}
 
       <div className="grid gap-6 lg:grid-cols-[360px_minmax(0,1fr)]">
         <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
@@ -140,7 +228,9 @@ const ReceptionistBookingPaymentPage = () => {
             <p className="text-sm font-bold text-slate-700">Booking</p>
             <p className="mt-1 text-lg font-black text-slate-900">{booking?.bookingCode || "--"}</p>
             <p className="mt-3 text-sm text-slate-500">
-              Khách: {booking?.guestName || "Chưa có thông tin"}
+              {isSingleRoomPayment
+                ? `Phòng: ${selectedDetail?.roomNumber || selectedDetail?.room?.roomNumber || "--"}`
+                : `Khách: ${booking?.guestName || "Chưa có thông tin"}`}
             </p>
           </div>
         </div>
@@ -155,7 +245,9 @@ const ReceptionistBookingPaymentPage = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs font-bold uppercase tracking-[0.25em] text-pink-400">MoMo</p>
-                  <p className="mt-2 text-2xl font-black text-slate-900">Ví điện tử MoMo</p>
+                  <p className="mt-2 text-2xl font-black text-slate-900">
+                    {isSingleRoomPayment ? "Ví điện tử cho 1 phòng" : "Ví điện tử MoMo"}
+                  </p>
                 </div>
                 <div className="rounded-2xl bg-pink-100 p-3 text-pink-600">
                   <CircleDollarSign size={24} />
@@ -164,7 +256,7 @@ const ReceptionistBookingPaymentPage = () => {
 
               <div className="mt-6 flex justify-center">
                 <div className="grid h-72 w-72 grid-cols-[repeat(17,minmax(0,1fr))] gap-[2px] rounded-[28px] border-[10px] border-pink-100 bg-white p-3 shadow-inner">
-                  {buildPseudoQr(`MOMO${booking?.bookingCode || ""}`)}
+                  {buildPseudoQr(`MOMO${booking?.bookingCode || ""}${detailId || ""}`)}
                 </div>
               </div>
 
@@ -195,7 +287,7 @@ const ReceptionistBookingPaymentPage = () => {
 
                 <div className="mt-4 flex justify-center">
                   <div className="grid h-80 w-80 grid-cols-[repeat(17,minmax(0,1fr))] gap-[3px] rounded-[30px] border-[12px] border-slate-100 bg-white p-4 shadow-sm">
-                    {buildPseudoQr(`BANK${booking?.bookingCode || ""}${totalAmount}`)}
+                    {buildPseudoQr(`BANK${booking?.bookingCode || ""}${detailId || ""}${totalAmount}`)}
                   </div>
                 </div>
 
@@ -225,6 +317,20 @@ const ReceptionistBookingPaymentPage = () => {
                 >
                   <Copy size={16} />
                   {copied ? "Đã sao chép" : "Sao chép nội dung"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => confirmOnlineMutation.mutate()}
+                  disabled={confirmOnlineMutation.isPending || alreadyPaid || isCancelled}
+                  className="rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-black text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300"
+                >
+                  {alreadyPaid
+                    ? "Đã thanh toán"
+                    : isCancelled
+                      ? "Booking đã hủy"
+                    : confirmOnlineMutation.isPending
+                      ? "Đang xác nhận..."
+                      : "Xác nhận đã thanh toán"}
                 </button>
                 <button
                   type="button"
