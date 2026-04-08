@@ -4,6 +4,7 @@ using backend.Models;
 using backend.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace backend.Controllers
 {
@@ -14,19 +15,26 @@ namespace backend.Controllers
             private readonly AppDbContext _context;
             private readonly NotificationService _notificationService;
             private readonly IEmailService _emailService;
+            private readonly ILogger<VouchersController> _logger;
 
-            public VouchersController(AppDbContext context, NotificationService notificationService, IEmailService emailService)
+            public VouchersController(AppDbContext context, NotificationService notificationService, IEmailService emailService, ILogger<VouchersController> logger)
             {
                 _context = context;
                 _notificationService = notificationService;
                 _emailService = emailService;
+                _logger = logger;
             }
 
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAll([FromQuery] bool includeDeleted = false)
         {
-            var list = await _context.Vouchers
-                .Where(v => !v.IsDeleted)
+            var query = _context.Vouchers.AsQueryable();
+            if (!includeDeleted)
+            {
+                query = query.Where(v => !v.IsDeleted);
+            }
+
+            var list = await query
                 .Select(v => new VoucherDTO
                 {
                     Id = v.Id,
@@ -49,9 +57,9 @@ namespace backend.Controllers
         }
 
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetOne(int id)
+        public async Task<IActionResult> GetOne(int id, [FromQuery] bool includeDeleted = false)
         {
-            var v = await _context.Vouchers.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted);
+            var v = await _context.Vouchers.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id && (includeDeleted || !x.IsDeleted));
             if (v == null) return NotFound();
             var dto = new VoucherDTO
             {
@@ -143,7 +151,6 @@ namespace backend.Controllers
             if (v == null) return NotFound();
 
             var recipients = request.Recipients ?? new List<string>();
-
             // mark voucher as private when sending to specific emails
             if (recipients.Count > 0)
             {
@@ -152,6 +159,7 @@ namespace backend.Controllers
             }
 
             var sent = 0;
+            var failed = new List<string>();
             foreach (var email in recipients)
             {
                 var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
@@ -172,13 +180,14 @@ namespace backend.Controllers
                     await _emailService.SendEmailAsync(email, title, html);
                     sent++;
                 }
-                catch
+                catch (System.Exception ex)
                 {
-                    // ignore send errors per recipient
+                    failed.Add(email);
+                    _logger?.LogError(ex, "Failed to send voucher {VoucherId} to {Email}", v.Id, email);
                 }
             }
 
-            return Ok(new { sent = sent });
+            return Ok(new { sent = sent, failed = failed });
         }
 
         public class SendToBirthdaysRequest
@@ -196,8 +205,8 @@ namespace backend.Controllers
 
             var targetDate = request.Date?.Date ?? DateTime.Today;
             var users = await _context.Users.Where(u => u.DateOfBirth.HasValue && u.DateOfBirth.Value.Day == targetDate.Day && u.DateOfBirth.Value.Month == targetDate.Month).ToListAsync();
-
             var sent = 0;
+            var failed = new List<string>();
             foreach (var user in users)
             {
                 var title = $"Chúc mừng sinh nhật - {v.Code}";
@@ -217,13 +226,27 @@ namespace backend.Controllers
                         sent++;
                     }
                 }
-                catch
+                catch (System.Exception ex)
                 {
-                    // ignore
+                    if (!string.IsNullOrWhiteSpace(user.Email)) failed.Add(user.Email);
+                    _logger?.LogError(ex, "Failed to send voucher {VoucherId} to birthday user {Email}", v.Id, user.Email);
                 }
             }
 
-            return Ok(new { sent = sent });
+            return Ok(new { sent = sent, failed = failed });
+        }
+
+        [HttpPost("{id}/toggle-active")]
+        public async Task<IActionResult> ToggleActive(int id)
+        {
+            var v = await _context.Vouchers.FirstOrDefaultAsync(x => x.Id == id);
+            if (v == null) return NotFound();
+
+            v.IsDeleted = !v.IsDeleted;
+            v.DeletedAt = v.IsDeleted ? DateTime.UtcNow : null;
+            await _context.SaveChangesAsync();
+
+            return Ok(new { isDeleted = v.IsDeleted });
         }
     }
 }

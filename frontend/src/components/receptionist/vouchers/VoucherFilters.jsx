@@ -4,7 +4,11 @@ import { Search } from "lucide-react";
 const VoucherFilters = ({ search, setSearch, activeTab, setActiveTab }) => {
   const tabs = [
     { key: "All", label: "Tất cả" },
+    { key: "Active", label: "Đang dùng" },
+    { key: "Expired", label: "Hết hạn" },
     { key: "Private", label: "Riêng" },
+    { key: "Public", label: "Công khai" },
+    { key: "Deleted", label: "Đã xóa" },
   ];
 
   return (

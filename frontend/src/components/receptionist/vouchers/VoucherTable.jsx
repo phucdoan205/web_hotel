@@ -1,5 +1,5 @@
 import React from "react";
-import { Mail, Trash2, Edit, ChevronLeft, ChevronRight } from "lucide-react";
+import { Eye, ChevronLeft, ChevronRight } from "lucide-react";
 
 const VoucherTable = ({ data = [], onEdit, onDelete, onSend }) => {
   return (
@@ -12,6 +12,7 @@ const VoucherTable = ({ data = [], onEdit, onDelete, onSend }) => {
             <th className="px-6 py-5">Thời gian</th>
             <th className="px-6 py-5 text-center">Số lần</th>
             <th className="px-6 py-5">Loại</th>
+            <th className="px-6 py-5">Trạng thái</th>
             <th className="px-8 py-5 text-right">Hành động</th>
           </tr>
         </thead>
@@ -37,19 +38,23 @@ const VoucherTable = ({ data = [], onEdit, onDelete, onSend }) => {
                 </span>
               </td>
               <td className="px-6 py-5">
-                <span className="px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border bg-gray-50 text-gray-700">
-                  {v.isPrivate ? "Riêng" : "Công khai"}
-                </span>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => typeof onToggle === 'function' && onToggle(v)}
+                    className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors ${!v.isDeleted ? 'bg-blue-500' : 'bg-rose-400'}`}
+                    title={!v.isDeleted ? 'Set deleted' : 'Set active'}
+                  >
+                    <span className={`absolute top-1 size-5 rounded-full bg-white shadow-sm ${!v.isDeleted ? 'left-6' : 'left-1'}`} />
+                  </button>
+                  <span className={`min-w-[52px] text-xs font-bold ${!v.isDeleted ? 'text-blue-600' : 'text-rose-500'}`}>
+                    {!v.isDeleted ? 'Active' : 'Deleted'}
+                  </span>
+                </div>
               </td>
               <td className="px-8 py-5 text-right flex items-center justify-end gap-2">
-                <button onClick={() => onSend && onSend(v)} className="p-2 text-green-500 hover:bg-white rounded-xl transition-all">
-                  <Mail size={16} />
-                </button>
-                <button onClick={() => onEdit && onEdit(v)} className="p-2 text-blue-500 hover:bg-white rounded-xl transition-all">
-                  <Edit size={16} />
-                </button>
-                <button onClick={() => onDelete && onDelete(v)} className="p-2 text-rose-500 hover:bg-white rounded-xl transition-all">
-                  <Trash2 size={16} />
+                <button onClick={() => onEdit && onEdit(v)} className="p-2 text-blue-500 hover:bg-white rounded-xl transition-all" title="View">
+                  <Eye size={16} />
                 </button>
               </td>
             </tr>

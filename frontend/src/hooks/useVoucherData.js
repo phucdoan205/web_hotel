@@ -15,7 +15,7 @@ export const useVoucherData = () => {
   const fetch = async () => {
     setLoading(true);
     try {
-      const res = await vouchersApi.listVouchers();
+      const res = await vouchersApi.listVouchers({ includeDeleted: true });
       setVouchers(res.data ?? []);
     } catch (e) {
       console.error(e);
@@ -41,7 +41,7 @@ export const useVoucherData = () => {
   };
 
   const remove = async (id) => {
-    const res = await vouchersApi.softDeleteVoucher(id);
+    const res = await vouchersApi.toggleActiveVoucher(id);
     await fetch();
     return res;
   };
@@ -66,11 +66,15 @@ export const useVoucherData = () => {
       }
 
       if (activeTab === "Active") {
-        return new Date(v.validFrom) <= new Date() && new Date(v.validTo) >= new Date();
+        return !v.isDeleted && new Date(v.validFrom) <= new Date() && new Date(v.validTo) >= new Date();
       }
 
       if (activeTab === "Expired") {
-        return new Date(v.validTo) < new Date();
+        return !v.isDeleted && new Date(v.validTo) < new Date();
+      }
+
+      if (activeTab === "Deleted") {
+        return v.isDeleted === true;
       }
 
       if (activeTab === "Private") {

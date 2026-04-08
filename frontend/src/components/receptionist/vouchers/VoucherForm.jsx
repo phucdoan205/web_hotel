@@ -11,6 +11,7 @@ const VoucherForm = ({ initial = {}, onSubmit, onCancel }) => {
     validFrom: "",
     validTo: "",
     usageLimit: null,
+    isPrivate: false,
     ...initial,
   });
 
@@ -74,7 +75,17 @@ const VoucherForm = ({ initial = {}, onSubmit, onCancel }) => {
           <input type="number" value={form.usageLimit ?? ''} onChange={(e) => onChange('usageLimit', e.target.value || null)} className="w-full p-3 rounded-2xl bg-gray-50 text-sm font-bold mt-1" />
         </div>
 
-        {/* Private/recipients removed from create form; sending handled separately */}
+        <div>
+          <label className="text-[11px] font-bold text-gray-400">Loại hiển thị</label>
+          <div className="mt-1">
+            <label className="inline-flex items-center gap-3">
+              <input type="checkbox" checked={form.isPrivate} onChange={(e) => onChange('isPrivate', e.target.checked)} className="w-4 h-4" />
+              <span className="text-sm font-bold">Riêng (chỉ người được chỉ định)</span>
+            </label>
+          </div>
+        </div>
+
+        {/* Private checkbox added above. Sending handled separately. */}
       </div>
 
       <div className="flex justify-end gap-2 mt-2">

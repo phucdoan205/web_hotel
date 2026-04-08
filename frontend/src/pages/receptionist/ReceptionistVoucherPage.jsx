@@ -1,10 +1,9 @@
 import React, { useState } from "react";
-import { UserPlus, Gift } from "lucide-react";
+import { UserPlus } from "lucide-react";
 import useVoucherData from "../../hooks/useVoucherData";
 import VoucherFilters from "../../components/receptionist/vouchers/VoucherFilters";
 import VoucherTable from "../../components/receptionist/vouchers/VoucherTable";
 import VoucherForm from "../../components/receptionist/vouchers/VoucherForm";
-import SendVoucherModal from "../../components/receptionist/vouchers/SendVoucherModal";
 
 const ReceptionistVoucherPage = () => {
   const {
@@ -23,8 +22,8 @@ const ReceptionistVoucherPage = () => {
 
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
-  const [showSendModal, setShowSendModal] = useState(false);
-  const [selectedForSend, setSelectedForSend] = useState(null);
+  const [showView, setShowView] = useState(false);
+  const [viewVoucher, setViewVoucher] = useState(null);
 
   const openCreate = () => {
     setEditing(null);
@@ -34,14 +33,15 @@ const ReceptionistVoucherPage = () => {
   const onSave = async (payload) => {
     try {
       if (editing) {
+        // editing removed in UI; keep update path if needed
         await update(editing.id, payload);
-        window.alert("Voucher cập nhật thành công");
       } else {
+        if (!window.confirm("Xác nhận tạo voucher?")) return;
         await create(payload);
-        window.alert("Voucher tạo thành công");
       }
     } catch (e) {
       console.error(e);
+      // keep minimal feedback
       window.alert("Có lỗi xảy ra");
     } finally {
       setShowForm(false);
@@ -49,42 +49,21 @@ const ReceptionistVoucherPage = () => {
   };
 
   const onEdit = (v) => {
-    setEditing(v);
-    setShowForm(true);
+    // Open view-only modal
+    setViewVoucher(v);
+    setShowView(true);
   };
 
-  const onDelete = async (v) => {
-    if (!window.confirm("Bạn có chắc muốn xóa (soft delete) voucher này?")) return;
+  const onToggle = async (v) => {
     try {
       await remove(v.id);
-      window.alert("Voucher đã được xóa (soft delete).");
     } catch (e) {
       console.error(e);
-      window.alert("Xóa thất bại");
+      window.alert("Cập nhật trạng thái thất bại");
     }
   };
 
-  const onSend = (v) => {
-    setSelectedForSend(v);
-    setShowSendModal(true);
-  };
-
-  const handleSendRequest = async (payload) => {
-    try {
-      if (payload.recipients) {
-        // send to specific emails
-        await sendToUsers({ voucherId: payload.voucherId, recipients: payload.recipients, message: payload.message });
-        window.alert("Gửi voucher qua email thành công.");
-      } else {
-        // send to birthdays (or specific date)
-        await sendToBirthdays({ voucherId: payload.voucherId, date: payload.date, message: payload.message });
-        window.alert("Gửi voucher theo ngày đã chọn thành công.");
-      }
-    } catch (e) {
-      console.error(e);
-      window.alert("Gửi thất bại");
-    }
-  };
+  // No top-level send UI (removed per requirements)
 
   return (
     <div className="p-8 bg-[#F9FAFB] min-h-screen space-y-6">
@@ -95,9 +74,6 @@ const ReceptionistVoucherPage = () => {
         </div>
 
         <div className="flex gap-3">
-          <button onClick={() => setShowSendModal(true)} className="flex items-center gap-2 px-5 py-3 bg-white border border-gray-100 rounded-2xl text-xs font-bold text-gray-600 hover:bg-gray-50 transition-all">
-            Gửi Voucher
-          </button>
           <button onClick={openCreate} className="flex items-center gap-2 bg-[#0085FF] text-white px-6 py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-lg shadow-blue-100 hover:bg-blue-600 transition-all">
             <UserPlus size={16} strokeWidth={3} /> Thêm voucher
           </button>
@@ -106,7 +82,7 @@ const ReceptionistVoucherPage = () => {
 
       <VoucherFilters search={search} setSearch={setSearch} activeTab={activeTab} setActiveTab={setActiveTab} />
 
-      <VoucherTable data={filteredVouchers} onEdit={onEdit} onDelete={onDelete} onSend={(v) => onSend(v)} />
+      <VoucherTable data={filteredVouchers} onEdit={onEdit} onToggle={(v) => onToggle(v)} />
 
       <div className="px-4 flex justify-between items-center">
         <p className="text-[11px] font-bold text-gray-400">Hiển thị 1 đến {filteredVouchers.length} kết quả</p>
@@ -116,19 +92,28 @@ const ReceptionistVoucherPage = () => {
       {showForm && (
         <div className="fixed inset-0 bg-black/30 flex items-center justify-center p-6">
           <div className="bg-white rounded-2xl p-6 w-full max-w-4xl">
-            <h3 className="text-lg font-black mb-3">{editing ? "Chỉnh sửa Voucher" : "Tạo Voucher mới"}</h3>
-            <VoucherForm initial={editing ?? { code: generateCode() }} onSubmit={onSave} onCancel={() => setShowForm(false)} />
+            <h3 className="text-lg font-black mb-3">Tạo Voucher mới</h3>
+            <VoucherForm initial={{ code: generateCode() }} onSubmit={onSave} onCancel={() => setShowForm(false)} />
           </div>
         </div>
       )}
 
-      {showSendModal && (
-        <SendVoucherModal
-          vouchers={filteredVouchers}
-          initialVoucher={selectedForSend}
-          onClose={() => { setShowSendModal(false); setSelectedForSend(null); }}
-          onSend={handleSendRequest}
-        />
+      {showView && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center p-6">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-2xl">
+            <h3 className="text-lg font-black mb-3">Xem Voucher</h3>
+            <div className="space-y-2 text-sm">
+              <div><strong>Mã:</strong> {viewVoucher?.code}</div>
+              <div><strong>Loại:</strong> {viewVoucher?.discountType} - {viewVoucher?.discountValue}</div>
+              <div><strong>Thời hạn:</strong> {viewVoucher?.validFrom ? new Date(viewVoucher.validFrom).toLocaleDateString() : '-'} - {viewVoucher?.validTo ? new Date(viewVoucher.validTo).toLocaleDateString() : '-'}</div>
+              <div><strong>Giới hạn sử dụng:</strong> {viewVoucher?.usageLimit ?? '-'}</div>
+              <div><strong>Loại hiển thị:</strong> {viewVoucher?.isPrivate ? 'Riêng' : 'Công khai'}</div>
+            </div>
+            <div className="flex justify-end mt-4">
+              <button onClick={() => setShowView(false)} className="px-6 py-2 rounded-2xl bg-white border">Đóng</button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
