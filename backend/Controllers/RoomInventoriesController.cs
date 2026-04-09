@@ -1,9 +1,11 @@
 using backend.Data;
+using backend.DTOs.Housekeeping;
 using backend.DTOs.RoomInventory;
 using backend.Models;
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
 namespace backend.Controllers
 {
@@ -121,15 +123,67 @@ namespace backend.Controllers
             //    return BadRequest(validation.Errors);
             //}
 
+            Equipment? equipment = null;
+            Room? room = null;
             if (dto.EquipmentId.HasValue)
             {
-                var equipmentExists = await _context.Equipments
-                    .AsNoTracking()
-                    .AnyAsync(e => e.Id == dto.EquipmentId.Value && e.IsActive);
+                equipment = await _context.Equipments
+                    .FirstOrDefaultAsync(e => e.Id == dto.EquipmentId.Value && e.IsActive);
 
-                if (!equipmentExists)
+                if (equipment == null)
                 {
                     return BadRequest("Equipment khong ton tai hoac da ngung su dung.");
+                }
+
+                room = await _context.Rooms
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(r => r.Id == dto.RoomId && !r.IsDeleted);
+
+                if (room == null)
+                {
+                    return BadRequest("Khong tim thay phong.");
+                }
+
+                var availableQuantity = GetAvailableStock(equipment);
+                if (dto.Quantity > availableQuantity)
+                {
+                    var shortageQuantity = Math.Max(0, dto.Quantity - availableQuantity);
+                    var payload = new InventoryShortageNotificationPayloadDTO
+                    {
+                        RoomId = room.Id,
+                        RoomNumber = room.RoomNumber,
+                        EquipmentId = equipment.Id,
+                        EquipmentName = equipment.Name,
+                        EquipmentCode = equipment.ItemCode,
+                        RequestedQuantity = dto.Quantity,
+                        AvailableQuantity = availableQuantity,
+                        ShortageQuantity = shortageQuantity,
+                        Note = string.IsNullOrWhiteSpace(dto.Note) ? null : dto.Note.Trim()
+                    };
+
+                    _context.Notifications.Add(new Notification
+                    {
+                        Title = $"Thieu vat tu phong {room.RoomNumber}",
+                        Content = JsonSerializer.Serialize(payload),
+                        Type = "InventoryShortage",
+                        ReferenceLink = $"/housekeeping/inventory?tab=shortage&roomId={room.Id}",
+                        IsRead = false,
+                        CreatedAt = DateTime.UtcNow
+                    });
+
+                    await _context.SaveChangesAsync();
+
+                    return Conflict(new
+                    {
+                        message = "Ton kho khong du. Da chuyen thong tin qua tab thieu vat tu.",
+                        roomId = room.Id,
+                        roomNumber = room.RoomNumber,
+                        equipmentId = equipment.Id,
+                        equipmentName = equipment.Name,
+                        requestedQuantity = dto.Quantity,
+                        availableQuantity,
+                        shortageQuantity
+                    });
                 }
             }
 
@@ -145,6 +199,18 @@ namespace backend.Controllers
             };
 
             _context.RoomInventory.Add(entity);
+
+            if (equipment != null)
+            {
+                equipment.InUseQuantity += dto.Quantity;
+                equipment.InStockQuantity = CalculateInStockQuantity(
+                    equipment.TotalQuantity,
+                    equipment.InUseQuantity,
+                    equipment.DamagedQuantity,
+                    equipment.LiquidatedQuantity);
+                equipment.UpdatedAt = DateTime.UtcNow;
+            }
+
             await _context.SaveChangesAsync();
 
             var created = await _context.RoomInventory
@@ -154,6 +220,20 @@ namespace backend.Controllers
                 .FirstAsync(ri => ri.Id == entity.Id);
 
             return CreatedAtAction(nameof(GetByRoom), new { roomId = dto.RoomId }, MapRoomInventory(created));
+        }
+
+        private static int GetAvailableStock(Equipment equipment)
+        {
+            return Math.Max(0, equipment.InStockQuantity ?? CalculateInStockQuantity(
+                equipment.TotalQuantity,
+                equipment.InUseQuantity,
+                equipment.DamagedQuantity,
+                equipment.LiquidatedQuantity));
+        }
+
+        private static int CalculateInStockQuantity(int totalQuantity, int inUseQuantity, int damagedQuantity, int liquidatedQuantity)
+        {
+            return Math.Max(0, totalQuantity - inUseQuantity - damagedQuantity - liquidatedQuantity);
         }
 
         [HttpPut("{id:int}")]

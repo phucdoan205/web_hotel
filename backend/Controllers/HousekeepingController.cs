@@ -4,9 +4,11 @@ using backend.DTOs.Housekeeping;
 using backend.DTOs.RoomInventory;
 using backend.Models;
 using backend.Services;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Text;
+using System.Text.Json;
 
 namespace backend.Controllers
 {
@@ -209,12 +211,103 @@ namespace backend.Controllers
         [RequestSizeLimit(20_000_000)]
         public async Task<ActionResult<ReportInventoryIssueResponseDTO>> ReportInventoryIssue([FromForm] ReportInventoryIssueRequestDTO request)
         {
+            return await CreateInventoryIssueAsync(
+                request.RoomInventoryId,
+                request.Quantity,
+                request.Description,
+                request.ImageFile,
+                requireTaskAssignment: true);
+        }
+
+        [HttpPost("inventory-issues/manual")]
+        [Consumes("multipart/form-data")]
+        [RequestSizeLimit(20_000_000)]
+        public async Task<ActionResult<ReportInventoryIssueResponseDTO>> ReportInventoryIssueManual([FromForm] ManualInventoryIssueRequestDTO request)
+        {
+            return await CreateInventoryIssueAsync(
+                request.RoomInventoryId,
+                request.Quantity,
+                request.Description,
+                request.ImageFile,
+                requireTaskAssignment: false);
+        }
+
+        [HttpGet("inventory-reports")]
+        public async Task<ActionResult<HousekeepingInventoryReportResponseDTO>> GetInventoryReports()
+        {
+            var shortageNotifications = await _context.Notifications
+                .AsNoTracking()
+                .Where(notification => notification.Type == "InventoryShortage")
+                .OrderByDescending(notification => notification.CreatedAt)
+                .ToListAsync();
+
+            var shortageReports = shortageNotifications
+                .Select(MapShortageNotification)
+                .Where(item => item != null)
+                .Cast<HousekeepingShortageReportItemDTO>()
+                .ToList();
+
+            var lossDamageReports = await _context.LossAndDamages
+                .AsNoTracking()
+                .Include(issue => issue.RoomInventory)
+                    .ThenInclude(roomInventory => roomInventory!.Room)
+                .Include(issue => issue.RoomInventory)
+                    .ThenInclude(roomInventory => roomInventory!.Equipment)
+                .OrderByDescending(issue => issue.CreatedAt)
+                .Select(issue => new HousekeepingLossDamageReportItemDTO
+                {
+                    Id = issue.Id,
+                    RoomInventoryId = issue.RoomInventoryId ?? 0,
+                    RoomId = issue.RoomInventory != null ? issue.RoomInventory.RoomId : null,
+                    RoomNumber = issue.RoomInventory != null && issue.RoomInventory.Room != null
+                        ? issue.RoomInventory.Room.RoomNumber
+                        : "-",
+                    EquipmentId = issue.RoomInventory != null ? issue.RoomInventory.EquipmentId : null,
+                    EquipmentName = issue.RoomInventory != null
+                        ? issue.RoomInventory.Equipment != null
+                            ? issue.RoomInventory.Equipment.Name
+                            : issue.RoomInventory.ItemType ?? "Vat tu"
+                        : "Vat tu",
+                    EquipmentCode = issue.RoomInventory != null && issue.RoomInventory.Equipment != null
+                        ? issue.RoomInventory.Equipment.ItemCode
+                        : null,
+                    Quantity = issue.Quantity,
+                    UnitPenalty = issue.Quantity > 0
+                        ? decimal.Round(issue.PenaltyAmount / issue.Quantity, 2)
+                        : 0,
+                    PenaltyAmount = issue.PenaltyAmount,
+                    Description = issue.Description,
+                    ImageUrl = issue.ImageUrl,
+                    CreatedAt = issue.CreatedAt
+                })
+                .ToListAsync();
+
+            return Ok(new HousekeepingInventoryReportResponseDTO
+            {
+                ShortageReports = shortageReports,
+                LossDamageReports = lossDamageReports,
+                ShortageReportCount = shortageReports.Count,
+                ShortageUnitCount = shortageReports.Sum(item => item.ShortageQuantity),
+                LossDamageReportCount = lossDamageReports.Count,
+                LossDamageUnitCount = lossDamageReports.Sum(item => item.Quantity),
+                TotalPenaltyAmount = lossDamageReports.Sum(item => item.PenaltyAmount)
+            });
+        }
+
+        private async Task<ActionResult<ReportInventoryIssueResponseDTO>> CreateInventoryIssueAsync(
+            int roomInventoryId,
+            int quantity,
+            string? description,
+            IFormFile? imageFile,
+            bool requireTaskAssignment)
+        {
             var currentUserId = ResolveCurrentUserId();
             if (!currentUserId.HasValue)
             {
                 return Unauthorized("Missing X-User-Id header.");
             }
-            if (request.Quantity <= 0)
+
+            if (quantity <= 0)
             {
                 return BadRequest("So luong hu hong phai lon hon 0.");
             }
@@ -222,20 +315,20 @@ namespace backend.Controllers
             var roomInventory = await _context.RoomInventory
                 .Include(ri => ri.Room)
                 .Include(ri => ri.Equipment)
-                .FirstOrDefaultAsync(ri => ri.Id == request.RoomInventoryId);
+                .FirstOrDefaultAsync(ri => ri.Id == roomInventoryId);
 
             if (roomInventory == null || roomInventory.Room == null)
             {
                 return NotFound("Khong tim thay vat tu phong.");
             }
 
-            if (!_taskLockService.IsAssignedTo(roomInventory.Room.Id, currentUserId.Value))
+            if (requireTaskAssignment && !_taskLockService.IsAssignedTo(roomInventory.Room.Id, currentUserId.Value))
             {
                 return StatusCode(403, "Ban khong the bao hong do phong nay do nguoi khac phu trach.");
             }
 
             var currentQuantity = roomInventory.Quantity ?? 0;
-            if (request.Quantity > currentQuantity)
+            if (quantity > currentQuantity)
             {
                 return BadRequest("So luong bao hong vuot qua so luong vat tu hien co trong phong.");
             }
@@ -247,13 +340,13 @@ namespace backend.Controllers
             }
 
             var unitPenalty = roomInventory.PriceIfLost ?? equipment.DefaultPriceIfLost;
-            var totalPenalty = unitPenalty * request.Quantity;
+            var totalPenalty = unitPenalty * quantity;
             string? imageUrl = null;
 
-            if (request.ImageFile != null)
+            if (imageFile != null)
             {
                 var folder = $"home/broke/{Slugify(roomInventory.Room.RoomNumber)}";
-                imageUrl = await _cloudinaryService.UploadImageAsync(request.ImageFile, folder);
+                imageUrl = await _cloudinaryService.UploadImageAsync(imageFile, folder);
 
                 if (string.IsNullOrWhiteSpace(imageUrl))
                 {
@@ -261,11 +354,11 @@ namespace backend.Controllers
                 }
             }
 
-            roomInventory.Quantity = currentQuantity - request.Quantity;
+            roomInventory.Quantity = currentQuantity - quantity;
             roomInventory.IsActive = (roomInventory.Quantity ?? 0) > 0;
 
-            equipment.DamagedQuantity += request.Quantity;
-            equipment.InUseQuantity = Math.Max(0, equipment.InUseQuantity - request.Quantity);
+            equipment.DamagedQuantity += quantity;
+            equipment.InUseQuantity = Math.Max(0, equipment.InUseQuantity - quantity);
             equipment.InStockQuantity = CalculateInStockQuantity(
                 equipment.TotalQuantity,
                 equipment.InUseQuantity,
@@ -276,9 +369,9 @@ namespace backend.Controllers
             var issue = new LossAndDamage
             {
                 RoomInventoryId = roomInventory.Id,
-                Quantity = request.Quantity,
+                Quantity = quantity,
                 PenaltyAmount = totalPenalty,
-                Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim(),
+                Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim(),
                 CreatedAt = DateTime.UtcNow,
                 ImageUrl = imageUrl
             };
@@ -293,7 +386,7 @@ namespace backend.Controllers
                 EquipmentId = equipment.Id,
                 RoomNumber = roomInventory.Room.RoomNumber,
                 EquipmentName = equipment.Name,
-                Quantity = request.Quantity,
+                Quantity = quantity,
                 UnitPenalty = unitPenalty,
                 PenaltyAmount = totalPenalty,
                 RemainingRoomQuantity = roomInventory.Quantity ?? 0,
@@ -302,6 +395,42 @@ namespace backend.Controllers
                 EquipmentInStockQuantity = equipment.InStockQuantity,
                 ImageUrl = imageUrl
             });
+        }
+
+        private static HousekeepingShortageReportItemDTO? MapShortageNotification(Notification notification)
+        {
+            if (string.IsNullOrWhiteSpace(notification.Content))
+            {
+                return null;
+            }
+
+            try
+            {
+                var payload = JsonSerializer.Deserialize<InventoryShortageNotificationPayloadDTO>(notification.Content);
+                if (payload == null)
+                {
+                    return null;
+                }
+
+                return new HousekeepingShortageReportItemDTO
+                {
+                    NotificationId = notification.Id,
+                    RoomId = payload.RoomId,
+                    RoomNumber = payload.RoomNumber,
+                    EquipmentId = payload.EquipmentId,
+                    EquipmentName = payload.EquipmentName,
+                    EquipmentCode = payload.EquipmentCode,
+                    RequestedQuantity = payload.RequestedQuantity,
+                    AvailableQuantity = payload.AvailableQuantity,
+                    ShortageQuantity = payload.ShortageQuantity,
+                    Note = payload.Note,
+                    CreatedAt = notification.CreatedAt
+                };
+            }
+            catch (JsonException)
+            {
+                return null;
+            }
         }
 
         private HousekeepingTaskItemDTO MapTaskItem(Room room, int? currentUserId, int? assignedUserId)

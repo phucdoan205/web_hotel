@@ -1,42 +1,42 @@
 import { NavLink } from "react-router-dom";
 import {
+  BarChart3,
+  Box,
+  CheckSquare,
   LayoutDashboard,
   List,
-  CheckSquare,
-  Box,
-  Users,
-  BarChart3,
   Settings,
+  Users,
 } from "lucide-react";
 
 const menuItems = [
   {
     id: "overview",
-    label: "Tổng quan",
+    label: "Tong quan",
     icon: LayoutDashboard,
     path: "/housekeeping",
   },
   {
     id: "room-list",
-    label: "Danh sách phòng",
+    label: "Danh sach phong",
     icon: List,
     path: "/housekeeping/rooms",
   },
   {
     id: "tasks",
-    label: "Nhiệm vụ dọn dẹp",
+    label: "Nhiem vu don dep",
     icon: CheckSquare,
     path: "/housekeeping/tasks",
   },
   {
     id: "inventory",
-    label: "Quản lý vật tư",
+    label: "That thoat & den bu",
     icon: Box,
     path: "/housekeeping/inventory",
   },
   {
     id: "staff",
-    label: "Nhân sự & Ca làm",
+    label: "Nhan su & Ca lam",
     icon: Users,
     path: "/housekeeping/staff",
   },
@@ -45,13 +45,13 @@ const menuItems = [
 const secondaryItems = [
   {
     id: "reports",
-    label: "Báo cáo & Thống kê",
+    label: "Bao cao & Thong ke",
     icon: BarChart3,
     path: "/housekeeping/reports",
   },
   {
     id: "settings",
-    label: "Cài đặt",
+    label: "Cai dat",
     icon: Settings,
     path: "/housekeeping/settings",
   },
@@ -67,11 +67,9 @@ export default function Sidebar() {
           </div>
           <div>
             <h2 className="text-[11px] font-black uppercase leading-none tracking-tighter text-gray-900">
-              QUẢN LÝ KHÁCH SẠN
+              QUAN LY KHACH SAN
             </h2>
-            <p className="mt-1 text-[9px] font-bold uppercase text-[#0085FF]">
-              Housekeeping MS
-            </p>
+            <p className="mt-1 text-[9px] font-bold uppercase text-[#0085FF]">Housekeeping MS</p>
           </div>
         </div>
       </div>

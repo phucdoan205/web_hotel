@@ -46,4 +46,29 @@ export const housekeepingApi = {
 
     return response.data;
   },
+  reportInventoryIssueManual: async (payload) => {
+    const formData = new FormData();
+    formData.append("roomInventoryId", payload.roomInventoryId);
+    formData.append("quantity", payload.quantity);
+
+    if (payload.description) {
+      formData.append("description", payload.description);
+    }
+
+    if (payload.imageFile) {
+      formData.append("imageFile", payload.imageFile);
+    }
+
+    const response = await apiClient.post("/Housekeeping/inventory-issues/manual", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+
+    return response.data;
+  },
+  getInventoryReports: async () => {
+    const response = await apiClient.get("/Housekeeping/inventory-reports");
+    return response.data;
+  },
 };
