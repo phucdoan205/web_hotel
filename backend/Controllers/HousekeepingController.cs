@@ -499,18 +499,42 @@ namespace backend.Controllers
                     return null;
                 }
 
+                var details = payload.Items?.Any() == true
+                    ? payload.Items
+                    : new List<InventoryShortageDetailDTO>
+                    {
+                        new()
+                        {
+                            EquipmentId = payload.EquipmentId,
+                            EquipmentName = payload.EquipmentName,
+                            EquipmentCode = payload.EquipmentCode,
+                            RequestedQuantity = payload.RequestedQuantity,
+                            AvailableQuantity = payload.AvailableQuantity,
+                            ShortageQuantity = payload.ShortageQuantity,
+                            Note = payload.Note
+                        }
+                    };
+
+                var firstItem = details.FirstOrDefault();
+
                 return new HousekeepingShortageReportItemDTO
                 {
                     NotificationId = notification.Id,
                     RoomId = payload.RoomId,
                     RoomNumber = payload.RoomNumber,
-                    EquipmentId = payload.EquipmentId,
-                    EquipmentName = payload.EquipmentName,
-                    EquipmentCode = payload.EquipmentCode,
-                    RequestedQuantity = payload.RequestedQuantity,
-                    AvailableQuantity = payload.AvailableQuantity,
-                    ShortageQuantity = payload.ShortageQuantity,
-                    Note = payload.Note,
+                    Reason = payload.Reason,
+                    SourceRoomId = payload.SourceRoomId,
+                    SourceRoomNumber = payload.SourceRoomNumber,
+                    EquipmentId = details.Count == 1 ? firstItem?.EquipmentId : null,
+                    EquipmentName = details.Count == 1
+                        ? firstItem?.EquipmentName ?? payload.EquipmentName
+                        : $"{details.Count} vật tư thiếu",
+                    EquipmentCode = details.Count == 1 ? firstItem?.EquipmentCode : null,
+                    RequestedQuantity = details.Sum(item => item.RequestedQuantity),
+                    AvailableQuantity = details.Sum(item => item.AvailableQuantity),
+                    ShortageQuantity = details.Sum(item => item.ShortageQuantity),
+                    Note = details.Count == 1 ? firstItem?.Note : payload.Note,
+                    ShortageDetails = details,
                     CreatedAt = notification.CreatedAt,
                     ResolutionType = "Pending"
                 };
@@ -621,15 +645,9 @@ namespace backend.Controllers
                 throw new InvalidOperationException("Du lieu bao cao thieu vat tu khong hop le.");
             }
 
-            if (payload == null || !payload.EquipmentId.HasValue)
+            if (payload == null)
             {
                 throw new InvalidOperationException("Khong tim thay thong tin vat tu de bo sung.");
-            }
-
-            var equipment = await _context.Equipments.FirstOrDefaultAsync(item => item.Id == payload.EquipmentId.Value && item.IsActive);
-            if (equipment == null)
-            {
-                throw new InvalidOperationException("Vat tu da ngung su dung hoac khong ton tai.");
             }
 
             var room = await _context.Rooms.FirstOrDefaultAsync(item => item.Id == payload.RoomId && !item.IsDeleted);
@@ -638,56 +656,97 @@ namespace backend.Controllers
                 throw new InvalidOperationException("Phong khong ton tai de bo sung vat tu.");
             }
 
-            var requiredQuantity = quantity ?? payload.ShortageQuantity;
-            var availableStock = GetAvailableStock(equipment);
-            if (requiredQuantity <= 0)
-            {
-                throw new InvalidOperationException("So luong vat tu can bo sung khong hop le.");
-            }
-
-            if (requiredQuantity > payload.ShortageQuantity)
-            {
-                throw new InvalidOperationException("So luong bo sung khong duoc vuot qua so luong vat tu dang thieu.");
-            }
-
-            if (availableStock < requiredQuantity)
-            {
-                throw new InvalidOperationException("Ton kho khong du de bo sung vat tu nay vao phong.");
-            }
-
-            var roomInventory = await _context.RoomInventory
-                .FirstOrDefaultAsync(item =>
-                    item.RoomId == room.Id &&
-                    item.EquipmentId == equipment.Id);
-
-            if (roomInventory == null)
-            {
-                roomInventory = new RoomInventory
+            var shortageItems = payload.Items?.Any() == true
+                ? payload.Items
+                : new List<InventoryShortageDetailDTO>
                 {
-                    RoomId = room.Id,
-                    EquipmentId = equipment.Id,
-                    ItemType = equipment.Name,
-                    Quantity = requiredQuantity,
-                    PriceIfLost = equipment.DefaultPriceIfLost,
-                    Note = payload.Note,
-                    IsActive = true
+                    new()
+                    {
+                        EquipmentId = payload.EquipmentId,
+                        EquipmentName = payload.EquipmentName,
+                        EquipmentCode = payload.EquipmentCode,
+                        RequestedQuantity = payload.RequestedQuantity,
+                        AvailableQuantity = payload.AvailableQuantity,
+                        ShortageQuantity = payload.ShortageQuantity,
+                        Note = payload.Note
+                    }
                 };
 
-                _context.RoomInventory.Add(roomInventory);
-            }
-            else
+            if (shortageItems.Count == 0)
             {
-                roomInventory.Quantity = (roomInventory.Quantity ?? 0) + requiredQuantity;
-                roomInventory.IsActive = true;
+                throw new InvalidOperationException("Bao cao thieu vat tu khong co chi tiet de xu ly.");
             }
 
-            equipment.InUseQuantity += requiredQuantity;
-            equipment.InStockQuantity = CalculateInStockQuantity(
-                equipment.TotalQuantity,
-                equipment.InUseQuantity,
-                equipment.DamagedQuantity,
-                equipment.LiquidatedQuantity);
-            equipment.UpdatedAt = DateTime.UtcNow;
+            if (quantity.HasValue && shortageItems.Count > 1)
+            {
+                throw new InvalidOperationException("Bao cao clone nhieu vat tu phai xu ly toan bo danh sach thieu.");
+            }
+
+            foreach (var shortageItem in shortageItems)
+            {
+                if (!shortageItem.EquipmentId.HasValue)
+                {
+                    throw new InvalidOperationException("Khong tim thay thong tin vat tu de bo sung.");
+                }
+
+                var equipment = await _context.Equipments.FirstOrDefaultAsync(item => item.Id == shortageItem.EquipmentId.Value && item.IsActive);
+                if (equipment == null)
+                {
+                    throw new InvalidOperationException($"Vat tu {shortageItem.EquipmentName} da ngung su dung hoac khong ton tai.");
+                }
+
+                var requiredQuantity = quantity ?? shortageItem.ShortageQuantity;
+                var availableStock = GetAvailableStock(equipment);
+
+                if (requiredQuantity <= 0)
+                {
+                    throw new InvalidOperationException("So luong vat tu can bo sung khong hop le.");
+                }
+
+                if (requiredQuantity > shortageItem.ShortageQuantity)
+                {
+                    throw new InvalidOperationException("So luong bo sung khong duoc vuot qua so luong vat tu dang thieu.");
+                }
+
+                if (availableStock < requiredQuantity)
+                {
+                    throw new InvalidOperationException($"Ton kho khong du de bo sung vat tu {shortageItem.EquipmentName} vao phong.");
+                }
+
+                var roomInventory = await _context.RoomInventory
+                    .FirstOrDefaultAsync(item =>
+                        item.RoomId == room.Id &&
+                        item.EquipmentId == equipment.Id);
+
+                if (roomInventory == null)
+                {
+                    roomInventory = new RoomInventory
+                    {
+                        RoomId = room.Id,
+                        EquipmentId = equipment.Id,
+                        ItemType = equipment.Name,
+                        Quantity = requiredQuantity,
+                        PriceIfLost = equipment.DefaultPriceIfLost,
+                        Note = shortageItem.Note ?? payload.Note,
+                        IsActive = true
+                    };
+
+                    _context.RoomInventory.Add(roomInventory);
+                }
+                else
+                {
+                    roomInventory.Quantity = (roomInventory.Quantity ?? 0) + requiredQuantity;
+                    roomInventory.IsActive = true;
+                }
+
+                equipment.InUseQuantity += requiredQuantity;
+                equipment.InStockQuantity = CalculateInStockQuantity(
+                    equipment.TotalQuantity,
+                    equipment.InUseQuantity,
+                    equipment.DamagedQuantity,
+                    equipment.LiquidatedQuantity);
+                equipment.UpdatedAt = DateTime.UtcNow;
+            }
         }
 
         private static int GetAvailableStock(Equipment equipment)

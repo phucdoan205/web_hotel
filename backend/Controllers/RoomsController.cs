@@ -281,7 +281,7 @@ namespace backend.Controllers
             var q = _context.Rooms
                 .AsNoTracking()
                 .Include(r => r.RoomType)
-                    .ThenInclude(rt => rt.RoomTypeAmenities)
+                    .ThenInclude(rt => rt!.RoomTypeAmenities)
                         .ThenInclude(rta => rta.Amenity)
                 .Where(r => !r.IsDeleted && r.Status == RoomStatuses.Available);
 

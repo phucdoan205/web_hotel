@@ -57,7 +57,7 @@ namespace backend.Controllers
                 var normalized = search.Trim().ToLower();
                 query = query.Where(b =>
                     b.BookingCode.ToLower().Contains(normalized) ||
-                    (b.Guest != null && b.Guest.Name.ToLower().Contains(normalized)) ||
+                    (b.Guest != null && b.Guest.Name != null && b.Guest.Name.ToLower().Contains(normalized)) ||
                     b.BookingDetails.Any(bd => bd.Room != null &&
                         bd.Room.RoomNumber.ToLower().Contains(normalized)));
             }

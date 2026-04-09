@@ -2,7 +2,6 @@ using backend.Data;
 using backend.DTOs.Housekeeping;
 using backend.DTOs.RoomInventory;
 using backend.Models;
-using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
@@ -14,63 +13,10 @@ namespace backend.Controllers
     public class RoomInventoriesController : ControllerBase
     {
         private readonly AppDbContext _context;
-        //private readonly IValidator<CreateRoomInventoryDTO> _createValidator;
-        //private readonly IValidator<UpdateRoomInventoryDTO> _updateValidator;
-        //private readonly IValidator<CloneRoomInventoryDTO> _cloneValidator;
 
-        public RoomInventoriesController(
-            AppDbContext context
-            //IValidator<CreateRoomInventoryDTO> createValidator,
-            //IValidator<UpdateRoomInventoryDTO> updateValidator,
-            //IValidator<CloneRoomInventoryDTO> cloneValidator
-            )
+        public RoomInventoriesController(AppDbContext context)
         {
             _context = context;
-            //_createValidator = createValidator;
-            //_updateValidator = updateValidator;
-            //_cloneValidator = cloneValidator;
-        }
-
-        private async Task<Equipment?> ResolveEquipmentAsync(int? equipmentId, string? itemName, decimal? priceIfLost)
-        {
-            if (equipmentId.HasValue)
-            {
-                return await _context.Equipments.FirstOrDefaultAsync(e => e.Id == equipmentId.Value && e.IsActive);
-            }
-
-            if (string.IsNullOrWhiteSpace(itemName))
-            {
-                return null;
-            }
-
-            var normalizedName = itemName.Trim();
-            var equipment = await _context.Equipments.FirstOrDefaultAsync(e => e.Name == normalizedName);
-            if (equipment != null)
-            {
-                return equipment;
-            }
-
-            var now = DateTime.UtcNow;
-            equipment = new Equipment
-            {
-                ItemCode = $"EQ-{now:yyyyMMddHHmmssfff}",
-                Name = normalizedName,
-                Category = "General",
-                Unit = "Item",
-                TotalQuantity = 0,
-                InUseQuantity = 0,
-                DamagedQuantity = 0,
-                LiquidatedQuantity = 0,
-                InStockQuantity = 0,
-                BasePrice = priceIfLost ?? 0,
-                DefaultPriceIfLost = priceIfLost ?? 0,
-                IsActive = true,
-                CreatedAt = now
-            };
-
-            _context.Equipments.Add(equipment);
-            await _context.SaveChangesAsync();
-            return equipment;
         }
 
         private static RoomInventoryDTO MapRoomInventory(RoomInventory item)
@@ -117,14 +63,9 @@ namespace backend.Controllers
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateRoomInventoryDTO dto)
         {
-            //var validation = await _createValidator.ValidateAsync(dto);
-            //if (!validation.IsValid)
-            //{
-            //    return BadRequest(validation.Errors);
-            //}
-
             Equipment? equipment = null;
             Room? room = null;
+
             if (dto.EquipmentId.HasValue)
             {
                 equipment = await _context.Equipments
@@ -147,30 +88,27 @@ namespace backend.Controllers
                 var availableQuantity = GetAvailableStock(equipment);
                 if (dto.Quantity > availableQuantity)
                 {
-                    var shortageQuantity = Math.Max(0, dto.Quantity - availableQuantity);
-                    var payload = new InventoryShortageNotificationPayloadDTO
+                    var shortageDetails = new List<InventoryShortageDetailDTO>
                     {
-                        RoomId = room.Id,
-                        RoomNumber = room.RoomNumber,
-                        EquipmentId = equipment.Id,
-                        EquipmentName = equipment.Name,
-                        EquipmentCode = equipment.ItemCode,
-                        RequestedQuantity = dto.Quantity,
-                        AvailableQuantity = availableQuantity,
-                        ShortageQuantity = shortageQuantity,
-                        Note = string.IsNullOrWhiteSpace(dto.Note) ? null : dto.Note.Trim()
+                        new()
+                        {
+                            EquipmentId = equipment.Id,
+                            EquipmentName = equipment.Name,
+                            EquipmentCode = equipment.ItemCode,
+                            RequestedQuantity = dto.Quantity,
+                            AvailableQuantity = availableQuantity,
+                            ShortageQuantity = Math.Max(0, dto.Quantity - availableQuantity),
+                            Note = string.IsNullOrWhiteSpace(dto.Note) ? null : dto.Note.Trim()
+                        }
                     };
 
-                    _context.Notifications.Add(new Notification
-                    {
-                        Title = $"Thieu vat tu phong {room.RoomNumber}",
-                        Content = JsonSerializer.Serialize(payload),
-                        Type = "InventoryShortage",
-                        ReferenceLink = $"/housekeeping/inventory?tab=shortage&roomId={room.Id}",
-                        IsRead = false,
-                        CreatedAt = DateTime.UtcNow
-                    });
+                    var notification = BuildShortageNotification(
+                        room,
+                        "ManualAdd",
+                        shortageDetails,
+                        sourceRoom: null);
 
+                    _context.Notifications.Add(notification);
                     await _context.SaveChangesAsync();
 
                     return Conflict(new
@@ -182,7 +120,7 @@ namespace backend.Controllers
                         equipmentName = equipment.Name,
                         requestedQuantity = dto.Quantity,
                         availableQuantity,
-                        shortageQuantity
+                        shortageQuantity = shortageDetails[0].ShortageQuantity
                     });
                 }
             }
@@ -222,20 +160,6 @@ namespace backend.Controllers
             return CreatedAtAction(nameof(GetByRoom), new { roomId = dto.RoomId }, MapRoomInventory(created));
         }
 
-        private static int GetAvailableStock(Equipment equipment)
-        {
-            return Math.Max(0, equipment.InStockQuantity ?? CalculateInStockQuantity(
-                equipment.TotalQuantity,
-                equipment.InUseQuantity,
-                equipment.DamagedQuantity,
-                equipment.LiquidatedQuantity));
-        }
-
-        private static int CalculateInStockQuantity(int totalQuantity, int inUseQuantity, int damagedQuantity, int liquidatedQuantity)
-        {
-            return Math.Max(0, totalQuantity - inUseQuantity - damagedQuantity - liquidatedQuantity);
-        }
-
         [HttpPut("{id:int}")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateRoomInventoryDTO dto)
         {
@@ -254,12 +178,6 @@ namespace backend.Controllers
                 return BadRequest("Phong da bi xoa hoac khong ton tai.");
             }
 
-            //var validation = await _updateValidator.ValidateAsync(dto);
-            //if (!validation.IsValid)
-            //{
-            //    return BadRequest(validation.Errors);
-            //}
-
             if (dto.EquipmentId.HasValue)
             {
                 var equipmentExists = await _context.Equipments
@@ -275,15 +193,29 @@ namespace backend.Controllers
             }
 
             if (dto.Quantity.HasValue)
+            {
                 item.Quantity = dto.Quantity.Value;
+            }
+
             if (dto.PriceIfLost.HasValue)
+            {
                 item.PriceIfLost = dto.PriceIfLost.Value;
+            }
+
             if (dto.ItemType != null)
+            {
                 item.ItemType = string.IsNullOrWhiteSpace(dto.ItemType) ? null : dto.ItemType.Trim();
+            }
+
             if (dto.Note != null)
+            {
                 item.Note = dto.Note;
+            }
+
             if (dto.IsActive.HasValue)
+            {
                 item.IsActive = dto.IsActive.Value;
+            }
 
             await _context.SaveChangesAsync();
             return NoContent();
@@ -321,18 +253,27 @@ namespace backend.Controllers
         }
 
         [HttpPost("clone")]
-        public async Task<ActionResult<RoomInventoryDTO>> Clone([FromBody] CloneRoomInventoryDTO dto)
+        public async Task<ActionResult<CloneRoomInventoryResponseDTO>> Clone([FromBody] CloneRoomInventoryDTO dto)
         {
-            //var validation = await _cloneValidator.ValidateAsync(dto);
-            //if (!validation.IsValid)
-            //{
-            //    return BadRequest(validation.Errors);
-            //}
+            if (dto.SourceRoomId.HasValue)
+            {
+                return await CloneFromRoomAsync(dto);
+            }
 
+            if (!dto.SourceInventoryId.HasValue)
+            {
+                return BadRequest("Can cung cap SourceInventoryId hoac SourceRoomId.");
+            }
+
+            return await CloneSingleInventoryAsync(dto);
+        }
+
+        private async Task<ActionResult<CloneRoomInventoryResponseDTO>> CloneSingleInventoryAsync(CloneRoomInventoryDTO dto)
+        {
             var source = await _context.RoomInventory
                 .Include(ri => ri.Equipment)
-                .AsNoTracking()
-                .FirstOrDefaultAsync(ri => ri.Id == dto.SourceInventoryId);
+                .Include(ri => ri.Room)
+                .FirstOrDefaultAsync(ri => ri.Id == dto.SourceInventoryId!.Value);
 
             if (source == null)
             {
@@ -345,44 +286,374 @@ namespace backend.Controllers
             }
 
             var targetRoomId = dto.TargetRoomId ?? source.RoomId.Value;
+            var targetRoom = await _context.Rooms.FirstOrDefaultAsync(r => r.Id == targetRoomId && !r.IsDeleted);
+            if (targetRoom == null)
+            {
+                return BadRequest("Phong dich khong ton tai.");
+            }
+
             var finalQuantity = dto.NewQuantity ?? source.Quantity ?? 0;
             var finalEquipmentId = dto.NewEquipmentId ?? source.EquipmentId;
-            var finalItemType = dto.NewItemType ?? source.ItemType;
+            var finalItemType = string.IsNullOrWhiteSpace(dto.NewItemType) ? source.ItemType : dto.NewItemType.Trim();
             var finalNote = dto.NewNote ?? source.Note;
+
+            if (finalQuantity <= 0)
+            {
+                return BadRequest("So luong clone phai lon hon 0.");
+            }
+
+            var shortageDetails = new List<InventoryShortageDetailDTO>();
 
             if (finalEquipmentId.HasValue)
             {
-                var equipmentExists = await _context.Equipments
-                    .AsNoTracking()
-                    .AnyAsync(e => e.Id == finalEquipmentId.Value && e.IsActive);
-
-                if (!equipmentExists)
+                var equipment = await _context.Equipments.FirstOrDefaultAsync(e => e.Id == finalEquipmentId.Value && e.IsActive);
+                if (equipment == null)
                 {
                     return BadRequest("Equipment khong ton tai hoac da ngung su dung.");
                 }
+
+                var availableStock = GetAvailableStock(equipment);
+                var quantityToAssign = Math.Min(finalQuantity, availableStock);
+                var shortageQuantity = Math.Max(0, finalQuantity - quantityToAssign);
+
+                if (quantityToAssign > 0)
+                {
+                    await UpsertRoomInventoryAsync(
+                        targetRoom.Id,
+                        finalEquipmentId,
+                        finalItemType,
+                        quantityToAssign,
+                        source.PriceIfLost,
+                        finalNote,
+                        source.IsActive);
+
+                    equipment.InUseQuantity += quantityToAssign;
+                    equipment.InStockQuantity = CalculateInStockQuantity(
+                        equipment.TotalQuantity,
+                        equipment.InUseQuantity,
+                        equipment.DamagedQuantity,
+                        equipment.LiquidatedQuantity);
+                    equipment.UpdatedAt = DateTime.UtcNow;
+                }
+
+                if (shortageQuantity > 0)
+                {
+                    shortageDetails.Add(new InventoryShortageDetailDTO
+                    {
+                        EquipmentId = equipment.Id,
+                        EquipmentName = equipment.Name,
+                        EquipmentCode = equipment.ItemCode,
+                        RequestedQuantity = finalQuantity,
+                        AvailableQuantity = availableStock,
+                        ShortageQuantity = shortageQuantity,
+                        Note = finalNote
+                    });
+                }
+            }
+            else
+            {
+                await UpsertRoomInventoryAsync(
+                    targetRoom.Id,
+                    null,
+                    finalItemType,
+                    finalQuantity,
+                    source.PriceIfLost,
+                    finalNote,
+                    source.IsActive);
             }
 
-            var clone = new RoomInventory
+            Notification? shortageNotification = null;
+            if (shortageDetails.Count > 0)
             {
-                RoomId = targetRoomId,
-                EquipmentId = finalEquipmentId,
-                Quantity = finalQuantity,
-                PriceIfLost = source.PriceIfLost,
-                ItemType = finalItemType,
-                Note = finalNote,
-                IsActive = source.IsActive
-            };
+                shortageNotification = BuildShortageNotification(
+                    targetRoom,
+                    "CloneRoomInventory",
+                    shortageDetails,
+                    source.Room);
 
-            _context.RoomInventory.Add(clone);
+                _context.Notifications.Add(shortageNotification);
+            }
+
             await _context.SaveChangesAsync();
 
-            var created = await _context.RoomInventory
-                .Include(ri => ri.Room)
-                .Include(ri => ri.Equipment)
-                .AsNoTracking()
-                .FirstAsync(ri => ri.Id == clone.Id);
+            return Ok(new CloneRoomInventoryResponseDTO
+            {
+                TargetRoomId = targetRoom.Id,
+                TargetRoomNumber = targetRoom.RoomNumber,
+                ClonedItemCount = finalQuantity - shortageDetails.Sum(item => item.ShortageQuantity),
+                ShortageItemCount = shortageDetails.Count,
+                ShortageNotificationId = shortageNotification?.Id,
+                ShortageDetails = shortageDetails,
+                Message = shortageDetails.Count > 0
+                    ? "Da clone mot phan vat tu. Phan con thieu da duoc tao bao cao sang Housekeeping."
+                    : "Da clone vat tu sang phong dich."
+            });
+        }
 
-            return CreatedAtAction(nameof(GetByRoom), new { roomId = targetRoomId }, MapRoomInventory(created));
+        private async Task<ActionResult<CloneRoomInventoryResponseDTO>> CloneFromRoomAsync(CloneRoomInventoryDTO dto)
+        {
+            if (!dto.SourceRoomId.HasValue)
+            {
+                return BadRequest("Can cung cap phong nguon.");
+            }
+
+            if (!dto.TargetRoomId.HasValue)
+            {
+                return BadRequest("Can chon phong dich de clone vat tu.");
+            }
+
+            if (dto.SourceRoomId.Value == dto.TargetRoomId.Value)
+            {
+                return BadRequest("Phong nguon va phong dich khong duoc trung nhau.");
+            }
+
+            var sourceRoom = await _context.Rooms
+                .Include(room => room.RoomInventory)
+                    .ThenInclude(item => item.Equipment)
+                .FirstOrDefaultAsync(room => room.Id == dto.SourceRoomId.Value && !room.IsDeleted);
+
+            if (sourceRoom == null)
+            {
+                return NotFound("Khong tim thay phong nguon.");
+            }
+
+            var targetRoom = await _context.Rooms
+                .FirstOrDefaultAsync(room => room.Id == dto.TargetRoomId.Value && !room.IsDeleted);
+
+            if (targetRoom == null)
+            {
+                return NotFound("Khong tim thay phong dich.");
+            }
+
+            var sourceItems = sourceRoom.RoomInventory
+                .Where(item => (item.Quantity ?? 0) > 0)
+                .OrderBy(item => item.Equipment != null ? item.Equipment.Name : item.ItemType)
+                .ToList();
+
+            if (sourceItems.Count == 0)
+            {
+                return BadRequest("Phong nguon khong co vat tu de clone.");
+            }
+
+            var shortageDetails = new List<InventoryShortageDetailDTO>();
+            var clonedItemCount = 0;
+
+            foreach (var sourceItem in sourceItems)
+            {
+                var requestedQuantity = sourceItem.Quantity ?? 0;
+                if (requestedQuantity <= 0)
+                {
+                    continue;
+                }
+
+                var itemType = string.IsNullOrWhiteSpace(sourceItem.ItemType)
+                    ? sourceItem.Equipment?.Name
+                    : sourceItem.ItemType!.Trim();
+
+                if (sourceItem.EquipmentId.HasValue)
+                {
+                    var equipment = await _context.Equipments.FirstOrDefaultAsync(e => e.Id == sourceItem.EquipmentId.Value && e.IsActive);
+                    if (equipment == null)
+                    {
+                        shortageDetails.Add(new InventoryShortageDetailDTO
+                        {
+                            EquipmentId = sourceItem.EquipmentId,
+                            EquipmentName = sourceItem.Equipment?.Name ?? itemType ?? "Vat tu",
+                            EquipmentCode = sourceItem.Equipment?.ItemCode,
+                            RequestedQuantity = requestedQuantity,
+                            AvailableQuantity = 0,
+                            ShortageQuantity = requestedQuantity,
+                            Note = sourceItem.Note
+                        });
+                        continue;
+                    }
+
+                    var availableStock = GetAvailableStock(equipment);
+                    var quantityToAssign = Math.Min(requestedQuantity, availableStock);
+                    var shortageQuantity = Math.Max(0, requestedQuantity - quantityToAssign);
+
+                    if (quantityToAssign > 0)
+                    {
+                        await UpsertRoomInventoryAsync(
+                            targetRoom.Id,
+                            equipment.Id,
+                            itemType,
+                            quantityToAssign,
+                            sourceItem.PriceIfLost,
+                            sourceItem.Note,
+                            sourceItem.IsActive);
+
+                        equipment.InUseQuantity += quantityToAssign;
+                        equipment.InStockQuantity = CalculateInStockQuantity(
+                            equipment.TotalQuantity,
+                            equipment.InUseQuantity,
+                            equipment.DamagedQuantity,
+                            equipment.LiquidatedQuantity);
+                        equipment.UpdatedAt = DateTime.UtcNow;
+                        clonedItemCount += 1;
+                    }
+
+                    if (shortageQuantity > 0)
+                    {
+                        shortageDetails.Add(new InventoryShortageDetailDTO
+                        {
+                            EquipmentId = equipment.Id,
+                            EquipmentName = equipment.Name,
+                            EquipmentCode = equipment.ItemCode,
+                            RequestedQuantity = requestedQuantity,
+                            AvailableQuantity = availableStock,
+                            ShortageQuantity = shortageQuantity,
+                            Note = sourceItem.Note
+                        });
+                    }
+                }
+                else
+                {
+                    await UpsertRoomInventoryAsync(
+                        targetRoom.Id,
+                        null,
+                        itemType,
+                        requestedQuantity,
+                        sourceItem.PriceIfLost,
+                        sourceItem.Note,
+                        sourceItem.IsActive);
+                    clonedItemCount += 1;
+                }
+            }
+
+            Notification? shortageNotification = null;
+            if (shortageDetails.Count > 0)
+            {
+                shortageNotification = BuildShortageNotification(
+                    targetRoom,
+                    "CloneRoom",
+                    shortageDetails,
+                    sourceRoom);
+
+                _context.Notifications.Add(shortageNotification);
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new CloneRoomInventoryResponseDTO
+            {
+                TargetRoomId = targetRoom.Id,
+                TargetRoomNumber = targetRoom.RoomNumber,
+                ClonedItemCount = clonedItemCount,
+                ShortageItemCount = shortageDetails.Count,
+                ShortageNotificationId = shortageNotification?.Id,
+                ShortageDetails = shortageDetails,
+                Message = shortageDetails.Count > 0
+                    ? $"Da clone duoc {clonedItemCount} vat tu. Cac vat tu con thieu da duoc gui sang Housekeeping."
+                    : $"Da clone toan bo {clonedItemCount} vat tu tu phong {sourceRoom.RoomNumber}."
+            });
+        }
+
+        private async Task UpsertRoomInventoryAsync(
+            int targetRoomId,
+            int? equipmentId,
+            string? itemType,
+            int quantity,
+            decimal? priceIfLost,
+            string? note,
+            bool isActive)
+        {
+            if (quantity <= 0)
+            {
+                return;
+            }
+
+            var normalizedItemType = string.IsNullOrWhiteSpace(itemType)
+                ? null
+                : itemType.Trim();
+
+            var existing = await _context.RoomInventory.FirstOrDefaultAsync(item =>
+                item.RoomId == targetRoomId &&
+                ((equipmentId.HasValue && item.EquipmentId == equipmentId.Value) ||
+                 (!equipmentId.HasValue &&
+                  item.EquipmentId == null &&
+                  item.ItemType != null &&
+                  normalizedItemType != null &&
+                  item.ItemType.ToLower() == normalizedItemType.ToLower())));
+
+            if (existing == null)
+            {
+                _context.RoomInventory.Add(new RoomInventory
+                {
+                    RoomId = targetRoomId,
+                    EquipmentId = equipmentId,
+                    Quantity = quantity,
+                    PriceIfLost = priceIfLost,
+                    ItemType = normalizedItemType,
+                    Note = note,
+                    IsActive = isActive
+                });
+
+                return;
+            }
+
+            existing.Quantity = (existing.Quantity ?? 0) + quantity;
+            existing.PriceIfLost = priceIfLost;
+            existing.Note = note;
+            existing.IsActive = true;
+
+            if (!string.IsNullOrWhiteSpace(normalizedItemType))
+            {
+                existing.ItemType = normalizedItemType;
+            }
+        }
+
+        private static Notification BuildShortageNotification(
+            Room targetRoom,
+            string reason,
+            List<InventoryShortageDetailDTO> shortageDetails,
+            Room? sourceRoom)
+        {
+            var firstItem = shortageDetails[0];
+            var payload = new InventoryShortageNotificationPayloadDTO
+            {
+                Reason = reason,
+                RoomId = targetRoom.Id,
+                RoomNumber = targetRoom.RoomNumber,
+                SourceRoomId = sourceRoom?.Id,
+                SourceRoomNumber = sourceRoom?.RoomNumber,
+                EquipmentId = shortageDetails.Count == 1 ? firstItem.EquipmentId : null,
+                EquipmentName = shortageDetails.Count == 1 ? firstItem.EquipmentName : $"{shortageDetails.Count} vat tu",
+                EquipmentCode = shortageDetails.Count == 1 ? firstItem.EquipmentCode : null,
+                RequestedQuantity = shortageDetails.Sum(item => item.RequestedQuantity),
+                AvailableQuantity = shortageDetails.Sum(item => item.AvailableQuantity),
+                ShortageQuantity = shortageDetails.Sum(item => item.ShortageQuantity),
+                Note = shortageDetails.Count == 1 ? firstItem.Note : $"Thieu vat tu khi clone vao phong {targetRoom.RoomNumber}.",
+                Items = shortageDetails
+            };
+
+            var title = reason == "CloneRoom" || reason == "CloneRoomInventory"
+                ? $"Thieu vat tu khi clone vao phong {targetRoom.RoomNumber}"
+                : $"Thieu vat tu phong {targetRoom.RoomNumber}";
+
+            return new Notification
+            {
+                Title = title,
+                Content = JsonSerializer.Serialize(payload),
+                Type = "InventoryShortage",
+                ReferenceLink = $"/housekeeping/inventory?tab=shortage&roomId={targetRoom.Id}",
+                IsRead = false,
+                CreatedAt = DateTime.UtcNow
+            };
+        }
+
+        private static int GetAvailableStock(Equipment equipment)
+        {
+            return Math.Max(0, equipment.InStockQuantity ?? CalculateInStockQuantity(
+                equipment.TotalQuantity,
+                equipment.InUseQuantity,
+                equipment.DamagedQuantity,
+                equipment.LiquidatedQuantity));
+        }
+
+        private static int CalculateInStockQuantity(int totalQuantity, int inUseQuantity, int damagedQuantity, int liquidatedQuantity)
+        {
+            return Math.Max(0, totalQuantity - inUseQuantity - damagedQuantity - liquidatedQuantity);
         }
     }
 }
