@@ -12,31 +12,31 @@ import {
 const menuItems = [
   {
     id: "overview",
-    label: "Tong quan",
+    label: "Tổng quan",
     icon: LayoutDashboard,
     path: "/housekeeping",
   },
   {
     id: "room-list",
-    label: "Danh sach phong",
+    label: "Danh sách phòng",
     icon: List,
     path: "/housekeeping/rooms",
   },
   {
     id: "tasks",
-    label: "Nhiem vu don dep",
+    label: "Nhiệm vụ dọn dẹp",
     icon: CheckSquare,
     path: "/housekeeping/tasks",
   },
   {
     id: "inventory",
-    label: "That thoat & den bu",
+    label: "Thất thoát & đền bù",
     icon: Box,
     path: "/housekeeping/inventory",
   },
   {
     id: "staff",
-    label: "Nhan su & Ca lam",
+    label: "Nhân sự & Ca làm",
     icon: Users,
     path: "/housekeeping/staff",
   },
@@ -45,13 +45,13 @@ const menuItems = [
 const secondaryItems = [
   {
     id: "reports",
-    label: "Bao cao & Thong ke",
+    label: "Báo cáo & Thống kê",
     icon: BarChart3,
     path: "/housekeeping/reports",
   },
   {
     id: "settings",
-    label: "Cai dat",
+    label: "Cài đặt",
     icon: Settings,
     path: "/housekeeping/settings",
   },
@@ -67,7 +67,7 @@ export default function Sidebar() {
           </div>
           <div>
             <h2 className="text-[11px] font-black uppercase leading-none tracking-tighter text-gray-900">
-              QUAN LY KHACH SAN
+              QUẢN LÝ KHÁCH SẠN
             </h2>
             <p className="mt-1 text-[9px] font-bold uppercase text-[#0085FF]">Housekeeping MS</p>
           </div>

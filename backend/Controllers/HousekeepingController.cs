@@ -247,6 +247,8 @@ namespace backend.Controllers
                 .Cast<HousekeepingShortageReportItemDTO>()
                 .ToList();
 
+            var resolutionMap = await BuildResolutionMapAsync();
+
             var lossDamageReports = await _context.LossAndDamages
                 .AsNoTracking()
                 .Include(issue => issue.RoomInventory)
@@ -282,6 +284,26 @@ namespace backend.Controllers
                 })
                 .ToListAsync();
 
+            foreach (var lossDamageReport in lossDamageReports)
+            {
+                if (resolutionMap.TryGetValue($"loss-damage:{lossDamageReport.Id}", out var resolution))
+                {
+                    lossDamageReport.ResolutionType = resolution.ResolutionType;
+                    lossDamageReport.ResolvedQuantity = resolution.Quantity;
+                    lossDamageReport.ResolvedAt = resolution.ResolvedAt;
+                }
+            }
+
+            foreach (var shortageReport in shortageReports)
+            {
+                if (resolutionMap.TryGetValue($"shortage:{shortageReport.NotificationId}", out var resolution))
+                {
+                    shortageReport.ResolutionType = resolution.ResolutionType;
+                    shortageReport.ResolvedQuantity = resolution.Quantity;
+                    shortageReport.ResolvedAt = resolution.ResolvedAt;
+                }
+            }
+
             return Ok(new HousekeepingInventoryReportResponseDTO
             {
                 ShortageReports = shortageReports,
@@ -291,6 +313,71 @@ namespace backend.Controllers
                 LossDamageReportCount = lossDamageReports.Count,
                 LossDamageUnitCount = lossDamageReports.Sum(item => item.Quantity),
                 TotalPenaltyAmount = lossDamageReports.Sum(item => item.PenaltyAmount)
+            });
+        }
+
+        [HttpPost("inventory-reports/resolve")]
+        public async Task<IActionResult> ResolveInventoryReport([FromBody] ResolveInventoryReportRequestDTO request)
+        {
+            var reportType = request.ReportType?.Trim().ToLowerInvariant();
+            var resolutionType = request.ResolutionType?.Trim();
+            if ((reportType != "loss-damage" && reportType != "shortage") ||
+                resolutionType != "Restocked")
+            {
+                return BadRequest("Thong tin xu ly bao cao khong hop le.");
+            }
+
+            var resolutionMap = await BuildResolutionMapAsync();
+            if (resolutionMap.TryGetValue($"{reportType}:{request.ReportId}", out var existingResolution) &&
+                string.Equals(existingResolution.ResolutionType, resolutionType, StringComparison.OrdinalIgnoreCase))
+            {
+                return BadRequest("Bao cao nay da duoc xu ly theo cach nay roi.");
+            }
+
+            try
+            {
+                if (string.Equals(resolutionType, "Restocked", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (reportType == "loss-damage")
+                    {
+                        await RestockLossDamageReportAsync(request.ReportId, request.Quantity);
+                    }
+                    else
+                    {
+                        await RestockShortageReportAsync(request.ReportId, request.Quantity);
+                    }
+                }
+            }
+            catch (InvalidOperationException exception)
+            {
+                return BadRequest(exception.Message);
+            }
+
+            var payload = new InventoryReportResolutionPayloadDTO
+            {
+                ReportType = reportType,
+                ReportId = request.ReportId,
+                ResolutionType = resolutionType,
+                Quantity = string.Equals(resolutionType, "Restocked", StringComparison.OrdinalIgnoreCase)
+                    ? request.Quantity
+                    : null,
+                ResolvedAt = DateTime.UtcNow
+            };
+
+            _context.Notifications.Add(new Notification
+            {
+                Title = $"Xu ly bao cao {reportType} #{request.ReportId}",
+                Content = JsonSerializer.Serialize(payload),
+                Type = "InventoryReportResolution",
+                ReferenceLink = $"/housekeeping/inventory?tab={reportType}",
+                IsRead = false,
+                CreatedAt = payload.ResolvedAt
+            });
+
+            await _context.SaveChangesAsync();
+            return Ok(new
+            {
+                message = "Da xu ly va tu dong bo sung vat tu vao phong."
             });
         }
 
@@ -424,13 +511,192 @@ namespace backend.Controllers
                     AvailableQuantity = payload.AvailableQuantity,
                     ShortageQuantity = payload.ShortageQuantity,
                     Note = payload.Note,
-                    CreatedAt = notification.CreatedAt
+                    CreatedAt = notification.CreatedAt,
+                    ResolutionType = "Pending"
                 };
             }
             catch (JsonException)
             {
                 return null;
             }
+        }
+
+        private async Task<Dictionary<string, InventoryReportResolutionPayloadDTO>> BuildResolutionMapAsync()
+        {
+            var resolutionNotifications = await _context.Notifications
+                .AsNoTracking()
+                .Where(notification => notification.Type == "InventoryReportResolution")
+                .OrderBy(notification => notification.CreatedAt)
+                .ToListAsync();
+
+            var map = new Dictionary<string, InventoryReportResolutionPayloadDTO>();
+
+            foreach (var notification in resolutionNotifications)
+            {
+                if (string.IsNullOrWhiteSpace(notification.Content))
+                {
+                    continue;
+                }
+
+                try
+                {
+                    var payload = JsonSerializer.Deserialize<InventoryReportResolutionPayloadDTO>(notification.Content);
+                    if (payload == null)
+                    {
+                        continue;
+                    }
+
+                    map[$"{payload.ReportType}:{payload.ReportId}"] = payload;
+                }
+                catch (JsonException)
+                {
+                    // Ignore malformed historical payloads.
+                }
+            }
+
+            return map;
+        }
+
+        private async Task RestockLossDamageReportAsync(int reportId, int? quantity)
+        {
+            var issue = await _context.LossAndDamages
+                .Include(loss => loss.RoomInventory)
+                    .ThenInclude(roomInventory => roomInventory!.Equipment)
+                .FirstOrDefaultAsync(loss => loss.Id == reportId);
+
+            if (issue == null || issue.RoomInventory == null || issue.RoomInventory.Equipment == null)
+            {
+                throw new InvalidOperationException("Khong tim thay bao cao hu hong can xu ly.");
+            }
+
+            var roomInventory = issue.RoomInventory;
+            var equipment = roomInventory.Equipment;
+            var requiredQuantity = quantity ?? issue.Quantity;
+            var availableStock = GetAvailableStock(equipment);
+
+            if (requiredQuantity <= 0)
+            {
+                throw new InvalidOperationException("So luong vat tu can bo sung khong hop le.");
+            }
+
+            if (requiredQuantity > issue.Quantity)
+            {
+                throw new InvalidOperationException("So luong bo sung khong duoc vuot qua so luong bao cao hu hong.");
+            }
+
+            if (availableStock < requiredQuantity)
+            {
+                throw new InvalidOperationException("Ton kho khong du de bo sung vat tu nay vao phong.");
+            }
+
+            roomInventory.Quantity = (roomInventory.Quantity ?? 0) + requiredQuantity;
+            roomInventory.IsActive = (roomInventory.Quantity ?? 0) > 0;
+
+            equipment.InUseQuantity += requiredQuantity;
+            equipment.InStockQuantity = CalculateInStockQuantity(
+                equipment.TotalQuantity,
+                equipment.InUseQuantity,
+                equipment.DamagedQuantity,
+                equipment.LiquidatedQuantity);
+            equipment.UpdatedAt = DateTime.UtcNow;
+        }
+
+        private async Task RestockShortageReportAsync(int reportId, int? quantity)
+        {
+            var shortageNotification = await _context.Notifications
+                .FirstOrDefaultAsync(notification => notification.Id == reportId && notification.Type == "InventoryShortage");
+
+            if (shortageNotification == null || string.IsNullOrWhiteSpace(shortageNotification.Content))
+            {
+                throw new InvalidOperationException("Khong tim thay bao cao thieu vat tu can xu ly.");
+            }
+
+            InventoryShortageNotificationPayloadDTO? payload;
+            try
+            {
+                payload = JsonSerializer.Deserialize<InventoryShortageNotificationPayloadDTO>(shortageNotification.Content);
+            }
+            catch (JsonException)
+            {
+                throw new InvalidOperationException("Du lieu bao cao thieu vat tu khong hop le.");
+            }
+
+            if (payload == null || !payload.EquipmentId.HasValue)
+            {
+                throw new InvalidOperationException("Khong tim thay thong tin vat tu de bo sung.");
+            }
+
+            var equipment = await _context.Equipments.FirstOrDefaultAsync(item => item.Id == payload.EquipmentId.Value && item.IsActive);
+            if (equipment == null)
+            {
+                throw new InvalidOperationException("Vat tu da ngung su dung hoac khong ton tai.");
+            }
+
+            var room = await _context.Rooms.FirstOrDefaultAsync(item => item.Id == payload.RoomId && !item.IsDeleted);
+            if (room == null)
+            {
+                throw new InvalidOperationException("Phong khong ton tai de bo sung vat tu.");
+            }
+
+            var requiredQuantity = quantity ?? payload.ShortageQuantity;
+            var availableStock = GetAvailableStock(equipment);
+            if (requiredQuantity <= 0)
+            {
+                throw new InvalidOperationException("So luong vat tu can bo sung khong hop le.");
+            }
+
+            if (requiredQuantity > payload.ShortageQuantity)
+            {
+                throw new InvalidOperationException("So luong bo sung khong duoc vuot qua so luong vat tu dang thieu.");
+            }
+
+            if (availableStock < requiredQuantity)
+            {
+                throw new InvalidOperationException("Ton kho khong du de bo sung vat tu nay vao phong.");
+            }
+
+            var roomInventory = await _context.RoomInventory
+                .FirstOrDefaultAsync(item =>
+                    item.RoomId == room.Id &&
+                    item.EquipmentId == equipment.Id);
+
+            if (roomInventory == null)
+            {
+                roomInventory = new RoomInventory
+                {
+                    RoomId = room.Id,
+                    EquipmentId = equipment.Id,
+                    ItemType = equipment.Name,
+                    Quantity = requiredQuantity,
+                    PriceIfLost = equipment.DefaultPriceIfLost,
+                    Note = payload.Note,
+                    IsActive = true
+                };
+
+                _context.RoomInventory.Add(roomInventory);
+            }
+            else
+            {
+                roomInventory.Quantity = (roomInventory.Quantity ?? 0) + requiredQuantity;
+                roomInventory.IsActive = true;
+            }
+
+            equipment.InUseQuantity += requiredQuantity;
+            equipment.InStockQuantity = CalculateInStockQuantity(
+                equipment.TotalQuantity,
+                equipment.InUseQuantity,
+                equipment.DamagedQuantity,
+                equipment.LiquidatedQuantity);
+            equipment.UpdatedAt = DateTime.UtcNow;
+        }
+
+        private static int GetAvailableStock(Equipment equipment)
+        {
+            return Math.Max(0, equipment.InStockQuantity ?? CalculateInStockQuantity(
+                equipment.TotalQuantity,
+                equipment.InUseQuantity,
+                equipment.DamagedQuantity,
+                equipment.LiquidatedQuantity));
         }
 
         private HousekeepingTaskItemDTO MapTaskItem(Room room, int? currentUserId, int? assignedUserId)

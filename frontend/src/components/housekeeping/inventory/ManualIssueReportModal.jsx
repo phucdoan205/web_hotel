@@ -65,9 +65,9 @@ export default function ManualIssueReportModal({
       <div className="w-full max-w-3xl overflow-hidden rounded-[2rem] border border-gray-100 bg-white shadow-2xl">
         <div className="flex items-start justify-between border-b border-gray-100 px-8 py-6">
           <div>
-            <h2 className="text-2xl font-black text-gray-900">Them bao cao hu hong / that thoat</h2>
+            <h2 className="text-2xl font-black text-gray-900">Thêm báo cáo hư hỏng / thất thoát</h2>
             <p className="mt-1 text-sm font-bold text-gray-500">
-              Chon phong va vat tu de ghi nhan mat hoac hu hong ngay tai trang tong hop.
+              Chọn phòng và vật tư để ghi nhận mất hoặc hư hỏng ngay tại trang tổng hợp.
             </p>
           </div>
           <button
@@ -94,13 +94,13 @@ export default function ManualIssueReportModal({
         >
           <div className="grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
             <div className="space-y-3 rounded-[24px] border border-gray-100 bg-gray-50 p-5">
-              <p className="text-xs font-black uppercase tracking-widest text-gray-400">Chon phong</p>
+              <p className="text-xs font-black uppercase tracking-widest text-gray-400">Chọn phòng</p>
               <label className="relative block">
                 <Search className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-gray-300" />
                 <input
                   value={roomSearch}
                   onChange={(event) => setRoomSearch(event.target.value)}
-                  placeholder="Tim phong..."
+                  placeholder="Tìm phòng..."
                   className="w-full rounded-2xl border border-gray-200 bg-white py-3 pl-11 pr-4 text-sm font-semibold text-gray-800 outline-none transition-all focus:border-blue-300"
                 />
               </label>
@@ -108,11 +108,11 @@ export default function ManualIssueReportModal({
               <div className="max-h-56 space-y-2 overflow-y-auto pr-1">
                 {isRoomsLoading ? (
                   <div className="rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-gray-500">
-                    Dang tai danh sach phong...
+                    Đang tải danh sách phòng...
                   </div>
                 ) : filteredRooms.length === 0 ? (
                   <div className="rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-gray-500">
-                    Khong co phong phu hop.
+                    Không có phòng phù hợp.
                   </div>
                 ) : (
                   filteredRooms.map((room) => (
@@ -130,7 +130,7 @@ export default function ManualIssueReportModal({
                           : "bg-white text-gray-700 hover:bg-blue-50"
                       }`}
                     >
-                      <span className="text-sm font-black">Phong {room.roomNumber}</span>
+                      <span className="text-sm font-black">Phòng {room.roomNumber}</span>
                       <span className="text-xs font-bold opacity-80">{room.roomTypeName || "-"}</span>
                     </button>
                   ))
@@ -139,7 +139,7 @@ export default function ManualIssueReportModal({
             </div>
 
             <div className="space-y-3 rounded-[24px] border border-gray-100 bg-gray-50 p-5">
-              <p className="text-xs font-black uppercase tracking-widest text-gray-400">Vat tu trong phong</p>
+              <p className="text-xs font-black uppercase tracking-widest text-gray-400">Vật tư trong phòng</p>
               <select
                 value={roomInventoryId}
                 onChange={(event) => {
@@ -151,14 +151,14 @@ export default function ManualIssueReportModal({
               >
                 <option value="">
                   {!roomId
-                    ? "Chon phong truoc"
+                    ? "Chọn phòng trước"
                     : isInventoryLoading
-                      ? "Dang tai vat tu..."
-                      : "Chon vat tu"}
+                      ? "Đang tải vật tư..."
+                      : "Chọn vật tư"}
                 </option>
                 {inventoryItems.map((item) => (
                   <option key={item.id} value={item.id}>
-                    {(item.equipmentName || item.itemType) ?? "Vat tu"} - SL {item.quantity ?? 0}
+                    {(item.equipmentName || item.itemType) ?? "Vật tư"} - SL {item.quantity ?? 0}
                   </option>
                 ))}
               </select>
@@ -166,7 +166,7 @@ export default function ManualIssueReportModal({
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="space-y-2">
                   <span className="text-xs font-black uppercase tracking-widest text-gray-400">
-                    So luong bao cao
+                    Số lượng báo cáo
                   </span>
                   <input
                     type="number"
@@ -180,30 +180,30 @@ export default function ManualIssueReportModal({
                 </label>
 
                 <div className="rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3">
-                  <p className="text-xs font-black uppercase tracking-widest text-amber-500">Tong den bu</p>
+                  <p className="text-xs font-black uppercase tracking-widest text-amber-500">Tổng đền bù</p>
                   <p className="mt-2 text-xl font-black text-amber-700">
-                    {totalPenalty.toLocaleString("vi-VN")} d
+                    {totalPenalty.toLocaleString("vi-VN")} đ
                   </p>
                 </div>
               </div>
 
               {selectedItem ? (
                 <div className="rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-700">
-                  <p>Vat tu: <span className="font-black">{selectedItem.equipmentName || selectedItem.itemType}</span></p>
-                  <p>Con trong phong: <span className="font-black">{maxQuantity}</span></p>
-                  <p>Don gia den bu: <span className="font-black">{unitPenalty.toLocaleString("vi-VN")} d</span></p>
+                  <p>Vật tư: <span className="font-black">{selectedItem.equipmentName || selectedItem.itemType}</span></p>
+                  <p>Còn trong phòng: <span className="font-black">{maxQuantity}</span></p>
+                  <p>Đơn giá đền bù: <span className="font-black">{unitPenalty.toLocaleString("vi-VN")} đ</span></p>
                 </div>
               ) : null}
             </div>
           </div>
 
           <label className="block space-y-2">
-            <span className="text-xs font-black uppercase tracking-widest text-gray-400">Mo ta</span>
+            <span className="text-xs font-black uppercase tracking-widest text-gray-400">Mô tả</span>
             <textarea
               rows={4}
               value={description}
               onChange={(event) => setDescription(event.target.value)}
-              placeholder="Mo ta tinh trang hu hong hoac that thoat..."
+              placeholder="Mô tả tình trạng hư hỏng hoặc thất thoát..."
               className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-800 outline-none transition-all focus:border-blue-300 focus:bg-white"
             />
           </label>
@@ -211,15 +211,15 @@ export default function ManualIssueReportModal({
           <div className="rounded-[24px] border border-gray-100 bg-gray-50 p-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-xs font-black uppercase tracking-widest text-gray-400">Anh minh chung</p>
+                <p className="text-xs font-black uppercase tracking-widest text-gray-400">Ảnh minh chứng</p>
                 <p className="mt-1 text-sm font-semibold text-gray-500">
-                  Co the them anh de doi soat hu hong va den bu.
+                  Có thể thêm ảnh để đối soát hư hỏng và đền bù.
                 </p>
               </div>
 
               <label className="inline-flex cursor-pointer items-center gap-2 rounded-2xl bg-blue-600 px-4 py-3 text-sm font-black text-white transition-all hover:bg-blue-700">
                 <UploadCloud className="size-4" />
-                Tai anh len
+                Tải ảnh lên
                 <input
                   type="file"
                   accept="image/*"
@@ -241,7 +241,7 @@ export default function ManualIssueReportModal({
               disabled={isPending}
               className="rounded-2xl px-5 py-3 text-sm font-black uppercase tracking-wide text-gray-500 transition-all hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50"
             >
-              Huy
+              Hủy
             </button>
             <button
               type="submit"
@@ -249,7 +249,7 @@ export default function ManualIssueReportModal({
               className="inline-flex items-center justify-center gap-2 rounded-2xl bg-rose-600 px-5 py-3 text-sm font-black uppercase tracking-wide text-white transition-all hover:bg-rose-700 disabled:opacity-60"
             >
               {isPending ? <LoaderCircle className="size-4 animate-spin" /> : null}
-              Gui bao cao
+              Gửi báo cáo
             </button>
           </div>
         </form>

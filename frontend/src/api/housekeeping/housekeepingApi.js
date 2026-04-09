@@ -71,4 +71,8 @@ export const housekeepingApi = {
     const response = await apiClient.get("/Housekeeping/inventory-reports");
     return response.data;
   },
+  resolveInventoryReport: async (payload) => {
+    const response = await apiClient.post("/Housekeeping/inventory-reports/resolve", payload);
+    return response.data;
+  },
 };

@@ -1,6 +1,15 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, BadgeDollarSign, ClipboardList, PackageSearch, Search } from "lucide-react";
+import {
+  AlertTriangle,
+  BadgeDollarSign,
+  ClipboardList,
+  Eye,
+  PackageSearch,
+  Search,
+  Settings2,
+  X,
+} from "lucide-react";
 import { housekeepingApi } from "../../api/housekeeping/housekeepingApi";
 import ManualIssueReportModal from "../../components/housekeeping/inventory/ManualIssueReportModal";
 
@@ -17,12 +26,249 @@ const parseApiError = (error, fallbackMessage) =>
   error?.message ||
   fallbackMessage;
 
+const getResolutionBadge = (resolutionType) => {
+  switch (resolutionType) {
+    case "Restocked":
+      return {
+        label: "Đã thêm",
+        className: "bg-emerald-50 text-emerald-700",
+      };
+    default:
+      return {
+        label: "Chưa xử lý",
+        className: "bg-gray-100 text-gray-600",
+      };
+  }
+};
+
+function ReportDetailModal({ item, type, onClose }) {
+  if (!item) return null;
+
+  const title = type === "loss-damage" ? "Chi tiết hư hỏng & đền bù" : "Chi tiết thiếu vật tư";
+  const quantityLabel = type === "loss-damage" ? "Số lượng mất / hỏng" : "Số lượng thiếu";
+  const amountLabel = type === "loss-damage" ? "Tổng tiền đền bù" : "Tồn kho hiện tại";
+  const amountValue = type === "loss-damage"
+    ? `${Number(item.penaltyAmount ?? 0).toLocaleString("vi-VN")} đ`
+    : `${Number(item.availableQuantity ?? 0).toLocaleString("vi-VN")} đơn vị`;
+  const resolution = getResolutionBadge(item.resolutionType);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-2xl overflow-hidden rounded-[2rem] border border-gray-100 bg-white shadow-2xl">
+        <div className="flex items-start justify-between border-b border-gray-100 px-8 py-6">
+          <div>
+            <h2 className="text-2xl font-black text-gray-900">{title}</h2>
+            <p className="mt-1 text-sm font-bold text-gray-500">
+              Phòng {item.roomNumber} - {item.equipmentName}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-2xl p-3 text-gray-400 transition-all hover:bg-gray-100 hover:text-gray-700"
+          >
+            <X className="size-5" />
+          </button>
+        </div>
+
+        <div className="space-y-5 px-8 py-6">
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="rounded-[24px] border border-gray-100 bg-gray-50 p-4">
+              <p className="text-[11px] font-black uppercase tracking-widest text-gray-400">Phòng</p>
+              <p className="mt-2 text-xl font-black text-gray-900">{item.roomNumber}</p>
+            </div>
+            <div className="rounded-[24px] border border-gray-100 bg-gray-50 p-4">
+              <p className="text-[11px] font-black uppercase tracking-widest text-gray-400">{quantityLabel}</p>
+              <p className="mt-2 text-xl font-black text-gray-900">
+                {type === "loss-damage" ? item.quantity : item.shortageQuantity}
+              </p>
+            </div>
+            <div className="rounded-[24px] border border-gray-100 bg-gray-50 p-4">
+              <p className="text-[11px] font-black uppercase tracking-widest text-gray-400">{amountLabel}</p>
+              <p className="mt-2 text-xl font-black text-gray-900">{amountValue}</p>
+            </div>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="rounded-[24px] border border-gray-100 bg-white p-4">
+              <p className="text-[11px] font-black uppercase tracking-widest text-gray-400">Mã vật tư</p>
+              <p className="mt-2 text-base font-black text-gray-900">{item.equipmentCode || "Không có mã"}</p>
+            </div>
+            <div className="rounded-[24px] border border-gray-100 bg-white p-4">
+              <p className="text-[11px] font-black uppercase tracking-widest text-gray-400">Thời gian báo cáo</p>
+              <p className="mt-2 text-base font-black text-gray-900">{formatDateTime(item.createdAt)}</p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <span className={`rounded-full px-4 py-2 text-xs font-black uppercase tracking-wide ${resolution.className}`}>
+              {resolution.label}
+            </span>
+            {item.resolvedAt ? (
+              <span className="text-sm font-bold text-gray-500">
+                Xử lý lúc {formatDateTime(item.resolvedAt)}
+              </span>
+            ) : null}
+            {item.resolvedQuantity ? (
+              <span className="text-sm font-bold text-gray-500">
+                Số lượng đã thêm: {item.resolvedQuantity}
+              </span>
+            ) : null}
+          </div>
+
+          <div className="rounded-[24px] border border-gray-100 bg-gray-50 p-5">
+            <p className="text-[11px] font-black uppercase tracking-widest text-gray-400">
+              {type === "loss-damage" ? "Mô tả báo cáo" : "Ghi chú yêu cầu"}
+            </p>
+            <p className="mt-3 text-sm font-semibold leading-6 text-gray-700">
+              {type === "loss-damage"
+                ? item.description || "Không có mô tả."
+                : item.note || "Không có ghi chú."}
+            </p>
+          </div>
+
+          {type === "loss-damage" && item.imageUrl ? (
+            <div className="rounded-[24px] border border-gray-100 bg-white p-4">
+              <p className="text-[11px] font-black uppercase tracking-widest text-gray-400">Ảnh minh chứng</p>
+              <img
+                src={item.imageUrl}
+                alt={item.equipmentName}
+                className="mt-4 h-72 w-full rounded-[20px] object-cover ring-1 ring-gray-100"
+              />
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ProcessReportModal({ item, type, isPending, errorMessage, onClose, onSubmit }) {
+  const maxQuantity = type === "loss-damage" ? Number(item?.quantity ?? 0) : Number(item?.shortageQuantity ?? 0);
+  const [quantity, setQuantity] = useState(maxQuantity || 1);
+
+  useEffect(() => {
+    setQuantity(maxQuantity || 1);
+  }, [item, maxQuantity]);
+
+  if (!item) return null;
+
+  const quantityText = type === "loss-damage"
+    ? `${item.quantity} vật tư cần bổ sung lại cho phòng`
+    : `${item.shortageQuantity} vật tư đang thiếu cần cấp thêm`;
+  const currentStatus = getResolutionBadge(item.resolutionType);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-xl overflow-hidden rounded-[2rem] border border-gray-100 bg-white shadow-2xl">
+        <div className="flex items-start justify-between border-b border-gray-100 px-8 py-6">
+          <div>
+            <h2 className="text-2xl font-black text-gray-900">Xử lý báo cáo</h2>
+            <p className="mt-1 text-sm font-bold text-gray-500">
+              Phòng {item.roomNumber} - {item.equipmentName}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isPending}
+            className="rounded-2xl p-3 text-gray-400 transition-all hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50"
+          >
+            <X className="size-5" />
+          </button>
+        </div>
+
+        <div className="space-y-5 px-8 py-6">
+          {errorMessage ? (
+            <div className="rounded-[20px] border border-rose-100 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">
+              {errorMessage}
+            </div>
+          ) : null}
+
+          <div className="rounded-[24px] border border-gray-100 bg-gray-50 p-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-[11px] font-black uppercase tracking-widest text-gray-400">Thông tin báo cáo</p>
+              <span className={`rounded-full px-3 py-2 text-[10px] font-black uppercase tracking-wide ${currentStatus.className}`}>
+                {currentStatus.label}
+              </span>
+            </div>
+            <p className="mt-3 text-sm font-semibold text-gray-700">Gửi lúc {formatDateTime(item.createdAt)}</p>
+            <p className="mt-2 text-sm font-semibold text-gray-700">{quantityText}</p>
+            <p className="mt-2 text-sm font-semibold text-gray-700">
+              Nhập số lượng cần thêm lại. Hệ thống sẽ chỉ bổ sung nếu tồn kho còn đủ.
+            </p>
+          </div>
+
+          <div className="rounded-[24px] border border-gray-100 bg-white p-5">
+            <p className="text-xs font-black uppercase tracking-widest text-gray-400">Xử lý báo cáo</p>
+            <div className="mt-3 rounded-[20px] border border-blue-200 bg-blue-50 px-4 py-4">
+              <p className="text-sm font-black text-gray-900">Đã thêm</p>
+              <p className="mt-1 text-sm font-semibold text-gray-500">
+                Tự động cộng lại vật tư vào phòng ngay sau khi kiểm tra tồn kho.
+              </p>
+            </div>
+
+            <label className="mt-4 block space-y-2">
+              <span className="text-xs font-black uppercase tracking-widest text-gray-400">
+                Số lượng thêm lại
+              </span>
+              <input
+                type="number"
+                min="1"
+                max={Math.max(1, maxQuantity)}
+                value={quantity}
+                onChange={(event) => setQuantity(event.target.value)}
+                className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-800 outline-none transition-all focus:border-blue-300 focus:bg-white"
+              />
+            </label>
+            <p className="mt-2 text-sm font-semibold text-gray-500">
+              Tối đa {maxQuantity} vật tư theo báo cáo này.
+            </p>
+          </div>
+
+          <div className="flex flex-col-reverse gap-3 border-t border-gray-100 pt-5 sm:flex-row sm:items-center sm:justify-end">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isPending}
+              className="rounded-2xl px-5 py-3 text-sm font-black uppercase tracking-wide text-gray-500 transition-all hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50"
+            >
+              Hủy
+            </button>
+            <button
+              type="button"
+              disabled={isPending || Number(quantity) <= 0 || Number(quantity) > maxQuantity}
+              onClick={() =>
+                onSubmit({
+                  reportType: type,
+                  reportId: type === "loss-damage" ? item.id : item.notificationId,
+                  resolutionType: "Restocked",
+                  quantity: Number(quantity),
+                })
+              }
+              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-blue-600 px-5 py-3 text-sm font-black uppercase tracking-wide text-white transition-all hover:bg-blue-700 disabled:opacity-60"
+            >
+              <Settings2 className="size-4" />
+              Xác nhận và tự động thêm
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function HousekeepingInventoryManagementPage() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("loss-damage");
   const [search, setSearch] = useState("");
   const [isManualModalOpen, setIsManualModalOpen] = useState(false);
   const [feedback, setFeedback] = useState("");
+  const [detailItem, setDetailItem] = useState(null);
+  const [detailType, setDetailType] = useState("loss-damage");
+  const [processingItem, setProcessingItem] = useState(null);
+  const [processingType, setProcessingType] = useState("loss-damage");
+  const [processError, setProcessError] = useState("");
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["housekeepingInventoryReports"],
@@ -32,13 +278,26 @@ export default function HousekeepingInventoryManagementPage() {
   const manualReportMutation = useMutation({
     mutationFn: (payload) => housekeepingApi.reportInventoryIssueManual(payload),
     onSuccess: () => {
-      setFeedback("Da them bao cao hu hong / that thoat.");
+      setFeedback("Đã thêm báo cáo hư hỏng / thất thoát.");
       setIsManualModalOpen(false);
       queryClient.invalidateQueries({ queryKey: ["housekeepingInventoryReports"] });
       queryClient.invalidateQueries({ queryKey: ["housekeepingTasks"] });
     },
     onError: (submitError) => {
-      setFeedback(parseApiError(submitError, "Khong gui duoc bao cao."));
+      setFeedback(parseApiError(submitError, "Không gửi được báo cáo."));
+    },
+  });
+
+  const resolveReportMutation = useMutation({
+    mutationFn: (payload) => housekeepingApi.resolveInventoryReport(payload),
+    onSuccess: (response) => {
+      setProcessError("");
+      setFeedback(response?.message || "Đã cập nhật xử lý báo cáo.");
+      setProcessingItem(null);
+      queryClient.invalidateQueries({ queryKey: ["housekeepingInventoryReports"] });
+    },
+    onError: (submitError) => {
+      setProcessError(parseApiError(submitError, "Không cập nhật được trạng thái xử lý."));
     },
   });
 
@@ -68,37 +327,71 @@ export default function HousekeepingInventoryManagementPage() {
   const statCards = [
     {
       id: "loss-count",
-      label: "Bao cao hu hong",
+      label: "Báo cáo hư hỏng",
       value: data?.lossDamageReportCount ?? 0,
-      hint: `${data?.lossDamageUnitCount ?? 0} vat tu da ghi nhan`,
+      hint: `${data?.lossDamageUnitCount ?? 0} vật tư đã ghi nhận`,
       icon: AlertTriangle,
       className: "bg-rose-50 text-rose-600",
     },
     {
       id: "penalty-total",
-      label: "Tong tien den bu",
-      value: `${Number(data?.totalPenaltyAmount ?? 0).toLocaleString("vi-VN")} d`,
-      hint: "Tong hop tu checklist va bao cao thu cong",
+      label: "Tổng tiền đền bù",
+      value: `${Number(data?.totalPenaltyAmount ?? 0).toLocaleString("vi-VN")} đ`,
+      hint: "Tổng hợp từ checklist và báo cáo thủ công",
       icon: BadgeDollarSign,
       className: "bg-amber-50 text-amber-600",
     },
     {
       id: "shortage-count",
-      label: "Bao cao thieu vat tu",
+      label: "Báo cáo thiếu vật tư",
       value: data?.shortageReportCount ?? 0,
-      hint: `${data?.shortageUnitCount ?? 0} don vi dang thieu`,
+      hint: `${data?.shortageUnitCount ?? 0} đơn vị đang thiếu`,
       icon: PackageSearch,
       className: "bg-blue-50 text-blue-600",
     },
   ];
 
+  const renderActionButtons = (item, reportType) => {
+    const baseButtonClass =
+      "inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2 text-xs font-black uppercase tracking-wide transition-all";
+
+    return (
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={() => {
+            setDetailItem(item);
+            setDetailType(reportType);
+          }}
+          className={`${baseButtonClass} bg-slate-100 text-slate-700 hover:bg-slate-200`}
+        >
+          <Eye className="size-4" />
+          Xem
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setProcessError("");
+            setProcessingItem(item);
+            setProcessingType(reportType);
+          }}
+          className={`${baseButtonClass} bg-blue-50 text-blue-700 hover:bg-blue-100`}
+        >
+          <Settings2 className="size-4" />
+          Xử lý
+        </button>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <header className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
         <div>
-          <h1 className="text-3xl font-black text-gray-900">That thoat & den bu</h1>
+          <h1 className="text-3xl font-black text-gray-900">Thất thoát & đền bù</h1>
           <p className="mt-1 text-sm font-bold text-gray-400">
-            Theo doi vat tu thieu, hu hong va cac khoan den bu cua Housekeeping.
+            Theo dõi vật tư thiếu, hư hỏng và các khoản đền bù của Housekeeping.
           </p>
         </div>
 
@@ -108,7 +401,7 @@ export default function HousekeepingInventoryManagementPage() {
             <input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Tim phong, vat tu..."
+              placeholder="Tìm phòng, vật tư..."
               className="w-full rounded-2xl border border-gray-100 bg-white py-3 pl-11 pr-4 text-sm font-bold text-gray-700 shadow-sm outline-none transition-all focus:border-blue-200 focus:ring-2 focus:ring-blue-50 sm:w-80"
             />
           </label>
@@ -122,7 +415,7 @@ export default function HousekeepingInventoryManagementPage() {
             className="inline-flex items-center justify-center gap-2 rounded-2xl bg-rose-600 px-5 py-3 text-sm font-black uppercase tracking-wide text-white transition-all hover:bg-rose-700"
           >
             <ClipboardList className="size-4" />
-            Them bao cao
+            Thêm báo cáo
           </button>
         </div>
       </header>
@@ -153,8 +446,8 @@ export default function HousekeepingInventoryManagementPage() {
       <div className="rounded-[2.5rem] border border-gray-100 bg-white p-6 shadow-sm sm:p-8">
         <div className="flex flex-wrap gap-3">
           {[
-            { id: "loss-damage", label: "Hu hong & den bu", count: lossDamageReports.length },
-            { id: "shortage", label: "Thieu vat tu", count: shortageReports.length },
+            { id: "loss-damage", label: "Hư hỏng & đền bù", count: lossDamageReports.length },
+            { id: "shortage", label: "Thiếu vật tư", count: shortageReports.length },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -179,14 +472,14 @@ export default function HousekeepingInventoryManagementPage() {
           </div>
         ) : error ? (
           <div className="mt-8 rounded-[1.5rem] border border-rose-100 bg-rose-50 px-5 py-4 text-sm font-bold text-rose-700">
-            {parseApiError(error, "Khong tai duoc bao cao that thoat & den bu.")}
+            {parseApiError(error, "Không tải được báo cáo thất thoát & đền bù.")}
           </div>
         ) : activeTab === "loss-damage" ? (
           <div className="mt-8 overflow-x-auto">
-            <table className="w-full min-w-[920px] text-left">
+            <table className="w-full min-w-[1180px] text-left">
               <thead className="border-b border-gray-100">
                 <tr>
-                  {["Phong", "Vat tu", "So luong", "Don gia", "Tong tien", "Thoi gian", "Mo ta"].map((heading) => (
+                  {["Phòng", "Vật tư", "Số lượng", "Đơn giá", "Tổng tiền", "Thời gian báo cáo", "Hành động"].map((heading) => (
                     <th key={heading} className="px-4 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400 first:px-0">
                       {heading}
                     </th>
@@ -197,32 +490,28 @@ export default function HousekeepingInventoryManagementPage() {
                 {filteredLossDamageReports.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="px-0 py-8 text-center text-sm font-bold text-gray-400">
-                      Chua co bao cao hu hong / den bu nao.
+                      Chưa có báo cáo hư hỏng / đền bù nào.
                     </td>
                   </tr>
                 ) : (
                   filteredLossDamageReports.map((item) => (
                     <tr key={item.id}>
                       <td className="px-0 py-4">
-                        <p className="text-sm font-black text-gray-900">Phong {item.roomNumber}</p>
+                        <p className="text-sm font-black text-gray-900">Phòng {item.roomNumber}</p>
                       </td>
                       <td className="px-4 py-4">
                         <p className="text-sm font-black text-gray-900">{item.equipmentName}</p>
-                        <p className="mt-1 text-xs font-bold text-gray-400">{item.equipmentCode || "Khong co ma"}</p>
+                        <p className="mt-1 text-xs font-bold text-gray-400">{item.equipmentCode || "Không có mã"}</p>
                       </td>
                       <td className="px-4 py-4 text-sm font-black text-gray-900">{item.quantity}</td>
                       <td className="px-4 py-4 text-sm font-black text-gray-500">
-                        {Number(item.unitPenalty ?? 0).toLocaleString("vi-VN")} d
+                        {Number(item.unitPenalty ?? 0).toLocaleString("vi-VN")} đ
                       </td>
                       <td className="px-4 py-4 text-sm font-black text-amber-700">
-                        {Number(item.penaltyAmount ?? 0).toLocaleString("vi-VN")} d
+                        {Number(item.penaltyAmount ?? 0).toLocaleString("vi-VN")} đ
                       </td>
                       <td className="px-4 py-4 text-sm font-bold text-gray-500">{formatDateTime(item.createdAt)}</td>
-                      <td className="px-4 py-4">
-                        <p className="max-w-xs text-sm font-semibold text-gray-600">
-                          {item.description || "Khong co mo ta"}
-                        </p>
-                      </td>
+                      <td className="px-4 py-4">{renderActionButtons(item, "loss-damage")}</td>
                     </tr>
                   ))
                 )}
@@ -231,10 +520,10 @@ export default function HousekeepingInventoryManagementPage() {
           </div>
         ) : (
           <div className="mt-8 overflow-x-auto">
-            <table className="w-full min-w-[920px] text-left">
+            <table className="w-full min-w-[1180px] text-left">
               <thead className="border-b border-gray-100">
                 <tr>
-                  {["Phong", "Vat tu", "Yeu cau", "Ton kho", "Thieu", "Thoi gian", "Ghi chu"].map((heading) => (
+                  {["Phòng", "Vật tư", "Yêu cầu", "Tồn kho", "Thiếu", "Thời gian báo cáo", "Hành động"].map((heading) => (
                     <th key={heading} className="px-4 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400 first:px-0">
                       {heading}
                     </th>
@@ -245,28 +534,24 @@ export default function HousekeepingInventoryManagementPage() {
                 {filteredShortageReports.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="px-0 py-8 text-center text-sm font-bold text-gray-400">
-                      Chua co bao cao thieu vat tu nao.
+                      Chưa có báo cáo thiếu vật tư nào.
                     </td>
                   </tr>
                 ) : (
                   filteredShortageReports.map((item) => (
                     <tr key={item.notificationId}>
                       <td className="px-0 py-4">
-                        <p className="text-sm font-black text-gray-900">Phong {item.roomNumber}</p>
+                        <p className="text-sm font-black text-gray-900">Phòng {item.roomNumber}</p>
                       </td>
                       <td className="px-4 py-4">
                         <p className="text-sm font-black text-gray-900">{item.equipmentName}</p>
-                        <p className="mt-1 text-xs font-bold text-gray-400">{item.equipmentCode || "Khong co ma"}</p>
+                        <p className="mt-1 text-xs font-bold text-gray-400">{item.equipmentCode || "Không có mã"}</p>
                       </td>
                       <td className="px-4 py-4 text-sm font-black text-gray-900">{item.requestedQuantity}</td>
                       <td className="px-4 py-4 text-sm font-black text-gray-500">{item.availableQuantity}</td>
                       <td className="px-4 py-4 text-sm font-black text-rose-600">{item.shortageQuantity}</td>
                       <td className="px-4 py-4 text-sm font-bold text-gray-500">{formatDateTime(item.createdAt)}</td>
-                      <td className="px-4 py-4">
-                        <p className="max-w-xs text-sm font-semibold text-gray-600">
-                          {item.note || "Khong co ghi chu"}
-                        </p>
-                      </td>
+                      <td className="px-4 py-4">{renderActionButtons(item, "shortage")}</td>
                     </tr>
                   ))
                 )}
@@ -281,6 +566,27 @@ export default function HousekeepingInventoryManagementPage() {
         isPending={manualReportMutation.isPending}
         onClose={() => setIsManualModalOpen(false)}
         onSubmit={(payload) => manualReportMutation.mutate(payload)}
+      />
+
+      <ReportDetailModal
+        item={detailItem}
+        type={detailType}
+        onClose={() => setDetailItem(null)}
+      />
+
+      <ProcessReportModal
+        item={processingItem}
+        type={processingType}
+        isPending={resolveReportMutation.isPending}
+        errorMessage={processError}
+        onClose={() => {
+          setProcessingItem(null);
+          setProcessError("");
+        }}
+        onSubmit={(payload) => {
+          setProcessError("");
+          resolveReportMutation.mutate(payload);
+        }}
       />
     </div>
   );

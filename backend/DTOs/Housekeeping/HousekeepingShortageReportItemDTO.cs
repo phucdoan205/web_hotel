@@ -13,5 +13,8 @@ namespace backend.DTOs.Housekeeping
         public int ShortageQuantity { get; set; }
         public string? Note { get; set; }
         public DateTime? CreatedAt { get; set; }
+        public string ResolutionType { get; set; } = "Pending";
+        public int? ResolvedQuantity { get; set; }
+        public DateTime? ResolvedAt { get; set; }
     }
 }
