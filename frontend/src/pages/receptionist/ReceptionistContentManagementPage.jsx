@@ -77,6 +77,12 @@ const formatPublishedText = (article) => {
   return formatPreservedApiDateTime(article.publishedAt);
 };
 
+const getArticlePriority = (article) => {
+  if (!article.isDeleted && !article.isApproved) return 0;
+  if (!article.isDeleted && article.isApproved) return 1;
+  return 2;
+};
+
 const ToolbarButton = ({ children, onClick, title }) => (
   <button
     type="button"
@@ -140,15 +146,27 @@ const ReceptionistContentManagementPage = () => {
 
   const filteredArticles = useMemo(() => {
     const keyword = search.trim().toLowerCase();
-    if (!keyword) {
-      return articles;
-    }
-
-    return articles.filter((article) =>
+    const nextArticles = !keyword
+      ? articles
+      : articles.filter((article) =>
       [article.title, article.summary, article.categoryName, article.slug]
         .filter(Boolean)
         .some((value) => value.toLowerCase().includes(keyword)),
     );
+
+    return [...nextArticles].sort((articleA, articleB) => {
+      const priorityDiff = getArticlePriority(articleA) - getArticlePriority(articleB);
+      if (priorityDiff !== 0) return priorityDiff;
+
+      const timeA = new Date(
+        articleA.updatedAt || articleA.publishedAt || articleA.createdAt || 0,
+      ).getTime();
+      const timeB = new Date(
+        articleB.updatedAt || articleB.publishedAt || articleB.createdAt || 0,
+      ).getTime();
+
+      return timeB - timeA;
+    });
   }, [articles, search]);
 
   const resetForm = () => {

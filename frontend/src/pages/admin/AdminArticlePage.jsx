@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { CheckCircle2, Eye, RefreshCw, RotateCcw, Search, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import ArticleTrashDialog from "../../components/articles/ArticleTrashDialog";
@@ -40,6 +40,12 @@ const getDisplayTime = (article) => {
   return article.publishedAt || null;
 };
 
+const getArticlePriority = (article) => {
+  if (!article.isDeleted && !article.isApproved) return 0;
+  if (!article.isDeleted && article.isApproved) return 1;
+  return 2;
+};
+
 const AdminArticlePage = () => {
   const navigate = useNavigate();
   const [articles, setArticles] = useState([]);
@@ -73,6 +79,22 @@ const AdminArticlePage = () => {
   useEffect(() => {
     loadArticles();
   }, [loadArticles]);
+
+  const sortedArticles = useMemo(() => {
+    return [...articles].sort((articleA, articleB) => {
+      const priorityDiff = getArticlePriority(articleA) - getArticlePriority(articleB);
+      if (priorityDiff !== 0) return priorityDiff;
+
+      const timeA = new Date(
+        articleA.updatedAt || articleA.publishedAt || articleA.createdAt || 0,
+      ).getTime();
+      const timeB = new Date(
+        articleB.updatedAt || articleB.publishedAt || articleB.createdAt || 0,
+      ).getTime();
+
+      return timeB - timeA;
+    });
+  }, [articles]);
 
   const handleApprove = async (articleId) => {
     try {
@@ -200,14 +222,14 @@ const AdminArticlePage = () => {
                       Đang tải bài viết...
                     </td>
                   </tr>
-                ) : articles.length === 0 ? (
+                ) : sortedArticles.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-4 py-10 text-center text-sm font-semibold text-gray-400">
                       Không có bài viết phù hợp bộ lọc.
                     </td>
                   </tr>
                 ) : (
-                  articles.map((article) => (
+                  sortedArticles.map((article) => (
                     <tr key={article.id}>
                       <td className="px-4 py-4 align-top">
                         <div className="flex items-start gap-3">

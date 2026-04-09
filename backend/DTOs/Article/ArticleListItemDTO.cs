@@ -14,6 +14,9 @@ namespace backend.DTOs.Article
         public List<string> GalleryUrls { get; set; } = new();
         public DateTime? PublishedAt { get; set; }
         public DateTime CreatedAt { get; set; }
+        public DateTime? UpdatedAt { get; set; }
+        public DateTime? ApprovedAt { get; set; }
+        public DateTime? DeletedAt { get; set; }
         public bool Status { get; set; }
         public bool IsApproved { get; set; }
         public bool IsDeleted { get; set; }

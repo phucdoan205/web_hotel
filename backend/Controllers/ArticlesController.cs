@@ -103,31 +103,15 @@ namespace backend.Controllers
                     (a.Content != null && a.Content.ToLower().Contains(keyword)));
             }
 
-            var items = await query
+            var articles = await query
                 .OrderByDescending(a => a.IsApproved)
                 .ThenByDescending(a => a.PublishedAt ?? a.CreatedAt)
                 .AsNoTracking()
-                .Select(a => new ArticleListItemDTO
-                {
-                    Id = a.Id,
-                    CategoryId = a.CategoryId,
-                    CategoryName = a.Category != null ? a.Category.Name : null,
-                    AuthorId = a.AuthorId,
-                    AuthorName = a.Author != null ? a.Author.FullName : null,
-                    Title = a.Title,
-                    Slug = a.Slug,
-                    Summary = a.Summary,
-                    ThumbnailUrl = a.ThumbnailUrl,
-                    GalleryUrls = SplitGalleryUrls(a.GalleryUrls),
-                    PublishedAt = a.PublishedAt,
-                    CreatedAt = a.CreatedAt,
-                    Status = a.Status,
-                    IsApproved = a.IsApproved,
-                    IsDeleted = a.IsDeleted,
-                    CommentCount = a.Comments.Count,
-                    Tags = SplitTags(a.Tags)
-                })
                 .ToListAsync();
+
+            var items = articles
+                .Select(a => MapArticleListItem(a))
+                .ToList();
 
             return Ok(items);
         }
@@ -721,18 +705,45 @@ namespace backend.Controllers
                 ThumbnailUrl = article.ThumbnailUrl,
                 GalleryUrls = SplitGalleryUrls(article.GalleryUrls),
                 Content = article.Content,
-                PublishedAt = article.PublishedAt,
-                CreatedAt = article.CreatedAt,
-                UpdatedAt = article.UpdatedAt,
+                PublishedAt = AsUtc(article.PublishedAt),
+                CreatedAt = AsUtc(article.CreatedAt),
+                UpdatedAt = AsUtc(article.UpdatedAt),
                 Status = article.Status,
                 IsApproved = article.IsApproved,
                 IsDeleted = article.IsDeleted,
-                ApprovedAt = article.ApprovedAt,
+                ApprovedAt = AsUtc(article.ApprovedAt),
                 ApprovedById = article.ApprovedById,
                 ApprovedByName = article.ApprovedBy?.FullName,
                 CommentCount = allComments.Count,
                 Tags = SplitTags(article.Tags),
                 Comments = BuildCommentTree(allComments)
+            };
+        }
+
+        private static ArticleListItemDTO MapArticleListItem(Article article)
+        {
+            return new ArticleListItemDTO
+            {
+                Id = article.Id,
+                CategoryId = article.CategoryId,
+                CategoryName = article.Category?.Name,
+                AuthorId = article.AuthorId,
+                AuthorName = article.Author?.FullName,
+                Title = article.Title,
+                Slug = article.Slug,
+                Summary = article.Summary,
+                ThumbnailUrl = article.ThumbnailUrl,
+                GalleryUrls = SplitGalleryUrls(article.GalleryUrls),
+                PublishedAt = AsUtc(article.PublishedAt),
+                CreatedAt = AsUtc(article.CreatedAt),
+                UpdatedAt = AsUtc(article.UpdatedAt),
+                ApprovedAt = AsUtc(article.ApprovedAt),
+                DeletedAt = AsUtc(article.DeletedAt),
+                Status = article.Status,
+                IsApproved = article.IsApproved,
+                IsDeleted = article.IsDeleted,
+                CommentCount = article.Comments.Count,
+                Tags = SplitTags(article.Tags)
             };
         }
 
@@ -750,7 +761,7 @@ namespace backend.Controllers
                     TaggedUserId = c.TaggedUserId,
                     TaggedUserName = c.TaggedUser?.FullName,
                     Content = c.Content,
-                    CreatedAt = c.CreatedAt
+                    CreatedAt = AsUtc(c.CreatedAt)
                 })
                 .ToDictionary(c => c.Id);
 
@@ -792,6 +803,18 @@ namespace backend.Controllers
         private static string BuildNewsFolder(string slug)
         {
             return $"home/News/{slug}";
+        }
+
+        private static DateTime AsUtc(DateTime value)
+        {
+            return value.Kind == DateTimeKind.Utc
+                ? value
+                : DateTime.SpecifyKind(value, DateTimeKind.Utc);
+        }
+
+        private static DateTime? AsUtc(DateTime? value)
+        {
+            return value.HasValue ? AsUtc(value.Value) : null;
         }
 
         private static string? NormalizeOptional(string? value)
