@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { bookingsApi } from "../../../api/admin/bookingsApi";
 import { roomTypesApi } from "../../../api/admin/roomTypesApi";
 import { roomsApi } from "../../../api/admin/roomsApi";
+import { getVietnamDateKey, getVietnamDateOffsetKey } from "../../../utils/vietnamTime";
 
 const initialGuestInfo = { name: "", phone: "", email: "" };
 
@@ -11,10 +12,8 @@ const BookingCreateModal = ({ open, onClose, onNotice }) => {
   const queryClient = useQueryClient();
   const [selectedRooms, setSelectedRooms] = useState([]);
   const [guestInfo, setGuestInfo] = useState(initialGuestInfo);
-  const [checkInDate, setCheckInDate] = useState(new Date().toISOString().split("T")[0]);
-  const [checkOutDate, setCheckOutDate] = useState(
-    new Date(Date.now() + 86400000).toISOString().split("T")[0]
-  );
+  const [checkInDate, setCheckInDate] = useState(getVietnamDateKey());
+  const [checkOutDate, setCheckOutDate] = useState(getVietnamDateOffsetKey(1));
   const [inlineNotice, setInlineNotice] = useState(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
 
@@ -47,8 +46,8 @@ const BookingCreateModal = ({ open, onClose, onNotice }) => {
   const resetForm = () => {
     setSelectedRooms([]);
     setGuestInfo(initialGuestInfo);
-    setCheckInDate(new Date().toISOString().split("T")[0]);
-    setCheckOutDate(new Date(Date.now() + 86400000).toISOString().split("T")[0]);
+    setCheckInDate(getVietnamDateKey());
+    setCheckOutDate(getVietnamDateOffsetKey(1));
     setInlineNotice(null);
     setShowConfirmation(false);
   };
@@ -337,7 +336,7 @@ const BookingCreateModal = ({ open, onClose, onNotice }) => {
                         setInlineNotice(null);
                         setShowConfirmation(false);
                       }}
-                      min={new Date().toISOString().split("T")[0]}
+                      min={getVietnamDateKey()}
                       className="w-full rounded-2xl border border-gray-300 px-4 py-2 outline-none focus:border-orange-500"
                     />
                   </div>
@@ -352,7 +351,7 @@ const BookingCreateModal = ({ open, onClose, onNotice }) => {
                         setInlineNotice(null);
                         setShowConfirmation(false);
                       }}
-                      min={checkInDate || new Date().toISOString().split("T")[0]}
+                      min={checkInDate || getVietnamDateKey()}
                       className="w-full rounded-2xl border border-gray-300 px-4 py-2 outline-none focus:border-orange-500"
                     />
                   </div>

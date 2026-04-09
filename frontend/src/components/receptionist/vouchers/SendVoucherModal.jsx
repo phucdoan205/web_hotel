@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from "react";
 import VoucherEmailPreview from "./VoucherEmailPreview";
+import { getVietnamDateKey, toVietnamStartOfDayISOString } from "../../../utils/vietnamTime";
 
 const SendVoucherModal = ({ vouchers = [], initialVoucher = null, onClose, onSend }) => {
   const [selectedId, setSelectedId] = useState(initialVoucher ? initialVoucher.id : (vouchers[0]?.id ?? null));
   const [mode, setMode] = useState("email");
   const [recipients, setRecipients] = useState("");
   const [message, setMessage] = useState("");
-  const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
+  const [date, setDate] = useState(getVietnamDateKey());
   const [showConfirmSend, setShowConfirmSend] = useState(false);
   const [error, setError] = useState(null);
 
@@ -35,8 +36,11 @@ const SendVoucherModal = ({ vouchers = [], initialVoucher = null, onClose, onSen
 
         await onSend({ voucherId: selected.id, recipients: list, message });
       } else {
-        const sendDate = date ? new Date(date) : new Date();
-        await onSend({ voucherId: selected.id, date: sendDate.toISOString(), message });
+        await onSend({
+          voucherId: selected.id,
+          date: date ? toVietnamStartOfDayISOString(date) : toVietnamStartOfDayISOString(),
+          message,
+        });
       }
 
       onClose();

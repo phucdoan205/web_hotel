@@ -3,6 +3,7 @@ import { CheckCircle2, Eye, RefreshCw, RotateCcw, Search, Trash2 } from "lucide-
 import { useNavigate } from "react-router-dom";
 import ArticleTrashDialog from "../../components/articles/ArticleTrashDialog";
 import { approveArticle, deleteArticle, getArticles, hardDeleteArticle, restoreArticle } from "../../api/articles/articleApi";
+import { formatPreservedApiDateTime } from "../../utils/vietnamTime";
 
 const filterOptions = [
   { value: "all", label: "Tất cả" },
@@ -25,6 +26,18 @@ const getStatusLabel = (article) => {
   }
 
   return article.isApproved ? "Đã duyệt" : "Chờ duyệt";
+};
+
+const getDisplayTime = (article) => {
+  if (article.isDeleted) {
+    return article.updatedAt || article.publishedAt || article.createdAt || null;
+  }
+
+  if (article.isApproved) {
+    return article.updatedAt || article.publishedAt || article.createdAt || null;
+  }
+
+  return article.publishedAt || null;
 };
 
 const AdminArticlePage = () => {
@@ -219,7 +232,7 @@ const AdminArticlePage = () => {
                         </span>
                       </td>
                       <td className="px-4 py-4 align-top text-sm font-semibold text-slate-600">
-                        {article.publishedAt ? new Date(article.publishedAt).toLocaleString("vi-VN") : "Chưa hiển thị"}
+                        {getDisplayTime(article) ? formatPreservedApiDateTime(getDisplayTime(article)) : "Chưa hiển thị"}
                       </td>
                       <td className="px-4 py-4 align-top">
                         <div className="flex flex-wrap items-center gap-2">
@@ -295,3 +308,5 @@ const AdminArticlePage = () => {
 };
 
 export default AdminArticlePage;
+
+

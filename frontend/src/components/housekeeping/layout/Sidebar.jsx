@@ -1,11 +1,12 @@
 import { NavLink } from "react-router-dom";
 import {
   BarChart3,
-  Box,
+  Boxes,
   CheckSquare,
   LayoutDashboard,
   List,
   Settings,
+  ShieldAlert,
   Users,
 } from "lucide-react";
 
@@ -29,9 +30,15 @@ const menuItems = [
     path: "/housekeeping/tasks",
   },
   {
+    id: "equipment",
+    label: "Quản lý vật tư",
+    icon: Boxes,
+    path: "/housekeeping/equipment",
+  },
+  {
     id: "inventory",
     label: "Thất thoát & đền bù",
-    icon: Box,
+    icon: ShieldAlert,
     path: "/housekeeping/inventory",
   },
   {

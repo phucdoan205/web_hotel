@@ -12,6 +12,7 @@ import {
 } from "../../api/admin/staffApi";
 import { getRoles } from "../../api/admin/roleApi";
 import { getAvatarPreview } from "../../utils/avatar";
+import { getVietnamDateKey } from "../../utils/vietnamTime";
 
 const emptyForm = {
   fullName: "",
@@ -44,7 +45,7 @@ const formatDateForInput = (value) => {
     return "";
   }
 
-  return date.toISOString().slice(0, 10);
+  return getVietnamDateKey(date);
 };
 
 const AdminStaffPage = () => {

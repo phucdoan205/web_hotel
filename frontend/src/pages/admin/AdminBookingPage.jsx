@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { BedDouble, CircleDollarSign, Layers3, UserRound } from "lucide-react";
 import { roomsApi } from "../../api/admin/roomsApi";
 import { bookingsApi } from "../../api/admin/bookingsApi";
+import { formatVietnamDate } from "../../utils/vietnamTime";
 
 const priceFormatter = new Intl.NumberFormat("vi-VN");
 
@@ -65,7 +66,7 @@ const getRoomBookingMap = (bookings) => {
 
 const formatDate = (value) => {
   if (!value) return "--";
-  return new Date(value).toLocaleDateString("vi-VN");
+  return formatVietnamDate(value);
 };
 
 const getFloorLabel = (floor) => {

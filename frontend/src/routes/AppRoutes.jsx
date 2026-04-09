@@ -28,6 +28,7 @@ import AdminBookingPage from "../pages/admin/AdminBookingPage";
 import AdminRoomInventoryPage from "../pages/admin/AdminRoomInventoryPage";
 import AdminStaffPage from "../pages/admin/AdminStaffPage";
 import AdminEquipmentPage from "../pages/admin/AdminEquipmentPage";
+import AdminLossDamagePage from "../pages/admin/AdminLossDamagePage";
 import AdminRoomPage from "../pages/admin/AdminRoomPage";
 import AdminRoomTypesPage from "../pages/admin/AdminRoomTypesPage";
 import AdminArticlePage from "../pages/admin/AdminArticlePage";
@@ -52,6 +53,7 @@ import HousekeepingRoomInspectionDetailPage from "../pages/housekeeping/Housekee
 import HousekeepingReportsPage from "../pages/housekeeping/HousekeepingReportsPage";
 import HousekeepingTasksPage from "../pages/housekeeping/HousekeepingTasksPage";
 import HousekeepingInventoryManagementPage from "../pages/housekeeping/HousekeepingInventoryManagementPage";
+import HousekeepingEquipmentManagementPage from "../pages/housekeeping/HousekeepingEquipmentManagementPage";
 import HousekeepingStaffManagementPage from "../pages/housekeeping/HousekeepingStaffManagementPage";
 
 // Pages guest
@@ -100,6 +102,7 @@ const AppRoutes = () => {
         <Route path="room-types" element={<AdminRoomTypesPage />} />
         <Route path="room-inventory" element={<AdminRoomInventoryPage />} />
         <Route path="equipment" element={<AdminEquipmentPage />} />
+        <Route path="loss-damage" element={<AdminLossDamagePage />} />
         <Route path="staff" element={<AdminStaffPage />} />
         <Route path="articles" element={<AdminArticlePage />} />
       </Route>
@@ -128,6 +131,7 @@ const AppRoutes = () => {
         <Route path="tasks/:roomId" element={<HousekeepingRoomInspectionDetailPage />} />
         <Route path="reports" element={<HousekeepingReportsPage />} />
         <Route path="tasks" element={<HousekeepingTasksPage />} />
+        <Route path="equipment" element={<HousekeepingEquipmentManagementPage />} />
         <Route path="inventory" element={<HousekeepingInventoryManagementPage />} />
         <Route path="staff" element={<HousekeepingStaffManagementPage />} />
         <Route path="settings" element={<HousekeepingSettingsPage />} />

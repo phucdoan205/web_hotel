@@ -3,6 +3,7 @@ import GuestFlowStats from "../../components/receptionist/checkinout/GuestFlowSt
 import GuestTable from "../../components/receptionist/checkinout/GuestTable";
 import { useQuery } from "@tanstack/react-query";
 import { bookingsApi } from "../../api/admin/bookingsApi";
+import { getVietnamDateKey } from "../../utils/vietnamTime";
 
 const ReceptionistCheckInOutPage = () => {
   const [activeTab, setActiveTab] = useState("in");
@@ -10,7 +11,7 @@ const ReceptionistCheckInOutPage = () => {
   // ✅ Arrivals (Check-in)
   const arrivalsQuery = useQuery({
     queryKey: ["arrivals"],
-    queryFn: () => bookingsApi.getArrivals({ date: new Date() }),
+    queryFn: () => bookingsApi.getArrivals({ date: getVietnamDateKey() }),
     enabled: activeTab === "in",
     staleTime: 1000 * 60 * 5, // cache 5 phút
   });
@@ -26,7 +27,7 @@ const ReceptionistCheckInOutPage = () => {
   // ✅ Departures (Check-out)
   const departuresQuery = useQuery({
     queryKey: ["departures"],
-    queryFn: () => bookingsApi.getDepartures({ date: new Date() }),
+    queryFn: () => bookingsApi.getDepartures({ date: getVietnamDateKey() }),
     enabled: activeTab === "out",
     staleTime: 1000 * 60 * 5,
   });

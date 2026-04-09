@@ -12,6 +12,7 @@ import {
 import { bookingsApi } from "../../../api/admin/bookingsApi";
 import BookingDetailModal from "./BookingDetailModal";
 import { getBookingPaymentState, isBookingDeleteLocked } from "../../../utils/bookingPaymentState";
+import { formatVietnamDate, getVietnamDateKey } from "../../../utils/vietnamTime";
 
 const BookingTable = ({ filters, onPageChange }) => {
   const queryClient = useQueryClient();
@@ -70,15 +71,7 @@ const BookingTable = ({ filters, onPageChange }) => {
 
   const isToday = (dateString) => {
     if (!dateString) return false;
-
-    const checkInDate = new Date(dateString.split("T")[0]);
-    const today = new Date();
-
-    return (
-      checkInDate.getFullYear() === today.getFullYear() &&
-      checkInDate.getMonth() === today.getMonth() &&
-      checkInDate.getDate() === today.getDate()
-    );
+    return getVietnamDateKey(dateString) === getVietnamDateKey();
   };
 
   const getStatusStyle = (status) => {
@@ -173,7 +166,7 @@ const BookingTable = ({ filters, onPageChange }) => {
                               className="rounded-2xl bg-slate-50 px-3 py-2"
                             >
                               <div className="font-semibold text-slate-700">
-                                {detail.checkInDate ? detail.checkInDate.split("T")[0] : "—"}
+                                {detail.checkInDate ? formatVietnamDate(detail.checkInDate) : "—"}
                               </div>
                               <div className="text-xs text-slate-500">
                                 Phòng {detail.room?.roomNumber || detail.roomNumber || "--"}
@@ -341,3 +334,4 @@ const BookingTable = ({ filters, onPageChange }) => {
 };
 
 export default BookingTable;
+

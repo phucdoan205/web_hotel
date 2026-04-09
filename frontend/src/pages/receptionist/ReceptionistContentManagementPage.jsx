@@ -23,6 +23,7 @@ import {
   updateArticle,
   uploadArticleImages,
 } from "../../api/articles/articleApi";
+import { formatPreservedApiDateTime } from "../../utils/vietnamTime";
 
 const emptyForm = {
   title: "",
@@ -62,14 +63,18 @@ const getStatusBadgeClass = (article) => {
 
 const formatPublishedText = (article) => {
   if (article.isDeleted && article.updatedAt) {
-    return new Date(article.updatedAt).toLocaleString("vi-VN");
+    return formatPreservedApiDateTime(article.updatedAt);
+  }
+
+  if (article.isApproved) {
+    return formatPreservedApiDateTime(article.updatedAt || article.publishedAt || article.createdAt);
   }
 
   if (!article.publishedAt) {
     return "Chờ admin duyệt";
   }
 
-  return new Date(article.publishedAt).toLocaleString("vi-VN");
+  return formatPreservedApiDateTime(article.publishedAt);
 };
 
 const ToolbarButton = ({ children, onClick, title }) => (
@@ -762,3 +767,5 @@ const ReceptionistContentManagementPage = () => {
 };
 
 export default ReceptionistContentManagementPage;
+
+

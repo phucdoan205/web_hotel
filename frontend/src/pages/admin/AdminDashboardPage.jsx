@@ -7,6 +7,12 @@ import RevenueChart from "../../components/admin/dashboard/RevenueChart";
 import RoomChart from "../../components/admin/dashboard/RoomChart";
 import { bookingsApi } from "../../api/admin/bookingsApi";
 import { roomsApi } from "../../api/admin/roomsApi";
+import {
+  formatVietnamDateTime,
+  getVietnamDateKey,
+  getVietnamDateOffsetKey,
+  getVietnamMonthKey,
+} from "../../utils/vietnamTime";
 
 const currency = new Intl.NumberFormat("vi-VN");
 const STATUS_COLORS = {
@@ -19,10 +25,6 @@ const STATUS_COLORS = {
 
 const startOfMonth = (date) => new Date(date.getFullYear(), date.getMonth(), 1);
 const addMonths = (date, amount) => new Date(date.getFullYear(), date.getMonth() + amount, 1);
-const startOfDay = (date) => new Date(date.getFullYear(), date.getMonth(), date.getDate());
-
-const isSameMonth = (dateA, dateB) =>
-  dateA.getFullYear() === dateB.getFullYear() && dateA.getMonth() === dateB.getMonth();
 
 const toDate = (value) => new Date(value);
 
@@ -38,11 +40,10 @@ const getDetailTotal = (detail) => Number(detail.pricePerNight || 0) * getDetail
 const getBookingTotal = (booking) =>
   (booking.bookingDetails ?? []).reduce((sum, detail) => sum + getDetailTotal(detail), 0);
 
-const isDetailActiveOnDate = (detail, date) => {
-  const target = startOfDay(date).getTime();
-  const checkIn = startOfDay(toDate(detail.checkInDate)).getTime();
-  const checkOut = startOfDay(toDate(detail.checkOutDate)).getTime();
-  return checkIn <= target && target < checkOut;
+const isDetailActiveOnDate = (detail, dateKey) => {
+  const checkInKey = getVietnamDateKey(detail.checkInDate);
+  const checkOutKey = getVietnamDateKey(detail.checkOutDate);
+  return Boolean(checkInKey && checkOutKey) && checkInKey <= dateKey && dateKey < checkOutKey;
 };
 
 const getActiveDetailsOnDate = (bookings, date) =>
@@ -60,14 +61,7 @@ const getTrend = (current, previous) => {
   return ((current - previous) / previous) * 100;
 };
 
-const formatDateTime = (value) =>
-  new Date(value).toLocaleString("vi-VN", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+const formatDateTime = (value) => formatVietnamDateTime(value);
 
 const getRoomLabel = (booking) => {
   const labels = (booking.bookingDetails ?? []).map((detail) => {
@@ -106,18 +100,19 @@ export default function AdminDashboardPage() {
 
   const dashboardData = useMemo(() => {
     const now = new Date();
-    const today = startOfDay(now);
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
+    const today = getVietnamDateKey(now);
+    const yesterday = getVietnamDateOffsetKey(-1, now);
 
     const monthStart = startOfMonth(now);
     const previousMonthStart = addMonths(monthStart, -1);
+    const currentMonthKey = getVietnamMonthKey(now);
+    const previousMonthKey = getVietnamMonthKey(previousMonthStart);
 
     const currentMonthBookings = bookings.filter((booking) =>
-      isSameMonth(toDate(booking.createdAt), now),
+      getVietnamMonthKey(booking.createdAt) === currentMonthKey,
     ).length;
     const previousMonthBookings = bookings.filter((booking) =>
-      isSameMonth(toDate(booking.createdAt), previousMonthStart),
+      getVietnamMonthKey(booking.createdAt) === previousMonthKey,
     ).length;
 
     const activeToday = getActiveDetailsOnDate(bookings, today);
@@ -146,12 +141,12 @@ export default function AdminDashboardPage() {
 
     const monthlyRevenue = Array.from({ length: 6 }, (_, index) => {
       const baseDate = addMonths(monthStart, index - 5);
-      const revenue = bookings.reduce((sum, booking) => {
-        const bookingSum = (booking.bookingDetails ?? []).reduce((detailSum, detail) => {
-          const checkIn = toDate(detail.checkInDate);
-          if (!isSameMonth(checkIn, baseDate)) return detailSum;
-          return detailSum + getDetailTotal(detail);
-        }, 0);
+        const revenue = bookings.reduce((sum, booking) => {
+          const bookingSum = (booking.bookingDetails ?? []).reduce((detailSum, detail) => {
+            const checkIn = toDate(detail.checkInDate);
+            if (getVietnamMonthKey(checkIn) !== getVietnamMonthKey(baseDate)) return detailSum;
+            return detailSum + getDetailTotal(detail);
+          }, 0);
 
         return sum + bookingSum;
       }, 0);

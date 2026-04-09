@@ -10,6 +10,7 @@ import {
   Hotel,
   LayoutDashboard,
   Settings,
+  ShieldAlert,
   Users,
 } from "lucide-react";
 
@@ -20,6 +21,7 @@ const menuItems = [
   { name: "Bài viết", icon: FileText, path: "/admin/articles" },
   { name: "Quản lý phòng", icon: Building, path: "/admin/rooms" },
   { name: "Vật tư", icon: Boxes, path: "/admin/equipment" },
+  { name: "Thất thoát & đền bù", icon: ShieldAlert, path: "/admin/loss-damage" },
   { name: "Báo cáo", icon: BarChart3, path: "/admin/reports" },
   { name: "Audit Log", icon: History, path: "/admin/audit-log" },
 ];
