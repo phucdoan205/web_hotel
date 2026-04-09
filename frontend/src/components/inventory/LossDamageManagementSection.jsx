@@ -179,7 +179,7 @@ function ProcessReportModal({ item, type, isPending, errorMessage, onClose, onSu
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-2xl overflow-hidden rounded-[2rem] border border-gray-100 bg-white shadow-2xl">
+      <div className="flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-[2rem] border border-gray-100 bg-white shadow-2xl">
         <div className="flex items-start justify-between border-b border-gray-100 px-8 py-6">
           <div>
             <h2 className="text-2xl font-black text-gray-900">{type === "loss-damage" ? "Xử lý báo cáo" : "Xử lý thiếu vật tư"}</h2>
@@ -190,9 +190,10 @@ function ProcessReportModal({ item, type, isPending, errorMessage, onClose, onSu
           </button>
         </div>
 
-        <div className="space-y-5 px-8 py-6">
-          {errorMessage ? <div className="rounded-[20px] border border-rose-100 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">{errorMessage}</div> : null}
-          <div className="rounded-[24px] border border-gray-100 bg-gray-50 p-5">
+        <div className="flex min-h-0 flex-1 flex-col">
+          <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-8 py-6">
+            {errorMessage ? <div className="rounded-[20px] border border-rose-100 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">{errorMessage}</div> : null}
+            <div className="rounded-[24px] border border-gray-100 bg-gray-50 p-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-[11px] font-black uppercase tracking-widest text-gray-400">Thông tin xử lý</p>
               <span className={`rounded-full px-3 py-2 text-[10px] font-black uppercase tracking-wide ${currentStatus.className}`}>{currentStatus.label}</span>
@@ -208,7 +209,7 @@ function ProcessReportModal({ item, type, isPending, errorMessage, onClose, onSu
           {isGroupedShortage ? (
             <div className="rounded-[24px] border border-gray-100 bg-white p-5">
               <p className="text-xs font-black uppercase tracking-widest text-gray-400">Danh sách cần bổ sung</p>
-              <div className="mt-3 space-y-3">
+              <div className="mt-3 max-h-[40vh] space-y-3 overflow-y-auto pr-1">
                 {shortageDetails.map((detail, index) => (
                   <div key={`${detail.equipmentId ?? detail.equipmentName}-${index}`} className="rounded-[20px] border border-gray-100 bg-gray-50 px-4 py-4">
                     <div className="flex flex-wrap items-center justify-between gap-3">
@@ -239,7 +240,10 @@ function ProcessReportModal({ item, type, isPending, errorMessage, onClose, onSu
             </div>
           )}
 
-          <div className="flex flex-col-reverse gap-3 border-t border-gray-100 pt-5 sm:flex-row sm:justify-end">
+          </div>
+
+          <div className="border-t border-gray-100 bg-white px-8 py-5">
+            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
             <button type="button" onClick={onClose} disabled={isPending} className="rounded-2xl px-5 py-3 text-sm font-black uppercase tracking-wide text-gray-500 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50">Hủy</button>
             <button
               type="button"
@@ -255,6 +259,7 @@ function ProcessReportModal({ item, type, isPending, errorMessage, onClose, onSu
               <Settings2 className="size-4" />
               Xác nhận bổ sung
             </button>
+            </div>
           </div>
         </div>
       </div>
