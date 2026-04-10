@@ -1,4 +1,5 @@
-import { ChevronLeft, ChevronRight, ImagePlus, Search } from "lucide-react";
+import { ChevronLeft, ChevronRight, ImagePlus, MoreHorizontal, Search } from "lucide-react";
+import { useState } from "react";
 
 const statuses = ["Available", "Occupied", "Maintenance", "Cleaning", "OutOfOrder"];
 const cleaningStatuses = ["Dirty", "InProgress", "Clean", "Inspected", "Pickup"];
@@ -21,6 +22,33 @@ const getBadgeClass = (value) => {
   }
 };
 
+const text = {
+  listTitle: "Danh s\u00e1ch ph\u00f2ng",
+  listDesc: "L\u1ecdc theo s\u1ed1 ph\u00f2ng, lo\u1ea1i ph\u00f2ng, tr\u1ea1ng th\u00e1i, d\u1ecdn ph\u00f2ng v\u00e0 t\u1ea7ng.",
+  bulkCreate: "Th\u00eam nhi\u1ec1u ph\u00f2ng",
+  create: "Th\u00eam ph\u00f2ng",
+  search: "T\u00ecm s\u1ed1 ph\u00f2ng",
+  roomType: "Lo\u1ea1i ph\u00f2ng",
+  status: "Tr\u1ea1ng th\u00e1i",
+  cleaning: "D\u1ecdn ph\u00f2ng",
+  floor: "T\u1ea7ng",
+  reset: "\u0110\u1eb7t l\u1ea1i",
+  image: "\u1ea2nh",
+  roomNumber: "S\u1ed1 ph\u00f2ng",
+  actions: "H\u00e0nh \u0111\u1ed9ng",
+  emptyTitle: "Ch\u01b0a c\u00f3 ph\u00f2ng n\u00e0o hi\u1ec3n th\u1ecb",
+  emptyDesc: "Ki\u1ec3m tra l\u1ea1i b\u1ed9 l\u1ecdc ho\u1eb7c th\u00eam ph\u00f2ng m\u1edbi \u0111\u1ec3 b\u1eaft \u0111\u1ea7u.",
+  noType: "Ch\u01b0a c\u00f3 lo\u1ea1i",
+  edit: "S\u1eeda",
+  clean: "D\u1ecdn ph\u00f2ng",
+  inventory: "V\u1eadt t\u01b0",
+  hide: "\u1ea8n ph\u00f2ng",
+  restore: "Kh\u00f4i ph\u1ee5c",
+  showing: "Hi\u1ec3n th\u1ecb",
+  page: "Trang",
+  perPage: "/ trang",
+};
+
 export default function RoomTable({
   rooms,
   totalCount,
@@ -37,7 +65,14 @@ export default function RoomTable({
   onOpenInventory,
   onClean,
 }) {
+  const [menuRoomId, setMenuRoomId] = useState(null);
   const totalPages = Math.max(1, Math.ceil((totalCount || 0) / filters.pageSize));
+
+  const toggleMenu = (roomId) => {
+    setMenuRoomId((prev) => (prev === roomId ? null : roomId));
+  };
+
+  const closeMenu = () => setMenuRoomId(null);
 
   return (
     <div className="space-y-4">
@@ -45,11 +80,9 @@ export default function RoomTable({
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <h2 className="text-2xl font-black text-slate-900">
-              Danh sách phòng ({totalCount})
+              {text.listTitle} ({totalCount})
             </h2>
-            <p className="mt-1 text-sm font-medium text-slate-500">
-              Lọc theo số phòng, loại phòng, trạng thái, dọn phòng và tầng.
-            </p>
+            <p className="mt-1 text-sm font-medium text-slate-500">{text.listDesc}</p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2 lg:max-w-[430px] lg:justify-end">
@@ -58,14 +91,14 @@ export default function RoomTable({
               onClick={onBulkCreate}
               className="min-w-[180px] rounded-2xl border border-sky-200 px-5 py-3 text-sm font-black uppercase tracking-wide text-sky-700 transition-all hover:bg-sky-50"
             >
-              Thêm nhiều phòng
+              {text.bulkCreate}
             </button>
             <button
               type="button"
               onClick={onCreate}
               className="min-w-[150px] rounded-2xl bg-orange-600 px-5 py-3 text-sm font-black uppercase tracking-wide text-white shadow-lg shadow-orange-100 transition-all hover:bg-orange-700"
             >
-              Thêm phòng
+              {text.create}
             </button>
           </div>
         </div>
@@ -77,7 +110,7 @@ export default function RoomTable({
               type="text"
               value={filters.search}
               onChange={(event) => onFilterChange("search", event.target.value)}
-              placeholder="Tìm số phòng"
+              placeholder={text.search}
               className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-sm font-medium text-slate-800 outline-none transition-all focus:border-orange-300 focus:bg-white"
             />
           </div>
@@ -87,7 +120,7 @@ export default function RoomTable({
             onChange={(event) => onFilterChange("roomTypeId", event.target.value)}
             className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition-all focus:border-orange-300 focus:bg-white"
           >
-            <option value="">Loại phòng</option>
+            <option value="">{text.roomType}</option>
             {roomTypes.map((roomType) => (
               <option key={roomType.id} value={roomType.id}>
                 {roomType.name}
@@ -100,7 +133,7 @@ export default function RoomTable({
             onChange={(event) => onFilterChange("status", event.target.value)}
             className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition-all focus:border-orange-300 focus:bg-white"
           >
-            <option value="">Trạng thái</option>
+            <option value="">{text.status}</option>
             {statuses.map((status) => (
               <option key={status} value={status}>
                 {status}
@@ -113,7 +146,7 @@ export default function RoomTable({
             onChange={(event) => onFilterChange("cleaningStatus", event.target.value)}
             className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition-all focus:border-orange-300 focus:bg-white"
           >
-            <option value="">Dọn phòng</option>
+            <option value="">{text.cleaning}</option>
             {cleaningStatuses.map((status) => (
               <option key={status} value={status}>
                 {status}
@@ -125,7 +158,7 @@ export default function RoomTable({
             type="number"
             value={filters.floor}
             onChange={(event) => onFilterChange("floor", event.target.value)}
-            placeholder="Tầng"
+            placeholder={text.floor}
             className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-800 outline-none transition-all focus:border-orange-300 focus:bg-white"
           />
 
@@ -134,7 +167,7 @@ export default function RoomTable({
             onClick={onResetFilters}
             className="px-2 text-sm font-black uppercase tracking-wide text-sky-600 transition-all hover:text-sky-800"
           >
-            Đặt lại
+            {text.reset}
           </button>
         </div>
       </div>
@@ -145,25 +178,25 @@ export default function RoomTable({
             <thead className="bg-slate-50">
               <tr>
                 <th className="px-6 py-4 text-left text-xs font-black uppercase tracking-widest text-slate-500">
-                  Ảnh
+                  {text.image}
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-black uppercase tracking-widest text-slate-500">
-                  Số phòng
+                  {text.roomNumber}
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-black uppercase tracking-widest text-slate-500">
-                  Loại phòng
+                  {text.roomType}
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-black uppercase tracking-widest text-slate-500">
-                  Tầng
+                  {text.floor}
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-black uppercase tracking-widest text-slate-500">
-                  Trạng thái
+                  {text.status}
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-black uppercase tracking-widest text-slate-500">
-                  Dọn phòng
+                  {text.cleaning}
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-black uppercase tracking-widest text-slate-500">
-                  Hành động
+                  {text.actions}
                 </th>
               </tr>
             </thead>
@@ -177,7 +210,7 @@ export default function RoomTable({
                     <td className="px-6 py-4"><div className="h-3 w-10 animate-pulse rounded-full bg-slate-100" /></td>
                     <td className="px-6 py-4"><div className="h-7 w-24 animate-pulse rounded-full bg-slate-100" /></td>
                     <td className="px-6 py-4"><div className="h-7 w-24 animate-pulse rounded-full bg-slate-100" /></td>
-                    <td className="px-6 py-4"><div className="h-3 w-40 animate-pulse rounded-full bg-slate-100" /></td>
+                    <td className="px-6 py-4"><div className="h-10 w-28 animate-pulse rounded-2xl bg-slate-100" /></td>
                   </tr>
                 ))
               ) : rooms.length === 0 ? (
@@ -187,60 +220,118 @@ export default function RoomTable({
                       <div className="rounded-2xl bg-slate-100 p-4 text-slate-400">
                         <ImagePlus className="size-6" />
                       </div>
-                      <p className="text-lg font-black text-slate-900">
-                        Chưa có phòng nào hiển thị
-                      </p>
-                      <p className="text-sm font-medium text-slate-500">
-                        Kiểm tra lại bộ lọc hoặc thêm phòng mới để bắt đầu.
-                      </p>
+                      <p className="text-lg font-black text-slate-900">{text.emptyTitle}</p>
+                      <p className="text-sm font-medium text-slate-500">{text.emptyDesc}</p>
                     </div>
                   </td>
                 </tr>
               ) : (
-                rooms.map((room) => (
-                  <tr key={room.id} className="hover:bg-slate-50/80">
-                    <td className="px-6 py-4">
-                      {room.imageUrls?.[0] ? (
-                        <img
-                          src={room.imageUrls[0]}
-                          alt={room.roomNumber}
-                          className="h-12 w-16 rounded-2xl object-cover ring-1 ring-slate-200"
-                        />
-                      ) : (
-                        <div className="flex h-12 w-16 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
-                          <ImagePlus className="size-4" />
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-sm font-black text-slate-900">{room.roomNumber}</td>
-                    <td className="px-6 py-4 text-sm font-semibold text-slate-700">
-                      {room.roomTypeName || "Chưa có loại"}
-                    </td>
-                    <td className="px-6 py-4 text-sm font-semibold text-slate-700">{room.floor ?? "-"}</td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex rounded-full px-3 py-1 text-xs font-black ${getBadgeClass(room.status)}`}>
-                        {room.status || "N/A"}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex rounded-full px-3 py-1 text-xs font-black ${getBadgeClass(room.cleaningStatus)}`}>
-                        {room.cleaningStatus || "N/A"}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-wrap gap-2">
-                        <button type="button" onClick={() => onEdit(room)} className="rounded-xl bg-sky-50 px-3 py-2 text-xs font-black text-sky-700 transition-all hover:bg-sky-100">Sửa</button>
-                        <button type="button" onClick={() => onClean(room)} className="rounded-xl bg-amber-50 px-3 py-2 text-xs font-black text-amber-700 transition-all hover:bg-amber-100">Dọn phòng</button>
-                        <button type="button" onClick={() => onOpenInventory(room)} className="rounded-xl bg-violet-50 px-3 py-2 text-xs font-black text-violet-700 transition-all hover:bg-violet-100">Vật tư</button>
-                        {room.status === "OutOfOrder" ? (
-                          <button type="button" onClick={() => onRestore(room)} className="rounded-xl bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-700 transition-all hover:bg-emerald-100">Khôi phục</button>
+                rooms.map((room) => {
+                  const isMenuOpen = menuRoomId === room.id;
+
+                  return (
+                    <tr key={room.id} className="hover:bg-slate-50/80">
+                      <td className="px-6 py-4">
+                        {room.imageUrls?.[0] ? (
+                          <img
+                            src={room.imageUrls[0]}
+                            alt={room.roomNumber}
+                            className="h-12 w-16 rounded-2xl object-cover ring-1 ring-slate-200"
+                          />
                         ) : (
-                          <button type="button" onClick={() => onDelete(room)} className="rounded-xl bg-rose-50 px-3 py-2 text-xs font-black text-rose-700 transition-all hover:bg-rose-100">Xóa</button>
+                          <div className="flex h-12 w-16 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
+                            <ImagePlus className="size-4" />
+                          </div>
                         )}
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                      </td>
+                      <td className="px-6 py-4 text-sm font-black text-slate-900">{room.roomNumber}</td>
+                      <td className="px-6 py-4 text-sm font-semibold text-slate-700">
+                        {room.roomTypeName || text.noType}
+                      </td>
+                      <td className="px-6 py-4 text-sm font-semibold text-slate-700">{room.floor ?? "-"}</td>
+                      <td className="px-6 py-4">
+                        <span className={`inline-flex rounded-full px-3 py-1 text-xs font-black ${getBadgeClass(room.status)}`}>
+                          {room.status || "N/A"}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`inline-flex rounded-full px-3 py-1 text-xs font-black ${getBadgeClass(room.cleaningStatus)}`}>
+                          {room.cleaningStatus || "N/A"}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="relative flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              closeMenu();
+                              onEdit(room);
+                            }}
+                            className="rounded-xl bg-sky-50 px-3 py-2 text-xs font-black text-sky-700 transition-all hover:bg-sky-100"
+                          >
+                            {text.edit}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => toggleMenu(room.id)}
+                            className="inline-flex items-center justify-center rounded-xl bg-slate-100 px-3 py-2 text-slate-700 transition-all hover:bg-slate-200"
+                          >
+                            <MoreHorizontal className="size-4" />
+                          </button>
+
+                          {isMenuOpen ? (
+                            <div className="absolute right-0 top-[calc(100%+8px)] z-20 min-w-[160px] overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 shadow-xl">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  closeMenu();
+                                  onClean(room);
+                                }}
+                                className="flex w-full rounded-xl px-3 py-2 text-left text-sm font-bold text-amber-700 transition-all hover:bg-amber-50"
+                              >
+                                {text.clean}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  closeMenu();
+                                  onOpenInventory(room);
+                                }}
+                                className="flex w-full rounded-xl px-3 py-2 text-left text-sm font-bold text-violet-700 transition-all hover:bg-violet-50"
+                              >
+                                {text.inventory}
+                              </button>
+                              {room.status === "OutOfOrder" ? (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    closeMenu();
+                                    onRestore(room);
+                                  }}
+                                  className="flex w-full rounded-xl px-3 py-2 text-left text-sm font-bold text-emerald-700 transition-all hover:bg-emerald-50"
+                                >
+                                  {text.restore}
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    closeMenu();
+                                    onDelete(room);
+                                  }}
+                                  className="flex w-full rounded-xl px-3 py-2 text-left text-sm font-bold text-rose-700 transition-all hover:bg-rose-50"
+                                >
+                                  {text.hide}
+                                </button>
+                              )}
+                            </div>
+                          ) : null}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -248,7 +339,7 @@ export default function RoomTable({
 
         <div className="flex flex-col gap-4 border-t border-slate-200 px-6 py-4 md:flex-row md:items-center md:justify-between">
           <div className="text-sm font-semibold text-slate-500">
-            Hiển thị {rooms.length} / {totalCount} phòng
+            {text.showing} {rooms.length} / {totalCount} ph\u00f2ng
           </div>
 
           <div className="flex items-center gap-3">
@@ -259,13 +350,13 @@ export default function RoomTable({
             >
               {[10, 20, 50].map((size) => (
                 <option key={size} value={size}>
-                  {size} / trang
+                  {size} {text.perPage}
                 </option>
               ))}
             </select>
 
             <div className="text-sm font-black text-slate-700">
-              Trang {filters.page} / {totalPages}
+              {text.page} {filters.page} / {totalPages}
             </div>
 
             <button

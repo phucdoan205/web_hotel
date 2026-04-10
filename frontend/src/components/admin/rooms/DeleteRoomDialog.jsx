@@ -1,5 +1,17 @@
 import { LoaderCircle, TriangleAlert, X } from "lucide-react";
 
+const text = {
+  title: "\u1ea8n ph\u00f2ng",
+  descriptionStart: "Ph\u00f2ng",
+  descriptionMid:
+    "s\u1ebd t\u1ea1m \u1ea9n kh\u1ecfi danh s\u00e1ch ho\u1ea1t \u0111\u1ed9ng b\u1eb1ng c\u00e1ch chuy\u1ec3n tr\u1ea1ng th\u00e1i sang",
+  status: "OutOfOrder",
+  note:
+    "B\u1ea1n c\u00f3 th\u1ec3 kh\u00f4i ph\u1ee5c l\u1ea1i ph\u00f2ng n\u00e0y b\u1ea5t c\u1ee9 l\u00fac n\u00e0o. Khi kh\u00f4i ph\u1ee5c, tr\u1ea1ng th\u00e1i ph\u00f2ng s\u1ebd tr\u1edf v\u1ec1 Available.",
+  cancel: "Kh\u00f4ng",
+  confirm: "C\u00f3, \u1ea9n ph\u00f2ng",
+};
+
 export default function DeleteRoomDialog({
   open,
   room,
@@ -19,11 +31,11 @@ export default function DeleteRoomDialog({
               <TriangleAlert className="size-5" />
             </div>
             <div>
-              <h2 className="text-2xl font-black text-slate-900">Chuyển phòng sang OutOfOrder</h2>
+              <h2 className="text-2xl font-black text-slate-900">{text.title}</h2>
               <p className="mt-1 text-sm font-medium text-slate-500">
-                Phòng <span className="font-black text-slate-700">{room.roomNumber}</span> sẽ
-                vẫn hiển thị trong danh sách, chỉ đổi trạng thái sang{" "}
-                <span className="font-black text-rose-600">OutOfOrder</span>.
+                {text.descriptionStart}{" "}
+                <span className="font-black text-slate-700">{room.roomNumber}</span> {text.descriptionMid}{" "}
+                <span className="font-black text-rose-600">{text.status}</span>.
               </p>
             </div>
           </div>
@@ -39,7 +51,7 @@ export default function DeleteRoomDialog({
 
         <div className="space-y-4 px-8 py-6">
           <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4 text-sm font-medium text-slate-600">
-            Bạn có thể khôi phục lại phòng này bất cứ lúc nào. Khi khôi phục, trạng thái phòng sẽ trở về Available.
+            {text.note}
           </div>
 
           {error ? (
@@ -56,7 +68,7 @@ export default function DeleteRoomDialog({
             disabled={isPending}
             className="rounded-2xl px-5 py-3 text-sm font-black uppercase tracking-wide text-slate-500 transition-all hover:bg-slate-100 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            Không
+            {text.cancel}
           </button>
           <button
             type="button"
@@ -65,7 +77,7 @@ export default function DeleteRoomDialog({
             className="inline-flex items-center justify-center gap-2 rounded-2xl bg-rose-600 px-5 py-3 text-sm font-black uppercase tracking-wide text-white shadow-lg shadow-rose-100 transition-all hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isPending ? <LoaderCircle className="size-4 animate-spin" /> : null}
-            Có, chuyển OutOfOrder
+            {text.confirm}
           </button>
         </div>
       </div>

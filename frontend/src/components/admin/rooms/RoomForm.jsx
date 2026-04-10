@@ -16,16 +16,13 @@ const text = {
   manualDesc:
     "T\u1ef1 ch\u1ecdn lo\u1ea1i ph\u00f2ng, t\u1ea7ng v\u00e0 tr\u1ea1ng th\u00e1i d\u1ecdn ph\u00f2ng ban \u0111\u1ea7u.",
   clone: "Clone ph\u00f2ng",
-  cloneDesc: "Sao ch\u00e9p lo\u1ea1i ph\u00f2ng, t\u1ea7ng v\u00e0 v\u1eadt t\u01b0 t\u1eeb ph\u00f2ng ngu\u1ed3n.",
+  cloneDesc: "Sao ch\u00e9p lo\u1ea1i ph\u00f2ng v\u00e0 v\u1eadt t\u01b0 t\u1eeb ph\u00f2ng ngu\u1ed3n.",
   roomNumber: "S\u1ed1 ph\u00f2ng",
   sourceRoom: "Ph\u00f2ng ngu\u1ed3n",
   sourceRoomPlaceholder: "Ch\u1ecdn ph\u00f2ng \u0111\u1ec3 clone",
   roomType: "Lo\u1ea1i ph\u00f2ng",
   roomTypePlaceholder: "Ch\u1ecdn lo\u1ea1i ph\u00f2ng",
-  cloneInfo:
-    "Ph\u00f2ng m\u1edbi s\u1ebd k\u1ebf th\u1eeba lo\u1ea1i ph\u00f2ng, t\u1ea7ng v\u00e0 v\u1eadt t\u01b0 t\u1eeb ph\u00f2ng ngu\u1ed3n. Tr\u1ea1ng th\u00e1i ph\u00f2ng s\u1ebd m\u1eb7c \u0111\u1ecbnh l\u00e0 Available.",
   floor: "T\u1ea7ng",
-  roomStatus: "Tr\u1ea1ng th\u00e1i ph\u00f2ng",
   cleaningStatus: "Tr\u1ea1ng th\u00e1i d\u1ecdn ph\u00f2ng",
   cancel: "H\u1ee7y",
   save: "L\u01b0u thay \u0111\u1ed5i",
@@ -72,6 +69,7 @@ export default function RoomForm({
       if (payload.mode === "clone") {
         return roomsApi.cloneRoom(payload.cloneSourceRoomId, {
           newRoomNumber: payload.roomNumber,
+          floor: payload.floor === "" ? null : Number(payload.floor),
           cleaningStatus: payload.cleaningStatus,
         });
       }
@@ -106,6 +104,7 @@ export default function RoomForm({
         mode: "clone",
         cloneSourceRoomId: Number(form.cloneSourceRoomId),
         roomNumber: form.roomNumber.trim(),
+        floor: form.floor,
         cleaningStatus: form.cleaningStatus,
       });
       return;
@@ -262,11 +261,21 @@ export default function RoomForm({
 
               {isCloneMode ? (
                 <>
-                  <div className="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800 md:col-span-2">
-                    {text.cloneInfo}
-                  </div>
+                  <label className="space-y-2">
+                    <span className="text-xs font-black uppercase tracking-widest text-slate-400">
+                      {text.floor}
+                    </span>
+                    <input
+                      type="number"
+                      value={form.floor}
+                      onChange={(event) =>
+                        setForm((prev) => ({ ...prev, floor: event.target.value }))
+                      }
+                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition-all focus:border-emerald-300 focus:bg-white"
+                    />
+                  </label>
 
-                  <label className="space-y-2 md:col-span-2">
+                  <label className="space-y-2">
                     <span className="text-xs font-black uppercase tracking-widest text-slate-400">
                       {text.cleaningStatus}
                     </span>
@@ -302,49 +311,6 @@ export default function RoomForm({
                       }
                       className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition-all focus:border-orange-300 focus:bg-white"
                     />
-                  </label>
-
-                  {initialData ? (
-                    <label className="space-y-2">
-                      <span className="text-xs font-black uppercase tracking-widest text-slate-400">
-                        {text.roomStatus}
-                      </span>
-                      <select
-                        value={form.status}
-                        onChange={(event) =>
-                          setForm((prev) => ({ ...prev, status: event.target.value }))
-                        }
-                        className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition-all focus:border-orange-300 focus:bg-white"
-                      >
-                        <option value="Available">Available</option>
-                        <option value="Occupied">Occupied</option>
-                        <option value="Maintenance">Maintenance</option>
-                        <option value="Cleaning">Cleaning</option>
-                        <option value="OutOfOrder">OutOfOrder</option>
-                      </select>
-                    </label>
-                  ) : null}
-
-                  <label className="space-y-2 md:col-span-2">
-                    <span className="text-xs font-black uppercase tracking-widest text-slate-400">
-                      {text.cleaningStatus}
-                    </span>
-                    <select
-                      value={form.cleaningStatus}
-                      onChange={(event) =>
-                        setForm((prev) => ({
-                          ...prev,
-                          cleaningStatus: event.target.value,
-                        }))
-                      }
-                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition-all focus:border-orange-300 focus:bg-white"
-                    >
-                      <option value="Dirty">Dirty</option>
-                      <option value="InProgress">InProgress</option>
-                      <option value="Clean">Clean</option>
-                      <option value="Inspected">Inspected</option>
-                      <option value="Pickup">Pickup</option>
-                    </select>
                   </label>
                 </>
               )}

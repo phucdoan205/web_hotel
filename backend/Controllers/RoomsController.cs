@@ -501,7 +501,7 @@ namespace backend.Controllers
             {
                 RoomTypeId = originalRoom.RoomTypeId,
                 RoomNumber = request.NewRoomNumber,
-                Floor = originalRoom.Floor,
+                Floor = request.Floor ?? originalRoom.Floor,
                 Status = RoomStatuses.Available,
                 CleaningStatus = request.CleaningStatus ?? RoomCleaningStatuses.Dirty,
                 IsDeleted = false,
