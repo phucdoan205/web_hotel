@@ -88,39 +88,16 @@ namespace backend.Controllers
                 var availableQuantity = GetAvailableStock(equipment);
                 if (dto.Quantity > availableQuantity)
                 {
-                    var shortageDetails = new List<InventoryShortageDetailDTO>
-                    {
-                        new()
-                        {
-                            EquipmentId = equipment.Id,
-                            EquipmentName = equipment.Name,
-                            EquipmentCode = equipment.ItemCode,
-                            RequestedQuantity = dto.Quantity,
-                            AvailableQuantity = availableQuantity,
-                            ShortageQuantity = Math.Max(0, dto.Quantity - availableQuantity),
-                            Note = string.IsNullOrWhiteSpace(dto.Note) ? null : dto.Note.Trim()
-                        }
-                    };
-
-                    var notification = BuildShortageNotification(
-                        room,
-                        "ManualAdd",
-                        shortageDetails,
-                        sourceRoom: null);
-
-                    _context.Notifications.Add(notification);
-                    await _context.SaveChangesAsync();
-
                     return Conflict(new
                     {
-                        message = "Ton kho khong du. Da chuyen thong tin qua tab thieu vat tu.",
+                        message = "Ton kho khong du, khong the them vat tu vao phong.",
                         roomId = room.Id,
                         roomNumber = room.RoomNumber,
                         equipmentId = equipment.Id,
                         equipmentName = equipment.Name,
                         requestedQuantity = dto.Quantity,
                         availableQuantity,
-                        shortageQuantity = shortageDetails[0].ShortageQuantity
+                        shortageQuantity = Math.Max(0, dto.Quantity - availableQuantity)
                     });
                 }
             }
