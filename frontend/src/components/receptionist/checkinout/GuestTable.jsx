@@ -1,57 +1,132 @@
-import React, { useState, useMemo } from "react";
-import { Search, SlidersHorizontal, MoreVertical, CheckCircle, SquareArrowRightExit } from "lucide-react";
+import React, { useMemo, useState } from "react";
+import {
+  BedDouble,
+  CalendarRange,
+  CheckCircle,
+  CircleDollarSign,
+  Search,
+  SlidersHorizontal,
+  SquareArrowRightExit,
+  UserRound,
+} from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { bookingsApi } from "../../../api/admin/bookingsApi";
+import { formatVietnamDate } from "../../../utils/vietnamTime";
 
-const GuestTable = ({ activeTab, data }) => {
+const priceFormatter = new Intl.NumberFormat("vi-VN");
+
+const eventBadgeStyles = {
+  arrival: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200",
+  departure: "bg-orange-50 text-orange-700 ring-1 ring-orange-200",
+  stay: "bg-sky-50 text-sky-700 ring-1 ring-sky-200",
+};
+
+const roomStatusStyles = {
+  Available: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200",
+  Occupied: "bg-sky-50 text-sky-700 ring-1 ring-sky-200",
+  Maintenance: "bg-rose-50 text-rose-700 ring-1 ring-rose-200",
+  Cleaning: "bg-amber-50 text-amber-700 ring-1 ring-amber-200",
+  OutOfOrder: "bg-slate-100 text-slate-700 ring-1 ring-slate-200",
+};
+
+const cleaningStatusStyles = {
+  Dirty: "bg-white text-slate-600 ring-1 ring-slate-200",
+  InProgress: "bg-amber-50 text-amber-700 ring-1 ring-amber-200",
+  Clean: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200",
+  Inspected: "bg-sky-50 text-sky-700 ring-1 ring-sky-200",
+  Pickup: "bg-orange-50 text-orange-700 ring-1 ring-orange-200",
+};
+
+const actionConfig = {
+  in: {
+    label: "Check in",
+    idleClassName: "bg-emerald-600 text-white hover:bg-emerald-700",
+    loadingClassName: "bg-emerald-300 text-white",
+    icon: CheckCircle,
+  },
+  out: {
+    label: "Check out",
+    idleClassName: "bg-rose-600 text-white hover:bg-rose-700",
+    loadingClassName: "bg-rose-300 text-white",
+    icon: SquareArrowRightExit,
+  },
+};
+
+const getGuestName = (booking) => booking.guestName || booking.guest?.name || "Khách chưa rõ tên";
+
+const getRoomName = (booking, detail) =>
+  detail?.roomTypeName || detail?.roomType?.name || booking.roomTypeName || "Phòng";
+
+const getBookingStateLabel = (booking, activeTab) => {
+  if (activeTab === "schedule") {
+    return booking.eventType === "departure" ? "Lịch check out" : "Lịch check in";
+  }
+
+  return activeTab === "out" ? "Booking: CheckedIn" : "Booking: Confirmed";
+};
+
+const GuestTable = ({ activeTab, data, onActionSuccess }) => {
   const [search, setSearch] = useState("");
   const [roomFilter, setRoomFilter] = useState("");
   const queryClient = useQueryClient();
 
-  // 🎯 Filter logic
   const filteredData = useMemo(() => {
     return data.filter((booking) => {
-      const matchSearch = booking.guestName
-        .toLowerCase()
-        .includes(search.toLowerCase());
+      const guestName = getGuestName(booking).toLowerCase();
+      const bookingCode = String(booking.bookingCode || "").toLowerCase();
+      const normalizedSearch = search.toLowerCase();
+
+      const matchSearch =
+        guestName.includes(normalizedSearch) || bookingCode.includes(normalizedSearch);
 
       const matchRoom = roomFilter
-        ? booking.bookingDetails.some((d) =>
-          d.roomNumber.includes(roomFilter)
-        )
+        ? (booking.bookingDetails || []).some((detail) =>
+            String(detail.room?.roomNumber || detail.roomNumber || "")
+              .toLowerCase()
+              .includes(roomFilter.toLowerCase()),
+          )
         : true;
 
       return matchSearch && matchRoom;
     });
-  }, [data, search, roomFilter]);
+  }, [data, roomFilter, search]);
 
   const checkInMutation = useMutation({
     mutationFn: (bookingId) => bookingsApi.checkIn(bookingId),
     onSuccess: (_, bookingId) => {
+      queryClient.setQueryData(["confirmed-check-ins"], (oldData) => {
+        if (!oldData) return oldData;
+
+        return {
+          ...oldData,
+          items: oldData.items.filter((booking) => booking.id !== bookingId),
+        };
+      });
+
       queryClient.setQueryData(["arrivals"], (oldData) => {
         if (!oldData) return oldData;
 
         return {
           ...oldData,
-          items: oldData.items.filter((b) => b.id !== bookingId),
+          items: oldData.items.filter((booking) => booking.id !== bookingId),
         };
       });
 
-      // 🔥 cập nhật tab lưu trú
       queryClient.invalidateQueries({ queryKey: ["in-house"] });
+      queryClient.invalidateQueries({ queryKey: ["departures"] });
+      queryClient.invalidateQueries({ queryKey: ["confirmed-check-ins"] });
       queryClient.invalidateQueries({ queryKey: ["bookings"] });
-
-      alert("Check-in successful");
+      onActionSuccess?.("in", bookingId);
     },
     onError: (error) => {
       const message =
-        error?.response?.data?.message || // backend trả về
-        error?.response?.data ||         // trường hợp trả string
-        error.message ||                // lỗi JS
+        error?.response?.data?.message ||
+        error?.response?.data ||
+        error.message ||
         "Check-in failed";
 
       alert(message);
-    }
+    },
   });
 
   const checkOutMutation = useMutation({
@@ -62,24 +137,23 @@ const GuestTable = ({ activeTab, data }) => {
 
         return {
           ...oldData,
-          items: oldData.items.filter((b) => b.id !== bookingId),
+          items: oldData.items.filter((booking) => booking.id !== bookingId),
         };
       });
 
       queryClient.invalidateQueries({ queryKey: ["departures"] });
       queryClient.invalidateQueries({ queryKey: ["bookings"] });
-
-      alert("Check-out successful");
+      onActionSuccess?.("out", bookingId);
     },
     onError: (error) => {
       const message =
-        error?.response?.data?.message || // backend trả về
-        error?.response?.data ||         // trường hợp trả string
-        error.message ||                // lỗi JS
-        "Check-in failed";
+        error?.response?.data?.message ||
+        error?.response?.data ||
+        error.message ||
+        "Check-out failed";
 
       alert(message);
-    }
+    },
   });
 
   const handleCheckIn = async (bookingId) => {
@@ -90,133 +164,186 @@ const GuestTable = ({ activeTab, data }) => {
     await checkOutMutation.mutateAsync(bookingId);
   };
 
+  const renderActionButton = (booking) => {
+    if (activeTab === "schedule") return null;
+
+    const config = actionConfig[activeTab];
+    const isLoading =
+      activeTab === "in"
+        ? checkInMutation.isPending && checkInMutation.variables === booking.id
+        : checkOutMutation.isPending && checkOutMutation.variables === booking.id;
+    const Icon = config.icon;
+
+    return (
+      <button
+        type="button"
+        onClick={() => (activeTab === "in" ? handleCheckIn(booking.id) : handleCheckOut(booking.id))}
+        disabled={isLoading}
+        className={`mt-5 flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-black transition-all disabled:cursor-not-allowed ${
+          isLoading ? config.loadingClassName : config.idleClassName
+        }`}
+      >
+        <Icon size={18} />
+        {isLoading ? "Đang xử lý..." : config.label}
+      </button>
+    );
+  };
+
   return (
-    <div className="bg-white rounded-[2.5rem] border border-gray-50 shadow-sm overflow-hidden">
-      {/* HEADER */}
-      <div className="p-6 border-b border-gray-50 flex flex-wrap items-center justify-between gap-4">
+    <div className="overflow-hidden rounded-[2.5rem] border border-gray-50 bg-white shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-gray-50 p-6">
         <div className="flex items-center gap-3">
-          {/* 🔍 Search */}
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
             <input
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(event) => setSearch(event.target.value)}
               type="text"
-              placeholder="Search guest..."
-              className="pl-10 pr-4 py-2.5 bg-gray-50 rounded-xl text-xs w-64 focus:ring-2 focus:ring-blue-500/10"
+              placeholder="Tìm khách hoặc mã booking..."
+              className="w-64 rounded-xl bg-gray-50 py-2.5 pl-10 pr-4 text-xs focus:ring-2 focus:ring-blue-500/10"
             />
           </div>
 
-          {/* 🎯 Filter Room */}
           <div className="relative">
-            <SlidersHorizontal className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400" />
+            <SlidersHorizontal className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
             <input
               value={roomFilter}
-              onChange={(e) => setRoomFilter(e.target.value)}
-              placeholder="Filter room..."
-              className="pl-10 pr-4 py-2.5 bg-gray-50 rounded-xl text-xs w-40 focus:ring-2 focus:ring-blue-500/10"
+              onChange={(event) => setRoomFilter(event.target.value)}
+              placeholder="Lọc số phòng..."
+              className="w-40 rounded-xl bg-gray-50 py-2.5 pl-10 pr-4 text-xs focus:ring-2 focus:ring-blue-500/10"
             />
           </div>
         </div>
 
-        {/* Reset */}
         <button
+          type="button"
           onClick={() => {
             setSearch("");
             setRoomFilter("");
           }}
           className="text-xs font-bold text-gray-400 hover:text-gray-600"
         >
-          Reset
+          Đặt lại
         </button>
       </div>
 
-      {/* TABLE */}
-      <div className="overflow-x-auto">
-        <table className="w-full text-left">
-          <thead className="bg-gray-50/50">
-            <tr className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em]">
-              <th className="px-8 py-5">Guest Name</th>
-              <th className="px-6 py-5">Booking Code</th>
-              <th className="px-6 py-5">
-                {activeTab === "in" ? "Arrival Date" : "Departure Date"}
-              </th>
-              <th className="px-6 py-5">Rooms</th>
-              <th className="px-6 py-5 text-center">Action</th>
-            </tr>
-          </thead>
+      <div className="p-6">
+        {filteredData.length > 0 ? (
+          <div className="grid gap-5 lg:grid-cols-2">
+            {filteredData.map((booking) => {
+              const bookingDetails = booking.bookingDetails || [];
+              const primaryDetail = bookingDetails[0] || {};
+              const roomNumber = primaryDetail.room?.roomNumber || primaryDetail.roomNumber || "--";
+              const roomName = getRoomName(booking, primaryDetail);
+              const roomStatus = primaryDetail.room?.status || booking.roomStatus || "Occupied";
+              const cleaningStatus =
+                primaryDetail.room?.cleaningStatus ||
+                booking.cleaningStatus ||
+                primaryDetail.cleaningStatus;
+              const basePrice =
+                primaryDetail.pricePerNight ||
+                primaryDetail.room?.basePrice ||
+                primaryDetail.roomType?.basePrice ||
+                primaryDetail.basePrice ||
+                booking.basePrice ||
+                booking.totalAmount ||
+                0;
+              const guestName = getGuestName(booking);
+              const checkInDate = primaryDetail.checkInDate;
+              const checkOutDate = primaryDetail.checkOutDate;
+              const dateLabel =
+                checkInDate || checkOutDate
+                  ? `${formatVietnamDate(checkInDate)} - ${formatVietnamDate(checkOutDate)}`
+                  : "--";
 
-          <tbody className="divide-y divide-gray-50">
-            {filteredData.length > 0 ? (
-              filteredData.map((booking, i) => (
-                <tr
-                  key={i}
-                  className="hover:bg-gray-50/30 transition-colors group"
+              return (
+                <article
+                  key={`${activeTab}-${booking.id}`}
+                  className="rounded-[30px] border border-slate-200 bg-slate-50/70 p-5 transition-all hover:bg-white"
                 >
-                  <td className="px-8 py-5">
-                    <div className="flex items-center gap-3">
-                      <div className="size-8 rounded-full bg-blue-100 flex items-center justify-center text-[10px] font-black text-blue-600">
-                        {booking.guestName.charAt(0)}
-                      </div>
-                      <span className="font-bold text-gray-900 text-sm">
-                        {booking.guestName}
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">
+                        Phòng {roomNumber}
+                      </p>
+                      <h3 className="mt-1 text-2xl font-black text-slate-900">{roomName}</h3>
+                    </div>
+                    <span
+                      className={`inline-flex rounded-full px-3 py-1 text-xs font-black ${
+                        roomStatusStyles[roomStatus] ?? roomStatusStyles.OutOfOrder
+                      }`}
+                    >
+                      {roomStatus}
+                    </span>
+                  </div>
+
+                  <div className="mt-4 grid gap-3">
+                    <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                      <CircleDollarSign className="size-4 text-orange-500" />
+                      {priceFormatter.format(basePrice)} đ / đêm
+                    </div>
+
+                    <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                      <BedDouble className="size-4 text-sky-500" />
+                      {roomName}
+                    </div>
+
+                    <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                      <UserRound className="size-4 text-emerald-500" />
+                      {guestName}
+                    </div>
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <span
+                      className={`inline-flex rounded-full px-3 py-1 text-xs font-black ${
+                        eventBadgeStyles[booking.eventType || "stay"] ?? eventBadgeStyles.stay
+                      }`}
+                    >
+                      {activeTab === "schedule"
+                        ? booking.eventType === "departure"
+                          ? "Check out hôm nay"
+                          : "Check in hôm nay"
+                        : getBookingStateLabel(booking, activeTab)}
+                    </span>
+
+                    {cleaningStatus ? (
+                      <span
+                        className={`inline-flex rounded-full px-3 py-1 text-xs font-black ${
+                          cleaningStatusStyles[cleaningStatus] ?? cleaningStatusStyles.Dirty
+                        }`}
+                      >
+                        Trạng thái dọn phòng: {cleaningStatus}
                       </span>
+                    ) : null}
+                  </div>
+
+                  <div className="mt-4 rounded-2xl bg-white px-4 py-3 ring-1 ring-slate-200">
+                    <div className="space-y-1 text-sm">
+                      <p className="font-black text-slate-900">Mã booking: {booking.bookingCode}</p>
+                      <p className="font-semibold text-slate-600">
+                        {getBookingStateLabel(booking, activeTab)}
+                      </p>
+                      <div className="flex items-center gap-2 font-medium text-slate-500">
+                        <CalendarRange className="size-4 text-slate-400" />
+                        <span>{dateLabel}</span>
+                      </div>
                     </div>
-                  </td>
+                  </div>
 
-                  <td className="px-6 py-5 text-xs font-bold text-gray-400">
-                    {booking.bookingCode}
-                  </td>
-
-                  <td className="px-6 py-5 text-xs font-medium text-gray-500">
-                    {activeTab === "in"
-                      ? booking.bookingDetails[0]?.checkInDate
-                      : booking.bookingDetails[0]?.checkOutDate}
-                  </td>
-
-                  <td className="px-6 py-5 text-xs font-medium text-gray-600">
-                    {booking.bookingDetails
-                      .map((d) => d.roomNumber)
-                      .join(", ")}
-                  </td>
-
-                  <td className="px-6 py-5">
-                    <div className="flex items-center justify-end gap-2">
-                      {
-                        activeTab === "in" ? (
-                          <button
-                            onClick={() => handleCheckIn(booking.id)}
-                            className="flex items-center gap-1 px-4 py-1.5 bg-emerald-600 hover:bg-emerald-300 text-white text-xs font-semibold rounded-2xl transition-all shadow-sm"
-                            title="Nhận phòng"
-                          >
-                            <CheckCircle size={16} />
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => handleCheckOut(booking.id)}
-                            className="flex items-center gap-1 px-4 py-1.5 bg-rose-800 hover:bg-rose-400 text-white text-xs font-semibold rounded-2xl transition-all shadow-sm"
-                            title="Trả phòng"
-                          >
-                            <SquareArrowRightExit size={16} />
-                          </button>
-                        )
-                      }
-                    </div>
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td
-                  colSpan="5"
-                  className="text-center py-10 text-gray-400 text-sm"
-                >
-                  No data found
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+                  {renderActionButton(booking)}
+                </article>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="rounded-[28px] border border-dashed border-slate-200 bg-slate-50 px-6 py-14 text-center">
+            <p className="text-lg font-black text-slate-900">Không có dữ liệu phù hợp</p>
+            <p className="mt-2 text-sm font-medium text-slate-500">
+              Thử đổi từ khóa tìm kiếm hoặc bộ lọc số phòng.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,117 +1,164 @@
 import React, { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import GuestFlowStats from "../../components/receptionist/checkinout/GuestFlowStats";
 import GuestTable from "../../components/receptionist/checkinout/GuestTable";
-import { useQuery } from "@tanstack/react-query";
 import { bookingsApi } from "../../api/admin/bookingsApi";
 import { getVietnamDateKey } from "../../utils/vietnamTime";
 
 const ReceptionistCheckInOutPage = () => {
-  const [activeTab, setActiveTab] = useState("in");
+  const [activeTab, setActiveTab] = useState("schedule");
 
-  // ✅ Arrivals (Check-in)
+  const confirmedBookingsQuery = useQuery({
+    queryKey: ["confirmed-check-ins"],
+    queryFn: () =>
+      bookingsApi.getBookings({
+        status: "Confirmed",
+        page: 1,
+        pageSize: 200,
+      }),
+    staleTime: 1000 * 60 * 5,
+  });
+
   const arrivalsQuery = useQuery({
     queryKey: ["arrivals"],
     queryFn: () => bookingsApi.getArrivals({ date: getVietnamDateKey() }),
-    enabled: activeTab === "in",
-    staleTime: 1000 * 60 * 5, // cache 5 phút
+    staleTime: 1000 * 60 * 5,
   });
 
-  // ✅ In-house (đang ở)
   const inHouseQuery = useQuery({
     queryKey: ["in-house"],
     queryFn: () => bookingsApi.getInHouse(),
-    enabled: activeTab === "stay",
     staleTime: 1000 * 60 * 5,
   });
 
-  // ✅ Departures (Check-out)
   const departuresQuery = useQuery({
     queryKey: ["departures"],
     queryFn: () => bookingsApi.getDepartures({ date: getVietnamDateKey() }),
-    enabled: activeTab === "out",
     staleTime: 1000 * 60 * 5,
   });
 
-  // 🎯 Lấy data theo tab (KHÔNG cần useState)
-  const data =
-    activeTab === "in"
-      ? arrivalsQuery.data?.items || []
-      : activeTab === "stay"
-      ? inHouseQuery.data?.items || []
-      : departuresQuery.data?.items || [];
+  const arrivals = (arrivalsQuery.data?.items || []).filter(
+    (booking) => booking.status === "Confirmed",
+  );
+  const confirmedBookings = (confirmedBookingsQuery.data?.items || []).filter(
+    (booking) => booking.status === "Confirmed",
+  );
+  const inHouse = (inHouseQuery.data?.items || []).filter(
+    (booking) => booking.status === "CheckedIn",
+  );
+  const departures = (departuresQuery.data?.items || []).filter(
+    (booking) => !["Completed", "Cancelled"].includes(booking.status),
+  );
+
+  const scheduleData = [
+    ...arrivals.map((booking) => ({ ...booking, eventType: "arrival" })),
+    ...departures.map((booking) => ({ ...booking, eventType: "departure" })),
+  ].sort((left, right) => {
+    const leftDate =
+      left.eventType === "departure"
+        ? left.bookingDetails?.[0]?.checkOutDate
+        : left.bookingDetails?.[0]?.checkInDate;
+    const rightDate =
+      right.eventType === "departure"
+        ? right.bookingDetails?.[0]?.checkOutDate
+        : right.bookingDetails?.[0]?.checkInDate;
+
+    return new Date(leftDate || 0).getTime() - new Date(rightDate || 0).getTime();
+  });
+
+  const tabData =
+    activeTab === "schedule" ? scheduleData : activeTab === "in" ? confirmedBookings : inHouse;
 
   const isLoading =
-    (activeTab === "in" && arrivalsQuery.isLoading) ||
-    (activeTab === "stay" && inHouseQuery.isLoading) ||
-    (activeTab === "out" && departuresQuery.isLoading);
+    (activeTab === "schedule" &&
+      (arrivalsQuery.isLoading || departuresQuery.isLoading)) ||
+    (activeTab === "in" && confirmedBookingsQuery.isLoading) ||
+    (activeTab === "out" && inHouseQuery.isLoading);
 
   const isError =
-    (activeTab === "in" && arrivalsQuery.isError) ||
-    (activeTab === "stay" && inHouseQuery.isError) ||
-    (activeTab === "out" && departuresQuery.isError);
+    (activeTab === "schedule" &&
+      (arrivalsQuery.isError || departuresQuery.isError)) ||
+    (activeTab === "in" && confirmedBookingsQuery.isError) ||
+    (activeTab === "out" && inHouseQuery.isError);
 
   return (
-    <div className="p-8 space-y-8 animate-in fade-in duration-700">
-      {/* Header */}
-      <div className="flex justify-between items-end">
+    <div className="animate-in space-y-8 p-8 fade-in duration-700">
+      <div className="flex flex-col justify-between gap-4 xl:flex-row xl:items-end">
         <div>
-          <h1 className="text-3xl font-black text-gray-900 tracking-tight">
-            Daily Guest Flow
+          <h1 className="text-3xl font-black tracking-tight text-gray-900">
+            Quản lý Check in / Check out
           </h1>
-          <p className="text-sm font-bold text-gray-400 mt-1">
-            Efficiently manage guest arrivals and departures.
+          <p className="mt-1 text-sm font-bold text-gray-400">
+            Theo dõi lịch khách đến, danh sách chờ check in và khách đang lưu trú để check out.
           </p>
         </div>
-        <GuestFlowStats />
+
+        <GuestFlowStats
+          scheduleCount={scheduleData.length}
+          checkInCount={confirmedBookings.length}
+          checkOutCount={inHouse.length}
+        />
       </div>
 
-      {/* Tabs */}
       <div className="flex items-center justify-between">
-        <div className="flex bg-white p-1.5 rounded-2xl border border-gray-100 shadow-sm">
+        <div className="flex rounded-2xl border border-gray-100 bg-white p-1.5 shadow-sm">
           <button
-            onClick={() => setActiveTab("in")}
-            className={`px-8 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${
-              activeTab === "in"
-                ? "bg-blue-600 text-white shadow-lg shadow-blue-100"
+            type="button"
+            onClick={() => setActiveTab("schedule")}
+            className={`rounded-xl px-8 py-2.5 text-[11px] font-black uppercase tracking-widest transition-all ${
+              activeTab === "schedule"
+                ? "bg-slate-900 text-white shadow-lg shadow-slate-200"
                 : "text-gray-400 hover:text-gray-600"
             }`}
           >
-            Check-in
+            Lịch
           </button>
 
           <button
-            onClick={() => setActiveTab("stay")}
-            className={`px-8 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${
-              activeTab === "stay"
+            type="button"
+            onClick={() => setActiveTab("in")}
+            className={`rounded-xl px-8 py-2.5 text-[11px] font-black uppercase tracking-widest transition-all ${
+              activeTab === "in"
                 ? "bg-emerald-500 text-white shadow-lg shadow-emerald-100"
                 : "text-gray-400 hover:text-gray-600"
             }`}
           >
-            Lưu trú
+            Check in
           </button>
 
           <button
+            type="button"
             onClick={() => setActiveTab("out")}
-            className={`px-8 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${
+            className={`rounded-xl px-8 py-2.5 text-[11px] font-black uppercase tracking-widest transition-all ${
               activeTab === "out"
                 ? "bg-rose-500 text-white shadow-lg shadow-rose-100"
                 : "text-gray-400 hover:text-gray-600"
             }`}
           >
-            Check-out
+            Check out
           </button>
         </div>
       </div>
 
-      {/* Table */}
       {isLoading ? (
-        <div className="text-center py-10 text-gray-400">Loading...</div>
+        <div className="py-10 text-center text-gray-400">Loading...</div>
       ) : isError ? (
-        <div className="text-center py-10 text-red-400">
-          Error loading data 😢
+        <div className="py-10 text-center text-red-400">
+          Không tải được dữ liệu check in / check out.
         </div>
       ) : (
-        <GuestTable activeTab={activeTab} data={data} />
+        <GuestTable
+          activeTab={activeTab}
+          data={tabData}
+          onActionSuccess={(actionType) => {
+            if (actionType === "in") {
+              setActiveTab("out");
+              return;
+            }
+
+            setActiveTab("out");
+          }}
+        />
       )}
     </div>
   );
