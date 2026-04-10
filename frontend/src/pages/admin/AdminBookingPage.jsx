@@ -76,7 +76,7 @@ const getFloorLabel = (floor) => {
 
 const getRoomDisplayName = (room) => {
   if (room.roomTypeName) {
-    return `${room.roomTypeName} ${room.roomNumber}`;
+    return room.roomTypeName;
   }
 
   return `Phòng ${room.roomNumber}`;
@@ -245,7 +245,7 @@ export default function AdminBookingPage() {
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">
-                        {room.roomNumber}
+                        Phòng {room.roomNumber}
                       </p>
                       <h3 className="mt-1 text-lg font-black text-slate-900">
                         {getRoomDisplayName(room)}
@@ -278,16 +278,18 @@ export default function AdminBookingPage() {
                   </div>
 
                   <div className="mt-4 flex flex-wrap gap-2">
-                    <span
-                      className={`inline-flex rounded-full px-3 py-1 text-xs font-black ${
-                        bookingStateStyles[room.bookingState]
-                      }`}
-                    >
-                      {room.bookingState}
-                    </span>
+                    {room.activeBooking ? (
+                      <span
+                        className={`inline-flex rounded-full px-3 py-1 text-xs font-black ${
+                          bookingStateStyles[room.bookingState]
+                        }`}
+                      >
+                        {room.bookingState}
+                      </span>
+                    ) : null}
                     {room.cleaningStatus ? (
                       <span className="inline-flex rounded-full bg-white px-3 py-1 text-xs font-black text-slate-600 ring-1 ring-slate-200">
-                        Dọn phòng: {room.cleaningStatus}
+                        Trạng thái dọn phòng: {room.cleaningStatus}
                       </span>
                     ) : null}
                   </div>
@@ -308,7 +310,7 @@ export default function AdminBookingPage() {
                       </div>
                     ) : (
                       <p className="text-sm font-semibold text-slate-500">
-                        Phòng này hiện chưa có booking hoạt động.
+                        Phòng này hiện chưa có ai đặt
                       </p>
                     )}
                   </div>
