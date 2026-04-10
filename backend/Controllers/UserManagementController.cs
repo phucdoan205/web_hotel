@@ -105,15 +105,29 @@ namespace backend.Controllers
         [HttpPost]
         public async Task<ActionResult<UserManagementResponseDTO>> Create(UserCreateDTO request)
         {
+            var normalizedEmail = request.Email?.Trim();
+
+            if (string.IsNullOrWhiteSpace(normalizedEmail))
+            {
+                return BadRequest(new { message = "Email nhân viên là bắt buộc." });
+            }
+
+            var emailExists = await _context.Users.AnyAsync(u => u.Email == normalizedEmail);
+
+            if (emailExists)
+            {
+                return Conflict(new { message = "Email này đã được sử dụng bởi tài khoản khác." });
+            }
+
             var user = new User
             {
                 RoleId = request.RoleId,
                 MembershipId = request.MembershipId,
-                FullName = request.FullName,
-                Email = request.Email,
-                Phone = request.Phone,
-                GoogleId = request.GoogleId,
-                AvatarUrl = request.AvatarUrl,
+                FullName = request.FullName.Trim(),
+                Email = normalizedEmail,
+                Phone = string.IsNullOrWhiteSpace(request.Phone) ? null : request.Phone.Trim(),
+                GoogleId = string.IsNullOrWhiteSpace(request.GoogleId) ? null : request.GoogleId.Trim(),
+                AvatarUrl = string.IsNullOrWhiteSpace(request.AvatarUrl) ? null : request.AvatarUrl.Trim(),
                 DateOfBirth = request.DateOfBirth,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
                 Status = true
@@ -152,11 +166,6 @@ namespace backend.Controllers
             if (!string.IsNullOrWhiteSpace(request.FullName))
             {
                 user.FullName = request.FullName.Trim();
-            }
-
-            if (!string.IsNullOrWhiteSpace(request.Email))
-            {
-                user.Email = request.Email.Trim();
             }
 
             if (request.Phone != null)

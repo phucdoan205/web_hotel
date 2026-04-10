@@ -257,12 +257,15 @@ const AdminStaffPage = () => {
     try {
       const payload = {
         fullName: formData.fullName.trim(),
-        email: formData.email.trim(),
         phone: formData.phone.trim() || null,
         avatarUrl: formData.avatarUrl || null,
         dateOfBirth: formData.dateOfBirth || null,
         roleId: formData.roleId ? Number(formData.roleId) : null,
       };
+
+      if (isCreateMode) {
+        payload.email = formData.email.trim();
+      }
 
       if (formData.password.trim()) {
         payload.password = formData.password.trim();
@@ -540,8 +543,21 @@ const AdminStaffPage = () => {
                     value={formData.email}
                     onChange={handleFormChange}
                     required
-                    className="rounded-2xl bg-gray-50 border border-gray-200 px-4 py-3 text-sm outline-none focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
+                    readOnly={isEditMode}
+                    disabled={isEditMode}
+                    title={
+                      isEditMode ? "Email không thể thay đổi khi chỉnh sửa nhân sự." : undefined
+                    }
+                    className={`rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none ${
+                      isEditMode
+                        ? "cursor-not-allowed bg-gray-100 text-gray-500"
+                        : "bg-gray-50 focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
+                    }`}
                   />
+                  {isEditMode ? (
+                    <span className="text-xs font-semibold text-gray-400">
+                    </span>
+                  ) : null}
                 </label>
 
                 <label className="flex flex-col gap-2">
