@@ -235,6 +235,17 @@ export default function EquipmentManagementSection({
     loadEquipmentData();
   }, [deferredSearchTerm, categoryFilter, quantitySort, page]);
 
+  useEffect(() => {
+    const handleEquipmentUsageChanged = () => {
+      loadEquipmentData({ refreshing: true });
+    };
+
+    window.addEventListener("equipment-usage-changed", handleEquipmentUsageChanged);
+    return () => {
+      window.removeEventListener("equipment-usage-changed", handleEquipmentUsageChanged);
+    };
+  }, [deferredSearchTerm, categoryFilter, quantitySort, page]);
+
   const closeModal = () => {
     if (formData.previewUrl) {
       URL.revokeObjectURL(formData.previewUrl);

@@ -189,11 +189,60 @@ namespace backend.Controllers
                     return BadRequest("Equipment khong ton tai hoac da ngung su dung.");
                 }
 
+                if (item.EquipmentId.HasValue && item.EquipmentId.Value != dto.EquipmentId.Value)
+                {
+                    var previousEquipment = await _context.Equipments
+                        .FirstOrDefaultAsync(e => e.Id == item.EquipmentId.Value);
+
+                    if (previousEquipment != null)
+                    {
+                        previousEquipment.InUseQuantity = Math.Max(0, previousEquipment.InUseQuantity - (item.Quantity ?? 0));
+                        previousEquipment.InStockQuantity = CalculateInStockQuantity(
+                            previousEquipment.TotalQuantity,
+                            previousEquipment.InUseQuantity,
+                            previousEquipment.DamagedQuantity,
+                            previousEquipment.LiquidatedQuantity);
+                        previousEquipment.UpdatedAt = DateTime.UtcNow;
+                    }
+                }
+
                 item.EquipmentId = dto.EquipmentId.Value;
             }
 
             if (dto.Quantity.HasValue)
             {
+                if (item.Equipment != null)
+                {
+                    var oldQuantity = item.Quantity ?? 0;
+                    var nextQuantity = dto.Quantity.Value;
+                    var delta = nextQuantity - oldQuantity;
+
+                    if (delta > 0)
+                    {
+                        var availableStock = GetAvailableStock(item.Equipment);
+                        if (delta > availableStock)
+                        {
+                            return Conflict(new
+                            {
+                                message = "Ton kho khong du de cap nhat so luong vat tu.",
+                                equipmentId = item.Equipment.Id,
+                                equipmentName = item.Equipment.Name,
+                                requestedQuantity = nextQuantity,
+                                availableQuantity = availableStock + oldQuantity,
+                                shortageQuantity = delta - availableStock
+                            });
+                        }
+                    }
+
+                    item.Equipment.InUseQuantity = Math.Max(0, item.Equipment.InUseQuantity + delta);
+                    item.Equipment.InStockQuantity = CalculateInStockQuantity(
+                        item.Equipment.TotalQuantity,
+                        item.Equipment.InUseQuantity,
+                        item.Equipment.DamagedQuantity,
+                        item.Equipment.LiquidatedQuantity);
+                    item.Equipment.UpdatedAt = DateTime.UtcNow;
+                }
+
                 item.Quantity = dto.Quantity.Value;
             }
 
@@ -226,6 +275,7 @@ namespace backend.Controllers
         {
             var item = await _context.RoomInventory
                 .Include(ri => ri.Room)
+                .Include(ri => ri.Equipment)
                 .FirstOrDefaultAsync(ri => ri.Id == id);
 
             if (item == null)
@@ -244,6 +294,17 @@ namespace backend.Controllers
             if (hasDamage)
             {
                 return BadRequest("Khong the xoa vat dung dang co ghi nhan mat mat hu hong.");
+            }
+
+            if (item.Equipment != null)
+            {
+                item.Equipment.InUseQuantity = Math.Max(0, item.Equipment.InUseQuantity - (item.Quantity ?? 0));
+                item.Equipment.InStockQuantity = CalculateInStockQuantity(
+                    item.Equipment.TotalQuantity,
+                    item.Equipment.InUseQuantity,
+                    item.Equipment.DamagedQuantity,
+                    item.Equipment.LiquidatedQuantity);
+                item.Equipment.UpdatedAt = DateTime.UtcNow;
             }
 
             _context.RoomInventory.Remove(item);
