@@ -15,11 +15,30 @@ import { roomInventoriesApi } from "../../../api/admin/roomInventoriesApi";
 import { getEquipmentList } from "../../../api/admin/equipmentApi";
 import { roomsApi } from "../../../api/admin/roomsApi";
 
+const normalizeApiMessage = (message) => {
+  if (!message || typeof message !== "string") {
+    return message;
+  }
+
+  const normalizedMessage = message.trim().toLowerCase();
+
+  if (
+    normalizedMessage.includes("ton kho khong du de cap nhat so luong vat tu") ||
+    normalizedMessage.includes("tồn kho không đủ để cập nhật số lượng vật tư")
+  ) {
+    return "Tồn kho không đủ để cập nhật số lượng vật tư.";
+  }
+
+  return message;
+};
+
 const getApiMessage = (error, fallback) =>
-  error?.response?.data?.message ||
-  error?.response?.data ||
-  error?.message ||
-  fallback;
+  normalizeApiMessage(
+    error?.response?.data?.message ||
+      error?.response?.data ||
+      error?.message ||
+      fallback,
+  );
 
 const inputSx = {
   "& .MuiInputLabel-root": {
