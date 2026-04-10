@@ -153,62 +153,6 @@ export default function BookingDetailModal({ open, onClose, booking, onBookingUp
             </div>
           ) : null}
 
-          {cashPromptOpen ? (
-            <div className="rounded-3xl border border-sky-200 bg-sky-50 px-5 py-4">
-              <p className="text-lg font-black text-sky-900">Xác nhận thanh toán tất cả</p>
-              <p className="mt-1 text-sm text-sky-700">
-                Sau khi xác nhận, toàn bộ booking sẽ chuyển sang trạng thái Confirmed.
-              </p>
-              <div className="mt-4 flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setCashPromptOpen(false)}
-                  className="rounded-2xl bg-white px-4 py-2 font-bold text-slate-600 transition hover:bg-slate-100"
-                >
-                  Không
-                </button>
-                <button
-                  type="button"
-                  onClick={handleConfirmCashPayment}
-                  disabled={updateStatusMutation.isPending}
-                  className="rounded-2xl bg-emerald-600 px-4 py-2 font-black text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300"
-                >
-                  {updateStatusMutation.isPending ? "Đang cập nhật..." : "Có, đã nhận đủ tiền"}
-                </button>
-              </div>
-            </div>
-          ) : null}
-
-          {detailCashPrompt ? (
-            <div className="rounded-3xl border border-emerald-200 bg-emerald-50 px-5 py-4">
-              <p className="text-lg font-black text-emerald-900">Xác nhận thanh toán riêng</p>
-              <p className="mt-1 text-sm text-emerald-700">
-                Xác nhận đã nhận tiền cho phòng{" "}
-                <span className="font-bold">
-                  {detailCashPrompt.room?.roomNumber || detailCashPrompt.roomNumber || "--"}
-                </span>
-                .
-              </p>
-              <div className="mt-4 flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setDetailCashPrompt(null)}
-                  className="rounded-2xl bg-white px-4 py-2 font-bold text-slate-600 transition hover:bg-slate-100"
-                >
-                  Không
-                </button>
-                <button
-                  type="button"
-                  onClick={handleConfirmSingleRoomPayment}
-                  disabled={updateStatusMutation.isPending}
-                  className="rounded-2xl bg-emerald-600 px-4 py-2 font-black text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300"
-                >
-                  {updateStatusMutation.isPending ? "Đang cập nhật..." : "Có, thanh toán riêng"}
-                </button>
-              </div>
-            </div>
-          ) : null}
-
           <div>
             <div className="mb-4 flex items-center gap-3">
               <User className="text-orange-600" size={28} />
@@ -306,7 +250,38 @@ export default function BookingDetailModal({ open, onClose, booking, onBookingUp
                       </div>
 
                       {!detailPaid && !isCancelled ? (
-                        <div className="mt-4 flex justify-end gap-3">
+                        <div className="mt-4 space-y-3">
+                          {detailCashPrompt?.id === detail.id ? (
+                            <div className="rounded-3xl border border-emerald-200 bg-emerald-50 px-5 py-4">
+                              <p className="text-lg font-black text-emerald-900">Xác nhận thanh toán riêng</p>
+                              <p className="mt-1 text-sm text-emerald-700">
+                                Xác nhận đã nhận tiền cho phòng{" "}
+                                <span className="font-bold">
+                                  {detail.room?.roomNumber || detail.roomNumber || "--"}
+                                </span>
+                                .
+                              </p>
+                              <div className="mt-4 flex gap-3">
+                                <button
+                                  type="button"
+                                  onClick={() => setDetailCashPrompt(null)}
+                                  className="rounded-2xl bg-white px-4 py-2 font-bold text-slate-600 transition hover:bg-slate-100"
+                                >
+                                  Không
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={handleConfirmSingleRoomPayment}
+                                  disabled={updateStatusMutation.isPending}
+                                  className="rounded-2xl bg-emerald-600 px-4 py-2 font-black text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300"
+                                >
+                                  {updateStatusMutation.isPending ? "Đang cập nhật..." : "Có, thanh toán riêng"}
+                                </button>
+                              </div>
+                            </div>
+                          ) : null}
+
+                          <div className="flex justify-end gap-3">
                           <button
                             type="button"
                             onClick={() => handleOpenQrPage(detail.id)}
@@ -323,6 +298,7 @@ export default function BookingDetailModal({ open, onClose, booking, onBookingUp
                             <Banknote size={16} />
                             Thanh toán riêng
                           </button>
+                          </div>
                         </div>
                       ) : null}
                     </div>
@@ -344,7 +320,7 @@ export default function BookingDetailModal({ open, onClose, booking, onBookingUp
                     booking.status
                   )}`}
                 >
-                  {paymentState.allPaid ? "Confirmed" : booking.status || "Unknown"}
+                  {booking.status || "Unknown"}
                 </span>
               </div>
             </div>
@@ -360,7 +336,34 @@ export default function BookingDetailModal({ open, onClose, booking, onBookingUp
         </div>
 
         <div className="sticky bottom-0 border-t bg-white px-8 py-5">
-          <div className="flex flex-wrap justify-end gap-3">
+          <div className="space-y-3">
+            {cashPromptOpen ? (
+              <div className="rounded-3xl border border-sky-200 bg-sky-50 px-5 py-4">
+                <p className="text-lg font-black text-sky-900">Xác nhận thanh toán tất cả</p>
+                <p className="mt-1 text-sm text-sky-700">
+                  Sau khi xác nhận, toàn bộ booking sẽ chuyển sang trạng thái Confirmed.
+                </p>
+                <div className="mt-4 flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setCashPromptOpen(false)}
+                    className="rounded-2xl bg-white px-4 py-2 font-bold text-slate-600 transition hover:bg-slate-100"
+                  >
+                    Không
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleConfirmCashPayment}
+                    disabled={updateStatusMutation.isPending}
+                    className="rounded-2xl bg-emerald-600 px-4 py-2 font-black text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300"
+                  >
+                    {updateStatusMutation.isPending ? "Đang cập nhật..." : "Có, đã nhận đủ tiền"}
+                  </button>
+                </div>
+              </div>
+            ) : null}
+
+            <div className="flex flex-wrap justify-end gap-3">
             {!paymentState.allPaid && !isCancelled ? (
               <>
                 <button
@@ -388,6 +391,7 @@ export default function BookingDetailModal({ open, onClose, booking, onBookingUp
             >
               Đóng
             </button>
+            </div>
           </div>
         </div>
       </div>
