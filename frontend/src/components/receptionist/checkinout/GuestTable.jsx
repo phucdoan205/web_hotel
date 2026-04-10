@@ -116,7 +116,15 @@ const GuestTable = ({ activeTab, data, onActionSuccess }) => {
       queryClient.invalidateQueries({ queryKey: ["departures"] });
       queryClient.invalidateQueries({ queryKey: ["confirmed-check-ins"] });
       queryClient.invalidateQueries({ queryKey: ["bookings"] });
-      onActionSuccess?.("in", bookingId);
+      onActionSuccess?.({
+        actionType: "in",
+        bookingId,
+        notice: {
+          type: "success",
+          title: "Check in thành công",
+          message: "Khách đã được nhận phòng và chuyển sang danh sách check out.",
+        },
+      });
     },
     onError: (error) => {
       const message =
@@ -143,7 +151,15 @@ const GuestTable = ({ activeTab, data, onActionSuccess }) => {
 
       queryClient.invalidateQueries({ queryKey: ["departures"] });
       queryClient.invalidateQueries({ queryKey: ["bookings"] });
-      onActionSuccess?.("out", bookingId);
+      onActionSuccess?.({
+        actionType: "out",
+        bookingId,
+        notice: {
+          type: "success",
+          title: "Check out thành công",
+          message: "Booking đã hoàn tất và khách đã được trả phòng.",
+        },
+      });
     },
     onError: (error) => {
       const message =

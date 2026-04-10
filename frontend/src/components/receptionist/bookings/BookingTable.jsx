@@ -1,18 +1,10 @@
 import React, { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  CheckCircle,
-  ChevronLeft,
-  ChevronRight,
-  CircleCheckBig,
-  Eye,
-  Trash2,
-  TriangleAlert,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, CircleCheckBig, Eye, Trash2, TriangleAlert } from "lucide-react";
 import { bookingsApi } from "../../../api/admin/bookingsApi";
 import BookingDetailModal from "./BookingDetailModal";
 import { getBookingPaymentState, isBookingDeleteLocked } from "../../../utils/bookingPaymentState";
-import { formatVietnamDate, getVietnamDateKey } from "../../../utils/vietnamTime";
+import { formatVietnamDate } from "../../../utils/vietnamTime";
 
 const BookingTable = ({ filters, onPageChange }) => {
   const queryClient = useQueryClient();
@@ -37,23 +29,6 @@ const BookingTable = ({ filters, onPageChange }) => {
     keepPreviousData: true,
   });
 
-  const checkInMutation = useMutation({
-    mutationFn: (bookingId) => bookingsApi.checkIn(bookingId),
-    onSuccess: (_, bookingId) => {
-      queryClient.setQueryData(["arrivals"], (oldData) => {
-        if (!oldData) return oldData;
-
-        return {
-          ...oldData,
-          items: oldData.items.filter((booking) => booking.id !== bookingId),
-        };
-      });
-
-      queryClient.invalidateQueries({ queryKey: ["in-house"] });
-      queryClient.invalidateQueries({ queryKey: ["bookings"] });
-    },
-  });
-
   const cancelMutation = useMutation({
     mutationFn: (bookingId) => bookingsApi.cancelBooking(bookingId),
     onSuccess: () => {
@@ -68,11 +43,6 @@ const BookingTable = ({ filters, onPageChange }) => {
   const bookings = data?.items || [];
   const totalCount = data?.totalCount || 0;
   const totalPages = Math.ceil(totalCount / (filters.pageSize || 10));
-
-  const isToday = (dateString) => {
-    if (!dateString) return false;
-    return getVietnamDateKey(dateString) === getVietnamDateKey();
-  };
 
   const getStatusStyle = (status) => {
     switch (status?.toLowerCase()) {
@@ -108,20 +78,6 @@ const BookingTable = ({ filters, onPageChange }) => {
     }
   };
 
-  const handleCheckIn = async (bookingId) => {
-    try {
-      await checkInMutation.mutateAsync(bookingId);
-    } catch (errorResponse) {
-      const message =
-        errorResponse?.response?.data?.message ||
-        errorResponse?.response?.data ||
-        errorResponse.message ||
-        "Check-in failed";
-
-      window.alert(message);
-    }
-  };
-
   if (error) {
     return <div className="p-8 text-center text-red-500">Lỗi tải dữ liệu booking</div>;
   }
@@ -135,7 +91,7 @@ const BookingTable = ({ filters, onPageChange }) => {
               <tr className="text-sm font-black uppercase tracking-widest text-gray-500">
                 <th className="px-4 py-3 text-left">Booking ID</th>
                 <th className="px-4 py-3 text-left">Khách hàng</th>
-                <th className="px-4 py-3 text-left">Ngày check In</th>
+                <th className="px-4 py-3 text-left">Ngày check in</th>
                 <th className="px-4 py-3 text-left">Loại phòng</th>
                 <th className="px-4 py-3 text-center">Trạng thái</th>
                 <th className="px-4 py-3 text-right">Thao tác</th>
@@ -156,8 +112,6 @@ const BookingTable = ({ filters, onPageChange }) => {
                 </tr>
               ) : (
                 bookings.map((booking) => {
-                  const firstCheckInDate = booking.bookingDetails?.[0]?.checkInDate;
-                  const canCheckIn = booking.status === "Confirmed" && isToday(firstCheckInDate);
                   const bookingDetails = booking.bookingDetails || [];
                   const paymentState = getBookingPaymentState(booking);
                   const deleteLocked = isBookingDeleteLocked(booking);
@@ -212,7 +166,7 @@ const BookingTable = ({ filters, onPageChange }) => {
                       <td className="px-4 py-3 align-top text-center">
                         <span
                           className={`inline-block rounded-full px-4 py-1 text-xs font-bold ${getStatusStyle(
-                            booking.status
+                            booking.status,
                           )}`}
                         >
                           {getStatusLabel(booking.status)}
@@ -236,16 +190,6 @@ const BookingTable = ({ filters, onPageChange }) => {
                           >
                             <Eye size={18} />
                           </button>
-
-                          {canCheckIn ? (
-                            <button
-                              onClick={() => handleCheckIn(booking.id)}
-                              className="flex items-center gap-1 rounded-2xl bg-emerald-600 px-4 py-1.5 text-xs font-semibold text-white shadow-sm transition-all hover:bg-emerald-700"
-                              title="Nhận phòng ngay"
-                            >
-                              <CheckCircle size={16} />
-                            </button>
-                          ) : null}
 
                           {!deleteLocked ? (
                             <button
@@ -303,7 +247,7 @@ const BookingTable = ({ filters, onPageChange }) => {
               return {
                 ...oldData,
                 items: oldData.items.map((item) =>
-                  item.id === updatedBooking.id ? { ...item, ...updatedBooking } : item
+                  item.id === updatedBooking.id ? { ...item, ...updatedBooking } : item,
                 ),
               };
             });
@@ -351,4 +295,3 @@ const BookingTable = ({ filters, onPageChange }) => {
 };
 
 export default BookingTable;
-
