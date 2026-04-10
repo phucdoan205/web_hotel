@@ -37,6 +37,7 @@ import AdminArticlePage from "../pages/admin/AdminArticlePage";
 import ReceptionistCheckInOutPage from "../pages/receptionist/ReceptionistCheckInOutPage";
 import ReceptionistBookingsPage from "../pages/receptionist/ReceptionistBookingsPage";
 import ReceptionistContentManagementPage from "../pages/receptionist/ReceptionistContentManagementPage";
+import ReceptionistArticleEditorPage from "../pages/receptionist/ReceptionistArticleEditorPage";
 import ReceptionistVoucherPage from "../pages/receptionist/ReceptionistVoucherPage";
 import ReceptionistReportsPage from "../pages/receptionist/ReceptionistReportsPage";
 import ReceptionistRoomStatusPage from "../pages/receptionist/ReceptionistRoomStatusPage";
@@ -115,6 +116,8 @@ const AppRoutes = () => {
         <Route path="bookings" element={<ReceptionistBookingsPage />} />
         <Route path="bookings/:id/payment-qr" element={<ReceptionistBookingPaymentPage />} />
         <Route path="posts" element={<ReceptionistContentManagementPage />} />
+        <Route path="posts/new" element={<ReceptionistArticleEditorPage />} />
+        <Route path="posts/:id/edit" element={<ReceptionistArticleEditorPage />} />
         <Route path="vouchers" element={<ReceptionistVoucherPage />} />
         <Route path="reports" element={<ReceptionistReportsPage />} />
         <Route path="room-status" element={<ReceptionistRoomStatusPage />} />

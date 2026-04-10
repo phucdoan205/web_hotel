@@ -297,14 +297,21 @@ namespace backend.Controllers
             article.Tags = NormalizeTags(request.Tags);
             article.GalleryUrls = NormalizeGalleryUrls(request.GalleryUrls, request.ThumbnailUrl);
             article.UpdatedAt = DateTime.UtcNow;
-            article.Status = false;
+            article.Status = article.IsApproved;
+            article.ApprovedAt = article.IsApproved ? article.ApprovedAt : null;
+            article.ApprovedById = article.IsApproved ? article.ApprovedById : null;
+            article.PublishedAt = article.IsApproved ? article.PublishedAt : null;
 
             if (titleChanged)
             {
                 article.Slug = await BuildUniqueSlugAsync(article.Title, article.Id);
             }
 
-            if (!string.IsNullOrWhiteSpace(request.ThumbnailUrl))
+            if (request.RemoveThumbnail)
+            {
+                article.ThumbnailUrl = null;
+            }
+            else if (!string.IsNullOrWhiteSpace(request.ThumbnailUrl))
             {
                 article.ThumbnailUrl = request.ThumbnailUrl.Trim();
             }
@@ -320,16 +327,9 @@ namespace backend.Controllers
                 article.ThumbnailUrl = uploadedUrl;
             }
 
-            if (article.IsApproved)
-            {
-                article.IsApproved = false;
-                article.ApprovedAt = null;
-                article.ApprovedById = null;
-            }
-
             await _context.SaveChangesAsync();
 
-            if (request.ThumbnailFile != null && !string.IsNullOrWhiteSpace(oldImageUrl) && oldImageUrl != article.ThumbnailUrl)
+            if ((request.ThumbnailFile != null || request.RemoveThumbnail) && !string.IsNullOrWhiteSpace(oldImageUrl) && oldImageUrl != article.ThumbnailUrl)
             {
                 await _cloudinaryService.DeleteImageByUrlAsync(oldImageUrl);
             }
@@ -832,15 +832,6 @@ namespace backend.Controllers
         private static string? NormalizeGalleryUrls(string? galleryUrls, string? thumbnailUrl = null)
         {
             var normalized = SplitGalleryUrls(galleryUrls);
-
-            if (!string.IsNullOrWhiteSpace(thumbnailUrl))
-            {
-                var thumbnail = thumbnailUrl.Trim();
-                if (!normalized.Contains(thumbnail, StringComparer.OrdinalIgnoreCase))
-                {
-                    normalized.Insert(0, thumbnail);
-                }
-            }
 
             return normalized.Count == 0 ? null : string.Join("\n", normalized);
         }

@@ -11,6 +11,7 @@ namespace backend.DTOs.Article
         public string? Tags { get; set; }
         public string? ThumbnailUrl { get; set; }
         public string? GalleryUrls { get; set; }
+        public bool RemoveThumbnail { get; set; }
         public IFormFile? ThumbnailFile { get; set; }
         public List<IFormFile>? ImageFiles { get; set; }
     }

@@ -1,17 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, MessageCircle, Reply, Send, X } from "lucide-react";
+import { ChevronDown, MessageCircle, Reply, Send } from "lucide-react";
 import { useParams } from "react-router-dom";
 import { createArticleComment, getArticleDetail } from "../../api/articles/articleApi";
 import { getStoredAuth } from "../../utils/authStorage";
-
-const normalizeGallery = (article) => {
-  const list = article?.galleryUrls?.length ? article.galleryUrls : [];
-  if (list.length > 0) {
-    return list;
-  }
-
-  return article?.thumbnailUrl ? [article.thumbnailUrl] : [];
-};
 
 const normalizeArticleContent = (content) => {
   if (!content) {
@@ -176,11 +167,8 @@ const PostDetailPage = () => {
   const [error, setError] = useState("");
   const [expandedContent, setExpandedContent] = useState(false);
   const [canExpandContent, setCanExpandContent] = useState(false);
-  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-  const [galleryOpen, setGalleryOpen] = useState(false);
 
   const canInteract = auth?.role?.toLowerCase() !== "housekeeping";
-  const galleryImages = useMemo(() => normalizeGallery(article), [article]);
   const htmlContent = useMemo(() => normalizeArticleContent(article?.content), [article?.content]);
 
   useEffect(() => {
@@ -255,203 +243,137 @@ const PostDetailPage = () => {
   }
 
   return (
-    <>
-      <div className="min-h-screen bg-[#eef2f7] pb-20">
-        <div className="mx-auto max-w-4xl px-4 py-8">
-          <div className="space-y-6">
-            <article className="overflow-hidden rounded-[2rem] bg-white shadow-sm ring-1 ring-slate-200">
-              <div className="relative">
-                <img
-                  src={article.thumbnailUrl || "https://placehold.co/1200x600/e2e8f0/64748b?text=News"}
-                  alt={article.title}
-                  className="h-[320px] w-full object-cover sm:h-[420px]"
-                />
-                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/75 via-slate-950/25 to-transparent px-6 py-8 text-white">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="rounded-full bg-white/20 px-3 py-1 text-xs font-black uppercase tracking-wide backdrop-blur">
-                      {article.categoryName || "Tin tức"}
+    <div className="min-h-screen bg-[#eef2f7] pb-20">
+      <div className="mx-auto max-w-4xl px-4 py-8">
+        <div className="space-y-6">
+          <article className="overflow-hidden rounded-[2rem] bg-white shadow-sm ring-1 ring-slate-200">
+            <div className="relative">
+              <img
+                src={article.thumbnailUrl || "https://placehold.co/1200x600/e2e8f0/64748b?text=News"}
+                alt={article.title}
+                className="h-[320px] w-full object-cover sm:h-[420px]"
+              />
+              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/75 via-slate-950/25 to-transparent px-6 py-8 text-white">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-full bg-white/20 px-3 py-1 text-xs font-black uppercase tracking-wide backdrop-blur">
+                    {article.categoryName || "Tin tức"}
+                  </span>
+                  {article.tags?.map((tag) => (
+                    <span key={tag} className="rounded-full bg-white/15 px-3 py-1 text-xs font-bold backdrop-blur">
+                      #{tag}
                     </span>
-                    {article.tags?.map((tag) => (
-                      <span key={tag} className="rounded-full bg-white/15 px-3 py-1 text-xs font-bold backdrop-blur">
-                        #{tag}
-                      </span>
-                    ))}
-                  </div>
-
-                  <h1 className="mt-4 max-w-4xl text-3xl font-black leading-tight sm:text-4xl">
-                    {article.title}
-                  </h1>
-                  <p className="mt-3 max-w-3xl text-sm font-medium text-slate-100 sm:text-base">
-                    {article.summary}
-                  </p>
-                </div>
-              </div>
-
-              <div className="border-b border-slate-100 px-6 py-4">
-                <div className="flex flex-wrap items-center gap-4 text-sm font-semibold text-slate-500">
-                  <span>Tác giả: {article.authorName || "Hotel"}</span>
-                  <span>Đăng lúc {new Date(article.publishedAt || article.createdAt).toLocaleString("vi-VN")}</span>
-                  <span className="inline-flex items-center gap-2">
-                    <MessageCircle className="size-4" />
-                    {comments.length} chủ đề trao đổi
-                  </span>
-                </div>
-              </div>
-
-              <div className="px-6 py-6">
-                <div className="relative">
-                  <div
-                    ref={contentRef}
-                    className={`prose max-w-none overflow-hidden break-words text-slate-700 transition-all ${expandedContent ? "" : "max-h-[720px]"}`}
-                    dangerouslySetInnerHTML={{ __html: htmlContent }}
-                  />
-
-                  {!expandedContent && canExpandContent ? (
-                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-white via-white/90 to-transparent" />
-                  ) : null}
+                  ))}
                 </div>
 
-                {canExpandContent ? (
-                  <button
-                    type="button"
-                    onClick={() => setExpandedContent((current) => !current)}
-                    className="mt-4 inline-flex items-center gap-2 rounded-full bg-slate-100 px-4 py-2 text-sm font-black text-slate-700"
-                  >
-                    <ChevronDown className={`size-4 transition ${expandedContent ? "rotate-180" : ""}`} />
-                    {expandedContent ? "Thu gọn" : "Xem thêm"}
-                  </button>
-                ) : null}
-
-                {galleryImages.length > 0 ? (
-                  <div className="mt-8 space-y-4 border-t border-slate-100 pt-6">
-                    <h2 className="text-lg font-black text-slate-900">Ảnh bài viết</h2>
-                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                      {galleryImages.map((image, index) => (
-                        <button
-                          key={`${image}-${index}`}
-                          type="button"
-                          onClick={() => {
-                            setSelectedImageIndex(index);
-                            setGalleryOpen(true);
-                          }}
-                          className="overflow-hidden rounded-[1.5rem] bg-slate-100"
-                        >
-                          <img
-                            src={image}
-                            alt={`${article.title} ${index + 1}`}
-                            className="h-40 w-full object-cover transition duration-300 hover:scale-105"
-                          />
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
+                <h1 className="mt-4 max-w-4xl text-3xl font-black leading-tight sm:text-4xl">
+                  {article.title}
+                </h1>
+                <p className="mt-3 max-w-3xl text-sm font-medium text-slate-100 sm:text-base">
+                  {article.summary}
+                </p>
               </div>
-            </article>
+            </div>
 
-            <section className="rounded-[2rem] bg-white p-6 shadow-sm ring-1 ring-slate-200">
-              <div className="flex items-center justify-between gap-4">
-                <h2 className="text-2xl font-black text-slate-900">Bình luận</h2>
-                {!canInteract ? (
-                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-500">
-                    Housekeeping không được tham gia
-                  </span>
+            <div className="border-b border-slate-100 px-6 py-4">
+              <div className="flex flex-wrap items-center gap-4 text-sm font-semibold text-slate-500">
+                <span>Tác giả: {article.authorName || "Hotel"}</span>
+                <span>Đăng lúc {new Date(article.publishedAt || article.createdAt).toLocaleString("vi-VN")}</span>
+                <span className="inline-flex items-center gap-2">
+                  <MessageCircle className="size-4" />
+                  {comments.length} chủ đề trao đổi
+                </span>
+              </div>
+            </div>
+
+            <div className="px-6 py-6">
+              <div className="relative">
+                <div
+                  ref={contentRef}
+                  className={`prose max-w-none overflow-hidden break-words text-slate-700 transition-all ${expandedContent ? "" : "max-h-[720px]"}`}
+                  dangerouslySetInnerHTML={{ __html: htmlContent }}
+                />
+
+                {!expandedContent && canExpandContent ? (
+                  <div className="pointer-events-none absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-white via-white/90 to-transparent" />
                 ) : null}
               </div>
 
-              {error ? (
-                <div className="mt-4 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-600">
-                  {String(error)}
-                </div>
+              {canExpandContent ? (
+                <button
+                  type="button"
+                  onClick={() => setExpandedContent((current) => !current)}
+                  className="mt-4 inline-flex items-center gap-2 rounded-full bg-slate-100 px-4 py-2 text-sm font-black text-slate-700"
+                >
+                  <ChevronDown className={`size-4 transition ${expandedContent ? "rotate-180" : ""}`} />
+                  {expandedContent ? "Thu gọn" : "Xem thêm"}
+                </button>
               ) : null}
+            </div>
+          </article>
 
-              {canInteract && auth && !replyTarget ? (
-                <div className="mt-6">
-                  <CommentComposer
+          <section className="rounded-[2rem] bg-white p-6 shadow-sm ring-1 ring-slate-200">
+            <div className="flex items-center justify-between gap-4">
+              <h2 className="text-2xl font-black text-slate-900">Bình luận</h2>
+              {!canInteract ? (
+                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-500">
+                  Housekeeping không được tham gia
+                </span>
+              ) : null}
+            </div>
+
+            {error ? (
+              <div className="mt-4 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-600">
+                {String(error)}
+              </div>
+            ) : null}
+
+            {canInteract && auth && !replyTarget ? (
+              <div className="mt-6">
+                <CommentComposer
+                  auth={auth}
+                  value={commentText}
+                  onChange={setCommentText}
+                  onSubmit={handleSubmitComment}
+                  isSubmitting={submitting}
+                  replyTarget={null}
+                  onCancelReply={cancelReply}
+                />
+              </div>
+            ) : null}
+
+            {!canInteract || !auth ? (
+              <div className="mt-6 rounded-2xl bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-500">
+                Đăng nhập bằng tài khoản không phải housekeeping để tham gia trao đổi.
+              </div>
+            ) : null}
+
+            <div className="mt-8 space-y-5">
+              {comments.length === 0 ? (
+                <div className="rounded-2xl bg-slate-50 px-4 py-8 text-center text-sm font-semibold text-slate-400">
+                  Chưa có bình luận nào.
+                </div>
+              ) : (
+                comments.map((comment) => (
+                  <CommentItem
+                    key={comment.id}
+                    comment={comment}
+                    onReply={handleReply}
+                    replyTarget={replyTarget}
+                    commentText={commentText}
+                    setCommentText={setCommentText}
+                    handleSubmitComment={handleSubmitComment}
+                    submitting={submitting}
                     auth={auth}
-                    value={commentText}
-                    onChange={setCommentText}
-                    onSubmit={handleSubmitComment}
-                    isSubmitting={submitting}
-                    replyTarget={null}
-                    onCancelReply={cancelReply}
+                    canInteract={canInteract}
+                    cancelReply={cancelReply}
                   />
-                </div>
-              ) : null}
-
-              {!canInteract || !auth ? (
-                <div className="mt-6 rounded-2xl bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-500">
-                  Đăng nhập bằng tài khoản không phải housekeeping để tham gia trao đổi.
-                </div>
-              ) : null}
-
-              <div className="mt-8 space-y-5">
-                {comments.length === 0 ? (
-                  <div className="rounded-2xl bg-slate-50 px-4 py-8 text-center text-sm font-semibold text-slate-400">
-                    Chưa có bình luận nào.
-                  </div>
-                ) : (
-                  comments.map((comment) => (
-                    <CommentItem
-                      key={comment.id}
-                      comment={comment}
-                      onReply={handleReply}
-                      replyTarget={replyTarget}
-                      commentText={commentText}
-                      setCommentText={setCommentText}
-                      handleSubmitComment={handleSubmitComment}
-                      submitting={submitting}
-                      auth={auth}
-                      canInteract={canInteract}
-                      cancelReply={cancelReply}
-                    />
-                  ))
-                )}
-              </div>
-            </section>
-          </div>
+                ))
+              )}
+            </div>
+          </section>
         </div>
       </div>
-
-      {galleryOpen && galleryImages[selectedImageIndex] ? (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/90 p-4">
-          <button
-            type="button"
-            onClick={() => setGalleryOpen(false)}
-            className="absolute right-4 top-4 rounded-full bg-white/10 p-3 text-white backdrop-blur"
-          >
-            <X className="size-5" />
-          </button>
-
-          <div className="mx-auto flex max-h-[92vh] w-full max-w-6xl flex-col gap-4">
-            <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-[2rem] bg-black/20">
-              <img
-                src={galleryImages[selectedImageIndex]}
-                alt={`${article.title} ${selectedImageIndex + 1}`}
-                className="max-h-[75vh] w-auto max-w-full rounded-[1.5rem] object-contain"
-              />
-            </div>
-
-            <div className="flex gap-3 overflow-x-auto pb-1">
-              {galleryImages.map((image, index) => (
-                <button
-                  key={`${image}-${index}`}
-                  type="button"
-                  onClick={() => setSelectedImageIndex(index)}
-                  className={`overflow-hidden rounded-2xl ring-2 ${selectedImageIndex === index ? "ring-white" : "ring-transparent"}`}
-                >
-                  <img
-                    src={image}
-                    alt={`${article.title} thumb ${index + 1}`}
-                    className="h-20 w-20 object-cover"
-                  />
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      ) : null}
-    </>
+    </div>
   );
 };
 
