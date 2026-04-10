@@ -6,6 +6,11 @@ import { Outlet, useLocation } from "react-router-dom";
 const HousekeepingLayout = () => {
   const { pathname } = useLocation();
   const isRoomMonitoringPage = pathname === "/housekeeping/rooms";
+  const isWideContentPage = [
+    "/housekeeping/inventory",
+    "/housekeeping/equipment",
+    "/housekeeping/loss-damage",
+  ].includes(pathname);
   // XÓA DÒNG NÀY: const [activeTab, setActiveTab] = useState("dashboard");
 
   return (
@@ -21,7 +26,7 @@ const HousekeepingLayout = () => {
         </header>
 
         <main className={isRoomMonitoringPage ? "mt-4 p-10 flex-1" : "p-8 flex-1"}>
-          <div className={isRoomMonitoringPage ? "" : "max-w-7xl mx-auto"}>
+          <div className={isRoomMonitoringPage ? "" : isWideContentPage ? "mx-auto w-full max-w-[96rem]" : "max-w-7xl mx-auto"}>
             {/* Outlet sẽ tự động đổi nội dung khi URL thay đổi */}
             <Outlet />
           </div>
