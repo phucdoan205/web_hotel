@@ -10,6 +10,7 @@ const HousekeepingLayout = () => {
     "/housekeeping/inventory",
     "/housekeeping/equipment",
     "/housekeeping/loss-damage",
+    "/housekeeping/tasks",
   ].includes(pathname);
   // XÓA DÒNG NÀY: const [activeTab, setActiveTab] = useState("dashboard");
 
