@@ -91,6 +91,23 @@ const BookingTable = ({ filters, onPageChange }) => {
     }
   };
 
+  const getStatusLabel = (status) => {
+    switch (status?.toLowerCase()) {
+      case "checkedin":
+        return "Checked in";
+      case "completed":
+        return "Completed";
+      case "cancelled":
+        return "Cancelled";
+      case "confirmed":
+        return "Confirmed";
+      case "pending":
+        return "Pending";
+      default:
+        return status || "Unknown";
+    }
+  };
+
   const handleCheckIn = async (bookingId) => {
     try {
       await checkInMutation.mutateAsync(bookingId);
@@ -195,10 +212,10 @@ const BookingTable = ({ filters, onPageChange }) => {
                       <td className="px-4 py-3 align-top text-center">
                         <span
                           className={`inline-block rounded-full px-4 py-1 text-xs font-bold ${getStatusStyle(
-                            paymentState.allPaid ? "confirmed" : booking.status
+                            booking.status
                           )}`}
                         >
-                          {paymentState.allPaid ? "Confirmed" : booking.status}
+                          {getStatusLabel(booking.status)}
                         </span>
                         {paymentState.hasAnyPayment ? (
                           <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-bold text-emerald-700">
