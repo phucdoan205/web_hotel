@@ -1,9 +1,11 @@
 import React from "react";
 import Sidebar from "../components/housekeeping/layout/Sidebar";
 import Navbar from "../components/housekeeping/layout/Navbar";
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 
 const HousekeepingLayout = () => {
+  const { pathname } = useLocation();
+  const isRoomMonitoringPage = pathname === "/housekeeping/rooms";
   // XÓA DÒNG NÀY: const [activeTab, setActiveTab] = useState("dashboard");
 
   return (
@@ -18,8 +20,8 @@ const HousekeepingLayout = () => {
           <Navbar />
         </header>
 
-        <main className="p-8 flex-1">
-          <div className="max-w-7xl mx-auto">
+        <main className={isRoomMonitoringPage ? "mt-4 p-10 flex-1" : "p-8 flex-1"}>
+          <div className={isRoomMonitoringPage ? "" : "max-w-7xl mx-auto"}>
             {/* Outlet sẽ tự động đổi nội dung khi URL thay đổi */}
             <Outlet />
           </div>

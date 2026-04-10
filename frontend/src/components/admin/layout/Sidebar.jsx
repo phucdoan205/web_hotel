@@ -16,7 +16,7 @@ import {
 
 const menuItems = [
   { name: "Dashboard", icon: LayoutDashboard, path: "/admin/dashboard" },
-  { name: "Bookings", icon: CalendarCheck2, path: "/admin/bookings" },
+  { name: "Theo dõi phòng", icon: CalendarCheck2, path: "/admin/bookings" },
   { name: "Nhân viên", icon: Users, path: "/admin/staff" },
   { name: "Bài viết", icon: FileText, path: "/admin/articles" },
   { name: "Quản lý phòng", icon: Building, path: "/admin/rooms" },

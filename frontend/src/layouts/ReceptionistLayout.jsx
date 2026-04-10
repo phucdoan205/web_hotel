@@ -1,10 +1,13 @@
 import React from "react";
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 // Hãy đảm bảo đường dẫn import đúng với cấu trúc thư mục của bạn
 import Sidebar from "../components/receptionist/layout/Sidebar"; 
 import Navbar from "../components/receptionist/layout/Navbar";
 
 const ReceptionistLayout = () => {
+  const { pathname } = useLocation();
+  const isRoomMonitoringPage = pathname === "/receptionist/room-status";
+
   return (
     <div className="flex min-h-screen bg-slate-50">
       {/* 1. Sidebar bên trái - Cố định độ rộng và chiều cao */}
@@ -24,9 +27,9 @@ const ReceptionistLayout = () => {
 
         {/* 2.2. Nội dung trang (Outlet) */}
         {/* p-8: tạo khoảng cách đệm cho nội dung quản trị */}
-        <main className="flex-1">
-          <div className="max-w-7xl mx-auto">
-             <Outlet />
+        <main className={isRoomMonitoringPage ? "mt-4 p-10 flex-1" : "flex-1 p-8"}>
+          <div className={isRoomMonitoringPage ? "" : "max-w-7xl mx-auto"}>
+            <Outlet />
           </div>
         </main>
 

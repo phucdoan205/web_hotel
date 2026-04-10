@@ -19,7 +19,7 @@ const menuItems = [
   },
   {
     id: "room-list",
-    label: "Danh sách phòng",
+    label: "Theo dõi phòng",
     icon: List,
     path: "/housekeeping/rooms",
   },

@@ -22,6 +22,11 @@ const Sidebar = () => {
       path: "/receptionist/dashboard",
     },
     {
+      title: "Theo dõi phòng",
+      icon: BedDouble,
+      path: "/receptionist/room-status",
+    },
+    {
       title: "Check-in/Out",
       icon: ArrowLeftRight,
       path: "/receptionist/check-in-out",
@@ -29,11 +34,6 @@ const Sidebar = () => {
     { title: "Bookings", icon: CalendarCheck, path: "/receptionist/bookings" },
     { title: "Vouchers", icon: Gift, path: "/receptionist/vouchers" },
     { title: "Quản lý Bài viết", icon: FileText, path: "/receptionist/posts" },
-    {
-      title: "Room Status",
-      icon: BedDouble,
-      path: "/receptionist/room-status",
-    },
     { title: "POS", icon: Calculator, path: "/receptionist/pos" },
   ];
 
