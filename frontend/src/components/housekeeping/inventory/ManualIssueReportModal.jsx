@@ -85,7 +85,7 @@ export default function ManualIssueReportModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-5xl overflow-hidden rounded-[2rem] border border-gray-100 bg-white shadow-2xl">
+      <div className="flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] border border-gray-100 bg-white shadow-2xl">
         <div className="flex items-start justify-between border-b border-gray-100 px-8 py-6">
           <div>
             <h2 className="text-2xl font-black text-gray-900">Thêm báo cáo hư hỏng / thất thoát</h2>
@@ -113,8 +113,9 @@ export default function ManualIssueReportModal({
               imageFile,
             });
           }}
-          className="space-y-6 px-8 py-6"
+          className="min-h-0 flex-1 overflow-y-auto px-8 py-6"
         >
+          <div className="space-y-6">
           <div className="grid gap-4 xl:grid-cols-[1fr_1.15fr]">
             <div className="space-y-3 rounded-[24px] border border-gray-100 bg-gray-50 p-5">
               <p className="text-xs font-black uppercase tracking-widest text-gray-400">Chọn phòng</p>
@@ -327,6 +328,7 @@ export default function ManualIssueReportModal({
               {isPending ? <LoaderCircle className="size-4 animate-spin" /> : null}
               Gửi báo cáo
             </button>
+          </div>
           </div>
         </form>
       </div>
