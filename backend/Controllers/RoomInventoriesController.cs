@@ -138,18 +138,13 @@ namespace backend.Controllers
 
             _context.RoomInventory.Add(entity);
 
+            await _context.SaveChangesAsync();
+
             if (equipment != null)
             {
-                equipment.InUseQuantity += dto.Quantity;
-                equipment.InStockQuantity = CalculateInStockQuantity(
-                    equipment.TotalQuantity,
-                    equipment.InUseQuantity,
-                    equipment.DamagedQuantity,
-                    equipment.LiquidatedQuantity);
-                equipment.UpdatedAt = DateTime.UtcNow;
+                await RecalculateEquipmentUsageAsync(equipment.Id);
+                await _context.SaveChangesAsync();
             }
-
-            await _context.SaveChangesAsync();
 
             var created = await _context.RoomInventory
                 .Include(ri => ri.Room)
@@ -178,6 +173,8 @@ namespace backend.Controllers
                 return BadRequest("Phong da bi xoa hoac khong ton tai.");
             }
 
+            var previousEquipmentId = item.EquipmentId;
+
             if (dto.EquipmentId.HasValue)
             {
                 var equipmentExists = await _context.Equipments
@@ -187,23 +184,6 @@ namespace backend.Controllers
                 if (!equipmentExists)
                 {
                     return BadRequest("Equipment khong ton tai hoac da ngung su dung.");
-                }
-
-                if (item.EquipmentId.HasValue && item.EquipmentId.Value != dto.EquipmentId.Value)
-                {
-                    var previousEquipment = await _context.Equipments
-                        .FirstOrDefaultAsync(e => e.Id == item.EquipmentId.Value);
-
-                    if (previousEquipment != null)
-                    {
-                        previousEquipment.InUseQuantity = Math.Max(0, previousEquipment.InUseQuantity - (item.Quantity ?? 0));
-                        previousEquipment.InStockQuantity = CalculateInStockQuantity(
-                            previousEquipment.TotalQuantity,
-                            previousEquipment.InUseQuantity,
-                            previousEquipment.DamagedQuantity,
-                            previousEquipment.LiquidatedQuantity);
-                        previousEquipment.UpdatedAt = DateTime.UtcNow;
-                    }
                 }
 
                 item.EquipmentId = dto.EquipmentId.Value;
@@ -233,14 +213,6 @@ namespace backend.Controllers
                             });
                         }
                     }
-
-                    item.Equipment.InUseQuantity = Math.Max(0, item.Equipment.InUseQuantity + delta);
-                    item.Equipment.InStockQuantity = CalculateInStockQuantity(
-                        item.Equipment.TotalQuantity,
-                        item.Equipment.InUseQuantity,
-                        item.Equipment.DamagedQuantity,
-                        item.Equipment.LiquidatedQuantity);
-                    item.Equipment.UpdatedAt = DateTime.UtcNow;
                 }
 
                 item.Quantity = dto.Quantity.Value;
@@ -264,6 +236,18 @@ namespace backend.Controllers
             if (dto.IsActive.HasValue)
             {
                 item.IsActive = dto.IsActive.Value;
+            }
+
+            await _context.SaveChangesAsync();
+
+            if (previousEquipmentId.HasValue)
+            {
+                await RecalculateEquipmentUsageAsync(previousEquipmentId.Value);
+            }
+
+            if (item.EquipmentId.HasValue && item.EquipmentId != previousEquipmentId)
+            {
+                await RecalculateEquipmentUsageAsync(item.EquipmentId.Value);
             }
 
             await _context.SaveChangesAsync();
@@ -296,19 +280,16 @@ namespace backend.Controllers
                 return BadRequest("Khong the xoa vat dung dang co ghi nhan mat mat hu hong.");
             }
 
-            if (item.Equipment != null)
-            {
-                item.Equipment.InUseQuantity = Math.Max(0, item.Equipment.InUseQuantity - (item.Quantity ?? 0));
-                item.Equipment.InStockQuantity = CalculateInStockQuantity(
-                    item.Equipment.TotalQuantity,
-                    item.Equipment.InUseQuantity,
-                    item.Equipment.DamagedQuantity,
-                    item.Equipment.LiquidatedQuantity);
-                item.Equipment.UpdatedAt = DateTime.UtcNow;
-            }
+            var equipmentId = item.EquipmentId;
 
             _context.RoomInventory.Remove(item);
             await _context.SaveChangesAsync();
+
+            if (equipmentId.HasValue)
+            {
+                await RecalculateEquipmentUsageAsync(equipmentId.Value);
+                await _context.SaveChangesAsync();
+            }
 
             return NoContent();
         }
@@ -710,6 +691,27 @@ namespace backend.Controllers
                 equipment.InUseQuantity,
                 equipment.DamagedQuantity,
                 equipment.LiquidatedQuantity));
+        }
+
+        private async Task RecalculateEquipmentUsageAsync(int equipmentId)
+        {
+            var equipment = await _context.Equipments.FirstOrDefaultAsync(e => e.Id == equipmentId);
+            if (equipment == null)
+            {
+                return;
+            }
+
+            var inUseQuantity = await _context.RoomInventory
+                .Where(item => item.EquipmentId == equipmentId)
+                .SumAsync(item => item.Quantity ?? 0);
+
+            equipment.InUseQuantity = Math.Max(0, inUseQuantity);
+            equipment.InStockQuantity = CalculateInStockQuantity(
+                equipment.TotalQuantity,
+                equipment.InUseQuantity,
+                equipment.DamagedQuantity,
+                equipment.LiquidatedQuantity);
+            equipment.UpdatedAt = DateTime.UtcNow;
         }
 
         private static int CalculateInStockQuantity(int totalQuantity, int inUseQuantity, int damagedQuantity, int liquidatedQuantity)
