@@ -491,13 +491,19 @@ namespace backend.Controllers
             if (await _context.Rooms.AnyAsync(r => r.RoomNumber == request.NewRoomNumber))
                 return BadRequest(new { message = $"Sá»‘ phÃ²ng {request.NewRoomNumber} Ä‘Ã£ tá»“n táº¡i." });
 
+            if (!string.IsNullOrWhiteSpace(request.CleaningStatus) &&
+                !RoomCleaningStatuses.IsValid(request.CleaningStatus))
+            {
+                return BadRequest(new { message = "Tr\u1ea1ng th\u00e1i d\u1ecdn ph\u00f2ng kh\u00f4ng h\u1ee3p l\u1ec7." });
+            }
+
             var newRoom = new Room
             {
                 RoomTypeId = originalRoom.RoomTypeId,
                 RoomNumber = request.NewRoomNumber,
                 Floor = originalRoom.Floor,
-                Status = originalRoom.Status,
-                CleaningStatus = originalRoom.CleaningStatus,
+                Status = RoomStatuses.Available,
+                CleaningStatus = request.CleaningStatus ?? RoomCleaningStatuses.Dirty,
                 IsDeleted = false,
                 LastCleaningUpdatedAt = DateTime.UtcNow
             };
