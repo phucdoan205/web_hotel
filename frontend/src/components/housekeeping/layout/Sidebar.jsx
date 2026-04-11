@@ -24,12 +24,6 @@ const menuItems = [
     path: "/housekeeping/rooms",
   },
   {
-    id: "tasks",
-    label: "Nhiệm vụ dọn dẹp",
-    icon: CheckSquare,
-    path: "/housekeeping/tasks",
-  },
-  {
     id: "equipment",
     label: "Quản lý vật tư",
     icon: Boxes,

@@ -46,7 +46,7 @@ export default function HousekeepingRoomInspectionDetailPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["housekeepingTasks"] });
       queryClient.invalidateQueries({ queryKey: ["housekeepingTaskDetail", roomId] });
-      navigate("/housekeeping/tasks");
+      navigate("/admin/housekeeping/tasks");
     },
   });
 
@@ -81,7 +81,7 @@ export default function HousekeepingRoomInspectionDetailPage() {
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex items-center gap-4">
         <Link
-          to="/housekeeping/tasks"
+          to="/admin/housekeeping/tasks"
           className="inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-3 text-sm font-black text-gray-600 shadow-sm ring-1 ring-gray-100 transition-all hover:bg-gray-50"
         >
           <ArrowLeft className="size-4" />

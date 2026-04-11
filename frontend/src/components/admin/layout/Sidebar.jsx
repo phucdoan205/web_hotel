@@ -53,7 +53,7 @@ const menuItems = [
   { name: "Nhân viên", icon: Users, path: "/admin/staff" },
   { name: "Bài viết", icon: FileText, path: "/admin/articles" },
   { name: "Quản lý phòng", icon: Building, path: "/admin/rooms" },
-  { name: "Nhiệm vụ dọn phòng", icon: ClipboardList, path: "/housekeeping/tasks" },
+  { name: "Nhiệm vụ dọn phòng", icon: ClipboardList, path: "/admin/housekeeping/tasks" },
   { name: "Vật tư", icon: Boxes, path: "/admin/equipment" },
   { name: "Thất thoát đền bù", icon: ShieldAlert, path: "/admin/loss-damage" },
   {
@@ -63,7 +63,7 @@ const menuItems = [
     matchPaths: ["/receptionist/bookings", "/receptionist/check-in-out"],
   },
   { name: "Hóa đơn", icon: Receipt, path: "/receptionist/bookings" },
-  { name: "Voucher", icon: Gift, path: "/receptionist/vouchers" },
+  { name: "Voucher", icon: Gift, path: "/admin/vouchers" },
   { name: "Dịch vụ", icon: Wrench, path: "/receptionist/pos" },
   { name: "Audit log", icon: History, path: "/admin/audit-log" },
 ];

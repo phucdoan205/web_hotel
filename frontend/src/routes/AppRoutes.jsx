@@ -1,5 +1,5 @@
 import React from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useParams } from "react-router-dom";
 
 // Layouts
 import MainLayout from "../layouts/MainLayout";
@@ -72,6 +72,10 @@ import GuestCustomerSupportPage from "../pages/guest/GuestCustomerSupportPage";
 
 // AppRoutes định nghĩa tất cả các route của ứng dụng, phân chia rõ ràng giữa các loại người dùng và layout tương ứng
 const AppRoutes = () => {
+  function RedirectHousekeepingToAdmin() {
+    const { roomId } = useParams();
+    return <Navigate to={roomId ? `/admin/housekeeping/tasks/${roomId}` : "/admin/housekeeping/tasks"} replace />;
+  }
   return (
     <Routes>
       {/* 1. Public Routes dùng MainLayout (Có Navbar/Footer) */}
@@ -106,6 +110,9 @@ const AppRoutes = () => {
         <Route path="loss-damage" element={<AdminLossDamagePage />} />
         <Route path="staff" element={<AdminStaffPage />} />
         <Route path="articles" element={<AdminArticlePage />} />
+        <Route path="vouchers" element={<ReceptionistVoucherPage />} />
+        <Route path="housekeeping/tasks" element={<HousekeepingTasksPage />} />
+        <Route path="housekeeping/tasks/:roomId" element={<HousekeepingRoomInspectionDetailPage />} />
       </Route>
 
       {/* 4. Receptionist Routes (Dùng ReceptionistLayout) */}
@@ -118,7 +125,7 @@ const AppRoutes = () => {
         <Route path="posts" element={<ReceptionistContentManagementPage />} />
         <Route path="posts/new" element={<ReceptionistArticleEditorPage />} />
         <Route path="posts/:id/edit" element={<ReceptionistArticleEditorPage />} />
-        <Route path="vouchers" element={<ReceptionistVoucherPage />} />
+        <Route path="vouchers" element={<Navigate to="/admin/vouchers" replace />} />
         <Route path="reports" element={<ReceptionistReportsPage />} />
         <Route path="room-status" element={<ReceptionistRoomStatusPage />} />
         <Route path="settings" element={<ReceptionistSettingsPage />} />
@@ -130,10 +137,10 @@ const AppRoutes = () => {
         <Route index element={<HousekeepingDashboardPage />} />
         <Route path="dashboard" element={<HousekeepingDashboardPage />} />
         <Route path="rooms" element={<HousekeepingRoomListPage />} />
-        <Route path="inspections" element={<Navigate to="/housekeeping/tasks" replace />} />
-        <Route path="tasks/:roomId" element={<HousekeepingRoomInspectionDetailPage />} />
+        <Route path="inspections" element={<Navigate to="/admin/housekeeping/tasks" replace />} />
+        <Route path="tasks/:roomId" element={<RedirectHousekeepingToAdmin />} />
         <Route path="reports" element={<HousekeepingReportsPage />} />
-        <Route path="tasks" element={<HousekeepingTasksPage />} />
+        <Route path="tasks" element={<RedirectHousekeepingToAdmin />} />
         <Route path="equipment" element={<HousekeepingEquipmentManagementPage />} />
         <Route path="inventory" element={<HousekeepingInventoryManagementPage />} />
         <Route path="staff" element={<HousekeepingStaffManagementPage />} />

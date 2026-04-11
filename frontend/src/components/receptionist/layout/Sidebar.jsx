@@ -32,7 +32,6 @@ const Sidebar = () => {
       icon: ArrowLeftRight,
       path: "/receptionist/check-in-out",
     },
-    { title: "Vouchers", icon: Gift, path: "/receptionist/vouchers" },
     { title: "Quản lý Bài viết", icon: FileText, path: "/receptionist/posts" },
     { title: "POS", icon: Calculator, path: "/receptionist/pos" },
   ];

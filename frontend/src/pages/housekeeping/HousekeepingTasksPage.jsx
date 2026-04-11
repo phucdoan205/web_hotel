@@ -232,7 +232,7 @@ export default function HousekeepingTasksPage() {
       queryClient.invalidateQueries({
         queryKey: ["housekeepingTaskDetail", taskDetail.roomId],
       });
-      navigate(`/housekeeping/tasks/${taskDetail.roomId}`);
+      navigate(`/admin/housekeeping/tasks/${taskDetail.roomId}`);
     },
   });
 
@@ -432,12 +432,12 @@ export default function HousekeepingTasksPage() {
         ) : (
           <div className="grid gap-4">
             {visibleTasks.map((task) => (
-              <TaskCard
+                <TaskCard
                 key={task.roomId}
                 task={task}
                 isAccepting={acceptMutation.isPending}
                 onAccept={(roomId) => acceptMutation.mutate(roomId)}
-                onOpenChecklist={(roomId) => navigate(`/housekeeping/tasks/${roomId}`)}
+                onOpenChecklist={(roomId) => navigate(`/admin/housekeeping/tasks/${roomId}`)}
               />
             ))}
           </div>
