@@ -11,7 +11,7 @@ import {
   Wrench,
   X,
 } from "lucide-react";
-import { housekeepingApi } from "../../api/housekeeping/housekeepingApi";
+import { housekeepingApi } from "../../api/admin/housekeepingApi";
 import ManualIssueReportModal from "../housekeeping/inventory/ManualIssueReportModal";
 import { formatVietnamDateTime } from "../../utils/vietnamTime";
 

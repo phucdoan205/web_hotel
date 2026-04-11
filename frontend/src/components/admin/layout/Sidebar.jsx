@@ -31,20 +31,20 @@ const bookingChildren = [
   {
     name: "Nhận phòng",
     icon: ArrowLeftRight,
-    path: "/receptionist/check-in-out",
-    matchPaths: ["/receptionist/check-in-out"],
+    path: "/admin/check-in-out",
+    matchPaths: ["/admin/check-in-out"],
   },
   {
     name: "Lưu trú",
     icon: Boxes,
-    path: "/receptionist/check-in-out",
-    matchPaths: ["/receptionist/check-in-out"],
+    path: "/admin/check-in-out",
+    matchPaths: ["/admin/check-in-out"],
   },
   {
     name: "Trả phòng",
     icon: ArrowLeftRight,
-    path: "/receptionist/check-in-out",
-    matchPaths: ["/receptionist/check-in-out"],
+    path: "/admin/check-in-out",
+    matchPaths: ["/admin/check-in-out"],
   },
 ];
 
@@ -61,7 +61,7 @@ const menuItems = [
     name: "Booking",
     icon: CalendarCheck2,
     children: bookingChildren,
-    matchPaths: ["/admin/bookings", "/receptionist/check-in-out"],
+    matchPaths: ["/admin/bookings", "/admin/check-in-out"],
   },
   {
     name: "Hóa đơn",
@@ -71,7 +71,7 @@ const menuItems = [
     excludePaths: ["/admin/bookings"],
   },
   { name: "Voucher", icon: Gift, path: "/admin/vouchers" },
-  { name: "Dịch vụ", icon: Wrench, path: "/receptionist/pos" },
+  { name: "Dịch vụ", icon: Wrench, path: "/admin/pos" },
   { name: "Audit log", icon: History, path: "/admin/audit-log" },
 ];
 
@@ -110,7 +110,7 @@ export default function Sidebar() {
   const location = useLocation();
   const bookingMenuActive = isPathMatched(location.pathname, [
     "/admin/bookings",
-    "/receptionist/check-in-out",
+    "/admin/check-in-out",
   ]);
   const [isBookingOpen, setIsBookingOpen] = useState(bookingMenuActive);
 

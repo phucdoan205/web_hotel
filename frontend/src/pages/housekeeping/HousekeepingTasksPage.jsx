@@ -11,7 +11,7 @@ import {
   UserRoundCheck,
   WandSparkles,
 } from "lucide-react";
-import { housekeepingApi } from "../../api/housekeeping/housekeepingApi";
+import { housekeepingApi } from "../../api/admin/housekeepingApi";
 
 const STATUS_OPTIONS = [
   { value: "", label: "Tất cả trạng thái" },

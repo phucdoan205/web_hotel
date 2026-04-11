@@ -65,7 +65,7 @@ const ToolbarButton = ({ children, onClick, title, disabled = false }) => (
 
 const ToolbarDivider = () => <div className="h-8 w-px bg-gray-200" />;
 
-const ReceptionistArticleEditorPage = ({ scope = "author", basePath = "/receptionist/posts" }) => {
+const ReceptionistArticleEditorPage = ({ scope = "author", basePath = "/admin/articles" }) => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();

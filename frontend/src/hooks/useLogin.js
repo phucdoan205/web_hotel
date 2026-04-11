@@ -12,7 +12,7 @@ const resolveRedirectPath = (role) => {
     normalizedRole === "frontdesk" ||
     normalizedRole === "le tan"
   ) {
-    return "/receptionist/dashboard";
+    return "/admin/dashboard";
   }
 
   if (normalizedRole === "admin") {
@@ -20,7 +20,7 @@ const resolveRedirectPath = (role) => {
   }
 
   if (normalizedRole === "housekeeping") {
-    return "/housekeeping/dashboard";
+    return "/admin/dashboard";
   }
 
   if (

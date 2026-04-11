@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, ArrowLeft, CheckCircle2, Search } from "lucide-react";
-import { housekeepingApi } from "../../api/housekeeping/housekeepingApi";
+import { housekeepingApi } from "../../api/admin/housekeepingApi";
 import ReportIssueModal from "../../components/housekeeping/inspection/ReportIssueModal";
 
 const getStatusClass = (status) => {

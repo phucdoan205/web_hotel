@@ -1,7 +1,7 @@
 import { ImagePlus, LoaderCircle, Search, UploadCloud, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { housekeepingApi } from "../../../api/housekeeping/housekeepingApi";
+import { housekeepingApi } from "../../../api/admin/housekeepingApi";
 import { roomInventoriesApi } from "../../../api/admin/roomInventoriesApi";
 
 export default function ManualIssueReportModal({

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import * as vouchersApi from "../api/receptionist/vouchers";
+import * as vouchersApi from "../api/admin/vouchersApi";
 
 export const generateCode = (prefix = "VCHR") => {
   const r = Math.random().toString(36).substring(2, 10).toUpperCase();
