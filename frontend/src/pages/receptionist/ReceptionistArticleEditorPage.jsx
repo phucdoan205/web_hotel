@@ -65,7 +65,7 @@ const ToolbarButton = ({ children, onClick, title, disabled = false }) => (
 
 const ToolbarDivider = () => <div className="h-8 w-px bg-gray-200" />;
 
-const ReceptionistArticleEditorPage = () => {
+const ReceptionistArticleEditorPage = ({ scope = "author", basePath = "/receptionist/posts" }) => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -95,8 +95,7 @@ const ReceptionistArticleEditorPage = () => {
       navigate(-1);
       return;
     }
-
-    navigate("/receptionist/posts");
+    navigate(basePath);
   }, [location.state, navigate]);
 
   const saveSelection = () => {
@@ -159,8 +158,8 @@ const ReceptionistArticleEditorPage = () => {
     try {
       const [categoryResponse, articleResponse] = await Promise.all([
         apiClient.get("/ArticleCategories"),
-        isEditMode
-          ? apiClient.get(`/Articles/${id}`, { params: { scope: "author" } })
+          isEditMode
+            ? apiClient.get(`/Articles/${id}`, { params: { scope } })
           : Promise.resolve({ data: null }),
       ]);
 
@@ -363,7 +362,7 @@ const ReceptionistArticleEditorPage = () => {
         await createArticle(payload);
       }
 
-      navigate("/receptionist/posts");
+      navigate(basePath);
     } catch (submitError) {
       setError(submitError?.response?.data || "Không lưu được bài viết.");
     } finally {

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { CheckCircle2, Eye, RefreshCw, RotateCcw, Search, Trash2 } from "lucide-react";
+import { CheckCircle2, Eye, RefreshCw, RotateCcw, Search, Trash2, Edit } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import ArticleTrashDialog from "../../components/articles/ArticleTrashDialog";
 import { approveArticle, deleteArticle, getArticles, hardDeleteArticle, restoreArticle } from "../../api/articles/articleApi";
@@ -156,14 +156,24 @@ const AdminArticlePage = () => {
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={loadArticles}
-            className="inline-flex items-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-bold text-gray-700 shadow-sm ring-1 ring-gray-200"
-          >
-            <RefreshCw className="size-4" />
-            Làm mới
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => navigate('/admin/articles/new')}
+              className="inline-flex items-center gap-2 rounded-2xl bg-sky-600 px-5 py-3 text-sm font-bold text-white shadow-sm"
+            >
+              Tạo bài viết
+            </button>
+
+            <button
+              type="button"
+              onClick={loadArticles}
+              className="inline-flex items-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-bold text-gray-700 shadow-sm ring-1 ring-gray-200"
+            >
+              <RefreshCw className="size-4" />
+              Làm mới
+            </button>
+          </div>
         </div>
 
         <div className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-gray-100">
@@ -265,6 +275,15 @@ const AdminArticlePage = () => {
                           >
                             <Eye className="size-4" />
                             Xem
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => navigate(`/admin/articles/${article.id}/edit`)}
+                            className="inline-flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-bold text-gray-700 ring-1 ring-gray-200"
+                          >
+                            <Edit className="size-4" />
+                            Chỉnh sửa
                           </button>
 
                           {article.isDeleted ? (

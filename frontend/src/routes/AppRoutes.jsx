@@ -32,6 +32,7 @@ import AdminLossDamagePage from "../pages/admin/AdminLossDamagePage";
 import AdminRoomPage from "../pages/admin/AdminRoomPage";
 import AdminRoomTypesPage from "../pages/admin/AdminRoomTypesPage";
 import AdminArticlePage from "../pages/admin/AdminArticlePage";
+import AdminArticleEditorPage from "../pages/admin/AdminArticleEditorPage";
 
 // Pages receptionist
 import ReceptionistCheckInOutPage from "../pages/receptionist/ReceptionistCheckInOutPage";
@@ -110,6 +111,8 @@ const AppRoutes = () => {
         <Route path="loss-damage" element={<AdminLossDamagePage />} />
         <Route path="staff" element={<AdminStaffPage />} />
         <Route path="articles" element={<AdminArticlePage />} />
+        <Route path="articles/new" element={<AdminArticleEditorPage />} />
+        <Route path="articles/:id/edit" element={<AdminArticleEditorPage />} />
         <Route path="vouchers" element={<ReceptionistVoucherPage />} />
         <Route path="housekeeping/tasks" element={<HousekeepingTasksPage />} />
         <Route path="housekeeping/tasks/:roomId" element={<HousekeepingRoomInspectionDetailPage />} />
