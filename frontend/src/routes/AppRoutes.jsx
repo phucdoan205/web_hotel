@@ -1,5 +1,5 @@
 import React from "react";
-import { Routes, Route, Navigate, useParams } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation, useParams } from "react-router-dom";
 
 // Layouts
 import MainLayout from "../layouts/MainLayout";
@@ -24,8 +24,10 @@ import AdminSettingsPage from "../pages/admin/AdminSettingsPage";
 import AdminDashboardPage from "../pages/admin/AdminDashboardPage";
 import AdminAuditLogPage from "../pages/admin/AdminAuditLogPage";
 import AdminReportsPage from "../pages/admin/AdminReportsPage";
-import AdminBookingPage from "../pages/admin/AdminBookingPage";
+import AdminBookingsPage from "../pages/admin/AdminBookingsPage";
+import AdminBookingPaymentPage from "../pages/admin/AdminBookingPaymentPage";
 import AdminRoomInventoryPage from "../pages/admin/AdminRoomInventoryPage";
+import AdminRoomStatusPage from "../pages/admin/AdminRoomStatusPage";
 import AdminStaffPage from "../pages/admin/AdminStaffPage";
 import AdminEquipmentPage from "../pages/admin/AdminEquipmentPage";
 import AdminLossDamagePage from "../pages/admin/AdminLossDamagePage";
@@ -36,7 +38,6 @@ import AdminArticleEditorPage from "../pages/admin/AdminArticleEditorPage";
 
 // Pages receptionist
 import ReceptionistCheckInOutPage from "../pages/receptionist/ReceptionistCheckInOutPage";
-import ReceptionistBookingsPage from "../pages/receptionist/ReceptionistBookingsPage";
 import ReceptionistContentManagementPage from "../pages/receptionist/ReceptionistContentManagementPage";
 import ReceptionistArticleEditorPage from "../pages/receptionist/ReceptionistArticleEditorPage";
 import ReceptionistVoucherPage from "../pages/receptionist/ReceptionistVoucherPage";
@@ -45,7 +46,6 @@ import ReceptionistRoomStatusPage from "../pages/receptionist/ReceptionistRoomSt
 import ReceptionistSettingsPage from "../pages/receptionist/ReceptionistSettingsPage";
 import ReceptionistPOSServicePage from "../pages/receptionist/ReceptionistPOSServicePage";
 import ReceptionistDashboardPage from "../pages/receptionist/ReceptionistDashboardPage";
-import ReceptionistBookingPaymentPage from "../pages/receptionist/ReceptionistBookingPaymentPage";
 
 // Pages housekeeping
 import HousekeepingSettingsPage from "../pages/housekeeping/HousekeepingSettingsPage";
@@ -77,6 +77,12 @@ const AppRoutes = () => {
     const { roomId } = useParams();
     return <Navigate to={roomId ? `/admin/housekeeping/tasks/${roomId}` : "/admin/housekeeping/tasks"} replace />;
   }
+
+  function RedirectReceptionistBookingPayment() {
+    const { id } = useParams();
+    const location = useLocation();
+    return <Navigate to={`/admin/bookings/${id}/payment-qr${location.search}`} replace />;
+  }
   return (
     <Routes>
       {/* 1. Public Routes dùng MainLayout (Có Navbar/Footer) */}
@@ -103,7 +109,9 @@ const AppRoutes = () => {
         <Route path="settings" element={<AdminSettingsPage />} />
         <Route path="audit-log" element={<AdminAuditLogPage />} />
         <Route path="reports" element={<AdminReportsPage />} />
-        <Route path="bookings" element={<AdminBookingPage />} />
+        <Route path="bookings" element={<AdminBookingsPage />} />
+        <Route path="bookings/:id/payment-qr" element={<AdminBookingPaymentPage />} />
+        <Route path="room-status" element={<AdminRoomStatusPage />} />
         <Route path="rooms" element={<AdminRoomPage />} />
         <Route path="room-types" element={<AdminRoomTypesPage />} />
         <Route path="room-inventory" element={<AdminRoomInventoryPage />} />
@@ -123,8 +131,8 @@ const AppRoutes = () => {
         <Route index element={<ReceptionistDashboardPage />} />
         <Route path="dashboard" element={<ReceptionistDashboardPage />} />
         <Route path="check-in-out" element={<ReceptionistCheckInOutPage />} />
-        <Route path="bookings" element={<ReceptionistBookingsPage />} />
-        <Route path="bookings/:id/payment-qr" element={<ReceptionistBookingPaymentPage />} />
+        <Route path="bookings" element={<Navigate to="/admin/bookings" replace />} />
+        <Route path="bookings/:id/payment-qr" element={<RedirectReceptionistBookingPayment />} />
         <Route path="posts" element={<ReceptionistContentManagementPage />} />
         <Route path="posts/new" element={<ReceptionistArticleEditorPage />} />
         <Route path="posts/:id/edit" element={<ReceptionistArticleEditorPage />} />

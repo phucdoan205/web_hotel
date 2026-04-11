@@ -1,140 +1,306 @@
-import React from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import React, { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  ChevronLeft,
+  ChevronRight,
+  CircleCheckBig,
+  Eye,
+  Trash2,
+  TriangleAlert,
+} from "lucide-react";
+import { bookingsApi } from "../../../api/admin/bookingsApi";
+import BookingDetailModal from "../../receptionist/bookings/BookingDetailModal";
+import {
+  getBookingPaymentState,
+  isBookingDeleteLocked,
+} from "../../../utils/bookingPaymentState";
+import { formatVietnamDate } from "../../../utils/vietnamTime";
 
-const BookingList = () => {
-  const data = [
-    {
-      id: "#BK-8801",
-      guest: "Alex Johnson",
-      room: "Deluxe Suite (201)",
-      checkin: "Oct 24, 2023",
-      checkout: "Oct 26, 2023",
-      price: "$450.00",
-      status: "Confirmed",
+const BookingList = ({ filters, onPageChange }) => {
+  const queryClient = useQueryClient();
+  const [selectedBooking, setSelectedBooking] = useState(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [cancelTarget, setCancelTarget] = useState(null);
+
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["bookings", filters],
+    queryFn: async () => {
+      const res = await bookingsApi.getBookings({
+        search: filters.search,
+        status: filters.status,
+        roomTypeId: filters.roomTypeId,
+        checkInFrom: filters.checkInFrom,
+        checkInTo: filters.checkInTo,
+        page: filters.page,
+        pageSize: filters.pageSize,
+      });
+      return res;
     },
-    {
-      id: "#BK-8802",
-      guest: "Maria Garcia",
-      room: "Standard Room (105)",
-      checkin: "Oct 25, 2023",
-      checkout: "Oct 27, 2023",
-      price: "$210.00",
-      status: "Pending",
+    keepPreviousData: true,
+  });
+
+  const cancelMutation = useMutation({
+    mutationFn: (bookingId) => bookingsApi.cancelBooking(bookingId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["bookings"] });
+      setCancelTarget(null);
     },
-    {
-      id: "#BK-8803",
-      guest: "James Smith",
-      room: "Executive King (402)",
-      checkin: "Oct 25, 2023",
-      checkout: "Oct 28, 2023",
-      price: "$720.00",
-      status: "Confirmed",
+    onError: (err) => {
+      window.alert(`Huy booking that bai: ${err.response?.data?.message || err.message}`);
     },
-    {
-      id: "#BK-8804",
-      guest: "Linda Chen",
-      room: "Single Room (301)",
-      checkin: "Oct 26, 2023",
-      checkout: "Oct 26, 2023",
-      price: "$95.00",
-      status: "Cancelled",
-    },
-    {
-      id: "#BK-8805",
-      guest: "Robert Wilson",
-      room: "Deluxe Suite (202)",
-      checkin: "Oct 27, 2023",
-      checkout: "Oct 30, 2023",
-      price: "$675.00",
-      status: "Confirmed",
-    },
-  ];
+  });
+
+  const bookings = data?.items || [];
+  const totalCount = data?.totalCount || 0;
+  const totalPages = Math.ceil(totalCount / (filters.pageSize || 10));
+
+  const getStatusStyle = (status) => {
+    switch (status?.toLowerCase()) {
+      case "confirmed":
+        return "bg-emerald-100 text-emerald-700";
+      case "pending":
+        return "bg-amber-100 text-amber-700";
+      case "checkedin":
+        return "bg-blue-100 text-blue-700";
+      case "completed":
+        return "bg-purple-100 text-purple-700";
+      case "cancelled":
+        return "bg-rose-100 text-rose-700";
+      default:
+        return "bg-gray-100 text-gray-600";
+    }
+  };
+
+  const getStatusLabel = (status) => {
+    switch (status?.toLowerCase()) {
+      case "checkedin":
+        return "Checked in";
+      case "completed":
+        return "Completed";
+      case "cancelled":
+        return "Cancelled";
+      case "confirmed":
+        return "Confirmed";
+      case "pending":
+        return "Pending";
+      default:
+        return status || "Unknown";
+    }
+  };
+
+  if (error) {
+    return <div className="p-8 text-center text-red-500">Loi tai du lieu booking</div>;
+  }
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-      <table className="w-full text-left border-collapse">
-        <thead className="bg-gray-50/50">
-          <tr className="text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">
-            <th className="px-6 py-4">Booking ID</th>
-            <th className="px-6 py-4">Guest Name</th>
-            <th className="px-6 py-4">Room</th>
-            <th className="px-6 py-4">Check-in</th>
-            <th className="px-6 py-4">Check-out</th>
-            <th className="px-6 py-4">Total Price</th>
-            <th className="px-6 py-4">Status</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-50">
-          {data.map((item) => (
-            <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
-              <td className="px-6 py-4 text-sm font-bold text-orange-600">
-                {item.id}
-              </td>
-              <td className="px-6 py-4">
-                <div className="flex items-center gap-3 text-sm font-semibold text-gray-700">
-                  <div className="size-8 rounded-full bg-gray-100 flex items-center justify-center text-[10px] text-gray-400 uppercase tracking-tighter">
-                    {item.guest
-                      .split(" ")
-                      .map((n) => n[0])
-                      .join("")}
-                  </div>
-                  {item.guest}
-                </div>
-              </td>
-              <td className="px-6 py-4 text-sm text-gray-500">{item.room}</td>
-              <td className="px-6 py-4 text-sm text-gray-500">
-                {item.checkin}
-              </td>
-              <td className="px-6 py-4 text-sm text-gray-500">
-                {item.checkout}
-              </td>
-              <td className="px-6 py-4 text-sm font-black text-gray-900">
-                {item.price}
-              </td>
-              <td className="px-6 py-4">
-                <span
-                  className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase border shadow-sm
-                  ${
-                    item.status === "Confirmed"
-                      ? "bg-emerald-50 text-emerald-600 border-emerald-100"
-                      : item.status === "Pending"
-                        ? "bg-orange-50 text-orange-500 border-orange-100"
-                        : "bg-rose-50 text-rose-500 border-rose-100"
-                  }`}
-                >
-                  {item.status}
-                </span>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <>
+      <div className="overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-100">
+              <tr className="text-sm font-black uppercase tracking-widest text-gray-500">
+                <th className="px-4 py-3 text-left">Booking ID</th>
+                <th className="px-4 py-3 text-left">Khach hang</th>
+                <th className="px-4 py-3 text-left">Ngay check in</th>
+                <th className="px-4 py-3 text-left">Loai phong</th>
+                <th className="px-4 py-3 text-center">Trang thai</th>
+                <th className="px-4 py-3 text-right">Thao tac</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {isLoading ? (
+                <tr>
+                  <td colSpan={7} className="py-12 text-center text-gray-500">
+                    Dang tai...
+                  </td>
+                </tr>
+              ) : bookings.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="py-12 text-center text-gray-500">
+                    Chua co booking nao
+                  </td>
+                </tr>
+              ) : (
+                bookings.map((booking) => {
+                  const bookingDetails = booking.bookingDetails || [];
+                  const paymentState = getBookingPaymentState(booking);
+                  const deleteLocked = isBookingDeleteLocked(booking);
 
-      {/* Pagination Section */}
-      <div className="px-6 py-4 bg-white border-t border-gray-50 flex items-center justify-between">
-        <span className="text-xs font-medium text-gray-400">
-          Showing <span className="text-gray-900 font-bold">1 to 5</span> of{" "}
-          <span className="text-gray-900 font-bold">12</span> bookings
-        </span>
-        <div className="flex items-center gap-2">
-          <button className="p-2 text-gray-300 hover:text-gray-600">
-            <ChevronLeft className="size-4" />
-          </button>
-          <button className="size-8 flex items-center justify-center bg-orange-600 text-white text-xs font-bold rounded-lg shadow-lg shadow-orange-200">
-            1
-          </button>
-          <button className="size-8 flex items-center justify-center text-gray-600 text-xs font-bold hover:bg-gray-100 rounded-lg">
-            2
-          </button>
-          <button className="size-8 flex items-center justify-center text-gray-600 text-xs font-bold hover:bg-gray-100 rounded-lg">
-            3
-          </button>
-          <button className="p-2 text-gray-400 hover:text-gray-600">
-            <ChevronRight className="size-4" />
-          </button>
+                  return (
+                    <tr key={booking.id} className="transition-colors hover:bg-gray-50">
+                      <td className="px-4 py-3 align-top text-sm font-bold text-blue-600">
+                        <div>{booking.bookingCode}</div>
+                        {bookingDetails.length > 1 ? (
+                          <div className="mt-2 inline-flex rounded-full bg-blue-50 px-3 py-1 text-[11px] font-bold text-blue-600">
+                            {bookingDetails.length} phong
+                          </div>
+                        ) : null}
+                      </td>
+                      <td className="px-4 py-3 align-top text-sm font-semibold">
+                        {booking.guestName || booking.guest?.name || "--"}
+                      </td>
+                      <td className="px-4 py-3 align-top text-sm text-gray-600">
+                        <div className="space-y-2">
+                          {bookingDetails.map((detail, index) => (
+                            <div
+                              key={`${booking.id}-date-${detail.id || index}`}
+                              className="rounded-2xl bg-slate-50 px-3 py-2"
+                            >
+                              <div className="font-semibold text-slate-700">
+                                {detail.checkInDate ? formatVietnamDate(detail.checkInDate) : "--"}
+                              </div>
+                              <div className="text-xs text-slate-500">
+                                Phong {detail.room?.roomNumber || detail.roomNumber || "--"}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 align-top text-sm">
+                        <div className="space-y-2">
+                          {bookingDetails.map((detail, index) => (
+                            <div
+                              key={`${booking.id}-room-${detail.id || index}`}
+                              className="rounded-2xl bg-orange-50 px-3 py-2"
+                            >
+                              <div className="font-semibold text-slate-800">
+                                {detail.roomTypeName || detail.roomType?.name || "--"}
+                              </div>
+                              <div className="text-xs text-orange-600">
+                                So phong {detail.room?.roomNumber || detail.roomNumber || "--"}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 align-top text-center">
+                        <span
+                          className={`inline-block rounded-full px-4 py-1 text-xs font-bold ${getStatusStyle(
+                            booking.status,
+                          )}`}
+                        >
+                          {getStatusLabel(booking.status)}
+                        </span>
+                        {paymentState.hasAnyPayment ? (
+                          <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-bold text-emerald-700">
+                            <CircleCheckBig size={12} />
+                            Da co thanh toan
+                          </div>
+                        ) : null}
+                      </td>
+                      <td className="px-4 py-3 align-top">
+                        <div className="flex justify-end gap-2">
+                          <button
+                            onClick={() => {
+                              setSelectedBooking(booking);
+                              setIsDetailOpen(true);
+                            }}
+                            className="rounded-xl p-2 text-sky-600 transition-all hover:bg-sky-100"
+                            title="Xem chi tiet"
+                          >
+                            <Eye size={18} />
+                          </button>
+
+                          {!deleteLocked ? (
+                            <button
+                              onClick={() => setCancelTarget(booking)}
+                              className="rounded-xl p-2 text-red-600 transition-all hover:bg-red-100"
+                              title="Huy booking"
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                          ) : null}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
         </div>
+
+        <div className="flex items-center justify-between border-t px-8 py-5">
+          <p className="text-xs text-gray-500">
+            Hien thi {bookings.length} / {totalCount} booking
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => onPageChange(filters.page - 1)}
+              disabled={filters.page <= 1}
+              className="rounded-xl p-2 transition hover:bg-gray-100 disabled:opacity-40"
+            >
+              <ChevronLeft size={18} />
+            </button>
+            <span className="px-3 text-sm font-medium">
+              Trang {filters.page} / {totalPages || 1}
+            </span>
+            <button
+              onClick={() => onPageChange(filters.page + 1)}
+              disabled={filters.page >= totalPages}
+              className="rounded-xl p-2 transition hover:bg-gray-100 disabled:opacity-40"
+            >
+              <ChevronRight size={18} />
+            </button>
+          </div>
+        </div>
+
+        <BookingDetailModal
+          open={isDetailOpen}
+          onClose={() => setIsDetailOpen(false)}
+          booking={selectedBooking}
+          onBookingUpdated={(updatedBooking) => {
+            setSelectedBooking(updatedBooking);
+            queryClient.setQueryData(["bookings", filters], (oldData) => {
+              if (!oldData) return oldData;
+
+              return {
+                ...oldData,
+                items: oldData.items.map((item) =>
+                  item.id === updatedBooking.id ? { ...item, ...updatedBooking } : item,
+                ),
+              };
+            });
+          }}
+        />
       </div>
-    </div>
+
+      {cancelTarget ? (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
+            <div className="flex items-start gap-3">
+              <div className="rounded-2xl bg-rose-100 p-3 text-rose-600">
+                <TriangleAlert size={22} />
+              </div>
+              <div>
+                <h3 className="text-xl font-black text-slate-900">Xac nhan huy booking</h3>
+                <p className="mt-2 text-sm text-slate-500">
+                  Ban co chac muon huy booking <span className="font-bold">{cancelTarget.bookingCode}</span> khong?
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setCancelTarget(null)}
+                className="rounded-2xl bg-slate-100 px-4 py-2 font-bold text-slate-600 transition hover:bg-slate-200"
+              >
+                Khong
+              </button>
+              <button
+                type="button"
+                onClick={() => cancelMutation.mutate(cancelTarget.id)}
+                disabled={cancelMutation.isPending}
+                className="rounded-2xl bg-rose-600 px-4 py-2 font-black text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:bg-rose-300"
+              >
+                {cancelMutation.isPending ? "Dang huy..." : "Co, huy booking"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </>
   );
 };
 

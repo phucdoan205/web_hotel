@@ -24,8 +24,9 @@ const bookingChildren = [
   {
     name: "Tạo booking",
     icon: BadgePlus,
-    path: "/receptionist/bookings",
-    matchPaths: ["/receptionist/bookings"],
+    path: "/admin/bookings",
+    matchPaths: ["/admin/bookings"],
+    exactMatch: true,
   },
   {
     name: "Nhận phòng",
@@ -49,7 +50,7 @@ const bookingChildren = [
 
 const menuItems = [
   { name: "Dashboard", icon: LayoutDashboard, path: "/admin/dashboard" },
-  { name: "Theo dõi phòng", icon: CalendarCheck2, path: "/admin/bookings" },
+  { name: "Theo dõi phòng", icon: CalendarCheck2, path: "/admin/room-status" },
   { name: "Nhân viên", icon: Users, path: "/admin/staff" },
   { name: "Bài viết", icon: FileText, path: "/admin/articles" },
   { name: "Quản lý phòng", icon: Building, path: "/admin/rooms" },
@@ -60,21 +61,39 @@ const menuItems = [
     name: "Booking",
     icon: CalendarCheck2,
     children: bookingChildren,
-    matchPaths: ["/receptionist/bookings", "/receptionist/check-in-out"],
+    matchPaths: ["/admin/bookings", "/receptionist/check-in-out"],
   },
-  { name: "Hóa đơn", icon: Receipt, path: "/receptionist/bookings" },
+  {
+    name: "Hóa đơn",
+    icon: Receipt,
+    path: "/admin/bookings",
+    matchPaths: ["/admin/bookings"],
+    excludePaths: ["/admin/bookings"],
+  },
   { name: "Voucher", icon: Gift, path: "/admin/vouchers" },
   { name: "Dịch vụ", icon: Wrench, path: "/receptionist/pos" },
   { name: "Audit log", icon: History, path: "/admin/audit-log" },
 ];
 
-const isPathMatched = (pathname, matchPaths = []) =>
-  matchPaths.some((path) => pathname === path || pathname.startsWith(`${path}/`));
+const isPathMatched = (pathname, matchPaths = [], options = {}) => {
+  const { exactMatch = false, excludePaths = [] } = options;
+
+  if (excludePaths.some((path) => pathname === path)) {
+    return false;
+  }
+
+  return matchPaths.some((path) =>
+    exactMatch ? pathname === path : pathname === path || pathname.startsWith(`${path}/`)
+  );
+};
 
 function SidebarLink({ item, pathname, className = "" }) {
   const baseClasses =
     "flex items-center gap-x-3 rounded-xl px-4 py-2.5 text-sm transition-all duration-200";
-  const isActive = isPathMatched(pathname, item.matchPaths ?? [item.path]);
+  const isActive = isPathMatched(pathname, item.matchPaths ?? [item.path], {
+    exactMatch: item.exactMatch,
+    excludePaths: item.excludePaths,
+  });
   const stateClasses = isActive
     ? "bg-sky-100 text-sky-600 font-medium"
     : "text-gray-600 hover:bg-sky-50 hover:text-sky-700";
@@ -89,7 +108,10 @@ function SidebarLink({ item, pathname, className = "" }) {
 
 export default function Sidebar() {
   const location = useLocation();
-  const bookingMenuActive = isPathMatched(location.pathname, ["/receptionist/bookings", "/receptionist/check-in-out"]);
+  const bookingMenuActive = isPathMatched(location.pathname, [
+    "/admin/bookings",
+    "/receptionist/check-in-out",
+  ]);
   const [isBookingOpen, setIsBookingOpen] = useState(bookingMenuActive);
 
   useEffect(() => {
@@ -105,9 +127,7 @@ export default function Sidebar() {
           <Hotel className="size-6" />
         </div>
         <div className="flex flex-col">
-          <span className="text-xl font-extrabold leading-tight text-gray-900">
-            Traveloka
-          </span>
+          <span className="text-xl font-extrabold leading-tight text-gray-900">Traveloka</span>
           <span className="text-xs font-medium text-gray-400">PREMIUM ERP</span>
         </div>
       </div>
@@ -116,7 +136,10 @@ export default function Sidebar() {
         <div className="flex flex-col gap-y-1.5">
           {menuItems.map((item) => {
             if (item.children) {
-              const groupActive = isPathMatched(location.pathname, item.matchPaths);
+              const groupActive = isPathMatched(location.pathname, item.matchPaths, {
+                exactMatch: item.exactMatch,
+                excludePaths: item.excludePaths,
+              });
 
               return (
                 <div key={item.name} className="rounded-2xl">
@@ -154,13 +177,7 @@ export default function Sidebar() {
               );
             }
 
-            return (
-              <SidebarLink
-                key={item.path}
-                item={item}
-                pathname={location.pathname}
-              />
-            );
+            return <SidebarLink key={item.path} item={item} pathname={location.pathname} />;
           })}
         </div>
 

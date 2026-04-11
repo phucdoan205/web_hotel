@@ -120,7 +120,7 @@ export default function BookingDetailModal({ open, onClose, booking, onBookingUp
     if (!booking?.id || isCancelled) return;
 
     const search = detailId ? `?detailId=${detailId}` : "";
-    navigate(`/receptionist/bookings/${booking.id}/payment-qr${search}`);
+    navigate(`/admin/bookings/${booking.id}/payment-qr${search}`);
   };
 
   if (!open || !booking) return null;

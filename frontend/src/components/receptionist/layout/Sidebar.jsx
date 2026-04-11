@@ -4,17 +4,14 @@ import {
   LayoutDashboard,
   ArrowLeftRight,
   CalendarCheck,
-  Gift,
   FileText,
   BedDouble,
   Calculator,
   BarChart3,
   Settings,
-  LogOut,
 } from "lucide-react";
 
 const Sidebar = () => {
-  // Danh sách menu bám sát thiết kế thực tế
   const menuItems = [
     {
       title: "Dashboard",
@@ -26,7 +23,11 @@ const Sidebar = () => {
       icon: BedDouble,
       path: "/receptionist/room-status",
     },
-    { title: "Bookings", icon: CalendarCheck, path: "/receptionist/bookings" },
+    {
+      title: "Bookings",
+      icon: CalendarCheck,
+      path: "/admin/bookings",
+    },
     {
       title: "Check-in/Out",
       icon: ArrowLeftRight,
@@ -42,30 +43,26 @@ const Sidebar = () => {
   ];
 
   return (
-    <aside className="w-64 h-screen bg-white border-r border-gray-100 flex flex-col sticky top-0">
-      {/* Logo Section */}
-      <div className="p-6 flex items-center gap-3">
-        <div className="bg-blue-500 p-2 rounded-xl text-white">
+    <aside className="sticky top-0 flex h-screen w-64 flex-col border-r border-gray-100 bg-white">
+      <div className="flex items-center gap-3 p-6">
+        <div className="rounded-xl bg-blue-500 p-2 text-white">
           <BedDouble size={24} />
         </div>
         <div>
-          <h1 className="font-black text-blue-500 text-lg leading-tight uppercase tracking-tight">
-            Traveloka
-          </h1>
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+          <h1 className="text-lg font-black uppercase tracking-tight text-blue-500">Traveloka</h1>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
             Hotel Admin
           </p>
         </div>
       </div>
 
-      {/* Main Menu */}
-      <nav className="flex-1 px-4 py-4 space-y-1">
+      <nav className="flex-1 space-y-1 px-4 py-4">
         {menuItems.map((item, index) => (
           <NavLink
             key={index}
             to={item.path}
             className={({ isActive }) => `
-              flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-black transition-all duration-200
+              flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-black transition-all duration-200
               ${
                 isActive
                   ? "bg-blue-50 text-blue-600 shadow-sm shadow-blue-100/50"
@@ -78,15 +75,14 @@ const Sidebar = () => {
           </NavLink>
         ))}
 
-        <div className="my-6 border-t border-gray-50 mx-4" />
+        <div className="mx-4 my-6 border-t border-gray-50" />
 
-        {/* Secondary Menu (Reports, Settings) */}
         {secondaryItems.map((item, index) => (
           <NavLink
             key={index}
             to={item.path}
             className={({ isActive }) => `
-              flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-black transition-all
+              flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-black transition-all
               ${isActive ? "bg-blue-50 text-blue-600" : "text-gray-400 hover:bg-gray-50"}
             `}
           >

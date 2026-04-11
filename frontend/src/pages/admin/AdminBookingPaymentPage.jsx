@@ -45,7 +45,7 @@ const getDetailTotal = (detail) => {
   return (detail?.pricePerNight || 0) * nights;
 };
 
-const ReceptionistBookingPaymentPage = () => {
+const AdminBookingPaymentPage = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { id } = useParams();
@@ -134,7 +134,7 @@ const ReceptionistBookingPaymentPage = () => {
         <div>
           <button
             type="button"
-            onClick={() => navigate("/receptionist/bookings")}
+            onClick={() => navigate("/admin/bookings")}
             className="mb-3 inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-2 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-100"
           >
             <ArrowLeft size={16} />
@@ -334,7 +334,7 @@ const ReceptionistBookingPaymentPage = () => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => navigate("/receptionist/bookings")}
+                  onClick={() => navigate("/admin/bookings")}
                   className="rounded-2xl bg-sky-100 px-4 py-3 text-sm font-bold text-sky-700 transition hover:bg-sky-200"
                 >
                   Hoàn tất
@@ -348,4 +348,4 @@ const ReceptionistBookingPaymentPage = () => {
   );
 };
 
-export default ReceptionistBookingPaymentPage;
+export default AdminBookingPaymentPage;

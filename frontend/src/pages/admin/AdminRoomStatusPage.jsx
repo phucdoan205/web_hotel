@@ -82,7 +82,7 @@ const getRoomDisplayName = (room) => {
   return `Phòng ${room.roomNumber}`;
 };
 
-export default function AdminBookingPage() {
+export default function AdminRoomStatusPage() {
   const {
     data: roomsResponse,
     isLoading: roomsLoading,

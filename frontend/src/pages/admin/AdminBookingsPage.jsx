@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { AlertTriangle, CheckCircle2, X } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import BookingFilters from "../../components/receptionist/bookings/BookingFilters";
-import BookingTable from "../../components/receptionist/bookings/BookingTable";
-import BookingCreateModal from "../../components/receptionist/bookings/BookingCreateModal";
+import BookingFilters from "../../components/admin/bookings/BookingFilters";
+import BookingList from "../../components/admin/bookings/BookingList";
+import BookingCreateModal from "../../components/admin/bookings/BookingCreateModal";
 import { roomTypesApi } from "../../api/admin/roomTypesApi";
 
 const initialFilters = {
@@ -16,7 +16,7 @@ const initialFilters = {
   pageSize: 5,
 };
 
-const ReceptionistBookingsPage = () => {
+const AdminBookingsPage = () => {
   const [filters, setFilters] = useState(initialFilters);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [screenNotice, setScreenNotice] = useState(null);
@@ -108,7 +108,7 @@ const ReceptionistBookingsPage = () => {
         roomTypes={roomTypes}
       />
 
-      <BookingTable filters={filters} onPageChange={handlePageChange} />
+      <BookingList filters={filters} onPageChange={handlePageChange} />
 
       <BookingCreateModal
         open={isCreateModalOpen}
@@ -119,4 +119,4 @@ const ReceptionistBookingsPage = () => {
   );
 };
 
-export default ReceptionistBookingsPage;
+export default AdminBookingsPage;
