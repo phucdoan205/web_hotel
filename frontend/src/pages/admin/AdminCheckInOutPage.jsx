@@ -1,1 +1,6 @@
-export { default } from "../receptionist/ReceptionistCheckInOutPage";
+import React from "react";
+import { Navigate } from "react-router-dom";
+
+export default function AdminCheckInOutPage() {
+	return <Navigate to="/admin/check-in" replace />;
+}

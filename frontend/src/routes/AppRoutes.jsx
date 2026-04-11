@@ -21,7 +21,9 @@ import AdminAuditLogPage from "../pages/admin/AdminAuditLogPage";
 import AdminReportsPage from "../pages/admin/AdminReportsPage";
 import AdminBookingsPage from "../pages/admin/AdminBookingsPage";
 import AdminBookingPaymentPage from "../pages/admin/AdminBookingPaymentPage";
-import AdminCheckInOutPage from "../pages/admin/AdminCheckInOutPage";
+import AdminCheckInPage from "../pages/admin/AdminCheckInPage";
+import AdminStayPage from "../pages/admin/AdminStayPage";
+import AdminCheckOutPage from "../pages/admin/AdminCheckOutPage";
 import AdminPOSServicePage from "../pages/admin/AdminPOSServicePage";
 import AdminRoomInventoryPage from "../pages/admin/AdminRoomInventoryPage";
 import AdminRoomStatusPage from "../pages/admin/AdminRoomStatusPage";
@@ -89,7 +91,10 @@ const AppRoutes = () => {
         <Route path="reports" element={<AdminReportsPage />} />
         <Route path="bookings" element={<AdminBookingsPage />} />
         <Route path="bookings/:id/payment-qr" element={<AdminBookingPaymentPage />} />
-        <Route path="check-in-out" element={<AdminCheckInOutPage />} />
+        <Route path="check-in-out" element={<Navigate to="/admin/check-in" replace />} />
+        <Route path="check-in" element={<AdminCheckInPage />} />
+        <Route path="stay" element={<AdminStayPage />} />
+        <Route path="check-out" element={<AdminCheckOutPage />} />
         <Route path="room-status" element={<AdminRoomStatusPage />} />
         <Route path="rooms" element={<AdminRoomPage />} />
         <Route path="room-types" element={<AdminRoomTypesPage />} />

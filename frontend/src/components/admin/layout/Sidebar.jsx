@@ -31,20 +31,20 @@ const bookingChildren = [
   {
     name: "Nhận phòng",
     icon: ArrowLeftRight,
-    path: "/admin/check-in-out",
-    matchPaths: ["/admin/check-in-out"],
+    path: "/admin/check-in",
+    matchPaths: ["/admin/check-in"],
   },
   {
     name: "Lưu trú",
     icon: Boxes,
-    path: "/admin/check-in-out",
-    matchPaths: ["/admin/check-in-out"],
+    path: "/admin/stay",
+    matchPaths: ["/admin/stay"],
   },
   {
     name: "Trả phòng",
     icon: ArrowLeftRight,
-    path: "/admin/check-in-out",
-    matchPaths: ["/admin/check-in-out"],
+    path: "/admin/check-out",
+    matchPaths: ["/admin/check-out"],
   },
 ];
 
@@ -61,7 +61,12 @@ const menuItems = [
     name: "Booking",
     icon: CalendarCheck2,
     children: bookingChildren,
-    matchPaths: ["/admin/bookings", "/admin/check-in-out"],
+    matchPaths: [
+      "/admin/bookings",
+      "/admin/check-in",
+      "/admin/stay",
+      "/admin/check-out",
+    ],
   },
   {
     name: "Hóa đơn",
@@ -110,7 +115,9 @@ export default function Sidebar() {
   const location = useLocation();
   const bookingMenuActive = isPathMatched(location.pathname, [
     "/admin/bookings",
-    "/admin/check-in-out",
+    "/admin/check-in",
+    "/admin/stay",
+    "/admin/check-out",
   ]);
   const [isBookingOpen, setIsBookingOpen] = useState(bookingMenuActive);
 
