@@ -28,7 +28,19 @@ const bookingChildren = [
     matchPaths: ["/receptionist/bookings"],
   },
   {
-    name: "Check in/out",
+    name: "Nhận phòng",
+    icon: ArrowLeftRight,
+    path: "/receptionist/check-in-out",
+    matchPaths: ["/receptionist/check-in-out"],
+  },
+  {
+    name: "Lưu trú",
+    icon: Boxes,
+    path: "/receptionist/check-in-out",
+    matchPaths: ["/receptionist/check-in-out"],
+  },
+  {
+    name: "Trả phòng",
     icon: ArrowLeftRight,
     path: "/receptionist/check-in-out",
     matchPaths: ["/receptionist/check-in-out"],
@@ -39,7 +51,6 @@ const menuItems = [
   { name: "Dashboard", icon: LayoutDashboard, path: "/admin/dashboard" },
   { name: "Theo dõi phòng", icon: CalendarCheck2, path: "/admin/bookings" },
   { name: "Nhân viên", icon: Users, path: "/admin/staff" },
-  { name: "Quản lý bài viết", icon: ClipboardList, path: "/receptionist/posts" },
   { name: "Bài viết", icon: FileText, path: "/admin/articles" },
   { name: "Quản lý phòng", icon: Building, path: "/admin/rooms" },
   { name: "Nhiệm vụ dọn phòng", icon: ClipboardList, path: "/housekeeping/tasks" },
