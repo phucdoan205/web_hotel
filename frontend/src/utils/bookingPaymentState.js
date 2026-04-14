@@ -20,6 +20,9 @@ export const getBookingPaymentState = (booking) => {
   if (!booking?.id) {
     return {
       paidDetailIds: [],
+      depositedDetailIds: [],
+      depositComplete: false,
+      hasDeposit: false,
       allPaid: false,
       hasAnyPayment: false,
     };
@@ -29,7 +32,7 @@ export const getBookingPaymentState = (booking) => {
   const entry = store[String(booking.id)] || {};
   const paidDetailIds = Array.isArray(entry.paidDetailIds) ? entry.paidDetailIds : [];
   const detailIds = (booking.bookingDetails || []).map((detail) => detail.id).filter(Boolean);
-  const allPaid =
+  const depositComplete =
     booking.status === "Confirmed" ||
     booking.status === "CheckedIn" ||
     booking.status === "Completed" ||
@@ -37,8 +40,11 @@ export const getBookingPaymentState = (booking) => {
 
   return {
     paidDetailIds,
-    allPaid,
-    hasAnyPayment: allPaid || paidDetailIds.length > 0,
+    depositedDetailIds: paidDetailIds,
+    depositComplete,
+    hasDeposit: depositComplete || paidDetailIds.length > 0,
+    allPaid: depositComplete,
+    hasAnyPayment: depositComplete || paidDetailIds.length > 0,
   };
 };
 

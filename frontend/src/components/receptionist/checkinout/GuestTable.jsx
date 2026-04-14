@@ -7,6 +7,7 @@ import {
   Search,
   SlidersHorizontal,
   SquareArrowRightExit,
+  TriangleAlert,
   UserRound,
 } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -68,6 +69,7 @@ const getBookingStateLabel = (booking, activeTab) => {
 const GuestTable = ({ activeTab, data, onActionSuccess }) => {
   const [search, setSearch] = useState("");
   const [roomFilter, setRoomFilter] = useState("");
+  const [confirmingBooking, setConfirmingBooking] = useState(null);
   const queryClient = useQueryClient();
 
   const filteredData = useMemo(() => {
@@ -83,7 +85,7 @@ const GuestTable = ({ activeTab, data, onActionSuccess }) => {
         ? (booking.bookingDetails || []).some((detail) =>
             String(detail.room?.roomNumber || detail.roomNumber || "")
               .toLowerCase()
-              .includes(roomFilter.toLowerCase()),
+              .includes(roomFilter.toLowerCase())
           )
         : true;
 
@@ -116,13 +118,14 @@ const GuestTable = ({ activeTab, data, onActionSuccess }) => {
       queryClient.invalidateQueries({ queryKey: ["departures"] });
       queryClient.invalidateQueries({ queryKey: ["confirmed-check-ins"] });
       queryClient.invalidateQueries({ queryKey: ["bookings"] });
+      setConfirmingBooking(null);
       onActionSuccess?.({
         actionType: "in",
         bookingId,
         notice: {
           type: "success",
           title: "Check in thành công",
-          message: "Khách đã được nhận phòng và chuyển sang danh sách check out.",
+          message: "Khách đã được nhận phòng.",
         },
       });
     },
@@ -193,7 +196,9 @@ const GuestTable = ({ activeTab, data, onActionSuccess }) => {
     return (
       <button
         type="button"
-        onClick={() => (activeTab === "in" ? handleCheckIn(booking.id) : handleCheckOut(booking.id))}
+        onClick={() =>
+          activeTab === "in" ? setConfirmingBooking(booking) : handleCheckOut(booking.id)
+        }
         disabled={isLoading}
         className={`mt-5 flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-black transition-all disabled:cursor-not-allowed ${
           isLoading ? config.loadingClassName : config.idleClassName
@@ -206,162 +211,202 @@ const GuestTable = ({ activeTab, data, onActionSuccess }) => {
   };
 
   return (
-    <div className="overflow-hidden rounded-[2.5rem] border border-gray-50 bg-white shadow-sm">
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-gray-50 p-6">
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
-            <input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              type="text"
-              placeholder="Tìm khách hoặc mã booking..."
-              className="w-64 rounded-xl bg-gray-50 py-2.5 pl-10 pr-4 text-xs focus:ring-2 focus:ring-blue-500/10"
-            />
+    <>
+      <div className="overflow-hidden rounded-[2.5rem] border border-gray-50 bg-white shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-gray-50 p-6">
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
+              <input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                type="text"
+                placeholder="Tìm khách hoặc mã booking..."
+                className="w-64 rounded-xl bg-gray-50 py-2.5 pl-10 pr-4 text-xs focus:ring-2 focus:ring-blue-500/10"
+              />
+            </div>
+
+            <div className="relative">
+              <SlidersHorizontal className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
+              <input
+                value={roomFilter}
+                onChange={(event) => setRoomFilter(event.target.value)}
+                placeholder="Lọc số phòng..."
+                className="w-40 rounded-xl bg-gray-50 py-2.5 pl-10 pr-4 text-xs focus:ring-2 focus:ring-blue-500/10"
+              />
+            </div>
           </div>
 
-          <div className="relative">
-            <SlidersHorizontal className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
-            <input
-              value={roomFilter}
-              onChange={(event) => setRoomFilter(event.target.value)}
-              placeholder="Lọc số phòng..."
-              className="w-40 rounded-xl bg-gray-50 py-2.5 pl-10 pr-4 text-xs focus:ring-2 focus:ring-blue-500/10"
-            />
-          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setSearch("");
+              setRoomFilter("");
+            }}
+            className="text-xs font-bold text-gray-400 hover:text-gray-600"
+          >
+            Đặt lại
+          </button>
         </div>
 
-        <button
-          type="button"
-          onClick={() => {
-            setSearch("");
-            setRoomFilter("");
-          }}
-          className="text-xs font-bold text-gray-400 hover:text-gray-600"
-        >
-          Đặt lại
-        </button>
-      </div>
+        <div className="p-6">
+          {filteredData.length > 0 ? (
+            <div className="grid gap-5 lg:grid-cols-2">
+              {filteredData.map((booking) => {
+                const bookingDetails = booking.bookingDetails || [];
+                const primaryDetail = bookingDetails[0] || {};
+                const roomNumber = primaryDetail.room?.roomNumber || primaryDetail.roomNumber || "--";
+                const roomName = getRoomName(booking, primaryDetail);
+                const roomStatus = primaryDetail.room?.status || booking.roomStatus || "Occupied";
+                const cleaningStatus =
+                  primaryDetail.room?.cleaningStatus ||
+                  booking.cleaningStatus ||
+                  primaryDetail.cleaningStatus;
+                const basePrice =
+                  primaryDetail.pricePerNight ||
+                  primaryDetail.room?.basePrice ||
+                  primaryDetail.roomType?.basePrice ||
+                  primaryDetail.basePrice ||
+                  booking.basePrice ||
+                  booking.totalAmount ||
+                  0;
+                const guestName = getGuestName(booking);
+                const checkInDate = primaryDetail.checkInDate;
+                const checkOutDate = primaryDetail.checkOutDate;
+                const dateLabel =
+                  checkInDate || checkOutDate
+                    ? `${formatVietnamDate(checkInDate)} - ${formatVietnamDate(checkOutDate)}`
+                    : "--";
 
-      <div className="p-6">
-        {filteredData.length > 0 ? (
-          <div className="grid gap-5 lg:grid-cols-2">
-            {filteredData.map((booking) => {
-              const bookingDetails = booking.bookingDetails || [];
-              const primaryDetail = bookingDetails[0] || {};
-              const roomNumber = primaryDetail.room?.roomNumber || primaryDetail.roomNumber || "--";
-              const roomName = getRoomName(booking, primaryDetail);
-              const roomStatus = primaryDetail.room?.status || booking.roomStatus || "Occupied";
-              const cleaningStatus =
-                primaryDetail.room?.cleaningStatus ||
-                booking.cleaningStatus ||
-                primaryDetail.cleaningStatus;
-              const basePrice =
-                primaryDetail.pricePerNight ||
-                primaryDetail.room?.basePrice ||
-                primaryDetail.roomType?.basePrice ||
-                primaryDetail.basePrice ||
-                booking.basePrice ||
-                booking.totalAmount ||
-                0;
-              const guestName = getGuestName(booking);
-              const checkInDate = primaryDetail.checkInDate;
-              const checkOutDate = primaryDetail.checkOutDate;
-              const dateLabel =
-                checkInDate || checkOutDate
-                  ? `${formatVietnamDate(checkInDate)} - ${formatVietnamDate(checkOutDate)}`
-                  : "--";
-
-              return (
-                <article
-                  key={`${activeTab}-${booking.id}`}
-                  className="rounded-[30px] border border-slate-200 bg-slate-50/70 p-5 transition-all hover:bg-white"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">
-                        Phòng {roomNumber}
-                      </p>
-                      <h3 className="mt-1 text-2xl font-black text-slate-900">{roomName}</h3>
-                    </div>
-                    <span
-                      className={`inline-flex rounded-full px-3 py-1 text-xs font-black ${
-                        roomStatusStyles[roomStatus] ?? roomStatusStyles.OutOfOrder
-                      }`}
-                    >
-                      {roomStatus}
-                    </span>
-                  </div>
-
-                  <div className="mt-4 grid gap-3">
-                    <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
-                      <CircleDollarSign className="size-4 text-orange-500" />
-                      {priceFormatter.format(basePrice)} đ / đêm
-                    </div>
-
-                    <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
-                      <BedDouble className="size-4 text-sky-500" />
-                      {roomName}
-                    </div>
-
-                    <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
-                      <UserRound className="size-4 text-emerald-500" />
-                      {guestName}
-                    </div>
-                  </div>
-
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    <span
-                      className={`inline-flex rounded-full px-3 py-1 text-xs font-black ${
-                        eventBadgeStyles[booking.eventType || "stay"] ?? eventBadgeStyles.stay
-                      }`}
-                    >
-                      {activeTab === "schedule"
-                        ? booking.eventType === "departure"
-                          ? "Check out hôm nay"
-                          : "Check in hôm nay"
-                        : getBookingStateLabel(booking, activeTab)}
-                    </span>
-
-                    {cleaningStatus ? (
+                return (
+                  <article
+                    key={`${activeTab}-${booking.id}`}
+                    className="rounded-[30px] border border-slate-200 bg-slate-50/70 p-5 transition-all hover:bg-white"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">
+                          Phòng {roomNumber}
+                        </p>
+                        <h3 className="mt-1 text-2xl font-black text-slate-900">{roomName}</h3>
+                      </div>
                       <span
                         className={`inline-flex rounded-full px-3 py-1 text-xs font-black ${
-                          cleaningStatusStyles[cleaningStatus] ?? cleaningStatusStyles.Dirty
+                          roomStatusStyles[roomStatus] ?? roomStatusStyles.OutOfOrder
                         }`}
                       >
-                        Trạng thái dọn phòng: {cleaningStatus}
+                        {roomStatus}
                       </span>
-                    ) : null}
-                  </div>
+                    </div>
 
-                  <div className="mt-4 rounded-2xl bg-white px-4 py-3 ring-1 ring-slate-200">
-                    <div className="space-y-1 text-sm">
-                      <p className="font-black text-slate-900">Mã booking: {booking.bookingCode}</p>
-                      <p className="font-semibold text-slate-600">
-                        {getBookingStateLabel(booking, activeTab)}
-                      </p>
-                      <div className="flex items-center gap-2 font-medium text-slate-500">
-                        <CalendarRange className="size-4 text-slate-400" />
-                        <span>{dateLabel}</span>
+                    <div className="mt-4 grid gap-3">
+                      <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                        <CircleDollarSign className="size-4 text-orange-500" />
+                        {priceFormatter.format(basePrice)} đ / đêm
+                      </div>
+
+                      <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                        <BedDouble className="size-4 text-sky-500" />
+                        {roomName}
+                      </div>
+
+                      <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                        <UserRound className="size-4 text-emerald-500" />
+                        {guestName}
                       </div>
                     </div>
-                  </div>
 
-                  {renderActionButton(booking)}
-                </article>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="rounded-[28px] border border-dashed border-slate-200 bg-slate-50 px-6 py-14 text-center">
-            <p className="text-lg font-black text-slate-900">Không có dữ liệu phù hợp</p>
-            <p className="mt-2 text-sm font-medium text-slate-500">
-              Thử đổi từ khóa tìm kiếm hoặc bộ lọc số phòng.
-            </p>
-          </div>
-        )}
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <span
+                        className={`inline-flex rounded-full px-3 py-1 text-xs font-black ${
+                          eventBadgeStyles[booking.eventType || "stay"] ?? eventBadgeStyles.stay
+                        }`}
+                      >
+                        {activeTab === "schedule"
+                          ? booking.eventType === "departure"
+                            ? "Check out hôm nay"
+                            : "Check in hôm nay"
+                          : getBookingStateLabel(booking, activeTab)}
+                      </span>
+
+                      {cleaningStatus ? (
+                        <span
+                          className={`inline-flex rounded-full px-3 py-1 text-xs font-black ${
+                            cleaningStatusStyles[cleaningStatus] ?? cleaningStatusStyles.Dirty
+                          }`}
+                        >
+                          Trạng thái dọn phòng: {cleaningStatus}
+                        </span>
+                      ) : null}
+                    </div>
+
+                    <div className="mt-4 rounded-2xl bg-white px-4 py-3 ring-1 ring-slate-200">
+                      <div className="space-y-1 text-sm">
+                        <p className="font-black text-slate-900">Mã booking: {booking.bookingCode}</p>
+                        <p className="font-semibold text-slate-600">
+                          {getBookingStateLabel(booking, activeTab)}
+                        </p>
+                        <div className="flex items-center gap-2 font-medium text-slate-500">
+                          <CalendarRange className="size-4 text-slate-400" />
+                          <span>{dateLabel}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {renderActionButton(booking)}
+                  </article>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="rounded-[28px] border border-dashed border-slate-200 bg-slate-50 px-6 py-14 text-center">
+              <p className="text-lg font-black text-slate-900">Không có dữ liệu phù hợp</p>
+              <p className="mt-2 text-sm font-medium text-slate-500">
+                Thử đổi từ khóa tìm kiếm hoặc bộ lọc số phòng.
+              </p>
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+
+      {confirmingBooking ? (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
+            <div className="flex items-start gap-3">
+              <div className="rounded-2xl bg-emerald-100 p-3 text-emerald-600">
+                <TriangleAlert size={22} />
+              </div>
+              <div>
+                <h3 className="text-xl font-black text-slate-900">Xác nhận check in</h3>
+                <p className="mt-2 text-sm text-slate-500">
+                  Bạn có chắc muốn check in booking{" "}
+                  <span className="font-bold">{confirmingBooking.bookingCode}</span> cho khách{" "}
+                  <span className="font-bold">{getGuestName(confirmingBooking)}</span> không?
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setConfirmingBooking(null)}
+                className="rounded-2xl bg-slate-100 px-4 py-2 font-bold text-slate-600 transition hover:bg-slate-200"
+              >
+                Không
+              </button>
+              <button
+                type="button"
+                onClick={() => handleCheckIn(confirmingBooking.id)}
+                disabled={checkInMutation.isPending}
+                className="rounded-2xl bg-emerald-600 px-4 py-2 font-black text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300"
+              >
+                {checkInMutation.isPending ? "Đang xử lý..." : "Có, check in"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </>
   );
 };
 

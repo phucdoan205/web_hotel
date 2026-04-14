@@ -2,7 +2,6 @@ import React, { useMemo, useState } from "react";
 import {
   Banknote,
   Calendar,
-  CheckCircle2,
   CircleCheckBig,
   Clock,
   CreditCard,
@@ -13,6 +12,12 @@ import {
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { bookingsApi } from "../../../api/admin/bookingsApi";
+import {
+  getBookingDepositAmount,
+  getBookingDetailDeposit,
+  getBookingDetailTotal,
+  getBookingTotalAmount,
+} from "../../../utils/bookingPricing";
 import {
   getBookingPaymentState,
   isBookingDetailPaid,
@@ -39,15 +44,6 @@ const getStatusStyle = (status) => {
   }
 };
 
-const getDetailTotal = (detail) => {
-  const checkIn = detail?.checkInDate ? new Date(detail.checkInDate) : null;
-  const checkOut = detail?.checkOutDate ? new Date(detail.checkOutDate) : null;
-  const nights =
-    checkIn && checkOut ? Math.max(1, Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24))) : 1;
-
-  return (detail?.pricePerNight || 0) * nights;
-};
-
 export default function BookingDetailModal({ open, onClose, booking, onBookingUpdated }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -58,10 +54,8 @@ export default function BookingDetailModal({ open, onClose, booking, onBookingUp
   const bookingDetails = booking?.bookingDetails || [];
   const paymentState = getBookingPaymentState(booking);
   const isCancelled = booking?.status === "Cancelled";
-  const totalAmount = useMemo(
-    () => bookingDetails.reduce((sum, detail) => sum + getDetailTotal(detail), 0),
-    [bookingDetails]
-  );
+  const totalAmount = useMemo(() => getBookingTotalAmount(bookingDetails), [bookingDetails]);
+  const depositAmount = useMemo(() => getBookingDepositAmount(bookingDetails), [bookingDetails]);
 
   const updateStatusMutation = useMutation({
     mutationFn: ({ id, status }) => bookingsApi.updateBookingStatus(id, status),
@@ -72,7 +66,7 @@ export default function BookingDetailModal({ open, onClose, booking, onBookingUp
       queryClient.invalidateQueries({ queryKey: ["booking", String(variables.id)] });
       setInlineMessage({
         type: "success",
-        message: "Đã xác nhận thanh toán tất cả.",
+        message: "Đã xác nhận đặt cọc cho toàn bộ booking.",
       });
       setCashPromptOpen(false);
       onBookingUpdated?.(nextBooking);
@@ -108,7 +102,7 @@ export default function BookingDetailModal({ open, onClose, booking, onBookingUp
 
     setInlineMessage({
       type: "success",
-      message: `Đã xác nhận thanh toán riêng cho phòng ${
+      message: `Đã xác nhận đặt cọc riêng cho phòng ${
         detailCashPrompt.room?.roomNumber || detailCashPrompt.roomNumber || "--"
       }.`,
     });
@@ -186,10 +180,10 @@ export default function BookingDetailModal({ open, onClose, booking, onBookingUp
                 <Calendar className="text-orange-600" size={28} />
                 <h3 className="text-lg font-bold text-gray-800">Thông tin đặt phòng</h3>
               </div>
-              {paymentState.allPaid ? (
+              {paymentState.depositComplete ? (
                 <div className="inline-flex items-center gap-2 rounded-2xl bg-emerald-50 px-4 py-2 text-sm font-bold text-emerald-700">
                   <CircleCheckBig size={18} />
-                  Đã thanh toán toàn bộ
+                  Đã đặt cọc đủ
                 </div>
               ) : null}
             </div>
@@ -198,6 +192,8 @@ export default function BookingDetailModal({ open, onClose, booking, onBookingUp
               <div className="space-y-4">
                 {bookingDetails.map((detail, index) => {
                   const detailPaid = isBookingDetailPaid(booking, detail.id);
+                  const detailTotal = getBookingDetailTotal(detail);
+                  const detailDeposit = getBookingDetailDeposit(detail);
 
                   return (
                     <div
@@ -219,7 +215,7 @@ export default function BookingDetailModal({ open, onClose, booking, onBookingUp
                           {detailPaid ? (
                             <div className="mt-2 inline-flex items-center gap-2 rounded-2xl bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
                               <CircleCheckBig size={14} />
-                              Đã thanh toán
+                              Đã đặt cọc
                             </div>
                           ) : null}
                         </div>
@@ -245,17 +241,24 @@ export default function BookingDetailModal({ open, onClose, booking, onBookingUp
                       </div>
 
                       <div className="mt-6 flex justify-between border-t pt-6 text-sm">
-                        <span className="text-gray-600">Giá phòng này</span>
-                        <span className="font-semibold">{formatCurrency(getDetailTotal(detail))}</span>
+                        <span className="text-gray-600">Tổng tiền phòng</span>
+                        <span className="font-semibold">{formatCurrency(detailTotal)}</span>
+                      </div>
+
+                      <div className="mt-3 flex justify-between text-sm">
+                        <span className="text-gray-600">Tiền đặt cọc (1 đêm)</span>
+                        <span className="font-black text-orange-600">{formatCurrency(detailDeposit)}</span>
                       </div>
 
                       {!detailPaid && !isCancelled ? (
                         <div className="mt-4 space-y-3">
                           {detailCashPrompt?.id === detail.id ? (
                             <div className="rounded-3xl border border-emerald-200 bg-emerald-50 px-5 py-4">
-                              <p className="text-lg font-black text-emerald-900">Xác nhận thanh toán riêng</p>
+                              <p className="text-lg font-black text-emerald-900">
+                                Xác nhận đặt cọc riêng
+                              </p>
                               <p className="mt-1 text-sm text-emerald-700">
-                                Xác nhận đã nhận tiền cho phòng{" "}
+                                Xác nhận đã nhận tiền đặt cọc 1 đêm cho phòng{" "}
                                 <span className="font-bold">
                                   {detail.room?.roomNumber || detail.roomNumber || "--"}
                                 </span>
@@ -275,29 +278,29 @@ export default function BookingDetailModal({ open, onClose, booking, onBookingUp
                                   disabled={updateStatusMutation.isPending}
                                   className="rounded-2xl bg-emerald-600 px-4 py-2 font-black text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300"
                                 >
-                                  {updateStatusMutation.isPending ? "Đang cập nhật..." : "Có, thanh toán riêng"}
+                                  {updateStatusMutation.isPending ? "Đang cập nhật..." : "Có, đặt cọc riêng"}
                                 </button>
                               </div>
                             </div>
                           ) : null}
 
                           <div className="flex justify-end gap-3">
-                          <button
-                            type="button"
-                            onClick={() => handleOpenQrPage(detail.id)}
-                            className="inline-flex items-center gap-2 rounded-2xl bg-sky-100 px-4 py-2 font-bold text-sky-700 transition hover:bg-sky-200"
-                          >
-                            <QrCode size={16} />
-                            Thanh toán phòng này
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setDetailCashPrompt(detail)}
-                            className="inline-flex items-center gap-2 rounded-2xl bg-emerald-100 px-4 py-2 font-bold text-emerald-700 transition hover:bg-emerald-200"
-                          >
-                            <Banknote size={16} />
-                            Thanh toán riêng
-                          </button>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenQrPage(detail.id)}
+                              className="inline-flex items-center gap-2 rounded-2xl bg-sky-100 px-4 py-2 font-bold text-sky-700 transition hover:bg-sky-200"
+                            >
+                              <QrCode size={16} />
+                              Đặt cọc online
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setDetailCashPrompt(detail)}
+                              className="inline-flex items-center gap-2 rounded-2xl bg-emerald-100 px-4 py-2 font-bold text-emerald-700 transition hover:bg-emerald-200"
+                            >
+                              <Banknote size={16} />
+                              Đặt cọc tiền mặt
+                            </button>
                           </div>
                         </div>
                       ) : null}
@@ -333,15 +336,24 @@ export default function BookingDetailModal({ open, onClose, booking, onBookingUp
               </div>
             </div>
           </div>
+
+          <div className="rounded-3xl border border-orange-100 bg-orange-50 px-5 py-4">
+            <p className="text-sm font-bold text-orange-700">Đặt cọc để xác nhận booking</p>
+            <p className="mt-2 text-2xl font-black text-orange-600">{formatCurrency(depositAmount)}</p>
+            <p className="mt-1 text-sm text-orange-700">
+              Thu trước 1 đêm cho mỗi phòng trong booking này.
+            </p>
+          </div>
         </div>
 
         <div className="sticky bottom-0 border-t bg-white px-8 py-5">
           <div className="space-y-3">
             {cashPromptOpen ? (
               <div className="rounded-3xl border border-sky-200 bg-sky-50 px-5 py-4">
-                <p className="text-lg font-black text-sky-900">Xác nhận thanh toán tất cả</p>
+                <p className="text-lg font-black text-sky-900">Xác nhận đặt cọc toàn bộ</p>
                 <p className="mt-1 text-sm text-sky-700">
-                  Sau khi xác nhận, toàn bộ booking sẽ chuyển sang trạng thái Confirmed.
+                  Sau khi xác nhận đã nhận cọc 1 đêm cho mỗi phòng, booking sẽ chuyển sang trạng thái
+                  Confirmed.
                 </p>
                 <div className="mt-4 flex gap-3">
                   <button
@@ -357,40 +369,44 @@ export default function BookingDetailModal({ open, onClose, booking, onBookingUp
                     disabled={updateStatusMutation.isPending}
                     className="rounded-2xl bg-emerald-600 px-4 py-2 font-black text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300"
                   >
-                    {updateStatusMutation.isPending ? "Đang cập nhật..." : "Có, đã nhận đủ tiền"}
+                    {updateStatusMutation.isPending ? "Đang cập nhật..." : "Có, đã nhận đặt cọc"}
                   </button>
                 </div>
               </div>
             ) : null}
 
             <div className="flex flex-wrap justify-end gap-3">
-            {!paymentState.allPaid && !isCancelled ? (
-              <>
-                <button
-                  type="button"
-                  onClick={() => handleOpenQrPage()}
-                  className="inline-flex items-center gap-2 rounded-2xl bg-sky-100 px-4 py-3 font-bold text-sky-700 transition hover:bg-sky-200"
-                >
-                  <QrCode size={18} />
-                  Thanh toán online tất cả
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCashPromptOpen(true)}
-                  disabled={booking.status === "Confirmed" || booking.status === "CheckedIn" || booking.status === "Completed"}
-                  className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-4 py-3 font-black text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300"
-                >
-                  <Banknote size={18} />
-                  Thanh toán tất cả
-                </button>
-              </>
-            ) : null}
-            <button
-              onClick={onClose}
-              className="rounded-2xl bg-gray-900 px-8 py-3 font-semibold text-white transition hover:bg-black"
-            >
-              Đóng
-            </button>
+              {!paymentState.depositComplete && !isCancelled ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => handleOpenQrPage()}
+                    className="inline-flex items-center gap-2 rounded-2xl bg-sky-100 px-4 py-3 font-bold text-sky-700 transition hover:bg-sky-200"
+                  >
+                    <QrCode size={18} />
+                    Đặt cọc online tất cả
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCashPromptOpen(true)}
+                    disabled={
+                      booking.status === "Confirmed" ||
+                      booking.status === "CheckedIn" ||
+                      booking.status === "Completed"
+                    }
+                    className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-4 py-3 font-black text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300"
+                  >
+                    <Banknote size={18} />
+                    Đặt cọc tất cả
+                  </button>
+                </>
+              ) : null}
+              <button
+                onClick={onClose}
+                className="rounded-2xl bg-gray-900 px-8 py-3 font-semibold text-white transition hover:bg-black"
+              >
+                Đóng
+              </button>
             </div>
           </div>
         </div>

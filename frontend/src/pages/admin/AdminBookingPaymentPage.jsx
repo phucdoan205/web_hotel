@@ -12,6 +12,11 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { bookingsApi } from "../../api/admin/bookingsApi";
 import {
+  getBookingDepositAmount,
+  getBookingDetailDeposit,
+} from "../../utils/bookingPricing";
+import {
+  getBookingPaymentState,
   isBookingDetailPaid,
   markBookingAllPaid,
   markBookingDetailPaid,
@@ -36,15 +41,6 @@ const buildPseudoQr = (seed) => {
   return cells;
 };
 
-const getDetailTotal = (detail) => {
-  const checkIn = detail?.checkInDate ? new Date(detail.checkInDate) : null;
-  const checkOut = detail?.checkOutDate ? new Date(detail.checkOutDate) : null;
-  const nights =
-    checkIn && checkOut ? Math.max(1, Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24))) : 1;
-
-  return (detail?.pricePerNight || 0) * nights;
-};
-
 const AdminBookingPaymentPage = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -61,6 +57,7 @@ const AdminBookingPaymentPage = () => {
     enabled: Boolean(id),
   });
 
+  const paymentState = getBookingPaymentState(booking);
   const selectedDetail = useMemo(
     () => booking?.bookingDetails?.find((detail) => detail.id === detailId) || null,
     [booking, detailId]
@@ -68,21 +65,34 @@ const AdminBookingPaymentPage = () => {
 
   const isSingleRoomPayment = Boolean(selectedDetail);
   const isCancelled = booking?.status === "Cancelled";
-  const totalAmount = useMemo(() => {
-    if (selectedDetail) return getDetailTotal(selectedDetail);
 
-    return (booking?.bookingDetails || []).reduce((sum, detail) => sum + getDetailTotal(detail), 0);
+  const totalDepositAmount = useMemo(() => {
+    if (!booking?.bookingDetails?.length) return 0;
+
+    if (selectedDetail) {
+      return getBookingDetailDeposit(selectedDetail);
+    }
+
+    return booking.bookingDetails.reduce((sum, detail) => {
+      if (isBookingDetailPaid(booking, detail.id)) return sum;
+      return sum + getBookingDetailDeposit(detail);
+    }, 0);
   }, [booking, selectedDetail]);
 
-  const bankTransferContent = `HOTEL PAYMENT ${booking?.bookingCode || ""} ${formatCurrency(totalAmount)}`;
+  const bookingDepositAmount = useMemo(
+    () => getBookingDepositAmount(booking?.bookingDetails || []),
+    [booking]
+  );
+
+  const bankTransferContent = `HOTEL DEPOSIT ${booking?.bookingCode || ""} ${formatCurrency(totalDepositAmount)}`;
   const singleRoomPaid = selectedDetail ? isBookingDetailPaid(booking, selectedDetail.id) : false;
-  const alreadyPaid = isSingleRoomPayment ? singleRoomPaid : booking?.status === "Confirmed";
+  const alreadyPaid = isSingleRoomPayment ? singleRoomPaid : paymentState.depositComplete;
 
   const confirmOnlineMutation = useMutation({
     mutationFn: async () => {
       if (!booking) return null;
       if (booking.status === "Cancelled") {
-        throw new Error("Booking đã hủy, không thể xác nhận thanh toán.");
+        throw new Error("Booking đã hủy, không thể xác nhận đặt cọc.");
       }
 
       if (selectedDetail?.id) {
@@ -109,12 +119,12 @@ const AdminBookingPaymentPage = () => {
       queryClient.invalidateQueries({ queryKey: ["booking", id] });
       setConfirmMessage(
         result?.scope === "detail"
-          ? "Đã xác nhận thanh toán online cho phòng này."
-          : "Đã xác nhận thanh toán online cho toàn bộ booking."
+          ? "Đã xác nhận đặt cọc online cho phòng này."
+          : "Đã xác nhận đặt cọc online cho toàn bộ booking."
       );
     },
     onError: (error) => {
-      setConfirmMessage(error.message || "Không thể xác nhận thanh toán cho booking đã hủy.");
+      setConfirmMessage(error.message || "Không thể xác nhận đặt cọc cho booking đã hủy.");
     },
   });
 
@@ -141,20 +151,20 @@ const AdminBookingPaymentPage = () => {
             Quay lại bookings
           </button>
           <h1 className="text-3xl font-black text-slate-900">
-            {isSingleRoomPayment ? "Mã QR thanh toán phòng" : "Mã QR thanh toán tất cả"}
+            {isSingleRoomPayment ? "Mã QR đặt cọc phòng" : "Mã QR đặt cọc booking"}
           </h1>
           <p className="mt-1 text-sm text-slate-500">
             {isSingleRoomPayment
-              ? `Thanh toán cho phòng ${selectedDetail?.roomNumber || selectedDetail?.room?.roomNumber || "--"}`
-              : `Thanh toán toàn bộ booking ${booking?.bookingCode || id}`}
+              ? `Đặt cọc 1 đêm cho phòng ${selectedDetail?.roomNumber || selectedDetail?.room?.roomNumber || "--"}`
+              : `Đặt cọc 1 đêm cho mỗi phòng của booking ${booking?.bookingCode || id}`}
           </p>
         </div>
 
         <div className="rounded-3xl bg-gradient-to-r from-sky-600 to-cyan-500 px-5 py-4 text-white shadow-lg">
           <p className="text-xs font-bold uppercase tracking-[0.25em] text-white/75">
-            {isSingleRoomPayment ? "Thanh toán phòng này" : "Tổng thanh toán"}
+            {isSingleRoomPayment ? "Tiền cọc phòng này" : "Tổng tiền cọc còn lại"}
           </p>
-          <p className="mt-2 text-3xl font-black">{formatCurrency(totalAmount)}</p>
+          <p className="mt-2 text-3xl font-black">{formatCurrency(totalDepositAmount)}</p>
         </div>
       </div>
 
@@ -175,7 +185,7 @@ const AdminBookingPaymentPage = () => {
 
       {isCancelled ? (
         <div className="rounded-3xl border border-rose-200 bg-rose-50 px-5 py-4 text-rose-900">
-          <p className="font-bold">Booking này đã hủy nên không thể thanh toán.</p>
+          <p className="font-bold">Booking này đã hủy nên không thể đặt cọc.</p>
         </div>
       ) : null}
 
@@ -198,7 +208,7 @@ const AdminBookingPaymentPage = () => {
                 </div>
                 <div>
                   <p className="font-black text-slate-900">MoMo</p>
-                  <p className="text-sm text-slate-500">Quét mã bằng ví điện tử MoMo</p>
+                  <p className="text-sm text-slate-500">Quét mã để nhận tiền đặt cọc</p>
                 </div>
               </div>
             </button>
@@ -232,13 +242,16 @@ const AdminBookingPaymentPage = () => {
                 ? `Phòng: ${selectedDetail?.roomNumber || selectedDetail?.room?.roomNumber || "--"}`
                 : `Khách: ${booking?.guestName || "Chưa có thông tin"}`}
             </p>
+            <p className="mt-3 text-sm font-semibold text-orange-600">
+              Tổng cọc booking: {formatCurrency(bookingDepositAmount)}
+            </p>
           </div>
         </div>
 
         <div className="rounded-[32px] border border-slate-200 bg-gradient-to-br from-sky-50 via-white to-cyan-50 p-6 shadow-sm">
           {isLoading ? (
             <div className="rounded-3xl bg-white p-10 text-center text-slate-500 shadow-sm">
-              Đang tải thông tin thanh toán...
+              Đang tải thông tin đặt cọc...
             </div>
           ) : paymentMethod === "momo" ? (
             <div className="mx-auto max-w-xl rounded-[32px] border border-pink-100 bg-white p-6 shadow-lg">
@@ -246,7 +259,7 @@ const AdminBookingPaymentPage = () => {
                 <div>
                   <p className="text-xs font-bold uppercase tracking-[0.25em] text-pink-400">MoMo</p>
                   <p className="mt-2 text-2xl font-black text-slate-900">
-                    {isSingleRoomPayment ? "Ví điện tử cho 1 phòng" : "Ví điện tử MoMo"}
+                    {isSingleRoomPayment ? "Đặt cọc qua ví điện tử" : "Đặt cọc booking qua MoMo"}
                   </p>
                 </div>
                 <div className="rounded-2xl bg-pink-100 p-3 text-pink-600">
@@ -256,13 +269,13 @@ const AdminBookingPaymentPage = () => {
 
               <div className="mt-6 flex justify-center">
                 <div className="grid h-72 w-72 grid-cols-[repeat(17,minmax(0,1fr))] gap-[2px] rounded-[28px] border-[10px] border-pink-100 bg-white p-3 shadow-inner">
-                  {buildPseudoQr(`MOMO${booking?.bookingCode || ""}${detailId || ""}`)}
+                  {buildPseudoQr(`MOMO${booking?.bookingCode || ""}${detailId || ""}${totalDepositAmount}`)}
                 </div>
               </div>
 
               <div className="mt-6 rounded-3xl bg-pink-50 px-5 py-4 text-center">
-                <p className="text-sm text-pink-700">Quét mã bằng ứng dụng MoMo để thanh toán</p>
-                <p className="mt-2 text-3xl font-black text-pink-600">{formatCurrency(totalAmount)}</p>
+                <p className="text-sm text-pink-700">Quét mã bằng ứng dụng MoMo để nhận tiền đặt cọc</p>
+                <p className="mt-2 text-3xl font-black text-pink-600">{formatCurrency(totalDepositAmount)}</p>
               </div>
             </div>
           ) : (
@@ -270,7 +283,7 @@ const AdminBookingPaymentPage = () => {
               <div className="rounded-[28px] bg-gradient-to-r from-white to-sky-50 px-4 py-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-3xl font-black uppercase tracking-tight text-slate-900">QR THANH TOÁN</p>
+                    <p className="text-3xl font-black uppercase tracking-tight text-slate-900">QR ĐẶT CỌC</p>
                     <p className="mt-1 text-2xl text-slate-700">1234567890</p>
                   </div>
                   <div className="rounded-2xl bg-sky-100 p-3 text-sky-700">
@@ -287,7 +300,7 @@ const AdminBookingPaymentPage = () => {
 
                 <div className="mt-4 flex justify-center">
                   <div className="grid h-80 w-80 grid-cols-[repeat(17,minmax(0,1fr))] gap-[3px] rounded-[30px] border-[12px] border-slate-100 bg-white p-4 shadow-sm">
-                    {buildPseudoQr(`BANK${booking?.bookingCode || ""}${detailId || ""}${totalAmount}`)}
+                    {buildPseudoQr(`BANK${booking?.bookingCode || ""}${detailId || ""}${totalDepositAmount}`)}
                   </div>
                 </div>
 
@@ -300,8 +313,8 @@ const AdminBookingPaymentPage = () => {
 
               <div className="mt-5 grid gap-3 rounded-[28px] bg-slate-50 p-5 md:grid-cols-2">
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-[0.25em] text-slate-400">Số tiền</p>
-                  <p className="mt-2 text-3xl font-black text-slate-900">{formatCurrency(totalAmount)}</p>
+                  <p className="text-xs font-bold uppercase tracking-[0.25em] text-slate-400">Số tiền cọc</p>
+                  <p className="mt-2 text-3xl font-black text-slate-900">{formatCurrency(totalDepositAmount)}</p>
                 </div>
                 <div>
                   <p className="text-xs font-bold uppercase tracking-[0.25em] text-slate-400">Nội dung chuyển khoản</p>
@@ -321,16 +334,16 @@ const AdminBookingPaymentPage = () => {
                 <button
                   type="button"
                   onClick={() => confirmOnlineMutation.mutate()}
-                  disabled={confirmOnlineMutation.isPending || alreadyPaid || isCancelled}
+                  disabled={confirmOnlineMutation.isPending || alreadyPaid || isCancelled || totalDepositAmount <= 0}
                   className="rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-black text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300"
                 >
                   {alreadyPaid
-                    ? "Đã thanh toán"
+                    ? "Đã đặt cọc"
                     : isCancelled
                       ? "Booking đã hủy"
-                    : confirmOnlineMutation.isPending
-                      ? "Đang xác nhận..."
-                      : "Xác nhận đã thanh toán"}
+                      : confirmOnlineMutation.isPending
+                        ? "Đang xác nhận..."
+                        : "Xác nhận đã đặt cọc"}
                 </button>
                 <button
                   type="button"
