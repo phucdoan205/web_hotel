@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { AlertTriangle, CheckCircle2, CircleHelp, X } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { bookingsApi } from "../../../api/admin/bookingsApi";
 import { roomTypesApi } from "../../../api/admin/roomTypesApi";
 import { roomsApi } from "../../../api/admin/roomsApi";
@@ -10,6 +11,7 @@ const initialGuestInfo = { name: "", phone: "", email: "" };
 
 const BookingCreateModal = ({ open, onClose, onNotice }) => {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [selectedRooms, setSelectedRooms] = useState([]);
   const [guestInfo, setGuestInfo] = useState(initialGuestInfo);
   const [checkInDate, setCheckInDate] = useState(getVietnamDateKey());
@@ -35,7 +37,7 @@ const BookingCreateModal = ({ open, onClose, onNotice }) => {
       });
 
       return (res.items || []).filter(
-        (room) => room.status === "Available" || room.status === "Occupied"
+        (room) => room.status === "Available" || room.status === "Occupied",
       );
     },
     enabled: open,
@@ -77,7 +79,7 @@ const BookingCreateModal = ({ open, onClose, onNotice }) => {
           pricePerNight: roomType?.basePrice || room.roomType?.basePrice || 0,
         };
       }),
-    [roomTypes, selectedRooms]
+    [roomTypes, selectedRooms],
   );
 
   const createMutation = useMutation({
@@ -97,9 +99,14 @@ const BookingCreateModal = ({ open, onClose, onNotice }) => {
 
       queryClient.invalidateQueries({ queryKey: ["rooms"] });
       queryClient.invalidateQueries({ queryKey: ["bookings"] });
+      queryClient.invalidateQueries({ queryKey: ["confirmed-check-ins"] });
+      queryClient.invalidateQueries({ queryKey: ["arrivals"] });
+      queryClient.invalidateQueries({ queryKey: ["in-house"] });
+      queryClient.invalidateQueries({ queryKey: ["departures"] });
       setShowConfirmation(false);
       onClose();
       resetForm();
+      navigate(`/admin/check-in?tab=in&date=${checkInDate}`);
       onNotice?.({
         type: "success",
         title: "Đã tạo booking mới",

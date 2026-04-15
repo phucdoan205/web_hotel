@@ -1,14 +1,18 @@
 import React, { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, CheckCircle2, X } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 import GuestFlowStats from "../../components/receptionist/checkinout/GuestFlowStats";
 import GuestTable from "../../components/receptionist/checkinout/GuestTable";
 import { bookingsApi } from "../../api/admin/bookingsApi";
 import { getVietnamDateKey } from "../../utils/vietnamTime";
 
+const normalizeTab = (value) => (["schedule", "in", "out"].includes(value) ? value : "schedule");
+
 const ReceptionistCheckInOutPage = () => {
-  const [activeTab, setActiveTab] = useState("schedule");
+  const [searchParams, setSearchParams] = useSearchParams();
   const [screenNotice, setScreenNotice] = useState(null);
+  const activeTab = normalizeTab(searchParams.get("tab"));
 
   useEffect(() => {
     if (!screenNotice) return undefined;
@@ -19,6 +23,15 @@ const ReceptionistCheckInOutPage = () => {
 
     return () => window.clearTimeout(timer);
   }, [screenNotice]);
+
+  const changeTab = (nextTab) => {
+    const normalizedTab = normalizeTab(nextTab);
+    setSearchParams((currentParams) => {
+      const nextParams = new URLSearchParams(currentParams);
+      nextParams.set("tab", normalizedTab);
+      return nextParams;
+    });
+  };
 
   const confirmedBookingsQuery = useQuery({
     queryKey: ["confirmed-check-ins"],
@@ -49,15 +62,11 @@ const ReceptionistCheckInOutPage = () => {
     staleTime: 1000 * 60 * 5,
   });
 
-  const arrivals = (arrivalsQuery.data?.items || []).filter(
-    (booking) => booking.status === "Confirmed",
-  );
+  const arrivals = (arrivalsQuery.data?.items || []).filter((booking) => booking.status === "Confirmed");
   const confirmedBookings = (confirmedBookingsQuery.data?.items || []).filter(
     (booking) => booking.status === "Confirmed",
   );
-  const inHouse = (inHouseQuery.data?.items || []).filter(
-    (booking) => booking.status === "CheckedIn",
-  );
+  const inHouse = (inHouseQuery.data?.items || []).filter((booking) => booking.status === "CheckedIn");
   const departures = (departuresQuery.data?.items || []).filter(
     (booking) => !["Completed", "Cancelled"].includes(booking.status),
   );
@@ -82,14 +91,12 @@ const ReceptionistCheckInOutPage = () => {
     activeTab === "schedule" ? scheduleData : activeTab === "in" ? confirmedBookings : inHouse;
 
   const isLoading =
-    (activeTab === "schedule" &&
-      (arrivalsQuery.isLoading || departuresQuery.isLoading)) ||
+    (activeTab === "schedule" && (arrivalsQuery.isLoading || departuresQuery.isLoading)) ||
     (activeTab === "in" && confirmedBookingsQuery.isLoading) ||
     (activeTab === "out" && inHouseQuery.isLoading);
 
   const isError =
-    (activeTab === "schedule" &&
-      (arrivalsQuery.isError || departuresQuery.isError)) ||
+    (activeTab === "schedule" && (arrivalsQuery.isError || departuresQuery.isError)) ||
     (activeTab === "in" && confirmedBookingsQuery.isError) ||
     (activeTab === "out" && inHouseQuery.isError);
 
@@ -147,7 +154,7 @@ const ReceptionistCheckInOutPage = () => {
         <div className="flex rounded-2xl border border-gray-100 bg-white p-1.5 shadow-sm">
           <button
             type="button"
-            onClick={() => setActiveTab("schedule")}
+            onClick={() => changeTab("schedule")}
             className={`rounded-xl px-8 py-2.5 text-[11px] font-black uppercase tracking-widest transition-all ${
               activeTab === "schedule"
                 ? "bg-slate-900 text-white shadow-lg shadow-slate-200"
@@ -159,7 +166,7 @@ const ReceptionistCheckInOutPage = () => {
 
           <button
             type="button"
-            onClick={() => setActiveTab("in")}
+            onClick={() => changeTab("in")}
             className={`rounded-xl px-8 py-2.5 text-[11px] font-black uppercase tracking-widest transition-all ${
               activeTab === "in"
                 ? "bg-emerald-500 text-white shadow-lg shadow-emerald-100"
@@ -171,7 +178,7 @@ const ReceptionistCheckInOutPage = () => {
 
           <button
             type="button"
-            onClick={() => setActiveTab("out")}
+            onClick={() => changeTab("out")}
             className={`rounded-xl px-8 py-2.5 text-[11px] font-black uppercase tracking-widest transition-all ${
               activeTab === "out"
                 ? "bg-rose-500 text-white shadow-lg shadow-rose-100"
@@ -205,12 +212,7 @@ const ReceptionistCheckInOutPage = () => {
               setScreenNotice(result.notice);
             }
 
-            if (result?.actionType === "in") {
-              setActiveTab("out");
-              return;
-            }
-
-            setActiveTab("out");
+            changeTab("out");
           }}
         />
       )}

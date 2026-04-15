@@ -1,11 +1,11 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useSearchParams } from "react-router-dom";
 import {
   AlertTriangle,
   CalendarDays,
   CheckCircle2,
   FilterX,
-  ChevronLeft,
   ChevronRight,
   X,
 } from "lucide-react";
@@ -70,10 +70,14 @@ const getRangeDayCount = (startKey, endKey) => {
 
 const AdminCheckInPage = () => {
   const todayKey = getVietnamDateKey();
+  const [searchParams] = useSearchParams();
+  const requestedDate = searchParams.get("date");
+  const requestedTab = searchParams.get("tab");
+  const initialSelectedDate = requestedDate || todayKey;
   const [screenNotice, setScreenNotice] = useState(null);
-  const [activeTab, setActiveTab] = useState("schedule");
-  const [selectedDate, setSelectedDate] = useState(todayKey);
-  const [weekAnchor, setWeekAnchor] = useState(getWeekStart(todayKey));
+  const [activeTab, setActiveTab] = useState(requestedTab === "in" ? "in" : "schedule");
+  const [selectedDate, setSelectedDate] = useState(initialSelectedDate);
+  const [weekAnchor, setWeekAnchor] = useState(getWeekStart(initialSelectedDate));
 
   useEffect(() => {
     if (!screenNotice) return undefined;
@@ -207,7 +211,9 @@ const AdminCheckInPage = () => {
   }, [weeklyBookings, weekDays, weekStartKey, weekEndKey]);
 
   const arrivals = useMemo(() => {
-    return (arrivalsQuery.data?.items || []).filter((booking) => booking.status === "Confirmed");
+    return (arrivalsQuery.data?.items || []).filter((booking) =>
+      ["Pending", "Confirmed"].includes(booking.status)
+    );
   }, [arrivalsQuery.data]);
 
   const isLoading =
@@ -285,14 +291,6 @@ const AdminCheckInPage = () => {
         </div>
 
         <div className="flex flex-wrap items-center justify-end gap-3">
-          <button
-            type="button"
-            onClick={() => setWeekAnchor((current) => addDays(current, -7))}
-            className="inline-flex items-center gap-2 rounded-2xl bg-blue-100 px-4 py-2 font-bold text-blue-700 transition hover:bg-blue-200"
-          >
-            <ChevronLeft size={16} />
-            Tuần trước
-          </button>
           <button
             type="button"
             onClick={() => setWeekAnchor((current) => addDays(current, 7))}
