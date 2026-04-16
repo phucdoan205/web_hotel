@@ -73,7 +73,7 @@ const getGoogleMapsLink = (item) => {
 };
 
 const formatDistance = (value) =>
-  value === null || value === undefined || value === "" ? "Chua cap nhat" : `${value} km`;
+  value === null || value === undefined || value === "" ? "Chưa cập nhật" : `${value} km`;
 
 const formatCoord = (value) =>
   value === null || value === undefined || value === "" ? "--" : String(value);
@@ -114,10 +114,10 @@ function AttractionModal({
         <div className="flex items-center justify-between border-b border-slate-100 px-6 py-5">
           <div>
             <h2 className="text-3xl font-black tracking-tight text-slate-950">
-              {mode === "create" ? "Tao dia diem" : "Cap nhat dia diem"}
+              {mode === "create" ? "Tạo địa điểm" : "Cập nhật địa điểm"}
             </h2>
             <p className="mt-1 text-sm font-medium text-slate-500">
-              Quan ly diem den, ban do va trang thai hien thi tren site map.
+              Quản lý điểm đến, bản đồ và trạng thái hiển thị trên site map.
             </p>
           </div>
 
@@ -139,46 +139,46 @@ function AttractionModal({
 
           <div className="grid gap-4 md:grid-cols-2">
             <label className="flex flex-col gap-2">
-              <FieldLabel>Ten dia diem</FieldLabel>
+              <FieldLabel>Tên địa điểm</FieldLabel>
               <TextInput name="name" value={formData.name} onChange={onChange} required />
             </label>
 
             <label className="flex flex-col gap-2">
-              <FieldLabel>Danh muc</FieldLabel>
+              <FieldLabel>Danh mục</FieldLabel>
               <TextInput
                 name="category"
                 value={formData.category}
                 onChange={onChange}
-                placeholder="Thien nhien, Am thuc, Giai tri..."
+                placeholder="Thiên nhiên, Ẩm thực, Giải trí..."
               />
             </label>
 
             <label className="flex flex-col gap-2 md:col-span-2">
-              <FieldLabel>Dia chi</FieldLabel>
+              <FieldLabel>Địa chỉ</FieldLabel>
               <TextInput name="address" value={formData.address} onChange={onChange} />
             </label>
 
             <label className="flex flex-col gap-2">
-              <FieldLabel>Latitude</FieldLabel>
+              <FieldLabel>Vĩ độ</FieldLabel>
               <TextInput type="number" step="any" name="latitude" value={formData.latitude} onChange={onChange} />
             </label>
 
             <label className="flex flex-col gap-2">
-              <FieldLabel>Longitude</FieldLabel>
+              <FieldLabel>Kinh độ</FieldLabel>
               <TextInput type="number" step="any" name="longitude" value={formData.longitude} onChange={onChange} />
             </label>
 
             <label className="flex flex-col gap-2">
-              <FieldLabel>Khoang cach (km)</FieldLabel>
+              <FieldLabel>Khoảng cách (km)</FieldLabel>
               <TextInput type="number" step="0.1" name="distanceKm" value={formData.distanceKm} onChange={onChange} />
             </label>
 
             <div className="flex flex-col gap-2">
-              <FieldLabel>Anh dia diem</FieldLabel>
+              <FieldLabel>Ảnh địa điểm</FieldLabel>
               <div className="flex flex-col gap-3 rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-4">
                 <label className="inline-flex w-fit cursor-pointer items-center gap-2 rounded-2xl bg-sky-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-sky-100 transition hover:bg-sky-700">
                   <ImagePlus className="size-4" />
-                  Chon anh dia diem
+                  Chọn ảnh địa điểm
                   <input type="file" accept="image/*" onChange={onImageSelect} className="hidden" />
                 </label>
 
@@ -186,24 +186,24 @@ function AttractionModal({
                   <img src={previewImage} alt="preview" className="h-32 w-full rounded-2xl object-cover ring-1 ring-slate-200" />
                 ) : (
                   <div className="flex h-32 items-center justify-center rounded-2xl bg-white text-sm font-semibold text-slate-400 ring-1 ring-slate-200">
-                    Chua co anh
+                    Chưa có ảnh
                   </div>
                 )}
               </div>
             </div>
 
             <label className="flex flex-col gap-2 md:col-span-2">
-              <FieldLabel>Map embed link</FieldLabel>
+              <FieldLabel>Link nhúng bản đồ</FieldLabel>
               <TextInput
                 name="mapEmbedLink"
                 value={formData.mapEmbedLink}
                 onChange={onChange}
-                placeholder="Dan link Google Maps embed hoac iframe"
+                placeholder="Dán link Google Maps embed hoặc iframe"
               />
             </label>
 
             <label className="flex flex-col gap-2 md:col-span-2">
-              <FieldLabel>Mo ta</FieldLabel>
+              <FieldLabel>Mô tả</FieldLabel>
               <textarea
                 name="description"
                 value={formData.description}
@@ -235,7 +235,7 @@ function AttractionModal({
                   }`}
                 />
               </button>
-              {formData.isActive ? "Dang bat hien thi" : "Dang an khoi site map"}
+              {formData.isActive ? "Đang bật hiển thị" : "Đang ẩn khỏi site map"}
             </label>
 
             <div className="flex items-center gap-3">
@@ -246,7 +246,7 @@ function AttractionModal({
                   className="inline-flex items-center gap-2 rounded-2xl bg-rose-50 px-4 py-3 text-sm font-bold text-rose-600 transition hover:bg-rose-100"
                 >
                   <Trash2 className="size-4" />
-                  Xoa dia diem
+                  Xóa địa điểm
                 </button>
               ) : null}
 
@@ -255,7 +255,7 @@ function AttractionModal({
                 onClick={onClose}
                 className="rounded-2xl bg-slate-100 px-5 py-3 text-sm font-bold text-slate-600 transition hover:bg-slate-200"
               >
-                Dong
+                Đóng
               </button>
 
               <button
@@ -263,7 +263,7 @@ function AttractionModal({
                 disabled={isSubmitting}
                 className="rounded-2xl bg-sky-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-sky-100 transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {isSubmitting ? "Dang luu..." : "Luu dia diem"}
+                {isSubmitting ? "Đang lưu..." : "Lưu địa điểm"}
               </button>
             </div>
           </div>
@@ -281,7 +281,7 @@ function AttractionCard({ item, canEdit, isPending, onToggle, onEdit, onOpenMap 
           <img src={item.imageUrl} alt={item.name} className="h-full w-full object-cover" />
         ) : (
           <div className="flex h-full items-center justify-center text-sm font-semibold text-slate-400">
-            Chua co anh
+            Chưa có ảnh
           </div>
         )}
       </div>
@@ -296,7 +296,7 @@ function AttractionCard({ item, canEdit, isPending, onToggle, onEdit, onOpenMap 
             >
               {item.name}
             </button>
-            <p className="mt-1 text-sm font-semibold text-slate-500">{item.category || "Chua phan loai"}</p>
+            <p className="mt-1 text-sm font-semibold text-slate-500">{item.category || "Chưa phân loại"}</p>
           </div>
 
           <span
@@ -304,14 +304,14 @@ function AttractionCard({ item, canEdit, isPending, onToggle, onEdit, onOpenMap 
               item.isActive ? "bg-sky-50 text-sky-700" : "bg-slate-100 text-slate-500"
             }`}
           >
-            {item.isActive ? "Dang bat" : "Dang an"}
+            {item.isActive ? "Đang bật" : "Đang ẩn"}
           </span>
         </div>
 
         <div className="space-y-2 text-sm font-medium text-slate-500">
-          <p>{item.address || "Chua co dia chi"}</p>
-          <p>Toa do: {formatCoord(item.latitude)}, {formatCoord(item.longitude)}</p>
-          <p>Khoang cach: {formatDistance(item.distanceKm)}</p>
+          <p>{item.address || "Chưa có địa chỉ"}</p>
+          <p>Tọa độ: {formatCoord(item.latitude)}, {formatCoord(item.longitude)}</p>
+          <p>Khoảng cách: {formatDistance(item.distanceKm)}</p>
         </div>
 
         <div className="flex items-center justify-between gap-3 pt-2">
@@ -335,7 +335,7 @@ function AttractionCard({ item, canEdit, isPending, onToggle, onEdit, onOpenMap 
                   }`}
                 />
               </span>
-              <span className="text-sm font-bold text-sky-700">{item.isActive ? "Dang bat" : "Dang an"}</span>
+              <span className="text-sm font-bold text-sky-700">{item.isActive ? "Đang bật" : "Đang ẩn"}</span>
             </button>
           </PermissionGate>
 
@@ -390,7 +390,7 @@ export default function AdminAttractionsPage() {
         nextItems.some((item) => item.id === current) ? current : nextItems[0]?.id ?? null,
       );
     } catch (error) {
-      setMessage(readMessage(error, "Khong the tai danh sach dia diem."));
+      setMessage(readMessage(error, "Không thể tải danh sách địa điểm."));
     } finally {
       setIsLoading(false);
     }
@@ -455,7 +455,7 @@ export default function AdminAttractionsPage() {
       const payload = normalizePayload(formData);
 
       if (!payload.name) {
-        setModalError("Ten dia diem la bat buoc.");
+        setModalError("Tên địa điểm là bắt buộc.");
         setIsSubmitting(false);
         return;
       }
@@ -471,7 +471,7 @@ export default function AdminAttractionsPage() {
       closeModal();
       await loadItems(searchKeyword);
     } catch (error) {
-      setModalError(readMessage(error, "Khong the luu dia diem."));
+      setModalError(readMessage(error, "Không thể lưu địa điểm."));
     } finally {
       setIsSubmitting(false);
     }
@@ -489,7 +489,7 @@ export default function AdminAttractionsPage() {
         ),
       );
     } catch (error) {
-      setMessage(readMessage(error, "Khong the cap nhat trang thai dia diem."));
+      setMessage(readMessage(error, "Không thể cập nhật trạng thái địa điểm."));
     } finally {
       setPendingToggleId(null);
     }
@@ -498,7 +498,7 @@ export default function AdminAttractionsPage() {
   const handleDelete = async () => {
     if (!modalState.item?.id) return;
     const shouldDelete = window.confirm(
-      `Xoa dia diem "${modalState.item.name}"? Hanh dong nay khong the hoan tac.`,
+      `Xóa địa điểm "${modalState.item.name}"? Hành động này không thể hoàn tác.`,
     );
     if (!shouldDelete) return;
 
@@ -510,7 +510,7 @@ export default function AdminAttractionsPage() {
       closeModal();
       await loadItems(searchKeyword);
     } catch (error) {
-      setModalError(readMessage(error, "Khong the xoa dia diem."));
+      setModalError(readMessage(error, "Không thể xóa địa điểm."));
     } finally {
       setIsSubmitting(false);
     }
@@ -524,10 +524,10 @@ export default function AdminAttractionsPage() {
     <>
       <div className="mx-auto max-w-[1680px] space-y-8 pb-12">
         <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
-          <div>
-            <h1 className="text-4xl font-black tracking-tight text-slate-950">Quan ly dia diem</h1>
+            <div>
+            <h1 className="text-4xl font-black tracking-tight text-slate-950">Quản lý địa điểm</h1>
             <p className="mt-2 max-w-3xl text-sm font-medium text-slate-500">
-              Quan ly diem den, toa do thuc te va du lieu dung cho site map.
+              Quản lý điểm đến, tọa độ thực tế và dữ liệu dùng cho site map.
             </p>
           </div>
 
@@ -538,7 +538,7 @@ export default function AdminAttractionsPage() {
               className="inline-flex items-center gap-2 rounded-2xl bg-sky-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-sky-100 transition hover:bg-sky-700"
             >
               <Plus className="size-4" />
-              Them dia diem
+              Thêm địa điểm
             </button>
           </PermissionGate>
         </div>
@@ -554,8 +554,8 @@ export default function AdminAttractionsPage() {
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="inline-flex rounded-[1.2rem] border border-slate-200 bg-slate-50 p-1">
                 {[
-                  { id: "list", label: "Danh sach dia diem" },
-                  { id: "map", label: "Site Map" },
+                  { id: "list", label: "Danh sách địa điểm" },
+                  { id: "map", label: "Bản đồ" },
                 ].map((tab) => (
                   <button
                     key={tab.id}
@@ -576,7 +576,7 @@ export default function AdminAttractionsPage() {
                   type="text"
                   value={searchKeyword}
                   onChange={(event) => setSearchKeyword(event.target.value)}
-                  placeholder="Tim theo ten, dia chi, danh muc..."
+                  placeholder="Tìm theo tên, địa chỉ, danh mục..."
                   className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-sm font-semibold text-slate-800 outline-none focus:border-sky-300 focus:bg-white focus:ring-4 focus:ring-sky-100"
                 />
               </div>
@@ -587,29 +587,29 @@ export default function AdminAttractionsPage() {
             <div className="space-y-6 p-5">
               <div className="flex flex-wrap items-end justify-between gap-4">
                 <div>
-                  <h2 className="text-3xl font-black tracking-tight text-slate-950">Danh sach dia diem</h2>
+                  <h2 className="text-3xl font-black tracking-tight text-slate-950">Danh sách địa điểm</h2>
                   <p className="mt-1 text-sm font-medium text-slate-500">
-                    Tong cong {items.length} dia diem, {activeCount} dia diem dang hien thi.
+                    Tổng cộng {items.length} địa điểm, {activeCount} địa điểm đang hiển thị.
                   </p>
                 </div>
 
                 <div className="flex items-center gap-3">
                   <div className="rounded-2xl bg-sky-50 px-4 py-3 text-sm font-black text-sky-700">
-                    Dang bat: {activeCount}
+                    Đang bật: {activeCount}
                   </div>
                   <div className="rounded-2xl bg-slate-100 px-4 py-3 text-sm font-black text-slate-600">
-                    Tong: {items.length}
+                    Tổng: {items.length}
                   </div>
                 </div>
               </div>
 
               {isLoading ? (
                 <div className="rounded-[1.6rem] border border-dashed border-slate-200 px-6 py-16 text-center text-sm font-semibold text-slate-400">
-                  Dang tai danh sach dia diem...
+                  Đang tải danh sách địa điểm...
                 </div>
               ) : items.length === 0 ? (
                 <div className="rounded-[1.6rem] border border-dashed border-slate-200 px-6 py-16 text-center text-sm font-semibold text-slate-400">
-                  Khong co dia diem phu hop.
+                  Không có địa điểm phù hợp.
                 </div>
               ) : (
                 <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
@@ -634,14 +634,14 @@ export default function AdminAttractionsPage() {
             <div className="grid gap-6 p-5 xl:grid-cols-[360px,minmax(0,1fr)]">
               <div className="overflow-hidden rounded-[1.8rem] border border-slate-200 bg-white">
                 <div className="border-b border-slate-100 px-5 py-5">
-                  <h2 className="text-3xl font-black tracking-tight text-slate-950">Danh sach diem den</h2>
+                  <h2 className="text-3xl font-black tracking-tight text-slate-950">Danh sách điểm đến</h2>
                 </div>
 
                 <div className="max-h-[720px] overflow-y-auto">
                   {isLoading ? (
-                    <div className="px-5 py-10 text-sm font-semibold text-slate-400">Dang tai dia diem...</div>
+                    <div className="px-5 py-10 text-sm font-semibold text-slate-400">Đang tải địa điểm...</div>
                   ) : items.length === 0 ? (
-                    <div className="px-5 py-10 text-sm font-semibold text-slate-400">Khong co du lieu dia diem.</div>
+                    <div className="px-5 py-10 text-sm font-semibold text-slate-400">Không có dữ liệu địa điểm.</div>
                   ) : (
                     items.map((item) => {
                       const isSelected = selectedId === item.id;
@@ -654,10 +654,10 @@ export default function AdminAttractionsPage() {
                         >
                           <span className="text-lg font-black text-slate-900">{item.name}</span>
                           <span className="text-sm font-semibold text-slate-500">
-                            {(item.category || "Chua phan loai") + " • " + formatDistance(item.distanceKm)}
+                            {(item.category || "Chưa phân loại") + " • " + formatDistance(item.distanceKm)}
                           </span>
                           <span className="text-sm font-medium text-slate-400">
-                            {item.address || "Chua co dia chi"}
+                            {item.address || "Chưa có địa chỉ"}
                           </span>
                         </button>
                       );
@@ -673,7 +673,7 @@ export default function AdminAttractionsPage() {
                       <div>
                         <h2 className="text-4xl font-black tracking-tight text-slate-950">{selectedItem.name}</h2>
                         <p className="mt-2 text-sm font-semibold text-slate-500">
-                          {selectedItem.address || "Chua co dia chi"}
+                          {selectedItem.address || "Chưa có địa chỉ"}
                         </p>
                       </div>
 
@@ -685,7 +685,7 @@ export default function AdminAttractionsPage() {
                           className="inline-flex items-center gap-2 rounded-2xl bg-sky-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-sky-700"
                         >
                           <ExternalLink className="size-4" />
-                          Mo Google Maps
+                          Mở Google Maps
                         </a>
 
                         {canEdit ? (
@@ -695,7 +695,7 @@ export default function AdminAttractionsPage() {
                             className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700"
                           >
                             <Pencil className="size-4" />
-                            Chinh sua
+                            Chỉnh sửa
                           </button>
                         ) : null}
                       </div>
@@ -703,9 +703,9 @@ export default function AdminAttractionsPage() {
 
                     <div className="grid gap-4 md:grid-cols-3">
                       {[
-                        { label: "Latitude", value: formatCoord(selectedItem.latitude) },
-                        { label: "Longitude", value: formatCoord(selectedItem.longitude) },
-                        { label: "Khoang cach", value: formatDistance(selectedItem.distanceKm) },
+                        { label: "Vĩ độ", value: formatCoord(selectedItem.latitude) },
+                        { label: "Kinh độ", value: formatCoord(selectedItem.longitude) },
+                        { label: "Khoảng cách", value: formatDistance(selectedItem.distanceKm) },
                       ].map((stat) => (
                         <div key={stat.label} className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
                           <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">{stat.label}</p>
@@ -726,21 +726,21 @@ export default function AdminAttractionsPage() {
                       ) : (
                         <div className="flex h-[460px] flex-col items-center justify-center gap-3 px-6 text-center">
                           <MapPin className="size-10 text-slate-300" />
-                          <p className="text-lg font-bold text-slate-600">Dia diem nay chua co map embed link.</p>
+                          <p className="text-lg font-bold text-slate-600">Địa điểm này chưa có link nhúng bản đồ.</p>
                         </div>
                       )}
                     </div>
 
                     <div className="rounded-[1.8rem] border border-slate-200 bg-white p-5">
-                      <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Thong tin chi tiet</p>
+                      <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Thông tin chi tiết</p>
                       <p className="mt-3 text-sm font-semibold leading-7 text-slate-600">
-                        {selectedItem.description || "Chua co mo ta cho dia diem nay."}
+                        {selectedItem.description || "Chưa có mô tả cho địa điểm này."}
                       </p>
                     </div>
                   </div>
                 ) : (
                   <div className="flex min-h-[520px] items-center justify-center rounded-[1.8rem] border border-dashed border-slate-200 text-sm font-semibold text-slate-400">
-                    Chon mot dia diem de xem ban do va thong tin chi tiet.
+                    Chọn một địa điểm để xem bản đồ và thông tin chi tiết.
                   </div>
                 )}
               </div>
