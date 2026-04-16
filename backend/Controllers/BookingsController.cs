@@ -3,6 +3,7 @@ using backend.Common;
 using backend.Data;
 using backend.DTOs;
 using backend.Models;
+using backend.Security;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -34,6 +35,7 @@ namespace backend.Controllers
 
         // GET: api/Bookings
         [HttpGet]
+        [Permission("VIEW_BOOKINGS", "VIEW_DASHBOARD")]
         public async Task<ActionResult<PagedResponse<BookingResponseDTO>>> GetBookings(
         [FromQuery] string? search = null,
         [FromQuery] string? status = null,
@@ -104,6 +106,7 @@ namespace backend.Controllers
 
         // GET: api/Bookings/{id}
         [HttpGet("{id:int}")]
+        [Permission("VIEW_BOOKINGS")]
         public async Task<ActionResult<BookingResponseDTO>> GetBooking(int id)
         {
             var booking = await _context.Bookings
@@ -121,6 +124,7 @@ namespace backend.Controllers
 
         // POST: api/Bookings - Tạo booking mới
         [HttpPost]
+        [Permission("CREATE_BOOKINGS")]
         public async Task<ActionResult<BookingResponseDTO>> CreateBooking([FromBody] BookingCreateDTO dto)
         {
             if (dto.BookingDetails == null || !dto.BookingDetails.Any())
@@ -219,6 +223,7 @@ namespace backend.Controllers
         }
         // PATCH: api/Bookings/{id}/status - Cập nhật status
         [HttpPatch("{id:int}/status")]
+        [Permission("EDIT_BOOKINGS")]
         public async Task<IActionResult> UpdateBookingStatus(int id, [FromBody] BookingStatusUpdateDTO dto)
         {
             var booking = await _context.Bookings.FindAsync(id);
@@ -233,6 +238,7 @@ namespace backend.Controllers
 
         // PATCH: api/Bookings/{id}/check-in - Check-in khách
         [HttpPatch("{id:int}/check-in")]
+        [Permission("CHECKIN_BOOKING")]
         public async Task<IActionResult> CheckIn(int id)
         {
             var booking = await _context.Bookings
@@ -273,6 +279,7 @@ namespace backend.Controllers
 
         // PATCH: api/Bookings/{id}/check-out - Check-out khách
         [HttpPatch("{id:int}/check-out")]
+        [Permission("CHECKOUT_BOOKING")]
         public async Task<IActionResult> CheckOut(int id)
         {
             var booking = await _context.Bookings
@@ -314,6 +321,7 @@ namespace backend.Controllers
 
         // PATCH: api/Bookings/{id}/cancel - Hủy booking
         [HttpPatch("{id:int}/cancel")]
+        [Permission("DELETE_BOOKINGS")]
         public async Task<IActionResult> CancelBooking(int id)
         {
             var booking = await _context.Bookings
@@ -359,6 +367,7 @@ namespace backend.Controllers
 
         // PUT: api/Bookings/{id}/change-room - Chuyển đổi phòng (tính tiền chênh lệch)
         [HttpPut("{id:int}/change-room")]
+        [Permission("EDIT_BOOKINGS")]
         public async Task<ActionResult<object>> ChangeRoom(int id, [FromBody] ChangeRoomRequestDTO request)
         {
             var bookingDetail = await _context.BookingDetails
@@ -401,6 +410,7 @@ namespace backend.Controllers
 
         // GET: api/Bookings/arrivals - Khách đến hôm nay
         [HttpGet("arrivals")]
+        [Permission("VIEW_BOOKINGS")]
         public async Task<ActionResult<PagedResponse<BookingResponseDTO>>> GetArrivals(
             [FromQuery] DateTime? date = null,
             [FromQuery] int page = 1,
@@ -434,6 +444,7 @@ namespace backend.Controllers
 
         // GET: api/Bookings/in-house - Khách đang lưu trú
         [HttpGet("in-house")]
+        [Permission("VIEW_BOOKINGS")]
         public async Task<ActionResult<PagedResponse<BookingResponseDTO>>> GetInHouse(
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 20)
@@ -462,6 +473,7 @@ namespace backend.Controllers
 
         // GET: api/Bookings/departures - Khách dự kiến check-out hôm nay
         [HttpGet("departures")]
+        [Permission("VIEW_BOOKINGS")]
         public async Task<ActionResult<PagedResponse<BookingResponseDTO>>> GetDepartures(
             [FromQuery] DateTime? date = null,
             [FromQuery] int page = 1,

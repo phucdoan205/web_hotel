@@ -3,6 +3,7 @@ using backend.Common;
 using backend.Data;
 using backend.DTOs.Room;
 using backend.Models;
+using backend.Security;
 //using backend.Validators;
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
@@ -26,6 +27,7 @@ namespace backend.Controllers
 
         // GET: api/rooms
         [HttpGet]
+        [Permission("VIEW_ROOMS", "VIEW_DASHBOARD")]
         public async Task<ActionResult<PagedResult<RoomDetailDTO>>> GetRooms(
         [FromQuery] string? search = null,
         [FromQuery] string? status = null,
@@ -97,6 +99,7 @@ namespace backend.Controllers
 
         // GET: api/rooms/5 (chi tiáº¿t)
         [HttpGet("{id}")]
+        [Permission("VIEW_ROOMS")]
         public async Task<ActionResult<RoomDetailDTO>> GetRoom(int id)
         {
             var room = await _context.Rooms

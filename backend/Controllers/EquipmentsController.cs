@@ -3,6 +3,7 @@ using System.Text;
 using backend.Data;
 using backend.DTOs.Equipment;
 using backend.Models;
+using backend.Security;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -30,6 +31,7 @@ namespace backend.Controllers
         }
 
         [HttpGet("summary")]
+        [Permission("VIEW_INVENTORY")]
         public async Task<ActionResult<EquipmentSummaryDTO>> GetSummary()
         {
             var summarySource = await _context.Equipments
@@ -50,6 +52,7 @@ namespace backend.Controllers
         }
 
         [HttpGet]
+        [Permission("VIEW_INVENTORY")]
         public async Task<ActionResult<EquipmentListResponseDTO>> GetList(
             [FromQuery] string? search = null,
             [FromQuery] string? category = null,
@@ -117,6 +120,7 @@ namespace backend.Controllers
         }
 
         [HttpGet("{id:int}")]
+        [Permission("VIEW_INVENTORY")]
         public async Task<ActionResult<EquipmentListItemDTO>> GetById(int id)
         {
             var equipment = await _context.Equipments

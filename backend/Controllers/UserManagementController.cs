@@ -2,6 +2,7 @@ using backend.Data;
 using backend.DTOs;
 using backend.DTOs.User;
 using backend.Models;
+using backend.Security;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -22,6 +23,7 @@ namespace backend.Controllers
         }
 
         [HttpGet("staff")]
+        [Permission("VIEW_USERS")]
         public async Task<ActionResult<IEnumerable<UserManagementResponseDTO>>> GetStaff([FromQuery] bool includeInactive = true)
         {
             var staffRoleIds = new[] { 1, 4, 5 };
@@ -57,6 +59,7 @@ namespace backend.Controllers
         }
 
         [HttpGet]
+        [Permission("VIEW_USERS")]
         public async Task<ActionResult<IEnumerable<UserManagementResponseDTO>>> GetAll()
         {
             return await _context.Users
@@ -79,6 +82,7 @@ namespace backend.Controllers
         }
 
         [HttpGet("{id:int}")]
+        [Permission("VIEW_USERS")]
         public async Task<ActionResult<UserManagementResponseDTO>> GetById(int id)
         {
             var user = await _context.Users
@@ -103,6 +107,7 @@ namespace backend.Controllers
         }
 
         [HttpPost]
+        [Permission("CREATE_USERS")]
         public async Task<ActionResult<UserManagementResponseDTO>> Create(UserCreateDTO request)
         {
             var normalizedEmail = request.Email?.Trim();
@@ -155,6 +160,7 @@ namespace backend.Controllers
         }
 
         [HttpPut("{id:int}")]
+        [Permission("CREATE_USERS")]
         public async Task<ActionResult<UserManagementResponseDTO>> Update(int id, UserUpdateDTO request)
         {
             var user = await _context.Users
@@ -225,6 +231,7 @@ namespace backend.Controllers
         }
 
         [HttpPut("{id:int}/change-role")]
+        [Permission("EDIT_ROLES")]
         public async Task<IActionResult> ChangeRole(int id, ChangeRoleRequestDTO request)
         {
             var user = await _context.Users.FindAsync(id);
@@ -242,6 +249,7 @@ namespace backend.Controllers
         }
 
         [HttpDelete("{id:int}")]
+        [Permission("DELETE_USERS")]
         public async Task<IActionResult> SoftDelete(int id)
         {
             var user = await _context.Users.FindAsync(id);

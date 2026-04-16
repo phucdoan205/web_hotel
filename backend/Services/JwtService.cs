@@ -3,6 +3,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using backend.Models;
+using backend.Security;
 
 public class JwtService : IJwtService
 {
@@ -13,7 +14,7 @@ public class JwtService : IJwtService
         _config = config;
     }
 
-    public string CreateToken(User user)
+    public string CreateToken(User user, IEnumerable<string> permissions)
     {
         var claims = new List<Claim>
         {
@@ -23,9 +24,22 @@ public class JwtService : IJwtService
             new Claim(ClaimTypes.Role, user.Role?.Name ?? "Customer")
         };
 
+        if (user.RoleId.HasValue)
+        {
+            claims.Add(new Claim("RoleId", user.RoleId.Value.ToString()));
+        }
+
         if (!string.IsNullOrWhiteSpace(user.GoogleId))
         {
             claims.Add(new Claim("GoogleId", user.GoogleId));
+        }
+
+        foreach (var permission in permissions
+            .Where(permission => !string.IsNullOrWhiteSpace(permission))
+            .Select(permission => permission.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            claims.Add(new Claim(PermissionClaimTypes.Permission, permission));
         }
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));

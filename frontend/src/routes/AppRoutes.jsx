@@ -9,6 +9,7 @@ import HomePage from "../pages/public/HomePage";
 import BlogPage from "../pages/public/BlogPage";
 import LoginPage from "../pages/auth/LoginPage";
 import RegisterPage from "../pages/auth/RegisterPage";
+import ForbiddenPage from "../pages/ForbiddenPage";
 import ActivityPage from "../pages/public/ActivityPage";
 import PostDetailPage from "../pages/public/PostDetailPage";
 import BlogSearchPage from "../pages/public/BlogSearchPage";
@@ -16,6 +17,7 @@ import HotelListPage from "../pages/public/HotelListPage";
 import FoodPage from "../pages/public/FoodPage";
 
 import AdminSettingsPage from "../pages/admin/AdminSettingsPage";
+import AdminRolePermissionsPage from "../pages/admin/AdminRolePermissionsPage";
 import AdminDashboardPage from "../pages/admin/AdminDashboardPage";
 import AdminAuditLogPage from "../pages/admin/AdminAuditLogPage";
 import AdminReportsPage from "../pages/admin/AdminReportsPage";
@@ -48,6 +50,7 @@ import GuestPaymentMethodsPage from "../pages/guest/GuestPaymentMethodsPage";
 import GuestVoucherPage from "../pages/guest/GuestVoucherPage";
 import GuestMyFavoritesPage from "../pages/guest/GuestMyFavoritesPage";
 import GuestCustomerSupportPage from "../pages/guest/GuestCustomerSupportPage";
+import RequirePermission from "../components/auth/RequirePermission";
 
 const AppRoutes = () => {
   function RedirectReceptionistBookingPayment() {
@@ -82,35 +85,188 @@ const AppRoutes = () => {
 
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/403" element={<ForbiddenPage />} />
 
       <Route path="/admin" element={<AdminLayout />}>
-        <Route index element={<AdminDashboardPage />} />
-        <Route path="dashboard" element={<AdminDashboardPage />} />
+        <Route
+          index
+          element={
+            <RequirePermission permission="VIEW_DASHBOARD">
+              <AdminDashboardPage />
+            </RequirePermission>
+          }
+        />
+        <Route
+          path="dashboard"
+          element={
+            <RequirePermission permission="VIEW_DASHBOARD">
+              <AdminDashboardPage />
+            </RequirePermission>
+          }
+        />
         <Route path="settings" element={<AdminSettingsPage />} />
-        <Route path="audit-log" element={<AdminAuditLogPage />} />
+        <Route
+          path="settings/roles/:roleId"
+          element={
+            <RequirePermission permission="EDIT_ROLES">
+              <AdminRolePermissionsPage />
+            </RequirePermission>
+          }
+        />
+        <Route
+          path="audit-log"
+          element={
+            <RequirePermission permission="VIEW_LOG">
+              <AdminAuditLogPage />
+            </RequirePermission>
+          }
+        />
         <Route path="reports" element={<AdminReportsPage />} />
-        <Route path="bookings" element={<AdminBookingsPage />} />
-        <Route path="bookings/:id/payment-qr" element={<AdminBookingPaymentPage />} />
+        <Route
+          path="bookings"
+          element={
+            <RequirePermission permission="VIEW_BOOKINGS">
+              <AdminBookingsPage />
+            </RequirePermission>
+          }
+        />
+        <Route
+          path="bookings/:id/payment-qr"
+          element={
+            <RequirePermission permission="PAY_INVOICE">
+              <AdminBookingPaymentPage />
+            </RequirePermission>
+          }
+        />
         <Route path="check-in-out" element={<Navigate to="/admin/check-in" replace />} />
-        <Route path="check-in" element={<AdminCheckInPage />} />
-        <Route path="stay" element={<AdminStayPage />} />
-        <Route path="check-out" element={<AdminCheckOutPage />} />
-        <Route path="room-status" element={<AdminRoomStatusPage />} />
-        <Route path="rooms" element={<AdminRoomPage />} />
-        <Route path="room-types" element={<AdminRoomTypesPage />} />
-        <Route path="room-inventory" element={<AdminRoomInventoryPage />} />
-        <Route path="equipment" element={<AdminEquipmentPage />} />
-        <Route path="loss-damage" element={<AdminLossDamagePage />} />
-        <Route path="pos" element={<AdminPOSServicePage />} />
-        <Route path="staff" element={<AdminStaffPage />} />
-        <Route path="articles" element={<AdminArticlePage />} />
-        <Route path="articles/new" element={<AdminArticleEditorPage />} />
-        <Route path="articles/:id/edit" element={<AdminArticleEditorPage />} />
+        <Route
+          path="check-in"
+          element={
+            <RequirePermission permission="CHECKIN_BOOKING">
+              <AdminCheckInPage />
+            </RequirePermission>
+          }
+        />
+        <Route
+          path="stay"
+          element={
+            <RequirePermission permission="VIEW_BOOKINGS">
+              <AdminStayPage />
+            </RequirePermission>
+          }
+        />
+        <Route
+          path="check-out"
+          element={
+            <RequirePermission permission="CHECKOUT_BOOKING">
+              <AdminCheckOutPage />
+            </RequirePermission>
+          }
+        />
+        <Route
+          path="room-status"
+          element={
+            <RequirePermission permission="VIEW_ROOM_TRACKING">
+              <AdminRoomStatusPage />
+            </RequirePermission>
+          }
+        />
+        <Route
+          path="rooms"
+          element={
+            <RequirePermission permission="VIEW_ROOMS">
+              <AdminRoomPage />
+            </RequirePermission>
+          }
+        />
+        <Route
+          path="room-types"
+          element={
+            <RequirePermission permission="VIEW_ROOMS">
+              <AdminRoomTypesPage />
+            </RequirePermission>
+          }
+        />
+        <Route
+          path="room-inventory"
+          element={
+            <RequirePermission permission="VIEW_INVENTORY">
+              <AdminRoomInventoryPage />
+            </RequirePermission>
+          }
+        />
+        <Route
+          path="equipment"
+          element={
+            <RequirePermission permission="VIEW_INVENTORY">
+              <AdminEquipmentPage />
+            </RequirePermission>
+          }
+        />
+        <Route
+          path="loss-damage"
+          element={
+            <RequirePermission permission="VIEW_COMPENSATION">
+              <AdminLossDamagePage />
+            </RequirePermission>
+          }
+        />
+        <Route
+          path="pos"
+          element={
+            <RequirePermission permission="VIEW_SERVICES">
+              <AdminPOSServicePage />
+            </RequirePermission>
+          }
+        />
+        <Route
+          path="staff"
+          element={
+            <RequirePermission permission="VIEW_USERS">
+              <AdminStaffPage />
+            </RequirePermission>
+          }
+        />
+        <Route
+          path="articles"
+          element={
+            <RequirePermission permission="VIEW_CONTENT">
+              <AdminArticlePage />
+            </RequirePermission>
+          }
+        />
+        <Route
+          path="articles/new"
+          element={
+            <RequirePermission permission="CREATE_CONTENT">
+              <AdminArticleEditorPage />
+            </RequirePermission>
+          }
+        />
+        <Route
+          path="articles/:id/edit"
+          element={
+            <RequirePermission permission="EDIT_CONTENT">
+              <AdminArticleEditorPage />
+            </RequirePermission>
+          }
+        />
         <Route path="vouchers" element={<AdminVoucherPage />} />
-        <Route path="housekeeping/tasks" element={<AdminHousekeepingTasksPage />} />
+        <Route
+          path="housekeeping/tasks"
+          element={
+            <RequirePermission permission="VIEW_HOUSEKEEPING">
+              <AdminHousekeepingTasksPage />
+            </RequirePermission>
+          }
+        />
         <Route
           path="housekeeping/tasks/:roomId"
-          element={<AdminHousekeepingTaskDetailPage />}
+          element={
+            <RequirePermission permission="VIEW_HOUSEKEEPING">
+              <AdminHousekeepingTaskDetailPage />
+            </RequirePermission>
+          }
         />
       </Route>
 

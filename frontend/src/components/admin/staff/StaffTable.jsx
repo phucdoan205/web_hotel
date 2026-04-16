@@ -31,13 +31,15 @@ const StaffTable = ({
   statusUpdatingId,
   onEdit,
   onToggleStatus,
+  canEdit = true,
+  canDelete = true,
 }) => {
   return (
-    <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+    <div className="overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm">
       <div className="overflow-x-auto">
-        <table className="w-full text-left min-w-[760px]">
-          <thead className="bg-gray-50/50 border-b border-gray-100">
-            <tr className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">
+        <table className="min-w-[760px] w-full text-left">
+          <thead className="border-b border-gray-100 bg-gray-50/50">
+            <tr className="text-[11px] font-bold uppercase tracking-widest text-gray-400">
               <th className="px-6 py-5">Mã</th>
               <th className="px-6 py-5">Ảnh đại diện</th>
               <th className="px-6 py-5">Họ tên</th>
@@ -73,7 +75,7 @@ const StaffTable = ({
                 const roleLabel = roleLabels[member.roleId] ?? member.roleName ?? "Chưa có vai trò";
 
                 return (
-                  <tr key={member.id} className="hover:bg-gray-50/50 transition-colors">
+                  <tr key={member.id} className="transition-colors hover:bg-gray-50/50">
                     <td className="px-6 py-4 text-sm font-semibold text-gray-500">#{member.id}</td>
                     <td className="px-6 py-4">
                       <img
@@ -85,7 +87,7 @@ const StaffTable = ({
                     <td className="px-6 py-4 text-sm font-bold text-gray-900">{member.fullName}</td>
                     <td className="px-6 py-4">
                       <span
-                        className={`px-3 py-1 rounded-full text-[10px] font-bold ${
+                        className={`rounded-full px-3 py-1 text-[10px] font-bold ${
                           roleStyles[member.roleId] ?? "bg-slate-100 text-slate-600"
                         }`}
                       >
@@ -98,10 +100,10 @@ const StaffTable = ({
                         <button
                           type="button"
                           onClick={() => onToggleStatus(member)}
-                          disabled={isUpdatingStatus}
+                          disabled={isUpdatingStatus || !canDelete}
                           className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors ${
                             isActive ? activeStatusStyles.track : deletedStatusStyles.track
-                          } ${isUpdatingStatus ? "cursor-not-allowed opacity-60" : ""}`}
+                          } ${isUpdatingStatus || !canDelete ? "cursor-not-allowed opacity-60" : ""}`}
                           title={isActive ? "Set deleted" : "Set active"}
                         >
                           <span
@@ -124,7 +126,8 @@ const StaffTable = ({
                         <button
                           type="button"
                           onClick={() => onEdit(member)}
-                          className="p-2 text-gray-400 hover:text-sky-600 hover:bg-sky-50 rounded-xl transition-all"
+                          disabled={!canEdit}
+                          className="rounded-xl p-2 text-gray-400 transition-all hover:bg-sky-50 hover:text-sky-600 disabled:cursor-not-allowed disabled:opacity-40"
                           title="Chỉnh sửa nhân sự"
                         >
                           <Edit2 className="size-4" />
@@ -139,7 +142,7 @@ const StaffTable = ({
         </table>
       </div>
 
-      <div className="px-8 py-5 border-t border-gray-50 bg-white">
+      <div className="border-t border-gray-50 bg-white px-8 py-5">
         <p className="text-xs font-bold text-gray-400">
           Hiển thị <span className="text-gray-900">{staff.length}</span> nhân sự
         </p>

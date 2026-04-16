@@ -14,6 +14,7 @@ import { getRoles } from "../../api/admin/roleApi";
 import { getAvatarPreview } from "../../utils/avatar";
 import { getVietnamDateKey } from "../../utils/vietnamTime";
 import { STAFF_ROLE_IDS } from "../../constants/staffRoles";
+import { hasPermission } from "../../utils/permissions";
 
 const emptyForm = {
   fullName: "",
@@ -65,6 +66,9 @@ const AdminStaffPage = () => {
   const deferredSearchTerm = useDeferredValue(searchTerm);
   const isCreateMode = modalMode === "create";
   const isEditMode = modalMode === "edit";
+  const canCreateStaff = hasPermission("CREATE_USERS");
+  const canDeleteStaff = hasPermission("DELETE_USERS");
+  const canEditStaff = hasPermission("VIEW_USERS");
 
   const loadStaffPageData = async () => {
     setIsLoading(true);
@@ -120,6 +124,10 @@ const AdminStaffPage = () => {
   const deletedCount = staff.filter((member) => member.status !== true).length;
 
   const openEditModal = async (member) => {
+    if (!canEditStaff) {
+      return;
+    }
+
     setError("");
     setModalMode("edit");
     setEditingStaff(member);
@@ -169,6 +177,10 @@ const AdminStaffPage = () => {
   };
 
   const openCreateModal = () => {
+    if (!canCreateStaff) {
+      return;
+    }
+
     setError("");
     setEditingStaff(null);
     setModalMode("create");
@@ -403,7 +415,8 @@ const AdminStaffPage = () => {
             <button
               type="button"
               onClick={openCreateModal}
-              className="flex items-center gap-2 px-6 py-3 bg-sky-600 rounded-2xl text-sm font-bold text-white hover:bg-sky-700 transition-all shadow-lg shadow-sky-100"
+              disabled={!canCreateStaff}
+              className="flex items-center gap-2 px-6 py-3 bg-sky-600 rounded-2xl text-sm font-bold text-white hover:bg-sky-700 transition-all shadow-lg shadow-sky-100 disabled:cursor-not-allowed disabled:opacity-40"
             >
               <UserPlus className="size-5" />
               Thêm tài khoản nhân sự
@@ -439,6 +452,8 @@ const AdminStaffPage = () => {
           statusUpdatingId={statusUpdatingId}
           onEdit={openEditModal}
           onToggleStatus={handleToggleStatus}
+          canEdit={canEditStaff}
+          canDelete={canDeleteStaff}
         />
 
         <StaffWidgets

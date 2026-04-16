@@ -1,6 +1,7 @@
 using backend.Data;
 using backend.DTOs.Role;
 using backend.Models;
+using backend.Security;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.IdentityModel.Tokens.Jwt;
@@ -42,6 +43,7 @@ namespace backend.Controllers
         }
 
         [HttpGet]
+        [Permission("VIEW_ROLES")]
         public async Task<ActionResult<IEnumerable<RoleResponseDTO>>> GetAll()
         {
             var roles = await _context.Roles
@@ -60,6 +62,7 @@ namespace backend.Controllers
         }
 
         [HttpGet("{id:int}")]
+        [Permission("VIEW_ROLES")]
         public async Task<ActionResult<RoleResponseDTO>> GetById(int id)
         {
             var role = await _context.Roles
@@ -83,6 +86,7 @@ namespace backend.Controllers
         }
 
         [HttpGet("permissions")]
+        [Permission("VIEW_ROLES")]
         public async Task<ActionResult<IEnumerable<PermissionResponseDTO>>> GetPermissions()
         {
             var permissions = await _context.Permissions
@@ -99,6 +103,7 @@ namespace backend.Controllers
         }
 
         [HttpGet("{id:int}/permissions")]
+        [Permission("VIEW_ROLES")]
         public async Task<ActionResult<RolePermissionsResponseDTO>> GetRolePermissions(int id)
         {
             var role = await _context.Roles
@@ -125,6 +130,7 @@ namespace backend.Controllers
         }
 
         [HttpPost]
+        [Permission("CREATE_ROLES")]
         public async Task<ActionResult<RoleResponseDTO>> Create([FromBody] RoleRequestDTO request)
         {
             if (string.IsNullOrWhiteSpace(request.Name))
@@ -160,6 +166,7 @@ namespace backend.Controllers
         }
 
         [HttpPut("{id:int}")]
+        [Permission("EDIT_ROLES")]
         public async Task<IActionResult> Update(int id, [FromBody] RoleRequestDTO request)
         {
             if (string.IsNullOrWhiteSpace(request.Name))
@@ -188,6 +195,7 @@ namespace backend.Controllers
         }
 
         [HttpDelete("{id:int}")]
+        [Permission("DELETE_ROLES")]
         public async Task<IActionResult> Delete(int id)
         {
             var role = await _context.Roles
@@ -211,6 +219,7 @@ namespace backend.Controllers
         }
 
         [HttpPost("assign-permission")]
+        [Permission("EDIT_ROLES")]
         public async Task<IActionResult> AssignPermission([FromBody] AssignPermissionRequestDTO request)
         {
             if (request.PermissionIds == null)

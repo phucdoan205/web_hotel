@@ -5,17 +5,22 @@ import ProfileTab from "../../components/admin/settings/ProfileTab";
 import HotelInfoTab from "../../components/admin/settings/HotelInfoTab";
 import TeamManagementTab from "../../components/admin/settings/TeamManagementTab";
 import SecurityTab from "../../components/admin/settings/SecurityTab";
+import { hasPermission } from "../../utils/permissions";
 
 const tabs = [
   { id: "profile", label: "Profile", icon: User },
   { id: "hotel-info", label: "Hotel Info", icon: Hotel },
-  { id: "team-management", label: "Team Management", icon: Users },
+  { id: "team-management", label: "Team Management", icon: Users, permission: "VIEW_ROLES" },
   { id: "security", label: "Security", icon: Lock },
 ];
 
 const AdminSettingsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const activeTab = searchParams.get("settingsTab") ?? "profile";
+  const availableTabs = tabs.filter((tab) => hasPermission(tab.permission));
+  const requestedTab = searchParams.get("settingsTab") ?? "profile";
+  const activeTab = availableTabs.some((tab) => tab.id === requestedTab)
+    ? requestedTab
+    : "profile";
 
   const setActiveTab = (tabId) => {
     setSearchParams((currentParams) => {
@@ -64,7 +69,7 @@ const AdminSettingsPage = () => {
         </div>
 
         <div className="flex flex-wrap gap-2 rounded-[1.6rem] border border-white/80 bg-white/80 p-2 backdrop-blur">
-          {tabs.map((tab) => {
+          {availableTabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
 

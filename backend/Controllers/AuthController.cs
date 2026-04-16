@@ -4,6 +4,7 @@ using System.Text.Json.Serialization;
 using backend.Data;
 using backend.DTOs.Auth;
 using backend.Models;
+using backend.Security;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -46,6 +47,8 @@ namespace backend.Controllers
 
             var user = await _context.Users
                 .Include(u => u.Role)
+                    .ThenInclude(role => role!.RolePermissions)
+                    .ThenInclude(rolePermission => rolePermission.Permission)
                 .FirstOrDefaultAsync(u => u.Email == normalizedEmail);
 
             if (user == null || user.Status != true || !BCrypt.Net.BCrypt.Verify(loginDto.Password, user.PasswordHash))
@@ -75,6 +78,8 @@ namespace backend.Controllers
 
             var user = await _context.Users
                 .Include(u => u.Role)
+                    .ThenInclude(role => role!.RolePermissions)
+                    .ThenInclude(rolePermission => rolePermission.Permission)
                 .FirstOrDefaultAsync(u =>
                     (u.GoogleId != null && u.GoogleId == normalizedGoogleId) ||
                     u.Email == normalizedEmail);
@@ -95,6 +100,14 @@ namespace backend.Controllers
                 _context.Users.Add(user);
                 await _context.SaveChangesAsync();
                 await _context.Entry(user).Reference(u => u.Role).LoadAsync();
+                if (user.Role != null)
+                {
+                    await _context.Entry(user.Role)
+                        .Collection(role => role.RolePermissions)
+                        .Query()
+                        .Include(rolePermission => rolePermission.Permission)
+                        .LoadAsync();
+                }
 
                 await _notificationService.CreateAsync(
                     "New Google User",
@@ -140,7 +153,15 @@ namespace backend.Controllers
 
         private AuthResponseDto BuildAuthResponse(User user)
         {
-            var token = _jwtService.CreateToken(user);
+            var permissions = user.Role?.RolePermissions
+                .Select(rolePermission => rolePermission.Permission?.Name)
+                .Where(permissionName => !string.IsNullOrWhiteSpace(permissionName))
+                .Select(permissionName => permissionName!)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(permissionName => permissionName)
+                .ToList() ?? new List<string>();
+
+            var token = _jwtService.CreateToken(user, permissions);
 
             return new AuthResponseDto
             {
@@ -148,9 +169,11 @@ namespace backend.Controllers
                 UserId = user.Id,
                 FullName = user.FullName,
                 Role = user.Role?.Name,
+                RoleId = user.RoleId,
                 GoogleId = user.GoogleId,
                 Email = user.Email,
-                AvatarUrl = user.AvatarUrl
+                AvatarUrl = user.AvatarUrl,
+                Permissions = permissions
             };
         }
 
