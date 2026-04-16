@@ -13,6 +13,7 @@ import {
 import { getRoles } from "../../api/admin/roleApi";
 import { getAvatarPreview } from "../../utils/avatar";
 import { getVietnamDateKey } from "../../utils/vietnamTime";
+import { STAFF_ROLE_IDS } from "../../constants/staffRoles";
 
 const emptyForm = {
   fullName: "",
@@ -23,8 +24,6 @@ const emptyForm = {
   roleId: "",
   password: "",
 };
-
-const STAFF_ROLE_IDS = [1, 4, 5];
 
 const formatDateForInput = (value) => {
   if (!value) {
@@ -148,7 +147,7 @@ const AdminStaffPage = () => {
         roleId: staffDetail.roleId ? String(staffDetail.roleId) : "",
         password: "",
       });
-    } catch (fetchDetailError) {
+    } catch {
       // Keep the modal usable with row data if detail endpoint is unavailable.
     } finally {
       setIsLoadingEditDetail(false);

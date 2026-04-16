@@ -1,121 +1,93 @@
-import React, { useState } from "react";
-import {
-  ShieldCheck,
-  User,
-  Hotel,
-  Users,
-  Lock,
-  ChevronRight,
-} from "lucide-react";
-
-// Import các Tab Components
+import React from "react";
+import { Hotel, Lock, Settings2, User, Users } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 import ProfileTab from "../../components/admin/settings/ProfileTab";
 import HotelInfoTab from "../../components/admin/settings/HotelInfoTab";
 import TeamManagementTab from "../../components/admin/settings/TeamManagementTab";
 import SecurityTab from "../../components/admin/settings/SecurityTab";
 
+const tabs = [
+  { id: "profile", label: "Profile", icon: User },
+  { id: "hotel-info", label: "Hotel Info", icon: Hotel },
+  { id: "team-management", label: "Team Management", icon: Users },
+  { id: "security", label: "Security", icon: Lock },
+];
+
 const AdminSettingsPage = () => {
-  // Mặc định tab sẽ là 'Profile'
-  const [activeTab, setActiveTab] = useState("Profile");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get("settingsTab") ?? "profile";
 
-  const tabs = [
-    { id: "Profile", label: "Profile", icon: User },
-    { id: "Hotel Info", label: "Hotel Info", icon: Hotel },
-    { id: "Team Management", label: "Team Management", icon: Users },
-    { id: "Security", label: "Security", icon: Lock },
-  ];
+  const setActiveTab = (tabId) => {
+    setSearchParams((currentParams) => {
+      const nextParams = new URLSearchParams(currentParams);
 
-  // Hàm render nội dung tab dựa trên state
+      nextParams.set("settingsTab", tabId);
+
+      if (tabId !== "team-management") {
+        nextParams.delete("teamRoleId");
+        nextParams.delete("teamSection");
+      }
+
+      return nextParams;
+    });
+  };
+
   const renderTabContent = () => {
     switch (activeTab) {
-      case "Profile":
-        return <ProfileTab />;
-      case "Hotel Info":
+      case "hotel-info":
         return <HotelInfoTab />;
-      case "Team Management":
+      case "team-management":
         return <TeamManagementTab />;
-      case "Security":
+      case "security":
         return <SecurityTab />;
+      case "profile":
       default:
         return <ProfileTab />;
     }
   };
 
   return (
-    <div className="space-y-6 pb-20 max-w-400 mx-auto">
-      {/* Breadcrumbs */}
-      <div className="flex items-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
-        <span className="hover:text-blue-600 cursor-pointer transition-colors">
-          Admin
-        </span>
-        <ChevronRight className="size-3" />
-        <span className="text-gray-900">Settings</span>
-      </div>
+    <div className="mx-auto max-w-[1680px] space-y-8 pb-20">
+      <div className="flex flex-col gap-5 rounded-[2rem] border border-slate-200 bg-gradient-to-br from-white via-slate-50 to-sky-50 px-6 py-7 shadow-sm">
+        <div className="flex items-start gap-4">
+          <div className="rounded-[1.4rem] bg-slate-950 p-3 text-white shadow-lg shadow-slate-200">
+            <Settings2 className="size-6" />
+          </div>
 
-      {/* Header Section */}
-      <div className="flex flex-col justify-between gap-4 border-b border-gray-100 pb-8">
-        <div>
-          <h1 className="text-4xl font-black text-gray-900 tracking-tight">
-            Settings
-          </h1>
-          <p className="text-sm font-bold text-gray-400 mt-2">
-            Configure your account preferences, property details, and system
-            security.
-          </p>
+          <div>
+            <h1 className="text-4xl font-black tracking-tight text-slate-950">Settings</h1>
+            <p className="mt-2 max-w-3xl text-sm font-medium text-slate-500">
+              Quản lý hồ sơ, thông tin khách sạn, bảo mật và phân quyền vai trò trong cùng
+              một khu vực cài đặt.
+            </p>
+          </div>
         </div>
-      </div>
 
-      {/* Tab Navigation */}
-      <div className="flex items-center gap-2 bg-gray-100/50 p-1.5 rounded-3xl border border-gray-100">
-        {tabs.map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-6 py-2.5 rounded-[1.2rem] text-[11px] font-black uppercase tracking-wider transition-all
-                ${
+        <div className="flex flex-wrap gap-2 rounded-[1.6rem] border border-white/80 bg-white/80 p-2 backdrop-blur">
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                className={`inline-flex items-center gap-2 rounded-[1.1rem] px-5 py-3 text-xs font-black uppercase tracking-[0.18em] transition ${
                   isActive
-                    ? "bg-white text-blue-600 shadow-sm shadow-blue-100/50"
-                    : "text-gray-400 hover:text-gray-600 hover:bg-white/50"
+                    ? "bg-slate-950 text-white shadow-lg shadow-slate-200"
+                    : "text-slate-500 hover:bg-slate-100 hover:text-slate-900"
                 }`}
-            >
-              <Icon
-                className={`size-3.5 ${isActive ? "text-blue-600" : "text-gray-400"}`}
-              />
-              {tab.label}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Main Content Area */}
-      <div className="mt-8 relative min-h-150">
-        {/* Render Tab Content với Animation nhẹ */}
-        <div
-          key={activeTab}
-          className="animate-in fade-in slide-in-from-bottom-2 duration-500"
-        >
-          {renderTabContent()}
+              >
+                <Icon className="size-4" />
+                {tab.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* Global Footer (Tùy chọn) */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-md border-t border-gray-100 px-8 py-4 flex items-center justify-between z-10 lg:ml-64">
-        <div className="flex items-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-widest">
-          <div className="size-2 bg-emerald-500 rounded-full animate-pulse" />
-          All changes are auto-saved
-        </div>
-        <div className="flex items-center gap-4">
-          <button className="text-[10px] font-black text-gray-400 uppercase hover:text-gray-600 transition-colors">
-            Discard
-          </button>
-          <button className="px-8 py-2.5 bg-gray-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-lg shadow-gray-200">
-            Apply Changes
-          </button>
-        </div>
-      </div>
+      <div>{renderTabContent()}</div>
     </div>
   );
 };

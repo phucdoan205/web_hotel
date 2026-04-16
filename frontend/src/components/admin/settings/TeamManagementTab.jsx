@@ -1,384 +1,806 @@
-import React, { useDeferredValue, useEffect, useMemo, useState } from "react";
-import { Edit2, Mail, Search, X } from "lucide-react";
-import StaffWidgets from "../staff/StaffWidgets";
-import { getRoles } from "../../../api/admin/roleApi";
-import { changeStaffRole, getStaffList } from "../../../api/admin/staffApi";
-import { getAvatarPreview } from "../../../utils/avatar";
+import React, { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import {
+  ArrowLeft,
+  Ellipsis,
+  PencilLine,
+  Save,
+  Search,
+  ShieldCheck,
+  Trash2,
+} from "lucide-react";
+import {
+  assignRolePermissions,
+  deleteRole,
+  getPermissions,
+  getRolePermissions,
+  getRoles,
+  updateRole,
+} from "../../../api/admin/roleApi";
+import { buildPermissionSidebar } from "../../../utils/permissionCatalog";
 
-const STAFF_ROLE_IDS = [1, 4, 5];
+const TEAM_TAB_QUERY_KEY = "settingsTab";
+const ROLE_QUERY_KEY = "teamRoleId";
+const SECTION_QUERY_KEY = "teamSection";
+const TEAM_TAB_VALUE = "team-management";
 
-const roleStyles = {
-  1: "bg-amber-50 text-amber-700",
-  4: "bg-emerald-50 text-emerald-700",
-  5: "bg-blue-50 text-blue-600",
-};
+const readMessage = (error, fallbackMessage) => {
+  const responseMessage = error.response?.data?.message || error.response?.data;
 
-const roleLabels = {
-  1: "Admin",
-  4: "HouseKeeping",
-  5: "Receptionist",
+  if (typeof responseMessage === "string" && responseMessage.trim()) {
+    return responseMessage;
+  }
+
+  return fallbackMessage;
 };
 
 const TeamManagementTab = () => {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [staff, setStaff] = useState([]);
+  const [searchParams, setSearchParams] = useSearchParams();
   const [roles, setRoles] = useState([]);
-  const [editingStaff, setEditingStaff] = useState(null);
-  const [selectedRoleId, setSelectedRoleId] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState("");
-  const deferredSearchTerm = useDeferredValue(searchTerm);
+  const [permissions, setPermissions] = useState([]);
+  const [roleSearchKeyword, setRoleSearchKeyword] = useState("");
+  const [permissionSearchKeyword, setPermissionSearchKeyword] = useState("");
+  const [listMessage, setListMessage] = useState("");
+  const [editorMessage, setEditorMessage] = useState("");
+  const [roleForm, setRoleForm] = useState({ name: "", description: "" });
+  const [selectedPermissionIds, setSelectedPermissionIds] = useState(new Set());
+  const [activeMenuRoleId, setActiveMenuRoleId] = useState(null);
+  const [isLoadingList, setIsLoadingList] = useState(true);
+  const [isLoadingRoleDetail, setIsLoadingRoleDetail] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeletingRoleId, setIsDeletingRoleId] = useState(null);
 
-  const loadData = async () => {
-    setIsLoading(true);
-    setError("");
+  const selectedRoleId = searchParams.get(ROLE_QUERY_KEY);
+  const isEditorView = Boolean(selectedRoleId);
 
-    try {
-      const [staffList, rolesList] = await Promise.all([
-        getStaffList(true),
-        getRoles(),
-      ]);
+  const permissionSidebar = useMemo(
+    () => buildPermissionSidebar(permissions),
+    [permissions],
+  );
 
-      setStaff(staffList);
-      setRoles(
-        rolesList.filter((role) => STAFF_ROLE_IDS.includes(role.id)),
-      );
-    } catch (fetchError) {
-      const responseMessage =
-        fetchError.response?.data?.message || fetchError.response?.data;
-      const message =
-        typeof responseMessage === "string" && responseMessage.trim()
-          ? responseMessage
-          : "Cannot load team management data.";
+  const selectedSidebarId =
+    searchParams.get(SECTION_QUERY_KEY) ?? permissionSidebar[0]?.id ?? null;
 
-      setError(message);
-    } finally {
-      setIsLoading(false);
+  const selectedSidebarGroup =
+    permissionSidebar.find((group) => group.id === selectedSidebarId) ??
+    permissionSidebar[0] ??
+    null;
+
+  const allPermissionIds = useMemo(
+    () => permissions.map((permission) => permission.id),
+    [permissions],
+  );
+
+  const visibleRoles = useMemo(() => {
+    const normalizedKeyword = roleSearchKeyword.trim().toLowerCase();
+
+    if (!normalizedKeyword) {
+      return roles;
     }
+
+    return roles.filter((role) =>
+      [role.name, role.description, role.userCount]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(normalizedKeyword)),
+    );
+  }, [roleSearchKeyword, roles]);
+
+  const filteredSections = useMemo(() => {
+    if (!selectedSidebarGroup) {
+      return [];
+    }
+
+    const normalizedKeyword = permissionSearchKeyword.trim().toLowerCase();
+
+    if (!normalizedKeyword) {
+      return selectedSidebarGroup.sections;
+    }
+
+    return selectedSidebarGroup.sections
+      .map((section) => ({
+        ...section,
+        permissions: section.permissions.filter((permission) =>
+          [permission.displayName, permission.description, permission.name]
+            .filter(Boolean)
+            .some((value) => value.toLowerCase().includes(normalizedKeyword)),
+        ),
+      }))
+      .filter((section) => section.permissions.length > 0);
+  }, [permissionSearchKeyword, selectedSidebarGroup]);
+
+  const selectedRole = roles.find((role) => String(role.id) === selectedRoleId) ?? null;
+  const isAllEnabled =
+    allPermissionIds.length > 0 && selectedPermissionIds.size === allPermissionIds.length;
+
+  const updateSearch = (updates) => {
+    setSearchParams((currentParams) => {
+      const nextParams = new URLSearchParams(currentParams);
+
+      nextParams.set(TEAM_TAB_QUERY_KEY, TEAM_TAB_VALUE);
+
+      Object.entries(updates).forEach(([key, value]) => {
+        if (value === null || value === undefined || value === "") {
+          nextParams.delete(key);
+          return;
+        }
+
+        nextParams.set(key, String(value));
+      });
+
+      return nextParams;
+    });
   };
 
   useEffect(() => {
-    loadData();
+    let isMounted = true;
+
+    const loadRoleManagementData = async () => {
+      setIsLoadingList(true);
+      setListMessage("");
+
+      try {
+        const [rolesResponse, permissionsResponse] = await Promise.all([
+          getRoles(),
+          getPermissions(),
+        ]);
+
+        if (!isMounted) {
+          return;
+        }
+
+        setRoles(rolesResponse);
+        setPermissions(permissionsResponse);
+      } catch (error) {
+        if (isMounted) {
+          setListMessage(readMessage(error, "Không thể tải danh sách vai trò và quyền."));
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingList(false);
+        }
+      }
+    };
+
+    loadRoleManagementData();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  const filteredStaff = useMemo(() => {
-    const normalizedKeyword = deferredSearchTerm.trim().toLowerCase();
-
-    return staff.filter((member) => {
-      const matchesKeyword =
-        !normalizedKeyword ||
-        [member.id, member.fullName, member.email, member.roleName]
-          .filter(Boolean)
-          .some((value) =>
-            String(value).toLowerCase().includes(normalizedKeyword),
-          );
-
-      const isActive = member.status === true;
-      const matchesStatus =
-        statusFilter === "all" ||
-        (statusFilter === "active" && isActive) ||
-        (statusFilter === "deleted" && !isActive);
-
-      return matchesKeyword && matchesStatus;
-    });
-  }, [deferredSearchTerm, staff, statusFilter]);
-
-  const activeCount = staff.filter((member) => member.status === true).length;
-  const deletedCount = staff.filter((member) => member.status !== true).length;
-
-  const openRoleModal = (member) => {
-    setEditingStaff(member);
-    setSelectedRoleId(member.roleId ? String(member.roleId) : "");
-  };
-
-  const closeRoleModal = () => {
-    setEditingStaff(null);
-    setSelectedRoleId("");
-  };
-
-  const handleSaveRole = async (event) => {
-    event.preventDefault();
-
-    if (!editingStaff || !selectedRoleId) {
+  useEffect(() => {
+    if (!isEditorView) {
+      setEditorMessage("");
+      setPermissionSearchKeyword("");
+      setRoleForm({ name: "", description: "" });
+      setSelectedPermissionIds(new Set());
       return;
     }
 
-    setIsSubmitting(true);
-    setError("");
+    let isMounted = true;
+
+    const loadRoleDetail = async () => {
+      setIsLoadingRoleDetail(true);
+      setEditorMessage("");
+
+      try {
+        const roleDetail = await getRolePermissions(selectedRoleId);
+
+        if (!isMounted) {
+          return;
+        }
+
+        setRoleForm({
+          name: roleDetail.roleName ?? "",
+          description: roleDetail.description ?? "",
+        });
+        setSelectedPermissionIds(new Set(roleDetail.permissionIds ?? []));
+      } catch (error) {
+        if (!isMounted) {
+          return;
+        }
+
+        setEditorMessage(readMessage(error, "Không thể tải chi tiết vai trò."));
+      } finally {
+        if (isMounted) {
+          setIsLoadingRoleDetail(false);
+        }
+      }
+    };
+
+    loadRoleDetail();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isEditorView, selectedRoleId]);
+
+  useEffect(() => {
+    if (isEditorView && !selectedSidebarGroup && permissionSidebar[0]) {
+      setSearchParams((currentParams) => {
+        const nextParams = new URLSearchParams(currentParams);
+        nextParams.set(TEAM_TAB_QUERY_KEY, TEAM_TAB_VALUE);
+        nextParams.set(SECTION_QUERY_KEY, permissionSidebar[0].id);
+        return nextParams;
+      });
+    }
+  }, [isEditorView, permissionSidebar, selectedSidebarGroup, setSearchParams]);
+
+  const openRoleEditor = (roleId) => {
+    const nextSection = selectedSidebarGroup?.id ?? permissionSidebar[0]?.id ?? null;
+
+    updateSearch({
+      [ROLE_QUERY_KEY]: roleId,
+      [SECTION_QUERY_KEY]: nextSection,
+    });
+    setActiveMenuRoleId(null);
+  };
+
+  const closeRoleEditor = () => {
+    updateSearch({
+      [ROLE_QUERY_KEY]: null,
+      [SECTION_QUERY_KEY]: null,
+    });
+    setEditorMessage("");
+  };
+
+  const handleRoleFieldChange = (event) => {
+    const { name, value } = event.target;
+    setRoleForm((current) => ({
+      ...current,
+      [name]: value,
+    }));
+  };
+
+  const toggleSectionPermission = (section, permission) => {
+    setSelectedPermissionIds((current) => {
+      const next = new Set(current);
+      const isEnabled = next.has(permission.id);
+
+      if (section.viewPermissionName === permission.name) {
+        if (isEnabled) {
+          section.permissions.forEach((sectionPermission) => {
+            next.delete(sectionPermission.id);
+          });
+        } else {
+          next.add(permission.id);
+        }
+
+        return next;
+      }
+
+      if (isEnabled) {
+        next.delete(permission.id);
+        return next;
+      }
+
+      next.add(permission.id);
+
+      if (section.viewPermissionName) {
+        const viewPermission = section.permissions.find(
+          (sectionPermission) => sectionPermission.name === section.viewPermissionName,
+        );
+
+        if (viewPermission) {
+          next.add(viewPermission.id);
+        }
+      }
+
+      return next;
+    });
+  };
+
+  const clearSectionPermissions = (section) => {
+    setSelectedPermissionIds((current) => {
+      const next = new Set(current);
+      section.permissions.forEach((permission) => {
+        next.delete(permission.id);
+      });
+      return next;
+    });
+  };
+
+  const handleToggleAll = () => {
+    setSelectedPermissionIds(
+      isAllEnabled ? new Set() : new Set(allPermissionIds),
+    );
+  };
+
+  const handleSaveRole = async () => {
+    if (!selectedRoleId) {
+      return;
+    }
+
+    const normalizedName = roleForm.name.trim();
+
+    if (!normalizedName) {
+      setEditorMessage("Tên vai trò không được để trống.");
+      return;
+    }
+
+    setIsSaving(true);
+    setEditorMessage("");
 
     try {
-      await changeStaffRole(editingStaff.id, Number(selectedRoleId));
+      await Promise.all([
+        updateRole(selectedRoleId, {
+          name: normalizedName,
+          description: roleForm.description.trim(),
+        }),
+        assignRolePermissions({
+          roleId: Number(selectedRoleId),
+          permissionIds: [...selectedPermissionIds],
+        }),
+      ]);
 
-      const selectedRole = roles.find((role) => role.id === Number(selectedRoleId));
-
-      setStaff((current) =>
-        current.map((member) =>
-          member.id === editingStaff.id
+      setRoles((current) =>
+        current.map((role) =>
+          String(role.id) === selectedRoleId
             ? {
-                ...member,
-                roleId: Number(selectedRoleId),
-                roleName: selectedRole?.name ?? member.roleName,
+                ...role,
+                name: normalizedName,
+                description: roleForm.description.trim(),
               }
-            : member,
+            : role,
         ),
       );
 
-      closeRoleModal();
-    } catch (submitError) {
-      const message =
-        submitError.response?.data?.message ||
-        submitError.response?.data ||
-        "Cannot update role.";
-
-      setError(typeof message === "string" ? message : "Cannot update role.");
+      setEditorMessage("Đã lưu thay đổi vai trò.");
+    } catch (error) {
+      setEditorMessage(readMessage(error, "Không thể lưu thay đổi vai trò."));
     } finally {
-      setIsSubmitting(false);
+      setIsSaving(false);
     }
   };
 
-  return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      {error ? (
-        <div className="rounded-2xl border border-rose-100 bg-rose-50 px-5 py-4 text-sm font-semibold text-rose-600">
-          {error}
+  const handleDeleteRole = async (role) => {
+    const shouldDelete = window.confirm(
+      `Xóa vai trò "${role.name}"? Hành động này không thể hoàn tác.`,
+    );
+
+    if (!shouldDelete) {
+      return;
+    }
+
+    setIsDeletingRoleId(role.id);
+    setListMessage("");
+    setEditorMessage("");
+
+    try {
+      await deleteRole(role.id);
+      setRoles((current) => current.filter((item) => item.id !== role.id));
+      setActiveMenuRoleId(null);
+
+      if (String(role.id) === selectedRoleId) {
+        closeRoleEditor();
+      }
+    } catch (error) {
+      const message = readMessage(error, "Không thể xóa vai trò.");
+      setListMessage(message);
+      setEditorMessage(message);
+    } finally {
+      setIsDeletingRoleId(null);
+    }
+  };
+
+  if (!isEditorView) {
+    return (
+      <div className="space-y-6">
+        {listMessage ? (
+          <div className="rounded-3xl border border-rose-100 bg-rose-50 px-5 py-4 text-sm font-semibold text-rose-600">
+            {listMessage}
+          </div>
+        ) : null}
+
+        <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.25em] text-sky-500">
+              Team Management
+            </p>
+            <h2 className="mt-2 text-3xl font-black tracking-tight text-slate-950">
+              Phân quyền theo vai trò
+            </h2>
+            <p className="mt-2 max-w-2xl text-sm font-medium text-slate-500">
+              Xem danh sách vai trò hiện có, số lượng thành viên đang dùng từng vai trò, và
+              mở trang chỉnh sửa quyền chi tiết.
+            </p>
+          </div>
+
+          <div className="relative w-full max-w-md">
+            <Search className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              value={roleSearchKeyword}
+              onChange={(event) => setRoleSearchKeyword(event.target.value)}
+              placeholder="Tìm vai trò..."
+              className="w-full rounded-2xl border border-slate-200 bg-white py-3 pl-11 pr-4 text-sm font-semibold text-slate-900 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+            />
+          </div>
         </div>
-      ) : null}
 
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-gray-400" />
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(event) => setSearchTerm(event.target.value)}
-            placeholder="Search staff members..."
-            className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-transparent rounded-2xl text-sm font-bold outline-none focus:bg-white focus:border-blue-100 transition-all"
-          />
-        </div>
-      </div>
-
-      <StaffWidgets
-        totalCount={staff.length}
-        activeCount={activeCount}
-        deletedCount={deletedCount}
-      />
-
-      <div className="flex items-center gap-6 border-b border-gray-100">
-        {[
-          { id: "all", label: "All Staff" },
-          { id: "active", label: "Active" },
-          { id: "deleted", label: "Deleted" },
-        ].map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            onClick={() => setStatusFilter(item.id)}
-            className={`pb-4 text-[11px] font-black uppercase tracking-[0.15em] transition-all relative ${
-              statusFilter === item.id
-                ? "text-[#ff5e1f]"
-                : "text-gray-400 hover:text-gray-600"
-            }`}
-          >
-            {item.label}
-            {statusFilter === item.id ? (
-              <div className="absolute bottom-0 left-0 w-full h-0.5 bg-[#ff5e1f]" />
-            ) : null}
-          </button>
-        ))}
-      </div>
-
-      <div className="bg-white rounded-[2rem] border border-gray-100 overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left min-w-[760px]">
-            <thead>
-              <tr className="bg-gray-50/50">
-                <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                  Name
-                </th>
-                <th className="px-6 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                  Role
-                </th>
-                <th className="px-6 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                  Status
-                </th>
-                <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {isLoading ? (
+        <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="min-w-[760px] w-full">
+              <thead className="border-b border-slate-200 bg-slate-50/80">
                 <tr>
-                  <td
-                    colSpan={4}
-                    className="px-8 py-10 text-center text-sm font-semibold text-gray-400"
-                  >
-                    Loading team members...
-                  </td>
+                  <th className="px-8 py-5 text-left text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
+                    Vai trò
+                  </th>
+                  <th className="px-6 py-5 text-left text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
+                    Thành viên
+                  </th>
+                  <th className="px-6 py-5 text-center text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
+                    Chỉnh sửa
+                  </th>
+                  <th className="px-8 py-5 text-right text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
+                    Tùy chọn
+                  </th>
                 </tr>
-              ) : filteredStaff.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={4}
-                    className="px-8 py-10 text-center text-sm font-semibold text-gray-400"
-                  >
-                    No staff found.
-                  </td>
-                </tr>
-              ) : (
-                filteredStaff.map((staffMember) => {
-                  const isActive = staffMember.status === true;
-                  const roleLabel =
-                    roleLabels[staffMember.roleId] ??
-                    staffMember.roleName ??
-                    "No Role";
-
-                  return (
-                    <tr
-                      key={staffMember.id}
-                      className="hover:bg-gray-50/30 transition-colors"
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {isLoadingList ? (
+                  <tr>
+                    <td
+                      colSpan={4}
+                      className="px-8 py-12 text-center text-sm font-semibold text-slate-400"
                     >
-                      <td className="px-8 py-5">
-                        <div className="flex items-center gap-4">
-                          <img
-                            src={getAvatarPreview(staffMember)}
-                            alt={staffMember.fullName}
-                            className="size-11 rounded-2xl object-cover shadow-sm"
-                          />
+                      Đang tải danh sách vai trò...
+                    </td>
+                  </tr>
+                ) : visibleRoles.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={4}
+                      className="px-8 py-12 text-center text-sm font-semibold text-slate-400"
+                    >
+                      Không tìm thấy vai trò phù hợp.
+                    </td>
+                  </tr>
+                ) : (
+                  visibleRoles.map((role) => {
+                    const isDeleting = isDeletingRoleId === role.id;
+                    const isMenuOpen = activeMenuRoleId === role.id;
+
+                    return (
+                      <tr key={role.id} className="transition hover:bg-slate-50/70">
+                        <td className="px-8 py-5">
                           <div>
-                            <h4 className="text-sm font-black text-gray-900">
-                              {staffMember.fullName}
-                            </h4>
-                            <p className="text-[11px] font-bold text-gray-400 flex items-center gap-1">
-                              <Mail className="size-3" /> {staffMember.email}
+                            <p className="text-sm font-black text-slate-900">{role.name}</p>
+                            <p className="mt-1 text-xs font-medium text-slate-400">
+                              {role.description || "Chưa có mô tả vai trò."}
                             </p>
                           </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-5">
-                        <span
-                          className={`px-3 py-1.5 rounded-lg text-[10px] font-black ${
-                            roleStyles[staffMember.roleId] ??
-                            "bg-gray-50 text-gray-500"
-                          }`}
-                        >
-                          {roleLabel}
-                        </span>
-                      </td>
-                      <td className="px-6 py-5">
-                        <div className="flex items-center gap-2">
-                          <div
-                            className={`size-2 rounded-full ${
-                              isActive ? "bg-emerald-500" : "bg-rose-400"
-                            }`}
-                          />
-                          <span
-                            className={`text-[11px] font-black uppercase ${
-                              isActive ? "text-emerald-600" : "text-rose-500"
-                            }`}
-                          >
-                            {isActive ? "Active" : "Deleted"}
+                        </td>
+                        <td className="px-6 py-5">
+                          <span className="inline-flex rounded-full bg-sky-50 px-3 py-1.5 text-xs font-black text-sky-700">
+                            {role.userCount ?? 0} thành viên
                           </span>
-                        </div>
-                      </td>
-                      <td className="px-8 py-5 text-right">
-                        <button
-                          type="button"
-                          onClick={() => openRoleModal(staffMember)}
-                          className="p-2 text-gray-400 hover:text-[#ff5e1f] hover:bg-orange-50 rounded-xl transition-all"
-                        >
-                          <Edit2 className="size-4" />
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+                        </td>
+                        <td className="px-6 py-5 text-center">
+                          <button
+                            type="button"
+                            onClick={() => openRoleEditor(role.id)}
+                            className="inline-flex rounded-2xl border border-slate-200 p-2.5 text-slate-500 transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-600"
+                            title="Chỉnh sửa vai trò"
+                          >
+                            <PencilLine className="size-4" />
+                          </button>
+                        </td>
+                        <td className="px-8 py-5 text-right">
+                          <div className="relative inline-flex">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setActiveMenuRoleId((current) =>
+                                  current === role.id ? null : role.id,
+                                )
+                              }
+                              className="rounded-2xl border border-slate-200 p-2.5 text-slate-500 transition hover:border-slate-300 hover:bg-slate-100 hover:text-slate-700"
+                              title="Tùy chọn vai trò"
+                            >
+                              <Ellipsis className="size-4" />
+                            </button>
 
-        <div className="px-8 py-6 bg-gray-50/30 border-t border-gray-50">
-          <p className="text-[11px] font-bold text-gray-400">
-            Showing {filteredStaff.length} staff members
-          </p>
+                            {isMenuOpen ? (
+                              <div className="absolute right-0 top-14 z-10 min-w-40 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl">
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteRole(role)}
+                                  disabled={isDeleting}
+                                  className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                  <Trash2 className="size-4" />
+                                  {isDeleting ? "Đang xóa..." : "Xóa quyền"}
+                                </button>
+                              </div>
+                            ) : null}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
+    );
+  }
 
-      {editingStaff ? (
-        <div className="fixed inset-0 z-50 bg-slate-950/40 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-lg rounded-[2rem] bg-white shadow-2xl border border-gray-100 overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
+  return (
+    <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-[#101218] text-white shadow-2xl shadow-slate-200/60">
+      <div className="grid min-h-[780px] lg:grid-cols-[280px_minmax(0,1fr)]">
+        <aside className="border-b border-white/10 bg-[#0b0d12] p-5 lg:border-b-0 lg:border-r">
+          <button
+            type="button"
+            onClick={closeRoleEditor}
+            className="flex items-center gap-2 text-sm font-black uppercase tracking-[0.16em] text-slate-300 transition hover:text-white"
+          >
+            <ArrowLeft className="size-4" />
+            Trở lại
+          </button>
+
+          <div className="mt-8 space-y-2">
+            {roles.map((role) => {
+              const isActive = String(role.id) === selectedRoleId;
+
+              return (
+                <button
+                  key={role.id}
+                  type="button"
+                  onClick={() => openRoleEditor(role.id)}
+                  className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left transition ${
+                    isActive
+                      ? "bg-white/10 text-white"
+                      : "text-slate-400 hover:bg-white/5 hover:text-slate-100"
+                  }`}
+                >
+                  <span
+                    className={`size-2.5 rounded-full ${
+                      isActive ? "bg-sky-400" : "bg-slate-500"
+                    }`}
+                  />
+                  <span className="truncate text-sm font-bold">{role.name}</span>
+                </button>
+              );
+            })}
+          </div>
+        </aside>
+
+        <section className="bg-[#151821]">
+          <div className="border-b border-white/10 px-6 py-6">
+            <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
               <div>
-                <h2 className="text-xl font-black text-gray-900">Update Role</h2>
-                <p className="text-sm font-semibold text-gray-400 mt-1">
-                  Change role for this staff member only.
+                <p className="text-xs font-black uppercase tracking-[0.25em] text-sky-300">
+                  Team Management
+                </p>
+                <h2 className="mt-2 text-2xl font-black tracking-tight text-white">
+                  Sửa đổi vai trò
+                  {selectedRole ? ` - ${selectedRole.name}` : ""}
+                </h2>
+                <p className="mt-2 max-w-2xl text-sm font-medium text-slate-400">
+                  Chỉnh tên vai trò và bật hoặc tắt các quyền theo từng tab sidebar giống luồng
+                  phân quyền bạn yêu cầu.
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={closeRoleModal}
-                className="p-2 rounded-xl text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition-all"
-              >
-                <X className="size-5" />
-              </button>
+
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={handleToggleAll}
+                  className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-bold text-slate-100 transition hover:bg-white/10"
+                >
+                  {isAllEnabled ? "Bỏ chọn tất cả" : "Bật tất cả"}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveRole}
+                  disabled={isSaving || isLoadingRoleDetail}
+                  className="inline-flex items-center gap-2 rounded-2xl bg-sky-500 px-5 py-3 text-sm font-black text-slate-950 transition hover:bg-sky-400 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <Save className="size-4" />
+                  {isSaving ? "Đang lưu..." : "Lưu thay đổi"}
+                </button>
+              </div>
             </div>
 
-            <form onSubmit={handleSaveRole} className="p-6 space-y-5">
-              <div className="rounded-2xl bg-slate-50 border border-slate-100 p-4 flex items-center gap-4">
-                <img
-                  src={getAvatarPreview(editingStaff)}
-                  alt={editingStaff.fullName}
-                  className="size-12 rounded-2xl object-cover"
+            {editorMessage ? (
+              <div className="mt-4 rounded-2xl border border-sky-400/20 bg-sky-400/10 px-4 py-3 text-sm font-semibold text-sky-100">
+                {editorMessage}
+              </div>
+            ) : null}
+          </div>
+
+          <div className="border-b border-white/10 px-6 py-5">
+            <div className="grid gap-4 lg:grid-cols-2">
+              <label className="space-y-2">
+                <span className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">
+                  Tên vai trò
+                </span>
+                <input
+                  type="text"
+                  name="name"
+                  value={roleForm.name}
+                  onChange={handleRoleFieldChange}
+                  placeholder="Nhập tên vai trò"
+                  className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-white outline-none transition placeholder:text-slate-500 focus:border-sky-400 focus:ring-4 focus:ring-sky-400/10"
                 />
+              </label>
+
+              <label className="space-y-2">
+                <span className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">
+                  Mô tả
+                </span>
+                <input
+                  type="text"
+                  name="description"
+                  value={roleForm.description}
+                  onChange={handleRoleFieldChange}
+                  placeholder="Mô tả ngắn cho vai trò"
+                  className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-white outline-none transition placeholder:text-slate-500 focus:border-sky-400 focus:ring-4 focus:ring-sky-400/10"
+                />
+              </label>
+            </div>
+          </div>
+
+          <div className="grid min-h-[560px] lg:grid-cols-[240px_minmax(0,1fr)]">
+            <div className="border-b border-white/10 px-4 py-5 lg:border-b-0 lg:border-r">
+              <p className="px-3 text-xs font-black uppercase tracking-[0.18em] text-slate-500">
+                Tab sidebar
+              </p>
+              <div className="mt-4 space-y-2">
+                {permissionSidebar.map((group) => {
+                  const isActive = group.id === selectedSidebarGroup?.id;
+                  const enabledCount = group.sections.reduce(
+                    (total, section) =>
+                      total +
+                      section.permissions.filter((permission) =>
+                        selectedPermissionIds.has(permission.id),
+                      ).length,
+                    0,
+                  );
+
+                  return (
+                    <button
+                      key={group.id}
+                      type="button"
+                      onClick={() => updateSearch({ [SECTION_QUERY_KEY]: group.id })}
+                      className={`w-full rounded-2xl px-4 py-3 text-left transition ${
+                        isActive
+                          ? "bg-sky-500 text-slate-950"
+                          : "bg-transparent text-slate-300 hover:bg-white/5"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-sm font-black">{group.label}</span>
+                        <span
+                          className={`rounded-full px-2.5 py-1 text-[11px] font-black ${
+                            isActive ? "bg-slate-950/10" : "bg-white/10 text-slate-300"
+                          }`}
+                        >
+                          {enabledCount}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="px-6 py-5">
+              <div className="flex flex-col gap-4 border-b border-white/10 pb-5 lg:flex-row lg:items-center lg:justify-between">
                 <div>
-                  <p className="text-sm font-black text-gray-900">
-                    {editingStaff.fullName}
+                  <h3 className="text-2xl font-black text-white">
+                    {selectedSidebarGroup?.label ?? "Quyền hạn"}
+                  </h3>
+                  <p className="mt-1 text-sm font-medium text-slate-400">
+                    Quyền xem luôn nằm đầu tiên. Nếu tắt quyền xem, các quyền liên quan trong
+                    cùng mục sẽ tự tắt theo.
                   </p>
-                  <p className="text-xs font-semibold text-gray-400">
-                    {editingStaff.email}
-                  </p>
+                </div>
+
+                <div className="relative w-full max-w-md">
+                  <Search className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-slate-500" />
+                  <input
+                    type="text"
+                    value={permissionSearchKeyword}
+                    onChange={(event) => setPermissionSearchKeyword(event.target.value)}
+                    placeholder="Tìm permission..."
+                    className="w-full rounded-2xl border border-white/10 bg-white/5 py-3 pl-11 pr-4 text-sm font-semibold text-white outline-none transition placeholder:text-slate-500 focus:border-sky-400 focus:ring-4 focus:ring-sky-400/10"
+                  />
                 </div>
               </div>
 
-              <label className="flex flex-col gap-2">
-                <span className="text-sm font-bold text-gray-700">Role</span>
-                <select
-                  value={selectedRoleId}
-                  onChange={(event) => setSelectedRoleId(event.target.value)}
-                  className="rounded-2xl bg-gray-50 border border-gray-200 px-4 py-3 text-sm outline-none focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
-                >
-                  <option value="">Select role</option>
-                  {roles.map((role) => (
-                    <option key={role.id} value={role.id}>
-                      {role.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              {isLoadingRoleDetail ? (
+                <div className="flex min-h-[360px] items-center justify-center text-sm font-semibold text-slate-400">
+                  Đang tải quyền của vai trò...
+                </div>
+              ) : filteredSections.length === 0 ? (
+                <div className="flex min-h-[360px] flex-col items-center justify-center gap-3 text-center">
+                  <ShieldCheck className="size-10 text-slate-600" />
+                  <p className="text-sm font-semibold text-slate-300">
+                    Không có permission phù hợp với từ khóa tìm kiếm.
+                  </p>
+                </div>
+              ) : (
+                <div className="divide-y divide-white/10">
+                  {filteredSections.map((section) => {
+                    const fullSection =
+                      selectedSidebarGroup?.sections.find(
+                        (sidebarSection) => sidebarSection.id === section.id,
+                      ) ?? section;
 
-              <div className="flex items-center justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={closeRoleModal}
-                  className="px-5 py-3 rounded-2xl text-sm font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-all"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting || !selectedRoleId}
-                  className="px-5 py-3 rounded-2xl text-sm font-bold text-white bg-orange-600 hover:bg-orange-700 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                  {isSubmitting ? "Saving..." : "Save Role"}
-                </button>
-              </div>
-            </form>
+                    return (
+                    <div key={section.id} className="py-6">
+                      <div className="mb-5 flex items-center justify-between gap-4">
+                        <div>
+                          <h4 className="text-xl font-black text-white">{section.title}</h4>
+                          <p className="mt-1 text-sm font-medium text-slate-400">
+                            {fullSection.permissions.filter((permission) =>
+                              selectedPermissionIds.has(permission.id),
+                            ).length}
+                            {" "}quyền đang bật
+                          </p>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => clearSectionPermissions(fullSection)}
+                          className="text-sm font-bold text-sky-300 transition hover:text-sky-200"
+                        >
+                          Xóa quyền
+                        </button>
+                      </div>
+
+                      <div className="space-y-4">
+                        {section.permissions.map((permission) => {
+                          const isEnabled = selectedPermissionIds.has(permission.id);
+
+                          return (
+                            <div
+                              key={permission.id}
+                              className="flex items-start justify-between gap-6 rounded-3xl border border-white/5 bg-white/[0.03] px-5 py-5"
+                            >
+                              <div className="max-w-2xl">
+                                <p className="text-lg font-black text-white">
+                                  {permission.displayName}
+                                </p>
+                                <p className="mt-2 text-sm font-medium leading-6 text-slate-400">
+                                  {permission.description}
+                                </p>
+                              </div>
+
+                              <button
+                                type="button"
+                                role="switch"
+                                aria-checked={isEnabled}
+                                onClick={() => toggleSectionPermission(fullSection, permission)}
+                                className={`relative mt-1 h-8 w-14 shrink-0 rounded-full border transition ${
+                                  isEnabled
+                                    ? "border-sky-400 bg-sky-400"
+                                    : "border-white/10 bg-white/5"
+                                }`}
+                              >
+                                <span
+                                  className={`absolute top-1 size-6 rounded-full bg-white shadow-lg transition ${
+                                    isEnabled ? "left-7" : "left-1"
+                                  }`}
+                                />
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      ) : null}
+        </section>
+      </div>
     </div>
   );
 };

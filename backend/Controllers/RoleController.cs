@@ -82,19 +82,61 @@ namespace backend.Controllers
             return Ok(role);
         }
 
+        [HttpGet("permissions")]
+        public async Task<ActionResult<IEnumerable<PermissionResponseDTO>>> GetPermissions()
+        {
+            var permissions = await _context.Permissions
+                .AsNoTracking()
+                .OrderBy(p => p.Name)
+                .Select(p => new PermissionResponseDTO
+                {
+                    Id = p.Id,
+                    Name = p.Name
+                })
+                .ToListAsync();
+
+            return Ok(permissions);
+        }
+
+        [HttpGet("{id:int}/permissions")]
+        public async Task<ActionResult<RolePermissionsResponseDTO>> GetRolePermissions(int id)
+        {
+            var role = await _context.Roles
+                .AsNoTracking()
+                .Include(r => r.RolePermissions)
+                .FirstOrDefaultAsync(r => r.Id == id);
+
+            if (role == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(new RolePermissionsResponseDTO
+            {
+                RoleId = role.Id,
+                RoleName = role.Name,
+                Description = role.Description,
+                PermissionIds = role.RolePermissions
+                    .Select(rp => rp.PermissionId)
+                    .Distinct()
+                    .OrderBy(permissionId => permissionId)
+                    .ToList()
+            });
+        }
+
         [HttpPost]
         public async Task<ActionResult<RoleResponseDTO>> Create([FromBody] RoleRequestDTO request)
         {
             if (string.IsNullOrWhiteSpace(request.Name))
             {
-                return BadRequest("Tên role không được để trống.");
+                return BadRequest("Ten role khong duoc de trong.");
             }
 
             var normalizedName = request.Name.Trim();
             var exists = await _context.Roles.AnyAsync(r => r.Name == normalizedName);
             if (exists)
             {
-                return BadRequest("Tên role đã tồn tại.");
+                return BadRequest("Ten role da ton tai.");
             }
 
             var role = new Role
@@ -122,7 +164,7 @@ namespace backend.Controllers
         {
             if (string.IsNullOrWhiteSpace(request.Name))
             {
-                return BadRequest("Tên role không được để trống.");
+                return BadRequest("Ten role khong duoc de trong.");
             }
 
             var role = await _context.Roles.FindAsync(id);
@@ -135,7 +177,7 @@ namespace backend.Controllers
             var duplicatedName = await _context.Roles.AnyAsync(r => r.Id != id && r.Name == normalizedName);
             if (duplicatedName)
             {
-                return BadRequest("Tên role đã tồn tại.");
+                return BadRequest("Ten role da ton tai.");
             }
 
             role.Name = normalizedName;
@@ -159,7 +201,7 @@ namespace backend.Controllers
 
             if (role.Users.Any())
             {
-                return BadRequest("Không thể xóa role đang được gán cho user.");
+                return BadRequest("Khong the xoa role dang duoc gan cho user.");
             }
 
             _context.Roles.Remove(role);
@@ -171,9 +213,9 @@ namespace backend.Controllers
         [HttpPost("assign-permission")]
         public async Task<IActionResult> AssignPermission([FromBody] AssignPermissionRequestDTO request)
         {
-            if (request.PermissionIds == null || request.PermissionIds.Count == 0)
+            if (request.PermissionIds == null)
             {
-                return BadRequest("Danh sách permission không được để trống.");
+                return BadRequest("Danh sach permission khong hop le.");
             }
 
             var role = await _context.Roles
@@ -182,7 +224,7 @@ namespace backend.Controllers
 
             if (role == null)
             {
-                return NotFound("Không tìm thấy role.");
+                return NotFound("Khong tim thay role.");
             }
 
             var permissionIds = request.PermissionIds
@@ -194,9 +236,9 @@ namespace backend.Controllers
                 .Select(p => p.Id)
                 .ToListAsync();
 
-            if (existingPermissionIds.Count != permissionIds.Count)
+            if (permissionIds.Count > 0 && existingPermissionIds.Count != permissionIds.Count)
             {
-                return BadRequest("Một hoặc nhiều permission không tồn tại.");
+                return BadRequest("Mot hoac nhieu permission khong ton tai.");
             }
 
             _context.RolePermissions.RemoveRange(role.RolePermissions);
@@ -219,7 +261,7 @@ namespace backend.Controllers
             var userId = ResolveCurrentUserId();
             if (!userId.HasValue)
             {
-                return Unauthorized("Không xác định được user hiện tại.");
+                return Unauthorized("Khong xac dinh duoc user hien tai.");
             }
 
             var user = await _context.Users
@@ -231,7 +273,7 @@ namespace backend.Controllers
 
             if (user == null)
             {
-                return NotFound("Không tìm thấy user.");
+                return NotFound("Khong tim thay user.");
             }
 
             var permissions = user.Role?.RolePermissions
