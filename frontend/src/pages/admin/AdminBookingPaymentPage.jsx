@@ -58,10 +58,21 @@ const AdminBookingPaymentPage = () => {
   });
 
   const paymentState = getBookingPaymentState(booking);
-  const selectedDetail = useMemo(
+  const selectedDetailFromQuery = useMemo(
     () => booking?.bookingDetails?.find((detail) => detail.id === detailId) || null,
     [booking, detailId],
   );
+  const unpaidDetails = useMemo(
+    () => (booking?.bookingDetails || []).filter((detail) => !isBookingDetailPaid(booking, detail.id)),
+    [booking],
+  );
+  const fallbackDetail = useMemo(() => {
+    if (!booking?.bookingDetails?.length || selectedDetailFromQuery) return null;
+    if (unpaidDetails.length === 1) return unpaidDetails[0];
+    if (booking.bookingDetails.length === 1) return booking.bookingDetails[0];
+    return null;
+  }, [booking, selectedDetailFromQuery, unpaidDetails]);
+  const selectedDetail = selectedDetailFromQuery || fallbackDetail;
 
   const isSingleRoomPayment = Boolean(selectedDetail);
   const isCancelled = booking?.status === "Cancelled";
@@ -88,7 +99,7 @@ const AdminBookingPaymentPage = () => {
   const singleRoomPaid = selectedDetail ? isBookingDetailPaid(booking, selectedDetail.id) : false;
   const alreadyPaid = isSingleRoomPayment ? singleRoomPaid : paymentState.depositComplete;
   const selectedRoomNumber = selectedDetail?.room?.roomNumber || selectedDetail?.roomNumber || "--";
-  const selectedRoomType = selectedDetail?.roomTypeName || selectedDetail?.roomType?.name || "Phòng";
+  const selectedRoomType = selectedDetail?.roomTypeName || selectedDetail?.roomType?.name || "Phong";
 
   const confirmOnlineMutation = useMutation({
     mutationFn: async () => {
@@ -251,6 +262,31 @@ const AdminBookingPaymentPage = () => {
                 </p>
               </div>
             ) : null}
+            {!isSingleRoomPayment && unpaidDetails.length > 0 ? (
+              <div className="mb-4 rounded-2xl bg-white px-4 py-4 shadow-sm">
+                <p className="text-sm font-bold text-slate-700">Chon phong can thanh toan</p>
+                <div className="mt-3 space-y-2">
+                  {unpaidDetails.map((detail, index) => {
+                    const roomNumber = detail?.room?.roomNumber || detail?.roomNumber || index + 1;
+                    const roomType = detail?.roomTypeName || detail?.roomType?.name || "Phong";
+
+                    return (
+                      <button
+                        key={detail.id || `${booking?.id}-detail-${index}`}
+                        type="button"
+                        onClick={() => navigate(`/admin/bookings/${id}/payment-qr?detailId=${detail.id}`)}
+                        className="flex w-full items-center justify-between rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-left text-sm font-bold text-sky-700 transition hover:bg-sky-100"
+                      >
+                        <span>
+                          Phong {roomNumber} - {roomType}
+                        </span>
+                        <span>{formatCurrency(getBookingDetailDeposit(detail))}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
             <p className="text-sm font-bold text-slate-700">Booking</p>
             <p className="mt-1 text-lg font-black text-slate-900">{booking?.bookingCode || "--"}</p>
             <p className="mt-3 text-sm text-slate-500">
@@ -376,3 +412,4 @@ const AdminBookingPaymentPage = () => {
 };
 
 export default AdminBookingPaymentPage;
+

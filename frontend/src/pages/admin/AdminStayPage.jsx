@@ -6,7 +6,10 @@ import GuestFlowStats from "../../components/receptionist/checkinout/GuestFlowSt
 import GuestTable from "../../components/receptionist/checkinout/GuestTable";
 import { bookingsApi } from "../../api/admin/bookingsApi";
 import { buildBookingRoomEntries } from "../../utils/bookingRoomEntries";
-import { subscribeBookingRoomFlowState } from "../../utils/bookingRoomFlowState";
+import {
+  getStoredCheckedInRoomEntries,
+  subscribeBookingRoomFlowState,
+} from "../../utils/bookingRoomFlowState";
 import { getVietnamDateKey } from "../../utils/vietnamTime";
 
 const AdminStayPage = () => {
@@ -66,8 +69,16 @@ const AdminStayPage = () => {
   );
 
   const stayRooms = useMemo(() => {
-    const entries = buildBookingRoomEntries(inHouse, todayKey);
-    return entries.filter((entry) => !entry.checkedOut && !entry.dueForCheckout);
+    const apiEntries = buildBookingRoomEntries(inHouse, todayKey);
+    const storedEntries = getStoredCheckedInRoomEntries();
+    const merged = [...apiEntries, ...storedEntries].reduce((map, entry) => {
+      map.set(`${entry.bookingId}-${entry.detailId}`, entry);
+      return map;
+    }, new Map());
+
+    return Array.from(merged.values()).filter(
+      (entry) => entry.checkedIn && !entry.checkedOut && !entry.dueForCheckout,
+    );
   }, [inHouse, todayKey]);
 
   const isLoading = inHouseQuery.isLoading;

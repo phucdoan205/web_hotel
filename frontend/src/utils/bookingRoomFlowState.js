@@ -21,8 +21,10 @@ const writeStore = (store) => {
 const getEntry = (bookingId) => {
   const store = readStore();
   return store[String(bookingId)] || {
+    checkedInDetailIds: [],
     checkedOutDetailIds: [],
     invoicedDetailIds: [],
+    checkedInSnapshots: {},
     checkedOutSnapshots: {},
   };
 };
@@ -31,7 +33,13 @@ const updateEntry = (bookingId, updater) => {
   if (!bookingId) return;
   const store = readStore();
   const key = String(bookingId);
-  const current = store[key] || { checkedOutDetailIds: [], invoicedDetailIds: [] };
+  const current = store[key] || {
+    checkedInDetailIds: [],
+    checkedOutDetailIds: [],
+    invoicedDetailIds: [],
+    checkedInSnapshots: {},
+    checkedOutSnapshots: {},
+  };
   store[key] = updater(current);
   writeStore(store);
 };
@@ -47,6 +55,12 @@ export const isBookingDetailCheckedOut = (bookingId, detailId) => {
   if (!bookingId || !detailId) return false;
   const entry = getEntry(bookingId);
   return (entry.checkedOutDetailIds || []).includes(detailId);
+};
+
+export const isBookingDetailCheckedIn = (bookingId, detailId) => {
+  if (!bookingId || !detailId) return false;
+  const entry = getEntry(bookingId);
+  return (entry.checkedInDetailIds || []).includes(detailId);
 };
 
 export const isBookingDetailInvoiced = (bookingId, detailId) => {
@@ -87,6 +101,36 @@ export const markBookingDetailInvoiced = (bookingId, detailId) => {
   }));
 };
 
+export const saveBookingDetailCheckedInSnapshot = (bookingId, detailId, snapshot) => {
+  if (!bookingId || !detailId || !snapshot) return;
+
+  updateEntry(bookingId, (current) => ({
+    ...current,
+    checkedInDetailIds: Array.from(new Set([...(current.checkedInDetailIds || []), detailId])),
+    checkedInSnapshots: {
+      ...(current.checkedInSnapshots || {}),
+      [String(detailId)]: snapshot,
+    },
+  }));
+};
+
+export const getStoredCheckedInRoomEntries = () => {
+  const store = readStore();
+
+  return Object.entries(store).flatMap(([bookingId, entry]) => {
+    const snapshots = entry?.checkedInSnapshots || {};
+
+    return Object.entries(snapshots).map(([detailId, snapshot]) => ({
+      ...snapshot,
+      bookingId: Number(bookingId),
+      detailId: Number(detailId),
+      checkedIn: true,
+      checkedOut: (entry?.checkedOutDetailIds || []).includes(Number(detailId)),
+      invoiced: (entry?.invoicedDetailIds || []).includes(Number(detailId)),
+    }));
+  });
+};
+
 export const getStoredCheckedOutRoomEntries = () => {
   const store = readStore();
 
@@ -107,4 +151,10 @@ export const areAllBookingDetailsCheckedOut = (booking) => {
   const details = booking?.bookingDetails || [];
   if (details.length === 0 || !booking?.id) return false;
   return details.every((detail) => isBookingDetailCheckedOut(booking.id, detail.id));
+};
+
+export const areAllBookingDetailsCheckedIn = (booking) => {
+  const details = booking?.bookingDetails || [];
+  if (details.length === 0 || !booking?.id) return false;
+  return details.every((detail) => isBookingDetailCheckedIn(booking.id, detail.id));
 };

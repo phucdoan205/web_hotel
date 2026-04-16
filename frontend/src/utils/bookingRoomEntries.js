@@ -1,4 +1,5 @@
 import {
+  isBookingDetailCheckedIn,
   isBookingDetailCheckedOut,
   isBookingDetailInvoiced,
 } from "./bookingRoomFlowState";
@@ -42,6 +43,7 @@ export const buildBookingRoomEntries = (bookings = [], todayKey = "") =>
         cleaningStatus: detail.room?.cleaningStatus || booking.cleaningStatus || detail.cleaningStatus,
         checkInDate: detail.checkInDate,
         checkOutDate: detail.checkOutDate,
+        checkedIn: isBookingDetailCheckedIn(booking.id, detail.id),
         checkedOut: isBookingDetailCheckedOut(booking.id, detail.id),
         invoiced: isBookingDetailInvoiced(booking.id, detail.id),
         dueForCheckout,

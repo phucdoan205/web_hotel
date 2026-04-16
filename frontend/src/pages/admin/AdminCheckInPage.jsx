@@ -11,6 +11,8 @@ import {
 } from "lucide-react";
 import GuestTable from "../../components/receptionist/checkinout/GuestTable";
 import { bookingsApi } from "../../api/admin/bookingsApi";
+import { buildBookingRoomEntries } from "../../utils/bookingRoomEntries";
+import { isBookingDetailPaid } from "../../utils/bookingPaymentState";
 import {
   formatVietnamDate,
   getVietnamDateKey,
@@ -210,11 +212,21 @@ const AdminCheckInPage = () => {
     };
   }, [weeklyBookings, weekDays, weekStartKey, weekEndKey]);
 
-  const arrivals = useMemo(() => {
-    return (arrivalsQuery.data?.items || []).filter((booking) =>
-      ["Pending", "Confirmed"].includes(booking.status)
-    );
-  }, [arrivalsQuery.data]);
+  const arrivals = useMemo(
+    () =>
+      (arrivalsQuery.data?.items || []).filter((booking) =>
+        ["Pending", "Confirmed"].includes(booking.status),
+      ),
+    [arrivalsQuery.data],
+  );
+
+  const arrivalRooms = useMemo(
+    () =>
+      buildBookingRoomEntries(arrivals, selectedDate).filter(
+        (entry) => isBookingDetailPaid(entry.booking, entry.detailId) && !entry.checkedIn,
+      ),
+    [arrivals, selectedDate],
+  );
 
   const isLoading =
     activeTab === "schedule" ? weeklyBookingsQuery.isLoading : arrivalsQuery.isLoading;
@@ -439,7 +451,8 @@ const AdminCheckInPage = () => {
 
           <GuestTable
             activeTab="in"
-            data={arrivals}
+            data={arrivalRooms}
+            dataMode="room"
             onActionSuccess={(result) => {
               if (result?.notice) {
                 setScreenNotice(result.notice);

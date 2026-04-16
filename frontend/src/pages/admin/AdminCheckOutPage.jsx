@@ -6,6 +6,7 @@ import GuestTable from "../../components/receptionist/checkinout/GuestTable";
 import { bookingsApi } from "../../api/admin/bookingsApi";
 import { buildBookingRoomEntries } from "../../utils/bookingRoomEntries";
 import {
+  getStoredCheckedInRoomEntries,
   getStoredCheckedOutRoomEntries,
   subscribeBookingRoomFlowState,
 } from "../../utils/bookingRoomFlowState";
@@ -67,14 +68,17 @@ const AdminCheckOutPage = () => {
   );
 
   const checkoutRooms = useMemo(() => {
-    const entries = buildBookingRoomEntries(inHouse, todayKey);
-    const storedEntries = getStoredCheckedOutRoomEntries();
-    const merged = [...entries, ...storedEntries].reduce((map, entry) => {
+    const apiEntries = buildBookingRoomEntries(inHouse, todayKey);
+    const storedCheckedInEntries = getStoredCheckedInRoomEntries();
+    const storedCheckedOutEntries = getStoredCheckedOutRoomEntries();
+    const merged = [...apiEntries, ...storedCheckedInEntries, ...storedCheckedOutEntries].reduce((map, entry) => {
       map.set(`${entry.bookingId}-${entry.detailId}`, entry);
       return map;
     }, new Map());
 
-    return Array.from(merged.values()).filter((entry) => entry.dueForCheckout || entry.checkedOut);
+    return Array.from(merged.values()).filter(
+      (entry) => (entry.checkedIn && entry.dueForCheckout) || entry.checkedOut,
+    );
   }, [inHouse, todayKey]);
 
   const pendingCheckoutRooms = useMemo(

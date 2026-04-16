@@ -21,8 +21,11 @@ import {
   isBookingDetailPaid,
 } from "../../../utils/bookingPaymentState";
 import {
+  areAllBookingDetailsCheckedIn,
   areAllBookingDetailsCheckedOut,
+  isBookingDetailCheckedIn,
   markBookingDetailInvoiced,
+  saveBookingDetailCheckedInSnapshot,
   saveBookingDetailCheckedOutSnapshot,
   subscribeBookingRoomFlowState,
 } from "../../../utils/bookingRoomFlowState";
@@ -80,6 +83,8 @@ const getRoomNumber = (detail) => getRoomEntryNumber(detail);
 const getRoomName = (booking, detail) => getRoomEntryName(booking, detail);
 
 const getBasePrice = (booking, detail) => getRoomEntryPrice(booking, detail);
+
+const getRoomEntryPaidState = (roomEntry) => isBookingDetailPaid(roomEntry.booking, roomEntry.detailId);
 
 const getBookingStateLabel = (booking, activeTab) => {
   if (activeTab === "schedule") {
@@ -165,26 +170,21 @@ const GuestTable = ({
   }, [data, dataMode, roomFilter, search]);
 
   const checkInMutation = useMutation({
-    mutationFn: (bookingId) => bookingsApi.checkIn(bookingId),
-    onSuccess: (updatedBooking, bookingId) => {
-      queryClient.setQueryData(["confirmed-check-ins"], (oldData) =>
-        updateItems(oldData, (items) => items.filter((booking) => booking.id !== bookingId)),
-      );
+    mutationFn: async (subject) => {
+      if (!subject?.detailId) {
+        const updatedBooking = await bookingsApi.checkIn(subject.id);
+        return { mode: "booking", booking: updatedBooking || subject };
+      }
 
-      queryClient.setQueryData(["arrivals"], (oldData) =>
-        updateItems(oldData, (items) => items.filter((booking) => booking.id !== bookingId)),
-      );
+      saveBookingDetailCheckedInSnapshot(subject.bookingId, subject.detailId, subject);
 
-      queryClient.setQueryData(["in-house"], (oldData) =>
-        updateItems(oldData, (items) => {
-          const nextBooking = updatedBooking || items.find((booking) => booking.id === bookingId);
-          if (!nextBooking) return items;
+      if (areAllBookingDetailsCheckedIn(subject.booking)) {
+        await bookingsApi.checkIn(subject.bookingId);
+      }
 
-          const withoutCurrent = items.filter((booking) => booking.id !== bookingId);
-          return [{ ...nextBooking, status: "CheckedIn" }, ...withoutCurrent];
-        }),
-      );
-
+      return { mode: "room", roomEntry: subject };
+    },
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["in-house"] });
       queryClient.invalidateQueries({ queryKey: ["departures"] });
       queryClient.invalidateQueries({ queryKey: ["confirmed-check-ins"] });
@@ -193,7 +193,8 @@ const GuestTable = ({
       setConfirmingBooking(null);
       onActionSuccess?.({
         actionType: "in",
-        bookingId,
+        bookingId: result?.mode === "room" ? result.roomEntry.bookingId : result?.booking?.id,
+        detailId: result?.mode === "room" ? result.roomEntry.detailId : undefined,
         notice: {
           type: "success",
           title: "Check in thành công",
@@ -258,8 +259,8 @@ const GuestTable = ({
     },
   });
 
-  const handleCheckIn = async (bookingId) => {
-    await checkInMutation.mutateAsync(bookingId);
+  const handleCheckIn = async (roomEntry) => {
+    await checkInMutation.mutateAsync(roomEntry);
   };
 
   const handleCheckOutRoom = async (roomEntry) => {
@@ -301,8 +302,17 @@ const GuestTable = ({
     return (
       <div className="grid gap-5 lg:grid-cols-2">
         {filteredData.map((entry) => {
-          const isLoading =
-            checkOutMutation.isPending && checkOutMutation.variables?.id === entry.id;
+          const isCheckOutLoading =
+            checkOutMutation.isPending &&
+            checkOutMutation.variables?.bookingId === entry.bookingId &&
+            checkOutMutation.variables?.detailId === entry.detailId;
+          const isCheckInLoading =
+            checkInMutation.isPending &&
+            checkInMutation.variables?.bookingId === entry.bookingId &&
+            checkInMutation.variables?.detailId === entry.detailId;
+          const roomPaid = getRoomEntryPaidState(entry);
+          const roomCheckedIn = isBookingDetailCheckedIn(entry.bookingId, entry.detailId);
+          const canCheckIn = roomPaid && !roomCheckedIn;
 
           return (
             <article
@@ -317,7 +327,11 @@ const GuestTable = ({
                   <h3 className="mt-1 text-2xl font-black text-slate-900">{entry.roomName}</h3>
                 </div>
                 <div className="flex flex-wrap justify-end gap-2">
-                  {entry.checkedOut ? (
+                  {activeTab === "in" ? (
+                    <span className="inline-flex rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700 ring-1 ring-emerald-200">
+                      {entry.booking?.status === "Pending" ? "Cho xac nhan" : "Cho nhan phong"}
+                    </span>
+                  ) : entry.checkedOut ? (
                     <span className="inline-flex rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700 ring-1 ring-emerald-200">
                       Đã checkout
                     </span>
@@ -385,19 +399,53 @@ const GuestTable = ({
               </div>
 
               <div className="mt-5 space-y-3">
-                {!entry.checkedOut ? (
+                {activeTab === "in" ? (
+                  <>
+                    {roomCheckedIn ? (
+                      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700">
+                        Phong nay da check in.
+                      </div>
+                    ) : roomPaid ? (
+                      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700">
+                        Phong nay da thanh toan 1 dem.
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => handleOpenPayment(entry.bookingId, entry.detailId)}
+                        className="flex w-full items-center justify-center gap-2 rounded-2xl bg-sky-600 px-4 py-3 text-sm font-black text-white transition hover:bg-sky-700"
+                      >
+                        <QrCode size={18} />
+                        Thanh toan QR phong {entry.roomNumber}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setConfirmingBooking(entry)}
+                      disabled={isCheckInLoading || !canCheckIn}
+                      className={`flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-black transition-all disabled:cursor-not-allowed ${
+                        isCheckInLoading || !canCheckIn
+                          ? actionConfig.in.loadingClassName
+                          : actionConfig.in.idleClassName
+                      }`}
+                    >
+                      <CheckCircle size={18} />
+                      {isCheckInLoading ? "Dang xu ly..." : "Check in phong nay"}
+                    </button>
+                  </>
+                ) : !entry.checkedOut ? (
                   <button
                     type="button"
                     onClick={() => setConfirmingRoom(entry)}
-                    disabled={isLoading}
+                    disabled={isCheckOutLoading}
                     className={`flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-black transition-all disabled:cursor-not-allowed ${
-                      isLoading
+                      isCheckOutLoading
                         ? actionConfig.out.loadingClassName
                         : actionConfig.out.idleClassName
                     }`}
                   >
                     <SquareArrowRightExit size={18} />
-                    {isLoading ? "Đang xử lý..." : "Check out phòng này"}
+                    {isCheckOutLoading ? "Đang xử lý..." : "Check out phòng này"}
                   </button>
                 ) : (
                   <div className="space-y-3">
@@ -513,7 +561,7 @@ const GuestTable = ({
         activeTab === "in"
           ? (booking.bookingDetails || []).filter((detail) => !isBookingDetailPaid(booking, detail.id))
           : [];
-      const canCheckIn = activeTab !== "in" || paymentState.depositComplete;
+      const canCheckIn = activeTab !== "in" || paymentState.hasAnyPayment;
       const isLoading =
         activeTab === "in"
           ? checkInMutation.isPending && checkInMutation.variables === booking.id
@@ -718,7 +766,7 @@ const GuestTable = ({
               </button>
               <button
                 type="button"
-                onClick={() => handleCheckIn(confirmingBooking.id)}
+                onClick={() => handleCheckIn(confirmingBooking)}
                 disabled={checkInMutation.isPending}
                 className="rounded-2xl bg-emerald-600 px-4 py-2 font-black text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300"
               >
@@ -771,3 +819,4 @@ const GuestTable = ({
 };
 
 export default GuestTable;
+
