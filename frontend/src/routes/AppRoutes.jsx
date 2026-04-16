@@ -38,6 +38,7 @@ import AdminRoomPage from "../pages/admin/AdminRoomPage";
 import AdminRoomTypesPage from "../pages/admin/AdminRoomTypesPage";
 import AdminArticlePage from "../pages/admin/AdminArticlePage";
 import AdminArticleEditorPage from "../pages/admin/AdminArticleEditorPage";
+import AdminAttractionsPage from "../pages/admin/AdminAttractionsPage";
 import AdminVoucherPage from "../pages/admin/AdminVoucherPage";
 
 import GuestSettingsPage from "../pages/guest/GuestSettingsPage";
@@ -224,6 +225,14 @@ const AppRoutes = () => {
           element={
             <RequirePermission permission="VIEW_USERS">
               <AdminStaffPage />
+            </RequirePermission>
+          }
+        />
+        <Route
+          path="attractions"
+          element={
+            <RequirePermission permission="VIEW_ATTRACTIONS">
+              <AdminAttractionsPage />
             </RequirePermission>
           }
         />

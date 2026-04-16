@@ -3,6 +3,7 @@ using backend.Common;
 using backend.Data;
 using backend.DTOs.Attraction;
 using backend.Models;
+using backend.Security;
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -36,6 +37,7 @@ namespace backend.Controllers
 
         // GET: api/Attractions
         [HttpGet]
+        [Permission("VIEW_ATTRACTIONS")]
         public async Task<ActionResult<PagedResult<AttractionDTO>>> GetAttractions(
             [FromQuery] bool? activeOnly = true,
             [FromQuery] string? search = null,
@@ -51,7 +53,12 @@ namespace backend.Controllers
 
             if (!string.IsNullOrWhiteSpace(search))
             {
-                query = query.Where(a => a.Name.Contains(search.Trim()));
+                var normalizedSearch = search.Trim();
+                query = query.Where(a =>
+                    a.Name.Contains(normalizedSearch) ||
+                    (a.Category != null && a.Category.Contains(normalizedSearch)) ||
+                    (a.Address != null && a.Address.Contains(normalizedSearch)) ||
+                    (a.Description != null && a.Description.Contains(normalizedSearch)));
             }
 
             var totalCount = await query.CountAsync();
@@ -69,6 +76,7 @@ namespace backend.Controllers
 
         // GET: api/attractions/{id}
         [HttpGet("{id}")]
+        [Permission("VIEW_ATTRACTIONS")]
         public async Task<ActionResult<AttractionDTO>> GetAttraction(int id)
         {
             var attraction = await _context.Attractions
@@ -83,6 +91,7 @@ namespace backend.Controllers
 
         // POST: api/Attractions
         [HttpPost]
+        [Permission("CREATE_ATTRACTIONS")]
         public async Task<IActionResult> Create([FromBody] CreateAttractionDTO dto)
         {
             //var validation = await _createValidator.ValidateAsync(dto);
@@ -99,6 +108,7 @@ namespace backend.Controllers
 
         // PUT: api/Attractions/{id}
         [HttpPut("{id}")]
+        [Permission("EDIT_ATTRACTIONS")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateAttractionDTO dto)
         {
             var attraction = await _context.Attractions.FindAsync(id);
@@ -121,6 +131,7 @@ namespace backend.Controllers
 
         // DELETE: api/attractions/{id}
         [HttpDelete("{id}")]
+        [Permission("DELETE_ATTRACTIONS")]
         public async Task<IActionResult> Delete(int id)
         {
             var attraction = await _context.Attractions.FindAsync(id);
