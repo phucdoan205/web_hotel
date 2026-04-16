@@ -174,7 +174,7 @@ export default function Sidebar() {
         </div>
       </div>
 
-      <nav className="flex flex-1 flex-col overflow-y-auto pr-1">
+      <nav className="flex flex-1 flex-col overflow-y-auto pr-1 sidebar-hide-scrollbar">
         <div className="flex flex-col gap-y-1.5">
           {visibleMenuItems.map((item) => {
             if (item.children) {
@@ -204,13 +204,13 @@ export default function Sidebar() {
                   </button>
 
                   {isBookingExpanded ? (
-                    <div className="mt-1 flex flex-col gap-y-1 pl-3">
+                    <div className="mt-1 flex flex-col gap-y-1 pl-4">
                       {item.children.map((child) => (
                         <SidebarLink
                           key={child.name}
                           item={child}
                           pathname={location.pathname}
-                          className="pl-5 text-[13px]"
+                          className="pl-4 text-[13px]"
                         />
                       ))}
                     </div>
