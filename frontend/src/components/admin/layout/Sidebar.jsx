@@ -68,12 +68,7 @@ const menuItems = [
     name: "Booking",
     icon: CalendarCheck2,
     children: bookingChildren,
-    matchPaths: [
-      "/admin/bookings",
-      "/admin/check-in",
-      "/admin/stay",
-      "/admin/check-out",
-    ],
+    matchPaths: ["/admin/bookings", "/admin/check-in", "/admin/stay", "/admin/check-out"],
     permission: "VIEW_BOOKINGS",
   },
   {

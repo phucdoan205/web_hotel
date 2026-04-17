@@ -1,15 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, ArrowLeft, Receipt, Save, Tag, XCircle } from "lucide-react";
 import { bookingsApi } from "../../api/admin/bookingsApi";
+import { invoicesApi } from "../../api/admin/invoicesApi";
 import { useVoucherData } from "../../hooks/useVoucherData";
 import { markBookingDetailInvoiced } from "../../utils/bookingRoomFlowState";
 import {
   calculateStayedDays,
   calculateVoucherDiscount,
-  createStoredInvoice,
-  hasInvoiceForBookingDetail,
   isVoucherApplicable,
 } from "../../utils/invoiceState";
 import {
@@ -22,12 +21,7 @@ import { formatVietnamDate, formatVietnamDateTime } from "../../utils/vietnamTim
 
 const currencyFormatter = new Intl.NumberFormat("vi-VN");
 
-const formatCurrency = (value) => `${currencyFormatter.format(Number(value || 0))} d`;
-
-const buildInvoiceCode = (bookingCode, roomNumber) =>
-  `INV-${String(bookingCode || "BK").replace(/\s+/g, "").toUpperCase()}-${roomNumber}-${Date.now()
-    .toString()
-    .slice(-6)}`;
+const formatCurrency = (value) => `${currencyFormatter.format(Number(value || 0))} đ`;
 
 const ConfirmDialog = ({
   title,
@@ -37,7 +31,7 @@ const ConfirmDialog = ({
   onCancel,
   onConfirm,
 }) => (
-  <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm">
+  <div className="fixed inset-0 z-[80] flex items-center justify-center bg-sky-950/35 p-4 backdrop-blur-sm">
     <div className="w-full max-w-md rounded-[2rem] bg-white p-6 shadow-2xl">
       <div className="flex items-start gap-4">
         <div
@@ -59,7 +53,7 @@ const ConfirmDialog = ({
           onClick={onCancel}
           className="rounded-2xl bg-slate-100 px-4 py-2.5 text-sm font-bold text-slate-600 transition hover:bg-slate-200"
         >
-          Khong
+          Không
         </button>
         <button
           type="button"
@@ -77,8 +71,9 @@ const ConfirmDialog = ({
 
 const AdminInvoiceCreatePage = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
-  const bookingId = searchParams.get("bookingId");
+  const bookingId = Number(searchParams.get("bookingId"));
   const detailId = Number(searchParams.get("detailId"));
   const [selectedVoucherId, setSelectedVoucherId] = useState("");
   const [notes, setNotes] = useState("");
@@ -95,6 +90,12 @@ const AdminInvoiceCreatePage = () => {
     queryKey: ["booking", bookingId],
     queryFn: () => bookingsApi.getBookingById(bookingId),
     enabled: Boolean(bookingId),
+  });
+
+  const existingInvoicesQuery = useQuery({
+    queryKey: ["invoice-exists", bookingId, detailId],
+    queryFn: () => invoicesApi.getInvoices({ bookingId, bookingDetailId: detailId }),
+    enabled: Boolean(bookingId && detailId),
   });
 
   const detail = useMemo(
@@ -116,7 +117,42 @@ const AdminInvoiceCreatePage = () => {
     availableVouchers.find((voucher) => String(voucher.id) === String(selectedVoucherId)) || null;
   const discountAmount = calculateVoucherDiscount(selectedVoucher, subtotal);
   const totalAmount = Math.max(0, subtotal - discountAmount);
-  const invoiceExists = bookingId && detailId ? hasInvoiceForBookingDetail(bookingId, detailId) : false;
+  const invoiceExists = (existingInvoicesQuery.data || []).length > 0;
+
+  const createInvoiceMutation = useMutation({
+    mutationFn: () =>
+      invoicesApi.createInvoice({
+        bookingId,
+        bookingDetailId: detailId,
+        voucherId: selectedVoucher?.id || null,
+        notes: notes.trim() || null,
+        roomRate,
+        checkOutDate: currentTime.toISOString(),
+        stayedDays,
+        totalRoomAmount: subtotal,
+        discountAmount,
+        finalTotal: totalAmount,
+        voucherCode: selectedVoucher?.code || null,
+        voucherDiscountType: selectedVoucher?.discountType || null,
+        voucherDiscountValue: selectedVoucher?.discountValue || null,
+      }),
+    onSuccess: (invoice) => {
+      markBookingDetailInvoiced(bookingId, detailId);
+      queryClient.invalidateQueries({ queryKey: ["invoice-exists", bookingId, detailId] });
+      queryClient.invalidateQueries({ queryKey: ["invoices"] });
+      setConfirmAction("");
+      navigate("/admin/invoices", {
+        replace: true,
+        state: {
+          notice: {
+            type: "success",
+            title: "Đã lưu hóa đơn",
+            message: `Hóa đơn ${invoice.code} đã được tạo và đang ở trạng thái Pending.`,
+          },
+        },
+      });
+    },
+  });
 
   const handleCancelConfirmed = () => {
     setConfirmAction("");
@@ -124,57 +160,18 @@ const AdminInvoiceCreatePage = () => {
   };
 
   const handleSaveConfirmed = () => {
-    if (!booking || !detail) return;
-
-    const invoice = createStoredInvoice({
-      code: buildInvoiceCode(booking.bookingCode, roomNumber),
-      bookingId: booking.id,
-      detailId: detail.id,
-      bookingCode: booking.bookingCode,
-      guestName,
-      roomNumber,
-      roomName,
-      roomRate,
-      checkInDate: detail.checkInDate,
-      checkOutDate: currentTime.toISOString(),
-      stayedDays,
-      subtotal,
-      discountAmount,
-      totalAmount,
-      notes: notes.trim(),
-      status: "Pending",
-      voucher: selectedVoucher
-        ? {
-            id: selectedVoucher.id,
-            code: selectedVoucher.code,
-            discountType: selectedVoucher.discountType,
-            discountValue: selectedVoucher.discountValue,
-          }
-        : null,
-    });
-
-    markBookingDetailInvoiced(booking.id, detail.id);
-    setConfirmAction("");
-    navigate("/admin/invoices", {
-      replace: true,
-      state: {
-        notice: {
-          type: "success",
-          title: "Da luu hoa don",
-          message: `Hoa don ${invoice.code} da duoc tao va dang o trang thai Pending.`,
-        },
-      },
-    });
+    if (!booking || !detail || invoiceExists) return;
+    createInvoiceMutation.mutate();
   };
 
   if (isLoading) {
-    return <div className="rounded-[2rem] bg-white p-8 text-center text-slate-500">Dang tai du lieu hoa don...</div>;
+    return <div className="rounded-[2rem] bg-white p-8 text-center text-slate-500">Đang tải dữ liệu hóa đơn...</div>;
   }
 
   if (isError || !booking || !detail) {
     return (
       <div className="rounded-[2rem] border border-rose-200 bg-rose-50 p-8 text-center text-rose-700">
-        Khong tim thay booking/detail de tao hoa don.
+        Không tìm thấy booking hoặc chi tiết phòng để tạo hóa đơn.
       </div>
     );
   }
@@ -190,11 +187,11 @@ const AdminInvoiceCreatePage = () => {
               className="inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm ring-1 ring-slate-200 transition hover:bg-slate-50"
             >
               <ArrowLeft size={16} />
-              Quay lai tra phong
+              Quay lại trả phòng
             </button>
-            <h1 className="mt-4 text-3xl font-black text-slate-900">Tao hoa don checkout</h1>
+            <h1 className="mt-4 text-3xl font-black text-slate-900">Tạo hóa đơn checkout</h1>
             <p className="mt-2 text-sm font-medium text-slate-500">
-              Tao hoa don theo booking da checkout, tinh tien theo so ngay luu tru thuc te.
+              Tạo hóa đơn theo booking đã checkout và tính tiền theo số ngày lưu trú thực tế.
             </p>
           </div>
 
@@ -205,23 +202,23 @@ const AdminInvoiceCreatePage = () => {
               className="inline-flex items-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-bold text-slate-600 ring-1 ring-slate-200 transition hover:bg-slate-50"
             >
               <XCircle size={18} />
-              Huy
+              Hủy
             </button>
             <button
               type="button"
               onClick={() => setConfirmAction("save")}
-              disabled={invoiceExists}
+              disabled={invoiceExists || existingInvoicesQuery.isLoading || createInvoiceMutation.isPending}
               className="inline-flex items-center gap-2 rounded-2xl bg-sky-600 px-5 py-3 text-sm font-black text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:bg-sky-300"
             >
               <Save size={18} />
-              Luu
+              {createInvoiceMutation.isPending ? "Đang lưu..." : "Lưu"}
             </button>
           </div>
         </div>
 
         {invoiceExists ? (
           <div className="rounded-[2rem] border border-amber-200 bg-amber-50 px-5 py-4 text-sm font-semibold text-amber-800">
-            Booking phong nay da co hoa don truoc do. Ban co the quay lai danh sach hoa don de xem.
+            Phòng này đã có hóa đơn trước đó. Bạn có thể quay lại danh sách hóa đơn để xem chi tiết.
           </div>
         ) : null}
 
@@ -232,70 +229,70 @@ const AdminInvoiceCreatePage = () => {
                 <Receipt size={22} />
               </div>
               <div>
-                <p className="text-sm font-bold uppercase tracking-[0.2em] text-slate-400">Thong tin booking</p>
+                <p className="text-sm font-bold uppercase tracking-[0.2em] text-slate-400">Thông tin booking</p>
                 <h2 className="text-2xl font-black text-slate-900">{booking.bookingCode}</h2>
               </div>
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
               <div className="rounded-[1.5rem] bg-slate-50 p-4">
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Khach hang</p>
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Khách hàng</p>
                 <p className="mt-2 text-lg font-black text-slate-900">{guestName}</p>
               </div>
               <div className="rounded-[1.5rem] bg-slate-50 p-4">
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Phong</p>
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Phòng</p>
                 <p className="mt-2 text-lg font-black text-slate-900">
-                  Phong {roomNumber} - {roomName}
+                  Phòng {roomNumber} - {roomName}
                 </p>
               </div>
               <div className="rounded-[1.5rem] bg-slate-50 p-4">
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Ngay nhan phong</p>
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Ngày nhận phòng</p>
                 <p className="mt-2 text-lg font-black text-slate-900">{formatVietnamDate(detail.checkInDate)}</p>
               </div>
               <div className="rounded-[1.5rem] bg-slate-50 p-4">
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Realtime checkout</p>
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Checkout thời gian thực</p>
                 <p className="mt-2 text-lg font-black text-slate-900">{formatVietnamDateTime(currentTime)}</p>
               </div>
             </div>
 
-            <div className="rounded-[1.75rem] border border-sky-100 bg-sky-50 p-5">
+            <div className="rounded-[1.75rem] border border-sky-100 bg-gradient-to-br from-sky-50 to-cyan-50 p-5">
               <div className="grid gap-4 md:grid-cols-3">
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-[0.2em] text-sky-500">Gia 1 dem</p>
+                  <p className="text-xs font-bold uppercase tracking-[0.2em] text-sky-500">Giá 1 đêm</p>
                   <p className="mt-2 text-2xl font-black text-slate-900">{formatCurrency(roomRate)}</p>
                 </div>
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-[0.2em] text-sky-500">So ngay da o</p>
-                  <p className="mt-2 text-2xl font-black text-slate-900">{stayedDays} ngay</p>
+                  <p className="text-xs font-bold uppercase tracking-[0.2em] text-sky-500">Số ngày đã ở</p>
+                  <p className="mt-2 text-2xl font-black text-slate-900">{stayedDays} ngày</p>
                 </div>
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-[0.2em] text-sky-500">Tien tam tinh</p>
+                  <p className="text-xs font-bold uppercase tracking-[0.2em] text-sky-500">Tiền tạm tính</p>
                   <p className="mt-2 text-2xl font-black text-slate-900">{formatCurrency(subtotal)}</p>
                 </div>
               </div>
               <p className="mt-4 text-sm font-semibold text-sky-800">
-                Cong thuc: {formatCurrency(roomRate)} x {stayedDays} ngay = {formatCurrency(subtotal)}
+                Công thức: {formatCurrency(roomRate)} x {stayedDays} ngày = {formatCurrency(subtotal)}
               </p>
             </div>
 
             <div className="rounded-[1.75rem] border border-slate-200 p-5">
               <div className="flex items-center gap-3">
-                <div className="rounded-2xl bg-emerald-100 p-3 text-emerald-600">
+                <div className="rounded-2xl bg-sky-100 p-3 text-sky-600">
                   <Tag size={20} />
                 </div>
                 <div>
                   <p className="text-sm font-bold uppercase tracking-[0.2em] text-slate-400">Voucher</p>
-                  <h3 className="text-xl font-black text-slate-900">Ap dung giam gia</h3>
+                  <h3 className="text-xl font-black text-slate-900">Áp dụng giảm giá</h3>
                 </div>
               </div>
 
-              <div className="mt-4 grid gap-4 md:grid-cols-[minmax(0,1fr)_220px]">
+              <div className="mt-4 grid gap-4 md:grid-cols-[minmax(0,1fr)_240px]">
                 <select
                   value={selectedVoucherId}
                   onChange={(event) => setSelectedVoucherId(event.target.value)}
                   className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-sky-400"
                 >
-                  <option value="">Khong ap dung voucher</option>
+                  <option value="">Không áp dụng voucher</option>
                   {availableVouchers.map((voucher) => (
                     <option key={voucher.id} value={voucher.id}>
                       {voucher.code} - {voucher.discountType} {voucher.discountValue}
@@ -303,10 +300,10 @@ const AdminInvoiceCreatePage = () => {
                   ))}
                 </select>
 
-                <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
+                <div className="rounded-2xl bg-sky-50 px-4 py-3 text-sm font-semibold text-sky-800">
                   {selectedVoucher
-                    ? `${selectedVoucher.code} - giam ${formatCurrency(discountAmount)}`
-                    : "Chua ap dung voucher"}
+                    ? `${selectedVoucher.code} - giảm ${formatCurrency(discountAmount)}`
+                    : "Chưa áp dụng voucher"}
                 </div>
               </div>
 
@@ -314,26 +311,26 @@ const AdminInvoiceCreatePage = () => {
                 value={notes}
                 onChange={(event) => setNotes(event.target.value)}
                 rows={4}
-                placeholder="Ghi chu hoa don..."
+                placeholder="Ghi chú hóa đơn..."
                 className="mt-4 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-sky-400"
               />
             </div>
           </section>
 
-          <aside className="space-y-4 rounded-[2rem] bg-slate-900 p-6 text-white shadow-sm">
-            <p className="text-xs font-bold uppercase tracking-[0.25em] text-white/60">Tong ket hoa don</p>
-            <div className="rounded-[1.5rem] bg-white/10 p-4">
-              <p className="text-sm font-semibold text-white/70">Tong tien phong</p>
+          <aside className="space-y-4 rounded-[2rem] bg-gradient-to-br from-sky-700 via-sky-600 to-cyan-500 p-6 text-white shadow-sm">
+            <p className="text-xs font-bold uppercase tracking-[0.25em] text-white/75">Tổng kết hóa đơn</p>
+            <div className="rounded-[1.5rem] bg-white/15 p-4 backdrop-blur-sm">
+              <p className="text-sm font-semibold text-white/80">Tổng tiền phòng</p>
               <p className="mt-2 text-3xl font-black">{formatCurrency(subtotal)}</p>
             </div>
-            <div className="rounded-[1.5rem] bg-white/10 p-4">
-              <p className="text-sm font-semibold text-white/70">Giam voucher</p>
-              <p className="mt-2 text-3xl font-black text-emerald-300">- {formatCurrency(discountAmount)}</p>
+            <div className="rounded-[1.5rem] bg-white/15 p-4 backdrop-blur-sm">
+              <p className="text-sm font-semibold text-white/80">Giảm voucher</p>
+              <p className="mt-2 text-3xl font-black text-cyan-100">- {formatCurrency(discountAmount)}</p>
             </div>
-            <div className="rounded-[1.5rem] bg-sky-500 p-4 text-slate-950">
-              <p className="text-sm font-semibold text-slate-900/70">Tong thanh toan</p>
+            <div className="rounded-[1.5rem] bg-white p-4 text-sky-900">
+              <p className="text-sm font-semibold text-sky-700">Tổng thanh toán</p>
               <p className="mt-2 text-4xl font-black">{formatCurrency(totalAmount)}</p>
-              <p className="mt-3 text-sm font-semibold text-slate-900/70">Trang thai sau khi luu: Pending</p>
+              <p className="mt-3 text-sm font-semibold text-sky-700">Trạng thái sau khi lưu: Pending</p>
             </div>
           </aside>
         </div>
@@ -341,9 +338,9 @@ const AdminInvoiceCreatePage = () => {
 
       {confirmAction === "cancel" ? (
         <ConfirmDialog
-          title="Xac nhan huy tao hoa don"
-          description="Neu huy, du lieu hoa don moi se khong duoc luu va he thong se quay lai trang Tra phong."
-          confirmLabel="Co, huy"
+          title="Xác nhận hủy tạo hóa đơn"
+          description="Nếu hủy, dữ liệu hóa đơn mới sẽ không được lưu và hệ thống sẽ quay lại trang Trả phòng."
+          confirmLabel="Có, hủy"
           tone="rose"
           onCancel={() => setConfirmAction("")}
           onConfirm={handleCancelConfirmed}
@@ -352,9 +349,9 @@ const AdminInvoiceCreatePage = () => {
 
       {confirmAction === "save" ? (
         <ConfirmDialog
-          title="Xac nhan luu hoa don"
-          description="Hoa don se duoc luu vao danh sach hoa don voi trang thai Pending. Ban co muon tiep tuc?"
-          confirmLabel="Co, luu hoa don"
+          title="Xác nhận lưu hóa đơn"
+          description="Hóa đơn sẽ được lưu vào danh sách hóa đơn với trạng thái Pending. Bạn có muốn tiếp tục?"
+          confirmLabel="Có, lưu hóa đơn"
           onCancel={() => setConfirmAction("")}
           onConfirm={handleSaveConfirmed}
         />

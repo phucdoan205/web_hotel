@@ -134,6 +134,63 @@ namespace backend.Data
                     .OnDelete(DeleteBehavior.SetNull);
             });
 
+            modelBuilder.Entity<Invoice>(entity =>
+            {
+                entity.Property(invoice => invoice.Code)
+                    .HasColumnType("nvarchar(50)");
+
+                entity.Property(invoice => invoice.BookingCode)
+                    .HasColumnType("nvarchar(50)");
+
+                entity.Property(invoice => invoice.GuestName)
+                    .HasColumnType("nvarchar(255)");
+
+                entity.Property(invoice => invoice.RoomNumber)
+                    .HasColumnType("nvarchar(50)");
+
+                entity.Property(invoice => invoice.RoomName)
+                    .HasColumnType("nvarchar(255)");
+
+                entity.Property(invoice => invoice.RoomRate)
+                    .HasColumnType("decimal(18,2)");
+
+                entity.Property(invoice => invoice.TotalRoomAmount)
+                    .HasColumnType("decimal(18,2)");
+
+                entity.Property(invoice => invoice.TotalServiceAmount)
+                    .HasColumnType("decimal(18,2)");
+
+                entity.Property(invoice => invoice.DiscountAmount)
+                    .HasColumnType("decimal(18,2)");
+
+                entity.Property(invoice => invoice.TaxAmount)
+                    .HasColumnType("decimal(18,2)");
+
+                entity.Property(invoice => invoice.FinalTotal)
+                    .HasColumnType("decimal(18,2)");
+
+                entity.Property(invoice => invoice.Notes)
+                    .HasColumnType("nvarchar(max)");
+
+                entity.Property(invoice => invoice.VoucherCode)
+                    .HasColumnType("nvarchar(50)");
+
+                entity.Property(invoice => invoice.VoucherDiscountType)
+                    .HasColumnType("nvarchar(50)");
+
+                entity.Property(invoice => invoice.VoucherDiscountValue)
+                    .HasColumnType("decimal(18,2)");
+
+                entity.Property(invoice => invoice.CreatedAt)
+                    .HasColumnType("datetime");
+
+                entity.Property(invoice => invoice.UpdatedAt)
+                    .HasColumnType("datetime");
+
+                entity.Property(invoice => invoice.PaidAt)
+                    .HasColumnType("datetime");
+            });
+
             modelBuilder.Entity<Equipment>(entity =>
             {
                 entity.Property(e => e.ItemCode)

@@ -443,8 +443,26 @@ namespace backend.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("BookingCode")
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int?>("BookingDetailId")
+                        .HasColumnType("int");
+
                     b.Property<int?>("BookingId")
                         .HasColumnType("int");
+
+                    b.Property<DateTime?>("CheckInDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("CheckOutDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Code")
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime");
 
                     b.Property<decimal?>("DiscountAmount")
                         .HasColumnType("decimal(18,2)");
@@ -452,8 +470,29 @@ namespace backend.Migrations
                     b.Property<decimal?>("FinalTotal")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<string>("GuestName")
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("PaidAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("RoomName")
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("RoomNumber")
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<decimal?>("RoomRate")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<string>("Status")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("StayedDays")
+                        .HasColumnType("int");
 
                     b.Property<decimal?>("TaxAmount")
                         .HasColumnType("decimal(18,2)");
@@ -463,6 +502,21 @@ namespace backend.Migrations
 
                     b.Property<decimal?>("TotalServiceAmount")
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("VoucherCode")
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("VoucherDiscountType")
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<decimal?>("VoucherDiscountValue")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int?>("VoucherId")
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
 

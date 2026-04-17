@@ -80,7 +80,7 @@ BEGIN
     ADD IsActive bit NOT NULL CONSTRAINT DF_Vouchers_IsActive DEFAULT(1);
 END
 ");
-    await db.Database.ExecuteSqlRawAsync(@"
+await db.Database.ExecuteSqlRawAsync(@"
 IF COL_LENGTH('Articles', 'Summary') IS NULL ALTER TABLE Articles ADD Summary nvarchar(max) NULL;
 IF COL_LENGTH('Articles', 'Tags') IS NULL ALTER TABLE Articles ADD Tags nvarchar(max) NULL;
 IF COL_LENGTH('Articles', 'IsApproved') IS NULL ALTER TABLE Articles ADD IsApproved bit NOT NULL CONSTRAINT DF_Articles_IsApproved DEFAULT(0);
@@ -116,6 +116,26 @@ BEGIN
         CONSTRAINT FK_ArticleComments_ArticleComments_ParentCommentId FOREIGN KEY (ParentCommentId) REFERENCES ArticleComments(Id)
     );
 END
+");
+    await db.Database.ExecuteSqlRawAsync(@"
+IF COL_LENGTH('Invoices', 'BookingDetailId') IS NULL ALTER TABLE Invoices ADD BookingDetailId int NULL;
+IF COL_LENGTH('Invoices', 'VoucherId') IS NULL ALTER TABLE Invoices ADD VoucherId int NULL;
+IF COL_LENGTH('Invoices', 'Code') IS NULL ALTER TABLE Invoices ADD Code nvarchar(50) NULL;
+IF COL_LENGTH('Invoices', 'BookingCode') IS NULL ALTER TABLE Invoices ADD BookingCode nvarchar(50) NULL;
+IF COL_LENGTH('Invoices', 'GuestName') IS NULL ALTER TABLE Invoices ADD GuestName nvarchar(255) NULL;
+IF COL_LENGTH('Invoices', 'RoomNumber') IS NULL ALTER TABLE Invoices ADD RoomNumber nvarchar(50) NULL;
+IF COL_LENGTH('Invoices', 'RoomName') IS NULL ALTER TABLE Invoices ADD RoomName nvarchar(255) NULL;
+IF COL_LENGTH('Invoices', 'RoomRate') IS NULL ALTER TABLE Invoices ADD RoomRate decimal(18,2) NULL;
+IF COL_LENGTH('Invoices', 'CheckInDate') IS NULL ALTER TABLE Invoices ADD CheckInDate datetime NULL;
+IF COL_LENGTH('Invoices', 'CheckOutDate') IS NULL ALTER TABLE Invoices ADD CheckOutDate datetime NULL;
+IF COL_LENGTH('Invoices', 'StayedDays') IS NULL ALTER TABLE Invoices ADD StayedDays int NULL;
+IF COL_LENGTH('Invoices', 'Notes') IS NULL ALTER TABLE Invoices ADD Notes nvarchar(max) NULL;
+IF COL_LENGTH('Invoices', 'VoucherCode') IS NULL ALTER TABLE Invoices ADD VoucherCode nvarchar(50) NULL;
+IF COL_LENGTH('Invoices', 'VoucherDiscountType') IS NULL ALTER TABLE Invoices ADD VoucherDiscountType nvarchar(50) NULL;
+IF COL_LENGTH('Invoices', 'VoucherDiscountValue') IS NULL ALTER TABLE Invoices ADD VoucherDiscountValue decimal(18,2) NULL;
+IF COL_LENGTH('Invoices', 'CreatedAt') IS NULL ALTER TABLE Invoices ADD CreatedAt datetime NULL;
+IF COL_LENGTH('Invoices', 'UpdatedAt') IS NULL ALTER TABLE Invoices ADD UpdatedAt datetime NULL;
+IF COL_LENGTH('Invoices', 'PaidAt') IS NULL ALTER TABLE Invoices ADD PaidAt datetime NULL;
 ");
 }
 

@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace backend.Migrations
 {
     /// <inheritdoc />
-    public partial class newupdate : Migration
+    public partial class databasenew : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -636,12 +636,30 @@ namespace backend.Migrations
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     BookingId = table.Column<int>(type: "int", nullable: true),
+                    BookingDetailId = table.Column<int>(type: "int", nullable: true),
+                    VoucherId = table.Column<int>(type: "int", nullable: true),
+                    Code = table.Column<string>(type: "nvarchar(50)", nullable: true),
+                    BookingCode = table.Column<string>(type: "nvarchar(50)", nullable: true),
+                    GuestName = table.Column<string>(type: "nvarchar(255)", nullable: true),
+                    RoomNumber = table.Column<string>(type: "nvarchar(50)", nullable: true),
+                    RoomName = table.Column<string>(type: "nvarchar(255)", nullable: true),
+                    RoomRate = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
+                    CheckInDate = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    CheckOutDate = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    StayedDays = table.Column<int>(type: "int", nullable: true),
                     TotalRoomAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
                     TotalServiceAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
                     DiscountAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
                     TaxAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
                     FinalTotal = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
-                    Status = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    Status = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Notes = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    VoucherCode = table.Column<string>(type: "nvarchar(50)", nullable: true),
+                    VoucherDiscountType = table.Column<string>(type: "nvarchar(50)", nullable: true),
+                    VoucherDiscountValue = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: true),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime", nullable: true),
+                    PaidAt = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {

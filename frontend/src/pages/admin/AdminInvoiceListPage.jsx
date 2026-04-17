@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, Clock3, CreditCard, Eye, Receipt, Search, X } from "lucide-react";
-import { getStoredInvoices, markInvoiceCompleted, subscribeInvoiceState } from "../../utils/invoiceState";
+import { invoicesApi } from "../../api/admin/invoicesApi";
 import { formatVietnamDateTime } from "../../utils/vietnamTime";
 
 const currencyFormatter = new Intl.NumberFormat("vi-VN");
 
-const formatCurrency = (value) => `${currencyFormatter.format(Number(value || 0))} d`;
+const formatCurrency = (value) => `${currencyFormatter.format(Number(value || 0))} đ`;
 
 const statusClasses = {
   Pending: "bg-amber-50 text-amber-700 ring-1 ring-amber-200",
@@ -16,12 +17,15 @@ const statusClasses = {
 const AdminInvoiceListPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
-  const [invoices, setInvoices] = useState(() => getStoredInvoices());
   const [screenNotice, setScreenNotice] = useState(location.state?.notice || null);
   const [pendingPaymentInvoice, setPendingPaymentInvoice] = useState(null);
 
-  useEffect(() => subscribeInvoiceState(() => setInvoices(getStoredInvoices())), []);
+  const invoicesQuery = useQuery({
+    queryKey: ["invoices", search],
+    queryFn: () => invoicesApi.getInvoices({ search: search.trim() || undefined }),
+  });
 
   useEffect(() => {
     if (!location.state?.notice) return;
@@ -34,28 +38,25 @@ const AdminInvoiceListPage = () => {
     return () => window.clearTimeout(timer);
   }, [screenNotice]);
 
-  const filteredInvoices = useMemo(() => {
-    const normalizedSearch = search.trim().toLowerCase();
+  const completeInvoiceMutation = useMutation({
+    mutationFn: (invoiceId) => invoicesApi.completeInvoice(invoiceId),
+    onSuccess: (invoice) => {
+      queryClient.invalidateQueries({ queryKey: ["invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["invoice", String(invoice.id)] });
+      setPendingPaymentInvoice(null);
+      setScreenNotice({
+        type: "success",
+        title: "Đã thanh toán hóa đơn",
+        message: `${invoice.code || "Hóa đơn"} đã chuyển sang Completed.`,
+      });
+    },
+  });
 
-    return invoices.filter((invoice) => {
-      if (!normalizedSearch) return true;
-
-      return [invoice.code, invoice.bookingCode, invoice.guestName, invoice.roomNumber, invoice.status]
-        .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(normalizedSearch));
-    });
-  }, [invoices, search]);
+  const filteredInvoices = useMemo(() => invoicesQuery.data || [], [invoicesQuery.data]);
 
   const handlePaymentConfirmed = () => {
     if (!pendingPaymentInvoice) return;
-
-    const updatedInvoice = markInvoiceCompleted(pendingPaymentInvoice.id);
-    setPendingPaymentInvoice(null);
-    setScreenNotice({
-      type: "success",
-      title: "Da thanh toan hoa don",
-      message: `${updatedInvoice?.code || "Hoa don"} da chuyen sang Completed.`,
-    });
+    completeInvoiceMutation.mutate(pendingPaymentInvoice.id);
   };
 
   return (
@@ -63,9 +64,9 @@ const AdminInvoiceListPage = () => {
       <div className="space-y-6">
         {screenNotice ? (
           <div className="sticky top-20 z-20">
-            <div className="flex items-start justify-between gap-4 rounded-[2rem] border border-emerald-200 bg-emerald-50 px-5 py-4 text-emerald-900 shadow-sm">
+            <div className="flex items-start justify-between gap-4 rounded-[2rem] border border-sky-200 bg-sky-50 px-5 py-4 text-sky-900 shadow-sm">
               <div className="flex items-start gap-3">
-                <CheckCircle2 className="mt-0.5 text-emerald-600" size={22} />
+                <CheckCircle2 className="mt-0.5 text-sky-600" size={22} />
                 <div>
                   <p className="font-black">{screenNotice.title}</p>
                   <p className="text-sm">{screenNotice.message}</p>
@@ -84,9 +85,9 @@ const AdminInvoiceListPage = () => {
 
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-black text-slate-900">Danh sach hoa don</h1>
+            <h1 className="text-3xl font-black text-slate-900">Danh sách hóa đơn</h1>
             <p className="mt-2 text-sm font-medium text-slate-500">
-              Hoa don moi luu se o trang thai Pending cho toi khi duoc thanh toan.
+              Hóa đơn mới lưu sẽ ở trạng thái Pending cho tới khi được thanh toán.
             </p>
           </div>
 
@@ -95,7 +96,7 @@ const AdminInvoiceListPage = () => {
             onClick={() => navigate("/admin/check-out")}
             className="rounded-2xl bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm ring-1 ring-slate-200 transition hover:bg-slate-50"
           >
-            Quay lai tra phong
+            Quay lại trả phòng
           </button>
         </div>
 
@@ -106,35 +107,39 @@ const AdminInvoiceListPage = () => {
               <input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="Tim ma hoa don, booking, khach..."
+                placeholder="Tìm mã hóa đơn, booking, khách..."
                 className="w-80 rounded-2xl bg-slate-50 py-3 pl-10 pr-4 text-sm text-slate-700 outline-none ring-1 ring-slate-200 transition focus:ring-sky-300"
               />
             </div>
 
-            <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-600">
-              Tong hoa don: {filteredInvoices.length}
+            <div className="rounded-2xl bg-sky-50 px-4 py-3 text-sm font-semibold text-sky-700">
+              Tổng hóa đơn: {filteredInvoices.length}
             </div>
           </div>
 
-          {filteredInvoices.length === 0 ? (
-            <div className="rounded-[1.75rem] border border-dashed border-slate-200 bg-slate-50 px-6 py-14 text-center">
-              <Receipt className="mx-auto text-slate-300" size={34} />
-              <p className="mt-4 text-lg font-black text-slate-900">Chua co hoa don nao</p>
+          {invoicesQuery.isLoading ? (
+            <div className="rounded-[1.75rem] bg-slate-50 px-6 py-14 text-center text-slate-500">
+              Đang tải danh sách hóa đơn...
+            </div>
+          ) : filteredInvoices.length === 0 ? (
+            <div className="rounded-[1.75rem] border border-dashed border-slate-200 bg-sky-50/60 px-6 py-14 text-center">
+              <Receipt className="mx-auto text-sky-300" size={34} />
+              <p className="mt-4 text-lg font-black text-slate-900">Chưa có hóa đơn nào</p>
               <p className="mt-2 text-sm font-medium text-slate-500">
-                Tu trang Tra phong, bam Tao hoa don de tao invoice moi.
+                Từ trang Trả phòng, bấm Tạo hóa đơn để tạo invoice mới.
               </p>
             </div>
           ) : (
             <div className="overflow-hidden rounded-[1.75rem] border border-slate-200">
               <table className="min-w-full divide-y divide-slate-200">
-                <thead className="bg-slate-50">
-                  <tr className="text-left text-xs font-black uppercase tracking-[0.2em] text-slate-400">
-                    <th className="px-5 py-4">Hoa don</th>
-                    <th className="px-5 py-4">Khach</th>
-                    <th className="px-5 py-4">Tong tien</th>
-                    <th className="px-5 py-4">Trang thai</th>
-                    <th className="px-5 py-4">Tao luc</th>
-                    <th className="px-5 py-4 text-right">Hanh dong</th>
+                <thead className="bg-sky-50">
+                  <tr className="text-left text-xs font-black uppercase tracking-[0.2em] text-slate-500">
+                    <th className="px-5 py-4">Hóa đơn</th>
+                    <th className="px-5 py-4">Khách</th>
+                    <th className="px-5 py-4">Tổng tiền</th>
+                    <th className="px-5 py-4">Trạng thái</th>
+                    <th className="px-5 py-4">Tạo lúc</th>
+                    <th className="px-5 py-4 text-right">Hành động</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 bg-white">
@@ -143,7 +148,7 @@ const AdminInvoiceListPage = () => {
                       <td className="px-5 py-4">
                         <p className="font-black text-slate-900">{invoice.code}</p>
                         <p className="mt-1 text-sm text-slate-500">
-                          Booking {invoice.bookingCode} - Phong {invoice.roomNumber}
+                          Booking {invoice.bookingCode} - Phòng {invoice.roomNumber}
                         </p>
                       </td>
                       <td className="px-5 py-4 text-sm font-semibold text-slate-700">{invoice.guestName}</td>
@@ -164,19 +169,19 @@ const AdminInvoiceListPage = () => {
                         <div className="flex justify-end gap-2">
                           <Link
                             to={`/admin/invoices/${invoice.id}`}
-                            className="inline-flex items-center gap-2 rounded-2xl bg-slate-100 px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-200"
+                            className="inline-flex items-center gap-2 rounded-2xl bg-sky-100 px-4 py-2.5 text-sm font-bold text-sky-700 transition hover:bg-sky-200"
                           >
                             <Eye size={16} />
-                            View
+                            Xem
                           </Link>
                           <button
                             type="button"
                             onClick={() => setPendingPaymentInvoice(invoice)}
                             disabled={invoice.status === "Completed"}
-                            className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2.5 text-sm font-black text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300"
+                            className="inline-flex items-center gap-2 rounded-2xl bg-sky-600 px-4 py-2.5 text-sm font-black text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:bg-sky-300"
                           >
                             <CreditCard size={16} />
-                            {invoice.status === "Completed" ? "Completed" : "Thanh toan"}
+                            {invoice.status === "Completed" ? "Completed" : "Thanh toán"}
                           </button>
                         </div>
                       </td>
@@ -190,17 +195,17 @@ const AdminInvoiceListPage = () => {
       </div>
 
       {pendingPaymentInvoice ? (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-sky-950/35 p-4 backdrop-blur-sm">
           <div className="w-full max-w-md rounded-[2rem] bg-white p-6 shadow-2xl">
             <div className="flex items-start gap-4">
-              <div className="rounded-2xl bg-emerald-100 p-3 text-emerald-600">
+              <div className="rounded-2xl bg-sky-100 p-3 text-sky-600">
                 <Clock3 size={22} />
               </div>
               <div>
-                <h3 className="text-xl font-black text-slate-900">Xac nhan thanh toan</h3>
+                <h3 className="text-xl font-black text-slate-900">Xác nhận thanh toán</h3>
                 <p className="mt-2 text-sm leading-6 text-slate-500">
-                  Thanh toan xong se chuyen hoa don <span className="font-bold">{pendingPaymentInvoice.code}</span> sang
-                  trang thai Completed.
+                  Thanh toán xong sẽ chuyển hóa đơn <span className="font-bold">{pendingPaymentInvoice.code}</span> sang
+                  trạng thái Completed.
                 </p>
               </div>
             </div>
@@ -210,14 +215,15 @@ const AdminInvoiceListPage = () => {
                 onClick={() => setPendingPaymentInvoice(null)}
                 className="rounded-2xl bg-slate-100 px-4 py-2.5 text-sm font-bold text-slate-600 transition hover:bg-slate-200"
               >
-                Khong
+                Không
               </button>
               <button
                 type="button"
                 onClick={handlePaymentConfirmed}
-                className="rounded-2xl bg-emerald-600 px-4 py-2.5 text-sm font-black text-white transition hover:bg-emerald-700"
+                disabled={completeInvoiceMutation.isPending}
+                className="rounded-2xl bg-sky-600 px-4 py-2.5 text-sm font-black text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:bg-sky-300"
               >
-                Co, thanh toan
+                {completeInvoiceMutation.isPending ? "Đang xử lý..." : "Có, thanh toán"}
               </button>
             </div>
           </div>

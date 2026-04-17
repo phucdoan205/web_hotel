@@ -1,9 +1,6 @@
-using System.ComponentModel.DataAnnotations.Schema;
-
-namespace backend.Models
+namespace backend.DTOs.Invoice
 {
-    [Table("Invoices")]
-    public class Invoice
+    public class InvoiceResponseDTO
     {
         public int Id { get; set; }
         public int? BookingId { get; set; }
@@ -31,9 +28,5 @@ namespace backend.Models
         public DateTime? CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
         public DateTime? PaidAt { get; set; }
-
-        public Booking? Booking { get; set; }
-        public ICollection<Payment> Payments { get; set; } = new List<Payment>();
     }
 }
-
