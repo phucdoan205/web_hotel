@@ -1,5 +1,5 @@
 const STORAGE_KEY = "receptionist-booking-payment-state";
-const PAID_DETAIL_STATUSES = ["Confirmed", "CheckedIn"];
+const PAID_DETAIL_STATUSES = ["Confirmed", "CheckedIn", "CheckedOut"];
 
 const readStore = () => {
   if (typeof window === "undefined") return {};

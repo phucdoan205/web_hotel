@@ -6,7 +6,6 @@ import GuestTable from "../../components/receptionist/checkinout/GuestTable";
 import { bookingsApi } from "../../api/admin/bookingsApi";
 import { buildBookingRoomEntries } from "../../utils/bookingRoomEntries";
 import {
-  getStoredCheckedInRoomEntries,
   getStoredCheckedOutRoomEntries,
   subscribeBookingRoomFlowState,
 } from "../../utils/bookingRoomFlowState";
@@ -46,9 +45,13 @@ const AdminCheckOutPage = () => {
     staleTime: 1000 * 60 * 5,
   });
 
-  const inHouseQuery = useQuery({
-    queryKey: ["in-house"],
-    queryFn: () => bookingsApi.getInHouse(),
+  const checkoutBookingsQuery = useQuery({
+    queryKey: ["checkout-bookings"],
+    queryFn: () =>
+      bookingsApi.getBookings({
+        page: 1,
+        pageSize: 500,
+      }),
     staleTime: 1000 * 60 * 5,
   });
 
@@ -62,37 +65,31 @@ const AdminCheckOutPage = () => {
   const confirmedBookings = (confirmedBookingsQuery.data?.items || []).filter(
     (booking) => booking.status === "Confirmed",
   );
-  const inHouse = (inHouseQuery.data?.items || []).filter((booking) => booking.status === "CheckedIn");
+  const checkoutBookings = (checkoutBookingsQuery.data?.items || []).filter((booking) =>
+    (booking.bookingDetails || []).some((detail) => detail?.status === "CheckedOut"),
+  );
   const departures = (departuresQuery.data?.items || []).filter(
     (booking) => !["Completed", "Cancelled"].includes(booking.status),
   );
 
   const checkoutRooms = useMemo(() => {
-    const apiEntries = buildBookingRoomEntries(inHouse, todayKey);
-    const storedCheckedInEntries = getStoredCheckedInRoomEntries();
+    const apiEntries = buildBookingRoomEntries(checkoutBookings, todayKey);
     const storedCheckedOutEntries = getStoredCheckedOutRoomEntries();
-    const merged = [...apiEntries, ...storedCheckedInEntries, ...storedCheckedOutEntries].reduce((map, entry) => {
+    const merged = [...apiEntries, ...storedCheckedOutEntries].reduce((map, entry) => {
       map.set(`${entry.bookingId}-${entry.detailId}`, entry);
       return map;
     }, new Map());
 
-    return Array.from(merged.values()).filter(
-      (entry) => (entry.checkedIn && entry.dueForCheckout) || entry.checkedOut,
-    );
-  }, [inHouse, todayKey]);
-
-  const pendingCheckoutRooms = useMemo(
-    () => checkoutRooms.filter((entry) => !entry.checkedOut),
-    [checkoutRooms],
-  );
+    return Array.from(merged.values()).filter((entry) => entry.checkedOut);
+  }, [checkoutBookings, todayKey]);
 
   const checkedOutRooms = useMemo(
-    () => checkoutRooms.filter((entry) => entry.checkedOut),
+    () => checkoutRooms,
     [checkoutRooms],
   );
 
-  const isLoading = inHouseQuery.isLoading;
-  const isError = inHouseQuery.isError;
+  const isLoading = checkoutBookingsQuery.isLoading;
+  const isError = checkoutBookingsQuery.isError;
 
   return (
     <div className="animate-in space-y-8 p-8 fade-in duration-700">
@@ -138,7 +135,7 @@ const AdminCheckOutPage = () => {
         <GuestFlowStats
           scheduleCount={arrivals.length + departures.length}
           checkInCount={confirmedBookings.length}
-          checkOutCount={inHouse.length}
+          checkOutCount={checkedOutRooms.length}
         />
       </div>
 
@@ -155,24 +152,6 @@ const AdminCheckOutPage = () => {
         <div className="py-10 text-center text-red-400">Không tải được dữ liệu trả phòng.</div>
       ) : (
         <div className="space-y-8">
-          <section className="space-y-4">
-            <div className="rounded-[2rem] border border-slate-100 bg-white px-5 py-4 shadow-sm">
-              <p className="text-sm font-bold text-slate-500">Phòng chờ trả</p>
-              <p className="mt-1 text-2xl font-black text-slate-900">{pendingCheckoutRooms.length}</p>
-            </div>
-
-            <GuestTable
-              activeTab="out"
-              data={pendingCheckoutRooms}
-              dataMode="room"
-              onActionSuccess={(result) => {
-                if (result?.notice) {
-                  setScreenNotice(result.notice);
-                }
-              }}
-            />
-          </section>
-
           <section className="space-y-4">
             <div className="rounded-[2rem] border border-sky-100 bg-sky-50 px-5 py-4">
               <div className="flex items-center gap-2 text-sky-700">

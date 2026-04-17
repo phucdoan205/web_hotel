@@ -62,11 +62,15 @@ const ReceptionistCheckInOutPage = () => {
     staleTime: 1000 * 60 * 5,
   });
 
-  const arrivals = (arrivalsQuery.data?.items || []).filter((booking) => booking.status === "Confirmed");
+  const arrivals = (arrivalsQuery.data?.items || []).filter((booking) =>
+    (booking.bookingDetails || []).some((detail) => detail?.status === "Confirmed"),
+  );
   const confirmedBookings = (confirmedBookingsQuery.data?.items || []).filter(
     (booking) => booking.status === "Confirmed",
   );
-  const inHouse = (inHouseQuery.data?.items || []).filter((booking) => booking.status === "CheckedIn");
+  const inHouse = (inHouseQuery.data?.items || []).filter((booking) =>
+    (booking.bookingDetails || []).some((detail) => detail?.status === "CheckedIn"),
+  );
   const departures = (departuresQuery.data?.items || []).filter(
     (booking) => !["Completed", "Cancelled"].includes(booking.status),
   );

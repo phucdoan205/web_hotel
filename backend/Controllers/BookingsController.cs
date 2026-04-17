@@ -16,6 +16,7 @@ namespace backend.Controllers
     {
         private readonly AppDbContext _context;
         private readonly IMapper _mapper;
+        private const int VietnamUtcOffsetHours = 7;
 
         public BookingsController(AppDbContext context, IMapper mapper)
         {
@@ -298,12 +299,7 @@ namespace backend.Controllers
             }
 
             detail.Status = "CheckedIn";
-
-            // Nếu tất cả chi tiết đều CheckedIn thì cập nhật trạng thái booking
-            if (booking.BookingDetails.All(d => d.Status == "CheckedIn"))
-            {
-                booking.Status = "CheckedIn";
-            }
+            booking.Status = "CheckedIn";
 
             await _context.SaveChangesAsync();
 
@@ -353,11 +349,7 @@ namespace backend.Controllers
                 detail.Status = "CheckedIn";
             }
 
-            // If all details checked-in, mark booking as CheckedIn
-            if (booking.BookingDetails.All(d => d.Status == "CheckedIn"))
-            {
-                booking.Status = "CheckedIn";
-            }
+            booking.Status = "CheckedIn";
 
             await _context.SaveChangesAsync();
 
@@ -408,6 +400,49 @@ namespace backend.Controllers
                 message = "Khách đã được check-out thành công.",
                 bookingId = booking.Id,
                 newStatus = booking.Status
+            });
+        }
+
+        // PATCH: api/Bookings/{id}/details/{detailId}/check-out - Check-out 1 phòng trong booking
+        [HttpPatch("{id:int}/details/{detailId:int}/check-out")]
+        [Permission("CHECKOUT_BOOKING")]
+        public async Task<IActionResult> CheckOutBookingDetail(int id, int detailId)
+        {
+            var booking = await _context.Bookings
+                .Include(b => b.BookingDetails)
+                .FirstOrDefaultAsync(b => b.Id == id);
+
+            if (booking == null)
+                return NotFound("Không tìm thấy booking.");
+
+            var detail = booking.BookingDetails.FirstOrDefault(d => d.Id == detailId);
+            if (detail == null)
+                return NotFound("Không tìm thấy chi tiết booking.");
+
+            if (detail.Status != "CheckedIn")
+                return BadRequest("Chỉ có thể check-out cho phòng có trạng thái 'CheckedIn'.");
+
+            if (detail.RoomId.HasValue)
+            {
+                var room = await _context.Rooms.FindAsync(detail.RoomId.Value);
+                if (room != null)
+                {
+                    room.Status = RoomStatuses.Available;
+                    room.CleaningStatus = RoomCleaningStatuses.Dirty;
+                }
+            }
+
+            detail.Status = "CheckedOut";
+            booking.Status = "CheckedOut";
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                message = "Phòng đã được check-out.",
+                bookingId = booking.Id,
+                bookingStatus = booking.Status,
+                detailId = detailId
             });
         }
 
@@ -516,9 +551,9 @@ namespace backend.Controllers
                     .ThenInclude(bd => bd.Room)
                 .Include(b => b.BookingDetails)
                     .ThenInclude(bd => bd.RoomType)
-                .Where(b => b.Status == "Confirmed" || b.Status == "Pending")
                 .Where(b => b.BookingDetails.Any(bd =>
-                    bd.CheckInDate.Date == targetDate))
+                    (bd.CheckInDate.Date == targetDate || bd.CheckInDate.AddHours(VietnamUtcOffsetHours).Date == targetDate) &&
+                    (bd.Status == "Confirmed" || bd.Status == "Pending")))
                 .AsNoTracking();
 
             var totalCount = await query.CountAsync();
@@ -582,7 +617,8 @@ namespace backend.Controllers
                     .ThenInclude(bd => bd.RoomType)
                 // Include bookings that are fully CheckedIn or have any detail CheckedIn (partial check-in)
                 .Where(b => (b.Status == "CheckedIn" || b.BookingDetails.Any(d => d.Status == "CheckedIn"))
-                    && b.BookingDetails.Any(bd => bd.CheckOutDate.Date == targetDate))
+                    && b.BookingDetails.Any(bd =>
+                        bd.CheckOutDate.Date == targetDate || bd.CheckOutDate.AddHours(VietnamUtcOffsetHours).Date == targetDate))
                 .AsNoTracking();
 
             var totalCount = await query.CountAsync();

@@ -63,7 +63,9 @@ const AdminStayPage = () => {
   const confirmedBookings = (confirmedBookingsQuery.data?.items || []).filter(
     (booking) => booking.status === "Confirmed",
   );
-  const inHouse = (inHouseQuery.data?.items || []).filter((booking) => booking.status === "CheckedIn");
+  const inHouse = (inHouseQuery.data?.items || []).filter((booking) =>
+    (booking.bookingDetails || []).some((detail) => detail?.status === "CheckedIn"),
+  );
   const departures = (departuresQuery.data?.items || []).filter(
     (booking) => !["Completed", "Cancelled"].includes(booking.status),
   );
@@ -76,9 +78,7 @@ const AdminStayPage = () => {
       return map;
     }, new Map());
 
-    return Array.from(merged.values()).filter(
-      (entry) => entry.checkedIn && !entry.checkedOut && !entry.dueForCheckout,
-    );
+    return Array.from(merged.values()).filter((entry) => entry.checkedIn && !entry.checkedOut);
   }, [inHouse, todayKey]);
 
   const isLoading = inHouseQuery.isLoading;

@@ -3,6 +3,7 @@ import {
   isBookingDetailCheckedOut,
   isBookingDetailInvoiced,
 } from "./bookingRoomFlowState";
+import { getVietnamDateKey } from "./vietnamTime";
 
 export const getRoomEntryGuestName = (booking) =>
   booking.guestName || booking.guest?.name || "Khách chưa rõ tên";
@@ -21,9 +22,21 @@ export const getRoomEntryPrice = (booking, detail) =>
   booking.totalAmount ||
   0;
 
-export const buildBookingRoomEntries = (bookings = [], todayKey = "") =>
+export const buildBookingRoomEntries = (bookings = [], todayKey = "", options = {}) =>
   bookings.flatMap((booking) =>
-    (booking.bookingDetails || []).map((detail, index) => {
+    (booking.bookingDetails || [])
+      .filter((detail) => {
+        if (options.dateKey && getVietnamDateKey(detail?.checkInDate) !== options.dateKey) {
+          return false;
+        }
+
+        if (options.detailStatuses?.length && !options.detailStatuses.includes(detail?.status)) {
+          return false;
+        }
+
+        return true;
+      })
+      .map((detail, index) => {
       const roomNumber = getRoomEntryNumber(detail);
       const checkOutKey = String(detail?.checkOutDate || "").slice(0, 10);
       const dueForCheckout = Boolean(checkOutKey && todayKey && checkOutKey <= todayKey);
@@ -34,6 +47,7 @@ export const buildBookingRoomEntries = (bookings = [], todayKey = "") =>
       let roomStatus = "Pending";
       if (detail?.status) {
         if (detail.status === "CheckedIn") roomStatus = "Occupied";
+        else if (detail.status === "CheckedOut") roomStatus = "CheckedOut";
         else roomStatus = detail.status; // Pending or Confirmed
       } else if (detail.room?.status) {
         roomStatus = detail.room.status;
@@ -57,8 +71,8 @@ export const buildBookingRoomEntries = (bookings = [], todayKey = "") =>
         cleaningStatus: detail.room?.cleaningStatus || booking.cleaningStatus || detail.cleaningStatus,
         checkInDate: detail.checkInDate,
         checkOutDate: detail.checkOutDate,
-        checkedIn: isBookingDetailCheckedIn(booking.id, detail.id),
-        checkedOut: isBookingDetailCheckedOut(booking.id, detail.id),
+        checkedIn: detail?.status === "CheckedIn" || isBookingDetailCheckedIn(booking.id, detail.id),
+        checkedOut: detail?.status === "CheckedOut" || isBookingDetailCheckedOut(booking.id, detail.id),
         invoiced: isBookingDetailInvoiced(booking.id, detail.id),
         dueForCheckout,
       };

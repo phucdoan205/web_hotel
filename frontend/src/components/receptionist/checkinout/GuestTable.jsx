@@ -3,7 +3,6 @@ import {
   BedDouble,
   CalendarRange,
   CheckCircle,
-  CircleCheckBig,
   CircleDollarSign,
   FileText,
   QrCode,
@@ -21,8 +20,6 @@ import {
   isBookingDetailPaid,
 } from "../../../utils/bookingPaymentState";
 import {
-  areAllBookingDetailsCheckedIn,
-  areAllBookingDetailsCheckedOut,
   isBookingDetailCheckedIn,
   markBookingDetailInvoiced,
   saveBookingDetailCheckedInSnapshot,
@@ -53,6 +50,7 @@ const roomStatusStyles = {
   OutOfOrder: "bg-slate-100 text-slate-700 ring-1 ring-slate-200",
   Pending: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200",
   Confirmed: "bg-sky-50 text-sky-700 ring-1 ring-sky-200",
+  CheckedOut: "bg-orange-50 text-orange-700 ring-1 ring-orange-200",
 };
 
 const cleaningStatusStyles = {
@@ -93,7 +91,9 @@ const getBookingStateLabel = (booking, activeTab) => {
     return booking.eventType === "departure" ? "Lịch check out" : "Lịch check in";
   }
 
-  if (activeTab === "out") return "Booking: CheckedIn";
+  if (activeTab === "out") return "Booking: CheckedOut";
+  if (booking.status === "CheckedOut") return "Booking: CheckedOut";
+  if (booking.status === "CheckedIn") return "Booking: CheckedIn";
   if (booking.status === "Pending") return "Booking: Pending";
   return "Booking: Confirmed";
 };
@@ -182,7 +182,19 @@ const GuestTable = ({
       await bookingsApi.checkInBookingDetail(subject.bookingId, subject.detailId);
 
       // Save a local snapshot for immediate UI responsiveness
-      saveBookingDetailCheckedInSnapshot(subject.bookingId, subject.detailId, subject);
+      saveBookingDetailCheckedInSnapshot(subject.bookingId, subject.detailId, {
+        ...subject,
+        checkedIn: true,
+        roomStatus: "Occupied",
+        detail: {
+          ...subject.detail,
+          status: "CheckedIn",
+        },
+        booking: {
+          ...subject.booking,
+          status: "CheckedIn",
+        },
+      });
 
       return { mode: "room", roomEntry: subject };
     },
@@ -217,12 +229,21 @@ const GuestTable = ({
 
   const checkOutMutation = useMutation({
     mutationFn: async (roomEntry) => {
-      saveBookingDetailCheckedOutSnapshot(roomEntry.bookingId, roomEntry.detailId, roomEntry);
-
-      if (areAllBookingDetailsCheckedOut(roomEntry.booking)) {
-        await bookingsApi.checkOut(roomEntry.bookingId);
-        return { roomEntry, bookingCompleted: true };
-      }
+      await bookingsApi.checkOutBookingDetail(roomEntry.bookingId, roomEntry.detailId);
+      saveBookingDetailCheckedOutSnapshot(roomEntry.bookingId, roomEntry.detailId, {
+        ...roomEntry,
+        checkedIn: false,
+        checkedOut: true,
+        roomStatus: "CheckedOut",
+        detail: {
+          ...roomEntry.detail,
+          status: "CheckedOut",
+        },
+        booking: {
+          ...roomEntry.booking,
+          status: "CheckedOut",
+        },
+      });
 
       return { roomEntry, bookingCompleted: false };
     },
@@ -313,7 +334,7 @@ const GuestTable = ({
             checkInMutation.variables?.bookingId === entry.bookingId &&
             checkInMutation.variables?.detailId === entry.detailId;
           const roomPaid = getRoomEntryPaidState(entry);
-          const roomCheckedIn = isBookingDetailCheckedIn(entry.bookingId, entry.detailId);
+          const roomCheckedIn = entry.checkedIn || isBookingDetailCheckedIn(entry.bookingId, entry.detailId);
           const canCheckIn = roomPaid && !roomCheckedIn;
 
           return (
@@ -499,6 +520,7 @@ const GuestTable = ({
             let roomStatus = "Pending";
             if (detail?.status) {
               if (detail.status === "CheckedIn") roomStatus = "Occupied";
+              else if (detail.status === "CheckedOut") roomStatus = "CheckedOut";
               else roomStatus = detail.status; // Pending or Confirmed
             } else if (detail.room?.status) {
               roomStatus = detail.room.status;

@@ -12,7 +12,7 @@ namespace backend.Models
         public DateTime CheckInDate { get; set; }
         public DateTime CheckOutDate { get; set; }
         public decimal PricePerNight { get; set; }
-        // Status per booking detail: Pending, Confirmed, CheckedIn
+        // Status per booking detail: Pending, Confirmed, CheckedIn, CheckedOut
         public string? Status { get; set; }
         public Booking? Booking { get; set; }
         public Room? Room { get; set; }

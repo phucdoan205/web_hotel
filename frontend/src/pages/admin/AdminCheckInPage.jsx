@@ -12,7 +12,6 @@ import {
 import GuestTable from "../../components/receptionist/checkinout/GuestTable";
 import { bookingsApi } from "../../api/admin/bookingsApi";
 import { buildBookingRoomEntries } from "../../utils/bookingRoomEntries";
-import { isBookingDetailPaid } from "../../utils/bookingPaymentState";
 import {
   formatVietnamDate,
   getVietnamDateKey,
@@ -215,7 +214,9 @@ const AdminCheckInPage = () => {
   const arrivals = useMemo(
     () =>
       (arrivalsQuery.data?.items || []).filter((booking) =>
-        ["Pending", "Confirmed"].includes(booking.status),
+        (booking.bookingDetails || []).some((detail) =>
+          ["Pending", "Confirmed"].includes(detail?.status),
+        ),
       ),
     [arrivalsQuery.data],
   );
@@ -223,7 +224,11 @@ const AdminCheckInPage = () => {
   // Show all arrival room entries for the date (both paid and unpaid) so receptionist
   // can see and pay per-room; filter only out rooms already checked-in.
   const arrivalRooms = useMemo(
-    () => buildBookingRoomEntries(arrivals, selectedDate).filter((entry) => !entry.checkedIn),
+    () =>
+      buildBookingRoomEntries(arrivals, selectedDate, {
+        dateKey: selectedDate,
+        detailStatuses: ["Pending", "Confirmed"],
+      }).filter((entry) => !entry.checkedIn),
     [arrivals, selectedDate],
   );
 

@@ -163,7 +163,7 @@ export default function Sidebar() {
   );
 
   return (
-    <aside className="fixed left-0 top-0 z-40 flex h-screen w-64 flex-col border-r border-gray-100 bg-white p-6">
+    <aside className="fixed left-0 top-0 z-[70] flex h-screen w-64 flex-col border-r border-gray-100 bg-white p-6">
       <div className="mb-8 flex items-center gap-3">
         <div className="rounded-xl bg-sky-500 p-2.5 text-white shadow-inner">
           <Hotel className="size-6" />
