@@ -79,9 +79,8 @@ const menuItems = [
   {
     name: "Hóa đơn",
     icon: Receipt,
-    path: "/admin/bookings",
-    matchPaths: ["/admin/bookings"],
-    excludePaths: ["/admin/bookings"],
+    path: "/admin/invoices",
+    matchPaths: ["/admin/invoices"],
     permission: "VIEW_INVOICES",
   },
   { name: "Địa điểm", icon: MapPin, path: "/admin/attractions", permission: "VIEW_ATTRACTIONS" },

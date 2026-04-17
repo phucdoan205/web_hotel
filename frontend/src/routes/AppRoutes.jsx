@@ -24,6 +24,9 @@ import AdminReportsPage from "../pages/admin/AdminReportsPage";
 import AdminBookingsPage from "../pages/admin/AdminBookingsPage";
 import AdminBookingPaymentPage from "../pages/admin/AdminBookingPaymentPage";
 import AdminCheckInPage from "../pages/admin/AdminCheckInPage";
+import AdminInvoiceCreatePage from "../pages/admin/AdminInvoiceCreatePage";
+import AdminInvoiceDetailPage from "../pages/admin/AdminInvoiceDetailPage";
+import AdminInvoiceListPage from "../pages/admin/AdminInvoiceListPage";
 import AdminStayPage from "../pages/admin/AdminStayPage";
 import AdminCheckOutPage from "../pages/admin/AdminCheckOutPage";
 import AdminPOSServicePage from "../pages/admin/AdminPOSServicePage";
@@ -136,6 +139,30 @@ const AppRoutes = () => {
           element={
             <RequirePermission permission="PAY_INVOICE">
               <AdminBookingPaymentPage />
+            </RequirePermission>
+          }
+        />
+        <Route
+          path="invoices"
+          element={
+            <RequirePermission permission="VIEW_INVOICES">
+              <AdminInvoiceListPage />
+            </RequirePermission>
+          }
+        />
+        <Route
+          path="invoices/create"
+          element={
+            <RequirePermission permission="CREATE_INVOICES">
+              <AdminInvoiceCreatePage />
+            </RequirePermission>
+          }
+        />
+        <Route
+          path="invoices/:invoiceId"
+          element={
+            <RequirePermission permission="VIEW_INVOICES">
+              <AdminInvoiceDetailPage />
             </RequirePermission>
           }
         />

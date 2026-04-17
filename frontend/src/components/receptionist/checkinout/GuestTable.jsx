@@ -21,7 +21,6 @@ import {
 } from "../../../utils/bookingPaymentState";
 import {
   isBookingDetailCheckedIn,
-  markBookingDetailInvoiced,
   saveBookingDetailCheckedInSnapshot,
   saveBookingDetailCheckedOutSnapshot,
   subscribeBookingRoomFlowState,
@@ -291,18 +290,8 @@ const GuestTable = ({
   };
 
   const handleCreateInvoice = (roomEntry) => {
-    markBookingDetailInvoiced(roomEntry.bookingId, roomEntry.detailId);
+    navigate(`/admin/invoices/create?bookingId=${roomEntry.bookingId}&detailId=${roomEntry.detailId}`);
     onInvoiceCreated?.(roomEntry);
-    onActionSuccess?.({
-      actionType: "invoice",
-      bookingId: roomEntry.bookingId,
-      detailId: roomEntry.detailId,
-      notice: {
-        type: "success",
-        title: "Đã tạo hóa đơn",
-        message: `Hóa đơn cho phòng ${roomEntry.roomNumber} đã sẵn sàng hiển thị.`,
-      },
-    });
   };
 
   const handleOpenPayment = (bookingId, detailId) => {
