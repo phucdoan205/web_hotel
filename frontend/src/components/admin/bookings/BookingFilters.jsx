@@ -11,7 +11,7 @@ const BookingFilters = ({ filters, onFilterChange, onOpenCreate, onClearFilters,
             type="text"
             value={filters.search}
             onChange={(e) => onFilterChange("search", e.target.value)}
-            placeholder="Tim theo Booking ID, Ten khach hoac Phong..."
+            placeholder="Tìm theo Booking ID, tên khách hoặc phòng..."
             className="w-full rounded-2xl border border-gray-200 bg-gray-50 py-1 pl-11 pr-4 text-sm outline-none focus:border-blue-500 focus:bg-white"
           />
         </div>
@@ -32,7 +32,7 @@ const BookingFilters = ({ filters, onFilterChange, onOpenCreate, onClearFilters,
             onChange={(e) => onFilterChange("status", e.target.value)}
             className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-1 text-sm focus:border-blue-500"
           >
-            <option value="">Tat ca trang thai</option>
+            <option value="">Tất cả trạng thái</option>
             <option value="Pending">Pending</option>
             <option value="Confirmed">Confirmed</option>
             <option value="CheckedIn">Checked In</option>
@@ -45,7 +45,7 @@ const BookingFilters = ({ filters, onFilterChange, onOpenCreate, onClearFilters,
             onChange={(e) => onFilterChange("roomTypeId", e.target.value)}
             className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-1 text-sm focus:border-blue-500"
           >
-            <option value="">Tat ca loai phong</option>
+            <option value="">Tất cả loại phòng</option>
             {roomTypes.map((roomType) => (
               <option key={roomType.id} value={roomType.id}>
                 {roomType.name}
@@ -59,7 +59,7 @@ const BookingFilters = ({ filters, onFilterChange, onOpenCreate, onClearFilters,
           className="flex items-center justify-center gap-2 rounded-2xl bg-slate-100 px-5 py-1 font-semibold text-slate-700 transition-all hover:bg-slate-200"
         >
           <RotateCcw size={16} />
-          Clear Filter
+          Xóa bộ lọc
         </button>
 
         <button
@@ -67,7 +67,7 @@ const BookingFilters = ({ filters, onFilterChange, onOpenCreate, onClearFilters,
           className="flex items-center gap-2 rounded-2xl bg-orange-600 px-6 py-1 text-sm font-semibold uppercase tracking-widest text-white shadow-lg shadow-orange-200 transition-all hover:bg-orange-700"
         >
           <Plus size={18} />
-          Them Booking Moi
+          Thêm Booking Mới
         </button>
       </div>
     </div>

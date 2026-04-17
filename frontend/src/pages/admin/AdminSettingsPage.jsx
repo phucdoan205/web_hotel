@@ -55,7 +55,7 @@ const AdminSettingsPage = () => {
     <div className="mx-auto max-w-[1680px] space-y-8 pb-20">
       <div className="flex flex-col gap-5 rounded-[2rem] border border-slate-200 bg-gradient-to-br from-white via-slate-50 to-sky-50 px-6 py-7 shadow-sm">
         <div className="flex items-start gap-4">
-          <div className="rounded-[1.4rem] bg-slate-950 p-3 text-white shadow-lg shadow-slate-200">
+          <div className="rounded-[1.4rem] bg-blue-600 p-3 text-white shadow-lg shadow-blue-100">
             <Settings2 className="size-6" />
           </div>
 
@@ -80,7 +80,7 @@ const AdminSettingsPage = () => {
                 onClick={() => setActiveTab(tab.id)}
                 className={`inline-flex items-center gap-2 rounded-[1.1rem] px-5 py-3 text-xs font-black uppercase tracking-[0.18em] transition ${
                   isActive
-                    ? "bg-slate-950 text-white shadow-lg shadow-slate-200"
+                    ? "bg-blue-600 text-white shadow-lg shadow-blue-100"
                     : "text-slate-500 hover:bg-slate-100 hover:text-slate-900"
                 }`}
               >
