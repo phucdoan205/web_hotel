@@ -326,6 +326,9 @@ namespace backend.Migrations
                     b.Property<int?>("RoomTypeId")
                         .HasColumnType("int");
 
+                    b.Property<string>("Status")
+                        .HasColumnType("nvarchar(max)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("BookingId");

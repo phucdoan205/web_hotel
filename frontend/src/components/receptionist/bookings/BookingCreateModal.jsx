@@ -1,13 +1,61 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, CheckCircle2, CircleHelp, X } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { bookingsApi } from "../../../api/admin/bookingsApi";
 import { roomTypesApi } from "../../../api/admin/roomTypesApi";
 import { roomsApi } from "../../../api/admin/roomsApi";
-import { getVietnamDateKey, getVietnamDateOffsetKey } from "../../../utils/vietnamTime";
+import {
+  formatVietnamDate,
+  getVietnamDateKey,
+  getVietnamDateOffsetKey,
+} from "../../../utils/vietnamTime";
+import { clearBookingPaymentState } from "../../../utils/bookingPaymentState";
 
 const initialGuestInfo = { name: "", phone: "", email: "" };
+const inactiveBookingStatuses = new Set(["Cancelled", "Completed"]);
+
+const toComparableDate = (value) => {
+  if (!value) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return new Date(`${value}T00:00:00+07:00`);
+  }
+
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
+const hasDateOverlap = (startA, endA, startB, endB) => {
+  const fromA = toComparableDate(startA);
+  const toA = toComparableDate(endA);
+  const fromB = toComparableDate(startB);
+  const toB = toComparableDate(endB);
+
+  if (!fromA || !toA || !fromB || !toB) return false;
+  return fromA < toB && toA > fromB;
+};
+
+const getRoomTypeId = (room) => room.roomTypeId || room.roomType?.id;
+
+const getOverlapEntryForRoom = (bookings, roomId, checkInDate, checkOutDate) => {
+  for (const booking of bookings) {
+    for (const detail of booking.bookingDetails || []) {
+      if (!detail?.roomId || detail.roomId !== roomId) continue;
+      if (!hasDateOverlap(detail.checkInDate, detail.checkOutDate, checkInDate, checkOutDate)) continue;
+
+      return {
+        bookingId: booking.id,
+        bookingCode: booking.bookingCode,
+        bookingStatus: booking.status,
+        guestName: booking.guestName || booking.guest?.name || "Khach chua ro ten",
+        checkInDate: detail.checkInDate,
+        checkOutDate: detail.checkOutDate,
+      };
+    }
+  }
+
+  return null;
+};
 
 const BookingCreateModal = ({ open, onClose, onNotice }) => {
   const queryClient = useQueryClient();
@@ -43,7 +91,44 @@ const BookingCreateModal = ({ open, onClose, onNotice }) => {
     enabled: open,
   });
 
-  const isLoading = loadingTypes || loadingRooms;
+  const { data: bookingsResponse, isLoading: loadingBookings } = useQuery({
+    queryKey: ["bookings", "for-booking-modal"],
+    queryFn: () =>
+      bookingsApi.getBookings({
+        page: 1,
+        pageSize: 1000,
+      }),
+    enabled: open,
+  });
+
+  const activeBookings = useMemo(
+    () =>
+      (bookingsResponse?.items || bookingsResponse?.Items || []).filter(
+        (booking) => !inactiveBookingStatuses.has(booking?.status),
+      ),
+    [bookingsResponse],
+  );
+
+  const overlappingBookingMap = useMemo(() => {
+    const map = new Map();
+
+    allRooms.forEach((room) => {
+      const overlapEntry = getOverlapEntryForRoom(activeBookings, room.id, checkInDate, checkOutDate);
+      if (overlapEntry) {
+        map.set(room.id, overlapEntry);
+      }
+    });
+
+    return map;
+  }, [activeBookings, allRooms, checkInDate, checkOutDate]);
+
+  useEffect(() => {
+    setSelectedRooms((prev) =>
+      prev.filter((room) => room.status !== "Occupied" && !overlappingBookingMap.has(room.id)),
+    );
+  }, [overlappingBookingMap]);
+
+  const isLoading = loadingTypes || loadingRooms || loadingBookings;
 
   const resetForm = () => {
     setSelectedRooms([]);
@@ -59,7 +144,7 @@ const BookingCreateModal = ({ open, onClose, onNotice }) => {
     guestPhone: guestInfo.phone.trim(),
     guestEmail: guestInfo.email.trim(),
     bookingDetails: selectedRooms.map((room) => ({
-      roomTypeId: room.roomTypeId || room.roomType?.id,
+      roomTypeId: getRoomTypeId(room),
       roomId: room.id,
       checkInDate,
       checkOutDate,
@@ -69,13 +154,13 @@ const BookingCreateModal = ({ open, onClose, onNotice }) => {
   const confirmationRooms = useMemo(
     () =>
       selectedRooms.map((room) => {
-        const roomType = roomTypes.find((item) => item.id === (room.roomTypeId || room.roomType?.id));
+        const roomType = roomTypes.find((item) => item.id === getRoomTypeId(room));
 
         return {
           id: room.id,
           roomNumber: room.roomNumber,
           floor: room.floor,
-          roomTypeName: room.roomType?.name || roomType?.name || "Phòng",
+          roomTypeName: room.roomType?.name || roomType?.name || "Phong",
           pricePerNight: roomType?.basePrice || room.roomType?.basePrice || 0,
         };
       }),
@@ -85,38 +170,28 @@ const BookingCreateModal = ({ open, onClose, onNotice }) => {
   const createMutation = useMutation({
     mutationFn: (payload) => bookingsApi.createBooking(payload),
     onSuccess: async (createdBooking) => {
-      try {
-        for (const room of selectedRooms) {
-          await roomsApi.updateRoomStatus(room.id, "Occupied");
-        }
-      } catch {
-        onNotice?.({
-          type: "warning",
-          title: "Booking đã tạo nhưng còn thiếu cập nhật",
-          message: "Đặt phòng thành công nhưng có lỗi khi cập nhật trạng thái phòng.",
-        });
-      }
-
+      clearBookingPaymentState(createdBooking?.id);
       queryClient.invalidateQueries({ queryKey: ["rooms"] });
       queryClient.invalidateQueries({ queryKey: ["bookings"] });
       queryClient.invalidateQueries({ queryKey: ["confirmed-check-ins"] });
       queryClient.invalidateQueries({ queryKey: ["arrivals"] });
       queryClient.invalidateQueries({ queryKey: ["in-house"] });
       queryClient.invalidateQueries({ queryKey: ["departures"] });
+
       setShowConfirmation(false);
       onClose();
       resetForm();
       navigate(`/admin/check-in?tab=in&date=${checkInDate}`);
       onNotice?.({
         type: "success",
-        title: "Đã tạo booking mới",
-        message: `Mã booking ${createdBooking.bookingCode} đã được tạo thành công.`,
+        title: "Da tao booking moi",
+        message: `Ma booking ${createdBooking.bookingCode} da duoc tao thanh cong.`,
       });
     },
     onError: (err) => {
       setInlineNotice({
         type: "warning",
-        message: err.response?.data?.message || "Có lỗi khi tạo booking.",
+        message: err.response?.data?.message || "Co loi khi tao booking.",
       });
       setShowConfirmation(false);
     },
@@ -128,22 +203,22 @@ const BookingCreateModal = ({ open, onClose, onNotice }) => {
 
   const validateForm = () => {
     if (selectedRooms.length === 0) {
-      showMessage("warning", "Vui lòng chọn ít nhất một phòng.");
+      showMessage("warning", "Vui long chon it nhat mot phong.");
       return false;
     }
 
     if (!guestInfo.name.trim()) {
-      showMessage("warning", "Vui lòng nhập tên khách hàng.");
+      showMessage("warning", "Vui long nhap ten khach hang.");
       return false;
     }
 
     if (!checkInDate || !checkOutDate) {
-      showMessage("warning", "Vui lòng chọn ngày check-in và check-out.");
+      showMessage("warning", "Vui long chon ngay check-in va check-out.");
       return false;
     }
 
     if (checkInDate >= checkOutDate) {
-      showMessage("warning", "Ngày check-out phải sau ngày check-in.");
+      showMessage("warning", "Ngay check-out phai sau ngay check-in.");
       return false;
     }
 
@@ -151,8 +226,18 @@ const BookingCreateModal = ({ open, onClose, onNotice }) => {
   };
 
   const toggleRoomSelection = (room) => {
+    const overlappingBooking = overlappingBookingMap.get(room.id);
+
     if (room.status === "Occupied") {
-      showMessage("warning", "Phòng này đang có khách lưu trú, không thể chọn.");
+      showMessage("warning", "Phong nay dang co khach luu tru, khong the chon.");
+      return;
+    }
+
+    if (overlappingBooking) {
+      showMessage(
+        "warning",
+        `Phong ${room.roomNumber} da co booking ${overlappingBooking.bookingCode} trong khoang ngay da chon.`,
+      );
       return;
     }
 
@@ -169,7 +254,7 @@ const BookingCreateModal = ({ open, onClose, onNotice }) => {
 
     setInlineNotice({
       type: "question",
-      message: "Xác nhận đặt booking này?",
+      message: "Xac nhan dat booking nay?",
     });
     setShowConfirmation(true);
   };
@@ -190,8 +275,8 @@ const BookingCreateModal = ({ open, onClose, onNotice }) => {
       <div className="flex h-[95vh] w-full max-w-6xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl">
         <div className="flex items-center justify-between border-b bg-gray-50 px-8 py-4">
           <div>
-            <h2 className="text-2xl font-black text-gray-900">Tạo Booking Mới</h2>
-            <p className="text-sm text-gray-500">Chọn phòng và nhập thông tin khách hàng</p>
+            <h2 className="text-2xl font-black text-gray-900">Tao Booking Moi</h2>
+            <p className="text-sm text-gray-500">Chon phong va nhap thong tin khach hang</p>
           </div>
           <button onClick={handleClose} className="rounded-2xl p-3 transition hover:bg-gray-200">
             <X size={26} />
@@ -222,10 +307,10 @@ const BookingCreateModal = ({ open, onClose, onNotice }) => {
                     <div className="flex-1">
                       <p className="font-bold">
                         {inlineNotice.type === "question"
-                          ? "Xác nhận đặt phòng"
+                          ? "Xac nhan dat phong"
                           : inlineNotice.type === "warning"
-                            ? "Cần kiểm tra lại"
-                            : "Hoàn tất"}
+                            ? "Can kiem tra lai"
+                            : "Hoan tat"}
                       </p>
                       <p className="text-sm">{inlineNotice.message}</p>
                     </div>
@@ -237,9 +322,9 @@ const BookingCreateModal = ({ open, onClose, onNotice }) => {
                 <div className="mt-4 rounded-3xl border border-slate-200 bg-slate-50 p-5">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
-                      <p className="text-lg font-black text-slate-900">Danh sách phòng sẽ đặt</p>
+                      <p className="text-lg font-black text-slate-900">Danh sach phong se dat</p>
                       <p className="text-sm text-slate-500">
-                        {guestInfo.name || "Khách hàng"} sẽ đặt {confirmationRooms.length} phòng.
+                        {guestInfo.name || "Khach hang"} se dat {confirmationRooms.length} phong.
                       </p>
                     </div>
                     <div className="flex gap-3">
@@ -248,7 +333,7 @@ const BookingCreateModal = ({ open, onClose, onNotice }) => {
                         onClick={() => setShowConfirmation(false)}
                         className="rounded-2xl bg-white px-4 py-2 font-bold text-slate-600 transition hover:bg-slate-100"
                       >
-                        Không
+                        Khong
                       </button>
                       <button
                         type="button"
@@ -256,7 +341,7 @@ const BookingCreateModal = ({ open, onClose, onNotice }) => {
                         disabled={createMutation.isPending}
                         className="rounded-2xl bg-orange-600 px-4 py-2 font-black text-white transition hover:bg-orange-700 disabled:cursor-not-allowed disabled:bg-orange-300"
                       >
-                        {createMutation.isPending ? "Đang tạo..." : "Có, xác nhận đặt"}
+                        {createMutation.isPending ? "Dang tao..." : "Co, xac nhan dat"}
                       </button>
                     </div>
                   </div>
@@ -268,13 +353,13 @@ const BookingCreateModal = ({ open, onClose, onNotice }) => {
                         className="rounded-2xl border border-white bg-white px-4 py-4 shadow-sm"
                       >
                         <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">
-                          Phòng {room.roomNumber}
+                          Phong {room.roomNumber}
                         </p>
                         <p className="mt-1 text-lg font-black text-slate-900">{room.roomTypeName}</p>
                         <div className="mt-3 flex items-center justify-between text-sm text-slate-500">
-                          <span>Tầng {room.floor}</span>
+                          <span>Tang {room.floor}</span>
                           <span className="font-bold text-orange-600">
-                            {room.pricePerNight.toLocaleString("vi-VN")} đ/đêm
+                            {room.pricePerNight.toLocaleString("vi-VN")} d/dem
                           </span>
                         </div>
                       </div>
@@ -287,11 +372,11 @@ const BookingCreateModal = ({ open, onClose, onNotice }) => {
 
           <div className="flex h-full min-h-0 overflow-hidden">
             <div className="flex w-96 min-h-0 flex-col overflow-y-auto border-r bg-gray-50 px-6 py-4">
-              <h3 className="mb-2 text-lg font-bold">Thông tin đặt phòng</h3>
+              <h3 className="mb-2 text-lg font-bold">Thong tin dat phong</h3>
 
               <div className="space-y-3">
                 <div>
-                  <label className="mb-1 block text-sm font-bold text-gray-600">Họ và tên *</label>
+                  <label className="mb-1 block text-sm font-bold text-gray-600">Ho va ten *</label>
                   <input
                     type="text"
                     value={guestInfo.name}
@@ -300,12 +385,12 @@ const BookingCreateModal = ({ open, onClose, onNotice }) => {
                       setInlineNotice(null);
                     }}
                     className="w-full rounded-2xl border border-gray-300 px-4 py-2 outline-none focus:border-orange-500"
-                    placeholder="Nhập họ tên khách hàng"
+                    placeholder="Nhap ho ten khach hang"
                   />
                 </div>
 
                 <div>
-                  <label className="mb-1 block text-sm font-bold text-gray-600">Số điện thoại</label>
+                  <label className="mb-1 block text-sm font-bold text-gray-600">So dien thoai</label>
                   <input
                     type="tel"
                     value={guestInfo.phone}
@@ -314,7 +399,7 @@ const BookingCreateModal = ({ open, onClose, onNotice }) => {
                       setInlineNotice(null);
                     }}
                     className="w-full rounded-2xl border border-gray-300 px-4 py-2 outline-none focus:border-orange-500"
-                    placeholder="Số điện thoại"
+                    placeholder="So dien thoai"
                   />
                 </div>
 
@@ -328,13 +413,13 @@ const BookingCreateModal = ({ open, onClose, onNotice }) => {
                       setInlineNotice(null);
                     }}
                     className="w-full rounded-2xl border border-gray-300 px-4 py-2 outline-none focus:border-orange-500"
-                    placeholder="Email (tùy chọn)"
+                    placeholder="Email (tuy chon)"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="mb-1 block text-sm font-bold text-gray-600">Ngày check-in *</label>
+                    <label className="mb-1 block text-sm font-bold text-gray-600">Ngay check-in *</label>
                     <input
                       type="date"
                       value={checkInDate}
@@ -349,7 +434,7 @@ const BookingCreateModal = ({ open, onClose, onNotice }) => {
                   </div>
 
                   <div>
-                    <label className="mb-1 block text-sm font-bold text-gray-600">Ngày check-out *</label>
+                    <label className="mb-1 block text-sm font-bold text-gray-600">Ngay check-out *</label>
                     <input
                       type="date"
                       value={checkOutDate}
@@ -366,17 +451,17 @@ const BookingCreateModal = ({ open, onClose, onNotice }) => {
               </div>
 
               <div className="mt-5 rounded-2xl border border-orange-200 bg-white px-5 py-4 text-center">
-                <p className="text-sm text-gray-500">Đã chọn</p>
+                <p className="text-sm text-gray-500">Da chon</p>
                 <p className="text-3xl font-black text-orange-600">{selectedRooms.length}</p>
-                <p className="text-sm font-semibold text-gray-700">phòng</p>
+                <p className="text-sm font-semibold text-gray-700">phong</p>
               </div>
             </div>
 
             <div className="min-h-0 flex-1 overflow-y-auto px-8 py-4">
-              <h3 className="mb-3 text-xl font-bold">Chọn phòng</h3>
+              <h3 className="mb-3 text-xl font-bold">Chon phong</h3>
 
               {isLoading ? (
-                <div className="py-12 text-center text-gray-500">Đang tải danh sách phòng...</div>
+                <div className="py-12 text-center text-gray-500">Dang tai danh sach phong...</div>
               ) : (
                 <div className="space-y-5 pb-4">
                   {roomTypes.map((roomType) => {
@@ -389,7 +474,7 @@ const BookingCreateModal = ({ open, onClose, onNotice }) => {
                         <div className="mb-3 flex items-center justify-between">
                           <h4 className="text-lg font-bold">{roomType.name}</h4>
                           <p className="font-semibold text-orange-600">
-                            {(roomType.basePrice || 0).toLocaleString("vi-VN")} đ/đêm
+                            {(roomType.basePrice || 0).toLocaleString("vi-VN")} d/dem
                           </p>
                         </div>
 
@@ -397,6 +482,9 @@ const BookingCreateModal = ({ open, onClose, onNotice }) => {
                           {roomsOfType.map((room) => {
                             const isSelected = selectedRooms.some((item) => item.id === room.id);
                             const isOccupied = room.status === "Occupied";
+                            const overlappingBooking = overlappingBookingMap.get(room.id);
+                            const isBookedInRange = Boolean(overlappingBooking);
+                            const isUnavailable = isOccupied || isBookedInRange;
 
                             return (
                               <button
@@ -404,7 +492,7 @@ const BookingCreateModal = ({ open, onClose, onNotice }) => {
                                 type="button"
                                 onClick={() => toggleRoomSelection(room)}
                                 className={`relative rounded-3xl border-2 px-5 py-4 text-left transition-all ${
-                                  isOccupied
+                                  isUnavailable
                                     ? "cursor-not-allowed border-gray-300 bg-gray-50 opacity-75"
                                     : isSelected
                                       ? "border-orange-500 bg-orange-50 shadow-sm"
@@ -416,14 +504,19 @@ const BookingCreateModal = ({ open, onClose, onNotice }) => {
                                     <AlertTriangle size={14} />
                                     OCCUPIED
                                   </div>
+                                ) : isBookedInRange ? (
+                                  <div className="absolute -right-2 -top-2 flex items-center gap-1 rounded-full bg-orange-500 px-3 py-1 text-[10px] font-bold text-white shadow">
+                                    <AlertTriangle size={14} />
+                                    DA CO BOOKING
+                                  </div>
                                 ) : null}
 
                                 <div className="flex items-start justify-between">
                                   <div>
                                     <p className="text-2xl font-black text-gray-900">{room.roomNumber}</p>
-                                    <p className="text-xs text-gray-500">Tầng {room.floor}</p>
+                                    <p className="text-xs text-gray-500">Tang {room.floor}</p>
                                   </div>
-                                  {isSelected && !isOccupied ? (
+                                  {isSelected && !isUnavailable ? (
                                     <div className="flex h-6 w-6 items-center justify-center rounded-full bg-orange-500 text-xs font-bold text-white">
                                       ✓
                                     </div>
@@ -432,17 +525,30 @@ const BookingCreateModal = ({ open, onClose, onNotice }) => {
 
                                 <div className="mt-4 space-y-1 text-sm">
                                   <p>
-                                    Sức chứa: {roomType.capacityAdults} NL, {roomType.capacityChildren} TE
+                                    Suc chua: {roomType.capacityAdults} NL, {roomType.capacityChildren} TE
                                   </p>
                                   <p className="font-semibold text-orange-600">
-                                    {(roomType.basePrice || 0).toLocaleString("vi-VN")} đ/đêm
+                                    {(roomType.basePrice || 0).toLocaleString("vi-VN")} d/dem
                                   </p>
                                 </div>
 
                                 {isOccupied ? (
                                   <div className="mt-3 flex items-center gap-1 text-xs font-medium text-rose-600">
                                     <AlertTriangle size={16} />
-                                    Phòng này đang có khách lưu trú
+                                    Phong nay dang co khach luu tru
+                                  </div>
+                                ) : isBookedInRange ? (
+                                  <div className="mt-3 space-y-1 text-xs font-medium text-orange-700">
+                                    <div className="flex items-center gap-1">
+                                      <AlertTriangle size={16} />
+                                      Phong nay da co booking trong ngay ban chon
+                                    </div>
+                                    <p>{overlappingBooking.guestName}</p>
+                                    <p>{overlappingBooking.bookingCode}</p>
+                                    <p>
+                                      {formatVietnamDate(overlappingBooking.checkInDate)} -{" "}
+                                      {formatVietnamDate(overlappingBooking.checkOutDate)}
+                                    </p>
                                   </div>
                                 ) : null}
                               </button>
@@ -463,14 +569,14 @@ const BookingCreateModal = ({ open, onClose, onNotice }) => {
             onClick={handleClose}
             className="rounded-2xl bg-gray-100 px-5 py-3 font-bold text-gray-600 transition hover:bg-gray-200"
           >
-            Hủy
+            Huy
           </button>
           <button
             onClick={handlePrepareConfirmation}
             disabled={selectedRooms.length === 0 || createMutation.isPending}
             className="rounded-2xl bg-orange-600 px-5 py-3 font-black text-white transition hover:bg-orange-700 disabled:cursor-not-allowed disabled:bg-gray-300"
           >
-            Xác nhận đặt {selectedRooms.length} phòng
+            Xac nhan dat {selectedRooms.length} phong
           </button>
         </div>
       </div>

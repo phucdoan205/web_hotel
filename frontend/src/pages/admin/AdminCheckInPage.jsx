@@ -220,11 +220,10 @@ const AdminCheckInPage = () => {
     [arrivalsQuery.data],
   );
 
+  // Show all arrival room entries for the date (both paid and unpaid) so receptionist
+  // can see and pay per-room; filter only out rooms already checked-in.
   const arrivalRooms = useMemo(
-    () =>
-      buildBookingRoomEntries(arrivals, selectedDate).filter(
-        (entry) => isBookingDetailPaid(entry.booking, entry.detailId) && !entry.checkedIn,
-      ),
+    () => buildBookingRoomEntries(arrivals, selectedDate).filter((entry) => !entry.checkedIn),
     [arrivals, selectedDate],
   );
 

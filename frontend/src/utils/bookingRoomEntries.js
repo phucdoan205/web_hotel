@@ -27,6 +27,20 @@ export const buildBookingRoomEntries = (bookings = [], todayKey = "") =>
       const roomNumber = getRoomEntryNumber(detail);
       const checkOutKey = String(detail?.checkOutDate || "").slice(0, 10);
       const dueForCheckout = Boolean(checkOutKey && todayKey && checkOutKey <= todayKey);
+      // Determine a sensible room status for UI:
+      // - If booking detail has its own status, reflect it (Pending/Confirmed/CheckedIn)
+      // - If the room entity has a status, use it
+      // - Otherwise default to Pending (new booking should not appear as Occupied)
+      let roomStatus = "Pending";
+      if (detail?.status) {
+        if (detail.status === "CheckedIn") roomStatus = "Occupied";
+        else roomStatus = detail.status; // Pending or Confirmed
+      } else if (detail.room?.status) {
+        roomStatus = detail.room.status;
+      } else if (booking?.status) {
+        // If booking already confirmed, reflect that
+        roomStatus = booking.status === "Confirmed" ? "Confirmed" : "Pending";
+      }
 
       return {
         id: `${booking.id}-${detail.id || index}`,
@@ -39,7 +53,7 @@ export const buildBookingRoomEntries = (bookings = [], todayKey = "") =>
         roomNumber,
         roomName: getRoomEntryName(booking, detail),
         basePrice: getRoomEntryPrice(booking, detail),
-        roomStatus: detail.room?.status || booking.roomStatus || "Occupied",
+        roomStatus,
         cleaningStatus: detail.room?.cleaningStatus || booking.cleaningStatus || detail.cleaningStatus,
         checkInDate: detail.checkInDate,
         checkOutDate: detail.checkOutDate,

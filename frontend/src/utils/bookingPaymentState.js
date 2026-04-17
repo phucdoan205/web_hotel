@@ -1,4 +1,5 @@
 const STORAGE_KEY = "receptionist-booking-payment-state";
+const PAID_DETAIL_STATUSES = ["Confirmed", "CheckedIn"];
 
 const readStore = () => {
   if (typeof window === "undefined") return {};
@@ -30,11 +31,16 @@ export const getBookingPaymentState = (booking) => {
 
   const store = readStore();
   const entry = store[String(booking.id)] || {};
-  const paidDetailIds = Array.isArray(entry.paidDetailIds) ? entry.paidDetailIds : [];
   const detailIds = (booking.bookingDetails || []).map((detail) => detail.id).filter(Boolean);
+  const storedPaidDetailIds = (Array.isArray(entry.paidDetailIds) ? entry.paidDetailIds : []).filter((id) =>
+    detailIds.includes(id),
+  );
+  const statusPaidDetailIds = (booking.bookingDetails || [])
+    .filter((detail) => PAID_DETAIL_STATUSES.includes(detail?.status))
+    .map((detail) => detail.id)
+    .filter(Boolean);
+  const paidDetailIds = Array.from(new Set([...storedPaidDetailIds, ...statusPaidDetailIds]));
   const depositComplete =
-    booking.status === "Confirmed" ||
-    booking.status === "CheckedIn" ||
     booking.status === "Completed" ||
     (detailIds.length > 0 && detailIds.every((id) => paidDetailIds.includes(id)));
 
@@ -88,5 +94,13 @@ export const markBookingAllPaid = (booking) => {
   store[String(booking.id)] = {
     paidDetailIds: detailIds,
   };
+  writeStore(store);
+};
+
+export const clearBookingPaymentState = (bookingId) => {
+  if (!bookingId) return;
+
+  const store = readStore();
+  delete store[String(bookingId)];
   writeStore(store);
 };

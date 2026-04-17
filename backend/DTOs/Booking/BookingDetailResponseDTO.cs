@@ -10,6 +10,7 @@ namespace backend.DTOs
         public DateTime CheckInDate { get; set; }
         public DateTime CheckOutDate { get; set; }
         public decimal PricePerNight { get; set; }
+        public string? Status { get; set; }
         public string? GuestName { get; set; }
         public int? GuestId { get; set; }
     }

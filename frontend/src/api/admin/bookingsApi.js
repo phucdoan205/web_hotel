@@ -57,6 +57,16 @@ export const bookingsApi = {
     return response.data;
   },
 
+  confirmBookingDetail: async (bookingId, detailId) => {
+    const response = await apiClient.patch(`/Bookings/${bookingId}/details/${detailId}/confirm`);
+    return response.data;
+  },
+
+  checkInBookingDetail: async (bookingId, detailId) => {
+    const response = await apiClient.patch(`/Bookings/${bookingId}/details/${detailId}/check-in`);
+    return response.data;
+  },
+
   // Check-out
   checkOut: async (bookingId) => {
     const response = await apiClient.patch(`/Bookings/${bookingId}/check-out`);

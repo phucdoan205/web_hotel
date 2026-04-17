@@ -110,13 +110,15 @@ const AdminBookingPaymentPage = () => {
 
       if (selectedDetail?.id) {
         markBookingDetailPaid(booking.id, selectedDetail.id);
+        // inform backend that this detail has been confirmed (paid)
+        await bookingsApi.confirmBookingDetail(booking.id, selectedDetail.id);
+
         const allDetailsPaid = (booking.bookingDetails || []).every(
           (detail) => detail.id === selectedDetail.id || isBookingDetailPaid(booking, detail.id),
         );
 
         if (allDetailsPaid) {
           markBookingAllPaid(booking);
-          await bookingsApi.updateBookingStatus(booking.id, "Confirmed");
           return { scope: "all" };
         }
 
@@ -124,7 +126,14 @@ const AdminBookingPaymentPage = () => {
       }
 
       markBookingAllPaid(booking);
-      await bookingsApi.updateBookingStatus(booking.id, "Confirmed");
+      const unpaidBookingDetails = (booking.bookingDetails || []).filter(
+        (detail) => !isBookingDetailPaid(booking, detail.id),
+      );
+
+      await Promise.all(
+        unpaidBookingDetails.map((detail) => bookingsApi.confirmBookingDetail(booking.id, detail.id)),
+      );
+
       return { scope: "all" };
     },
     onSuccess: (result) => {
@@ -412,4 +421,3 @@ const AdminBookingPaymentPage = () => {
 };
 
 export default AdminBookingPaymentPage;
-

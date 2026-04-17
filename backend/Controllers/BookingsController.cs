@@ -198,7 +198,8 @@ namespace backend.Controllers
                     RoomTypeId = detailDto.RoomTypeId,
                     CheckInDate = detailDto.CheckInDate.AddHours(14),   // Mặc định giờ check-in là 14:00
                     CheckOutDate = detailDto.CheckOutDate.AddHours(12), // Mặc định giờ check-out là 12:00
-                    PricePerNight = roomType.BasePrice
+                    PricePerNight = roomType.BasePrice,
+                    Status = "Pending"
                 };
 
                 booking.BookingDetails.Add(detail);
@@ -236,6 +237,79 @@ namespace backend.Controllers
             return NoContent();
         }
 
+        // PATCH: api/Bookings/{id}/details/{detailId}/confirm - Xác nhận (đã trả trước) cho 1 chi tiết phòng
+        [HttpPatch("{id:int}/details/{detailId:int}/confirm")]
+        [Permission("EDIT_BOOKINGS")]
+        public async Task<IActionResult> ConfirmBookingDetail(int id, int detailId)
+        {
+            var booking = await _context.Bookings
+                .Include(b => b.BookingDetails)
+                .FirstOrDefaultAsync(b => b.Id == id);
+
+            if (booking == null)
+                return NotFound("Không tìm thấy booking.");
+
+            var detail = booking.BookingDetails.FirstOrDefault(d => d.Id == detailId);
+            if (detail == null)
+                return NotFound("Không tìm thấy chi tiết booking.");
+
+            if (detail.Status == "Confirmed")
+                return BadRequest("Chi tiết booking đã ở trạng thái Confirmed.");
+
+            detail.Status = "Confirmed";
+
+            // Nếu tất cả đã Confirmed thì cập nhật trạng thái booking
+            if (booking.BookingDetails.All(d => d.Status == "Confirmed"))
+            {
+                booking.Status = "Confirmed";
+            }
+
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+
+        // PATCH: api/Bookings/{id}/details/{detailId}/check-in - Check-in 1 phòng trong booking
+        [HttpPatch("{id:int}/details/{detailId:int}/check-in")]
+        [Permission("CHECKIN_BOOKING")]
+        public async Task<IActionResult> CheckInBookingDetail(int id, int detailId)
+        {
+            var booking = await _context.Bookings
+                .Include(b => b.BookingDetails)
+                .FirstOrDefaultAsync(b => b.Id == id);
+
+            if (booking == null)
+                return NotFound("Không tìm thấy booking.");
+
+            var detail = booking.BookingDetails.FirstOrDefault(d => d.Id == detailId);
+            if (detail == null)
+                return NotFound("Không tìm thấy chi tiết booking.");
+
+            if (detail.Status != "Confirmed")
+                return BadRequest("Phải trả trước (Confirmed) mới có thể check-in phòng này.");
+
+            if (detail.RoomId.HasValue)
+            {
+                var room = await _context.Rooms.FindAsync(detail.RoomId.Value);
+                if (room != null)
+                {
+                    room.Status = RoomStatuses.Occupied;
+                }
+            }
+
+            detail.Status = "CheckedIn";
+
+            // Nếu tất cả chi tiết đều CheckedIn thì cập nhật trạng thái booking
+            if (booking.BookingDetails.All(d => d.Status == "CheckedIn"))
+            {
+                booking.Status = "CheckedIn";
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Phòng đã được check-in.", bookingId = booking.Id, bookingStatus = booking.Status, detailId = detailId });
+        }
+
         // PATCH: api/Bookings/{id}/check-in - Check-in khách
         [HttpPatch("{id:int}/check-in")]
         [Permission("CHECKIN_BOOKING")]
@@ -247,15 +321,24 @@ namespace backend.Controllers
 
             if (booking == null)
                 return NotFound("Không tìm thấy booking.");
+            // Allow check-in for booking details that have been confirmed (per-room)
+            var confirmableDetails = booking.BookingDetails
+                .Where(d => d.Status == "Confirmed")
+                .ToList();
 
-            if (booking.Status != "Confirmed")
-                return BadRequest("Chỉ có thể check-in cho booking có trạng thái 'Confirmed'.");
+            // If none of the details are individually confirmed, allow legacy bulk check-in only when whole booking is Confirmed
+            if (!confirmableDetails.Any())
+            {
+                if (booking.Status != "Confirmed")
+                {
+                    return BadRequest("Không có phòng nào đã được xác nhận để check-in hoặc booking chưa ở trạng thái 'Confirmed'.");
+                }
 
-            // Cập nhật trạng thái Booking
-            booking.Status = "CheckedIn";
+                // legacy: check-in all booking details
+                confirmableDetails = booking.BookingDetails.ToList();
+            }
 
-            // Cập nhật trạng thái các phòng liên quan thành Occupied
-            foreach (var detail in booking.BookingDetails)
+            foreach (var detail in confirmableDetails)
             {
                 if (detail.RoomId.HasValue)
                 {
@@ -265,6 +348,15 @@ namespace backend.Controllers
                         room.Status = RoomStatuses.Occupied;
                     }
                 }
+
+                // mark detail as checked-in
+                detail.Status = "CheckedIn";
+            }
+
+            // If all details checked-in, mark booking as CheckedIn
+            if (booking.BookingDetails.All(d => d.Status == "CheckedIn"))
+            {
+                booking.Status = "CheckedIn";
             }
 
             await _context.SaveChangesAsync();
@@ -416,7 +508,7 @@ namespace backend.Controllers
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 20)
         {
-            var targetDate = date?.Date ?? DateTime.UtcNow.Date;
+            var targetDate = date?.Date ?? DateTime.Today;
 
             var query = _context.Bookings
                 .Include(b => b.Guest)
@@ -455,7 +547,8 @@ namespace backend.Controllers
                     .ThenInclude(bd => bd.Room)
                 .Include(b => b.BookingDetails)
                     .ThenInclude(bd => bd.RoomType)
-                .Where(b => b.Status == "CheckedIn")
+                // Include bookings that are fully CheckedIn or have any detail CheckedIn (partial check-in)
+                .Where(b => b.Status == "CheckedIn" || b.BookingDetails.Any(d => d.Status == "CheckedIn"))
                 .AsNoTracking();
 
             var totalCount = await query.CountAsync();
@@ -479,7 +572,7 @@ namespace backend.Controllers
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 20)
         {
-            var targetDate = date?.Date ?? DateTime.UtcNow.Date;
+            var targetDate = date?.Date ?? DateTime.Today;
 
             var query = _context.Bookings
                 .Include(b => b.Guest)
@@ -487,8 +580,9 @@ namespace backend.Controllers
                     .ThenInclude(bd => bd.Room)
                 .Include(b => b.BookingDetails)
                     .ThenInclude(bd => bd.RoomType)
-                .Where(b => b.Status == "CheckedIn")
-                .Where(b => b.BookingDetails.Any(bd => bd.CheckOutDate.Date == targetDate))
+                // Include bookings that are fully CheckedIn or have any detail CheckedIn (partial check-in)
+                .Where(b => (b.Status == "CheckedIn" || b.BookingDetails.Any(d => d.Status == "CheckedIn"))
+                    && b.BookingDetails.Any(bd => bd.CheckOutDate.Date == targetDate))
                 .AsNoTracking();
 
             var totalCount = await query.CountAsync();

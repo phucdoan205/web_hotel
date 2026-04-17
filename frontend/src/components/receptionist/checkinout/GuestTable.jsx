@@ -51,6 +51,8 @@ const roomStatusStyles = {
   Maintenance: "bg-rose-50 text-rose-700 ring-1 ring-rose-200",
   Cleaning: "bg-amber-50 text-amber-700 ring-1 ring-amber-200",
   OutOfOrder: "bg-slate-100 text-slate-700 ring-1 ring-slate-200",
+  Pending: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200",
+  Confirmed: "bg-sky-50 text-sky-700 ring-1 ring-sky-200",
 };
 
 const cleaningStatusStyles = {
@@ -176,11 +178,11 @@ const GuestTable = ({
         return { mode: "booking", booking: updatedBooking || subject };
       }
 
-      saveBookingDetailCheckedInSnapshot(subject.bookingId, subject.detailId, subject);
+      // Per-room check-in: call backend endpoint to mark this booking detail as CheckedIn
+      await bookingsApi.checkInBookingDetail(subject.bookingId, subject.detailId);
 
-      if (areAllBookingDetailsCheckedIn(subject.booking)) {
-        await bookingsApi.checkIn(subject.bookingId);
-      }
+      // Save a local snapshot for immediate UI responsiveness
+      saveBookingDetailCheckedInSnapshot(subject.bookingId, subject.detailId, subject);
 
       return { mode: "room", roomEntry: subject };
     },
@@ -329,7 +331,13 @@ const GuestTable = ({
                 <div className="flex flex-wrap justify-end gap-2">
                   {activeTab === "in" ? (
                     <span className="inline-flex rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700 ring-1 ring-emerald-200">
-                      {entry.booking?.status === "Pending" ? "Cho xac nhan" : "Cho nhan phong"}
+                      {
+                        // Show per-room label: if this detail is paid or explicitly Confirmed => ready to receive,
+                        // otherwise show 'Chờ xác nhận' so receptionist can pay the room.
+                      }
+                      {entry.detail?.status === "Confirmed" || getRoomEntryPaidState(entry) || entry.booking?.status === "Confirmed"
+                        ? "Cho nhan phong"
+                        : "Cho xac nhan"}
                     </span>
                   ) : entry.checkedOut ? (
                     <span className="inline-flex rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700 ring-1 ring-emerald-200">
@@ -487,7 +495,17 @@ const GuestTable = ({
           {visibleDetails.map((detail, index) => {
             const roomNumber = getRoomNumber(detail);
             const roomName = getRoomName(booking, detail);
-            const roomStatus = detail.room?.status || booking.roomStatus || "Occupied";
+            // Determine room status for display: prefer per-detail status, then room entity, then booking status.
+            let roomStatus = "Pending";
+            if (detail?.status) {
+              if (detail.status === "CheckedIn") roomStatus = "Occupied";
+              else roomStatus = detail.status; // Pending or Confirmed
+            } else if (detail.room?.status) {
+              roomStatus = detail.room.status;
+            } else if (booking?.status) {
+              roomStatus = booking.status === "Confirmed" ? "Confirmed" : "Pending";
+            }
+
             const cleaningStatus =
               detail.room?.cleaningStatus || booking.cleaningStatus || detail.cleaningStatus;
             const basePrice = getBasePrice(booking, detail);
@@ -508,13 +526,13 @@ const GuestTable = ({
                     </p>
                     <h4 className="mt-1 text-lg font-black text-slate-900">{roomName}</h4>
                   </div>
-                  <span
-                    className={`inline-flex rounded-full px-3 py-1 text-xs font-black ${
-                      roomStatusStyles[roomStatus] ?? roomStatusStyles.OutOfOrder
-                    }`}
-                  >
-                    {roomStatus}
-                  </span>
+                    <span
+                      className={`inline-flex rounded-full px-3 py-1 text-xs font-black ${
+                        roomStatusStyles[roomStatus] ?? roomStatusStyles.OutOfOrder
+                      }`}
+                    >
+                      {roomStatus}
+                    </span>
                 </div>
 
                 <div className="mt-4 grid gap-3 md:grid-cols-3">
@@ -561,7 +579,8 @@ const GuestTable = ({
         activeTab === "in"
           ? (booking.bookingDetails || []).filter((detail) => !isBookingDetailPaid(booking, detail.id))
           : [];
-      const canCheckIn = activeTab !== "in" || paymentState.hasAnyPayment;
+      // Only allow bulk check-in for a booking when deposit is complete for all rooms
+      const canCheckIn = activeTab !== "in" || paymentState.depositComplete;
       const isLoading =
         activeTab === "in"
           ? checkInMutation.isPending && checkInMutation.variables === booking.id

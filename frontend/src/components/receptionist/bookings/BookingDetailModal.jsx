@@ -1,13 +1,5 @@
 import React, { useMemo, useState } from "react";
-import {
-  Calendar,
-  CircleCheckBig,
-  Clock,
-  CreditCard,
-  QrCode,
-  User,
-  X,
-} from "lucide-react";
+import { Calendar, CircleCheckBig, Clock, CreditCard, User, X } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { bookingsApi } from "../../../api/admin/bookingsApi";
@@ -17,12 +9,7 @@ import {
   getBookingDetailTotal,
   getBookingTotalAmount,
 } from "../../../utils/bookingPricing";
-import {
-  getBookingPaymentState,
-  isBookingDetailPaid,
-  markBookingAllPaid,
-  markBookingDetailPaid,
-} from "../../../utils/bookingPaymentState";
+import { getBookingPaymentState, isBookingDetailPaid } from "../../../utils/bookingPaymentState";
 
 const formatCurrency = (amount) => `${(amount || 0).toLocaleString("vi-VN")} đ`;
 
@@ -66,13 +53,9 @@ export default function BookingDetailModal({ open, onClose, booking, onBookingUp
   const updateStatusMutation = useMutation({
     mutationFn: ({ id, status }) => bookingsApi.updateBookingStatus(id, status),
     onSuccess: (_, variables) => {
-      markBookingAllPaid(booking);
       const nextBooking = { ...booking, status: variables.status };
       syncBookingQueries(nextBooking);
-      setInlineMessage({
-        type: "success",
-        message: "Đã xác nhận thanh toán QR cho toàn bộ booking.",
-      });
+      setInlineMessage({ type: "success", message: "Đã cập nhật trạng thái booking." });
       onBookingUpdated?.(nextBooking);
     },
     onError: () => {
@@ -82,32 +65,6 @@ export default function BookingDetailModal({ open, onClose, booking, onBookingUp
       });
     },
   });
-
-  const handleConfirmSingleRoomPayment = async (detail) => {
-    if (!booking?.id || !detail?.id || isCancelled) return;
-
-    markBookingDetailPaid(booking.id, detail.id);
-
-    const allDetailsPaid = bookingDetails.every(
-      (item) => item.id === detail.id || isBookingDetailPaid(booking, item.id),
-    );
-
-    if (allDetailsPaid) {
-      markBookingAllPaid(booking);
-      await updateStatusMutation.mutateAsync({ id: booking.id, status: "Confirmed" });
-      return;
-    }
-
-    const nextBooking = { ...booking };
-    syncBookingQueries(nextBooking);
-    setInlineMessage({
-      type: "success",
-      message: `Đã ghi nhận thanh toán QR cho phòng ${
-        detail.room?.roomNumber || detail.roomNumber || "--"
-      }.`,
-    });
-    onBookingUpdated?.(nextBooking);
-  };
 
   const handleOpenQrPage = (detailId) => {
     if (!booking?.id || isCancelled) return;
@@ -249,27 +206,8 @@ export default function BookingDetailModal({ open, onClose, booking, onBookingUp
                         <span className="font-black text-orange-600">{formatCurrency(detailDeposit)}</span>
                       </div>
 
-                      {!detailPaid && !isCancelled ? (
-                        <div className="mt-4 flex justify-end gap-3">
-                          <button
-                            type="button"
-                            onClick={() => handleOpenQrPage(detail.id)}
-                            className="inline-flex items-center gap-2 rounded-2xl bg-sky-100 px-4 py-2 font-bold text-sky-700 transition hover:bg-sky-200"
-                          >
-                            <QrCode size={16} />
-                            Thanh toán QR
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleConfirmSingleRoomPayment(detail)}
-                            disabled={updateStatusMutation.isPending}
-                            className="inline-flex items-center gap-2 rounded-2xl bg-emerald-100 px-4 py-2 font-bold text-emerald-700 transition hover:bg-emerald-200 disabled:cursor-not-allowed disabled:bg-emerald-50"
-                          >
-                            <CircleCheckBig size={16} />
-                            Xác nhận đã thanh toán
-                          </button>
-                        </div>
-                      ) : null}
+                      {/* Payment actions removed from booking detail modal to avoid accidental payment marking.
+                          Use the dedicated payment page to perform payments. */}
                     </div>
                   );
                 })}
@@ -314,16 +252,7 @@ export default function BookingDetailModal({ open, onClose, booking, onBookingUp
 
         <div className="sticky bottom-0 border-t bg-white px-8 py-5">
           <div className="flex flex-wrap justify-end gap-3">
-            {!paymentState.depositComplete && !isCancelled ? (
-              <button
-                type="button"
-                onClick={() => handleOpenQrPage()}
-                className="inline-flex items-center gap-2 rounded-2xl bg-sky-100 px-4 py-3 font-bold text-sky-700 transition hover:bg-sky-200"
-              >
-                <QrCode size={18} />
-                Thanh toán QR tất cả
-              </button>
-            ) : null}
+            {/* Payment actions removed from booking detail modal footer. Use the payment page instead. */}
             <button
               onClick={onClose}
               className="rounded-2xl bg-gray-900 px-8 py-3 font-semibold text-white transition hover:bg-black"
