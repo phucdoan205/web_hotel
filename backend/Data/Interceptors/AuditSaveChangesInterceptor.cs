@@ -1,15 +1,24 @@
+using backend.Common;
 using backend.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using System.Text.Json;
-using backend.Common;
+using System.Text.Json.Serialization;
 
 namespace backend.Data.Interceptors
 {
     public class AuditSaveChangesInterceptor : SaveChangesInterceptor
     {
         private readonly IHttpContextAccessor _httpContextAccessor;
+
+        // Cấu hình JsonSerializer hỗ trợ tiếng Việt
+        private static readonly JsonSerializerOptions JsonOptions = new()
+        {
+            Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+            WriteIndented = false,
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+        };
 
         public AuditSaveChangesInterceptor(IHttpContextAccessor httpContextAccessor)
         {
@@ -21,14 +30,15 @@ namespace backend.Data.Interceptors
             InterceptionResult<int> result,
             CancellationToken cancellationToken = default)
         {
-            if (eventData.Context is not AppDbContext context)
+            if (eventData.Context is not AppDbContext context) 
                 return await base.SavingChangesAsync(eventData, result, cancellationToken);
 
             var auditEntries = new List<AuditLog>();
 
             foreach (var entry in context.ChangeTracker.Entries())
             {
-                if (entry.Entity is AuditLog) continue; // Tránh loop vô hạn
+                if (entry.Entity is AuditLog || entry.State == EntityState.Unchanged || entry.State == EntityState.Detached)
+                    continue;
 
                 var audit = CreateAuditEntry(entry);
                 if (audit != null)
@@ -45,10 +55,12 @@ namespace backend.Data.Interceptors
 
         private AuditLog? CreateAuditEntry(EntityEntry entry)
         {
-            var entityType = entry.Entity.GetType().Name;
+            var entityType = entry.Metadata.ClrType.Name;
             var recordId = GetPrimaryKeyValue(entry);
 
-            if (recordId == 0) return null;
+            // Nếu là entity mới (temporary key) thì RecordId vẫn để tạm (sẽ thành dương sau SaveChanges)
+            if (recordId == 0 && entry.State == EntityState.Added)
+                recordId = -1; // hoặc giữ nguyên tạm thời
 
             var userId = GetCurrentUserId();
 
@@ -63,19 +75,19 @@ namespace backend.Data.Interceptors
             if (action == null) return null;
 
             // Xử lý Soft Delete
-            if (entry.Entity is ISoftDelete softDelete &&
-                entry.State == EntityState.Modified &&
+            if (entry.Entity is ISoftDelete softDelete && 
+                entry.State == EntityState.Modified && 
                 softDelete.IsDeleted)
             {
                 action = "SOFT_DELETE";
             }
 
-            var oldValues = entry.State == EntityState.Modified || entry.State == EntityState.Deleted
-                ? GetOriginalValues(entry)
+            var oldValues = (entry.State == EntityState.Modified || entry.State == EntityState.Deleted)
+                ? GetValues(entry.OriginalValues)
                 : null;
 
-            var newValues = entry.State == EntityState.Added || entry.State == EntityState.Modified
-                ? GetCurrentValues(entry)
+            var newValues = (entry.State == EntityState.Added || entry.State == EntityState.Modified)
+                ? GetValues(entry.CurrentValues)
                 : null;
 
             return new AuditLog
@@ -84,57 +96,49 @@ namespace backend.Data.Interceptors
                 Action = action,
                 TableName = entityType,
                 RecordId = recordId,
-                OldValue = oldValues != null ? JsonSerializer.Serialize(oldValues) : null,
-                NewValue = newValues != null ? JsonSerializer.Serialize(newValues) : null,
+                OldValue = oldValues,
+                NewValue = newValues,
                 CreatedAt = DateTime.UtcNow
             };
         }
 
         private int GetPrimaryKeyValue(EntityEntry entry)
         {
-            var keyProperty = entry.Metadata.FindPrimaryKey()?.Properties.FirstOrDefault();
-            if (keyProperty == null) return 0;
+            var key = entry.Metadata.FindPrimaryKey()?.Properties.FirstOrDefault();
+            if (key == null) return 0;
 
-            var value = entry.Property(keyProperty.Name).CurrentValue;
+            var value = entry.Property(key.Name).CurrentValue;
             return value is int id ? id : 0;
         }
 
-        private object? GetOriginalValues(EntityEntry entry)
+        private string? GetValues(PropertyValues values)
         {
             var dict = new Dictionary<string, object?>();
-            foreach (var prop in entry.OriginalValues.Properties)
-            {
-                var name = prop.Name;
-                if (name is "PasswordHash" or "IsDeleted" or "DeletedAt") continue; // ẩn thông tin nhạy cảm
-                dict[name] = entry.OriginalValues[name];
-            }
-            return dict;
-        }
-
-        private object? GetCurrentValues(EntityEntry entry)
-        {
-            var dict = new Dictionary<string, object?>();
-            foreach (var prop in entry.CurrentValues.Properties)
+            foreach (var prop in values.Properties)
             {
                 var name = prop.Name;
                 if (name is "PasswordHash") continue;
-                dict[name] = entry.CurrentValues[name];
+                dict[name] = values[name];
             }
-            return dict;
+            return JsonSerializer.Serialize(dict, JsonOptions);
         }
 
         private int? GetCurrentUserId()
         {
-            // Ưu tiên X-User-Id header (cách bạn đang dùng)
-            var header = _httpContextAccessor.HttpContext?.Request.Headers["X-User-Id"].ToString();
-            if (!string.IsNullOrEmpty(header) && int.TryParse(header, out var id))
-                return id;
+            var httpContext = _httpContextAccessor.HttpContext;
+            if (httpContext == null) return null;
 
-            // Fallback từ Claims (JWT)
-            var claim = _httpContextAccessor.HttpContext?.User.FindFirst("sub")?.Value
-                     ?? _httpContextAccessor.HttpContext?.User.FindFirst("nameid")?.Value;
+            // Ưu tiên lấy từ Header X-User-Id (cách bạn đang dùng ở nhiều controller)
+            var header = httpContext.Request.Headers["X-User-Id"].ToString();
+            if (!string.IsNullOrWhiteSpace(header) && int.TryParse(header, out var headerId))
+                return headerId;
 
-            return int.TryParse(claim, out var uid) ? uid : null;
+            // Fallback từ JWT Claims
+            var claim = httpContext.User.FindFirst("sub")?.Value 
+                     ?? httpContext.User.FindFirst("nameid")?.Value 
+                     ?? httpContext.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+            return int.TryParse(claim, out var claimId) ? claimId : null;
         }
     }
 }

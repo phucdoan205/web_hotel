@@ -117,6 +117,7 @@ namespace backend.Controllers
 
         // POST: api/rooms
         [HttpPost]
+        [Permission("MANAGEROOMS")]
         public async Task<ActionResult<RoomDetailDTO>> Create([FromBody] CreateRoomDTO dto)
         {
 
@@ -149,6 +150,7 @@ namespace backend.Controllers
 
         // PUT: api/rooms/5
         [HttpPut("{id}")]
+        [Permission("MANAGEROOMS")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateRoomDTO dto)
         {
             dto.ID = id;
@@ -176,6 +178,7 @@ namespace backend.Controllers
 
         // DELETE: api/rooms/5 (mark OutOfOrder)
         [HttpDelete("{id}")]
+        [Permission("MANAGEROOMS")]
         public async Task<IActionResult> Delete(int id)
         {
             var room = await _context.Rooms
@@ -202,6 +205,7 @@ namespace backend.Controllers
 
         // POST: api/rooms/5/restore
         [HttpPost("{id}/restore")]
+        [Permission("MANAGEROOMS")]
         public async Task<IActionResult> RestoreRoom(int id)
         {
             var room = await _context.Rooms
@@ -220,6 +224,7 @@ namespace backend.Controllers
 
         // GET: api/rooms/deleted
         [HttpGet("deleted")]
+        [Permission("MANAGEROOMS")]
         public async Task<ActionResult<PagedResult<RoomDetailDTO>>> GetDeletedRooms(
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 15,
@@ -333,6 +338,7 @@ namespace backend.Controllers
 
         // PATCH: api/rooms/{id}/status
         [HttpPatch("{id}/status")]
+        [Permission("MANAGEROOMS")]
         public async Task<IActionResult> PatchStatus(int id, [FromBody] PatchRoomStatusDTO dto)
         {
             //var validation = await _patchStatusValidator.ValidateAsync(dto);
@@ -359,6 +365,7 @@ namespace backend.Controllers
 
         // PATCH: api/rooms/{id}/cleaning-status
         [HttpPatch("{id}/cleaning-status")]
+        [Permission("MANAGEROOMS")]
         public async Task<IActionResult> PatchCleaningStatus(int id, [FromBody] PatchRoomCleaningStatusDTO dto)
         {
             //var validation = await _patchCleaningValidator.ValidateAsync(dto);
@@ -400,6 +407,7 @@ namespace backend.Controllers
         }
 
         [HttpPost("bulk-create")]
+        [Permission("MANAGEROOMS")]
         public async Task<IActionResult> BulkCreate([FromBody] BulkCreateRoomDTO dto)
         {
             //var validation = await _bulkCreateValidator.ValidateAsync(dto);
@@ -482,6 +490,7 @@ namespace backend.Controllers
         }
 
         [HttpPost("{id}/clone")]
+        [Permission("MANAGEROOMS")]
         public async Task<ActionResult<RoomDetailDTO>> CloneRoom(int id, [FromBody] CloneRoomRequest request)
         {
             var originalRoom = await _context.Rooms
