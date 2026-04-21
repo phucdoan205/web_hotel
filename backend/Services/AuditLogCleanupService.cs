@@ -45,16 +45,10 @@ namespace backend.Services
                 var now = DateTime.Now;
                 var fixedTime = new TimeSpan(cleanupHour, cleanupMinute, 0);
 
-                // Tính candidate = now + interval (chỉ năm/tháng/ngày)
-                var candidate = now
-                    .AddYears(intervalYears)
-                    .AddMonths(intervalMonths)
-                    .AddDays(intervalDays);
-
-                var nextRun = candidate.Date + fixedTime;
-
-                // Nếu interval = 0 (không có năm/tháng/ngày) → coi như chạy HÀNG NGÀY
+                // Nếu interval = 0 → chạy hàng ngày (giữ nguyên logic cũ)
                 bool isDaily = intervalYears == 0 && intervalMonths == 0 && intervalDays == 0;
+
+                DateTime nextRun;
 
                 if (isDaily)
                 {
@@ -62,22 +56,32 @@ namespace backend.Services
                     if (nextRun <= now)
                         nextRun = nextRun.AddDays(1);
                 }
-                else if (nextRun <= now)
+                else
                 {
-                    // Chưa đến giờ hôm nay → chuyển sang chu kỳ tiếp theo
-                    nextRun = nextRun
-                        .AddYears(intervalYears)
-                        .AddMonths(intervalMonths)
-                        .AddDays(intervalDays);
-                    nextRun = nextRun.Date + fixedTime;
+                    // === LOGIC MỚI: Ưu tiên chạy trong ngày hôm nay nếu chưa đến giờ ===
+                    var todayScheduled = now.Date + fixedTime;
+
+                    if (todayScheduled > now)
+                    {
+                        // Chưa đến giờ hôm nay → chạy ngay hôm nay
+                        nextRun = todayScheduled;
+                    }
+                    else
+                    {
+                        // Đã qua giờ hôm nay → chuyển sang chu kỳ tiếp theo
+                        nextRun = todayScheduled
+                            .AddYears(intervalYears)
+                            .AddMonths(intervalMonths)
+                            .AddDays(intervalDays);
+                    }
                 }
 
                 var delay = nextRun - now;
                 if (delay < TimeSpan.FromMinutes(1))
                     delay = TimeSpan.FromMinutes(1);
 
-                _logger.LogInformation("Lịch dọn dẹp tiếp theo lúc {NextRun:yyyy-MM-dd HH:mm:ss} (sau {Delay})",
-                    nextRun, delay);
+                _logger.LogInformation("Lịch dọn dẹp tiếp theo lúc {NextRun:yyyy-MM-dd HH:mm:ss} (sau {Delay}) - giờ cố định: {Hour:00}:{Minute:00}",
+                    nextRun, delay, cleanupHour, cleanupMinute);
 
                 return delay;
             }
