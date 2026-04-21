@@ -114,6 +114,7 @@ const ReceptionistPOSServicePage = () => {
   const [activeTab, setActiveTab] = useState("apply");
   const [notice, setNotice] = useState(null);
   const [showServiceForm, setShowServiceForm] = useState(false);
+  const [serviceSearch, setServiceSearch] = useState("");
   const [applyForm, setApplyForm] = useState({
     bookingDetailId: "",
     serviceId: "",
@@ -123,6 +124,7 @@ const ReceptionistPOSServicePage = () => {
   const [historyFilter, setHistoryFilter] = useState({
     paymentStatus: "all",
     search: "",
+    date: "",
   });
 
   const servicesQuery = useQuery({
@@ -203,6 +205,37 @@ const ReceptionistPOSServicePage = () => {
   const activeServices = useMemo(() => activeServicesQuery.data || [], [activeServicesQuery.data]);
   const services = useMemo(() => servicesQuery.data || [], [servicesQuery.data]);
   const historyItems = useMemo(() => historyQuery.data || [], [historyQuery.data]);
+
+  const filteredServices = useMemo(() => {
+    const normalizedSearch = serviceSearch.trim().toLowerCase();
+    if (!normalizedSearch) return services;
+
+    return services.filter((service) =>
+      [service.name, service.unit, service.status ? "đang hoạt động" : "ngừng sử dụng"]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(normalizedSearch)),
+    );
+  }, [serviceSearch, services]);
+
+  const filteredHistoryItems = useMemo(() => {
+    return historyItems.filter((item) => {
+      const usedDate = item.usedAt ? String(item.usedAt).slice(0, 10) : "";
+
+      if (historyFilter.date && usedDate !== historyFilter.date) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [historyItems, historyFilter.date]);
+
+  const handleClearHistoryFilter = () => {
+    setHistoryFilter({
+      paymentStatus: "all",
+      search: "",
+      date: "",
+    });
+  };
 
   const handleApplySubmit = (event) => {
     event.preventDefault();
@@ -406,19 +439,31 @@ const ReceptionistPOSServicePage = () => {
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Danh sách dịch vụ</p>
-                <h2 className="mt-2 text-2xl font-black text-slate-900">{services.length} dịch vụ hiện có</h2>
+                <h2 className="mt-2 text-2xl font-black text-slate-900">{filteredServices.length} dịch vụ phù hợp</h2>
               </div>
 
-              {canCreateService ? (
-                <button
-                  type="button"
-                  onClick={handleOpenCreateForm}
-                  className="inline-flex items-center gap-2 rounded-2xl bg-sky-600 px-4 py-3 text-sm font-black text-white transition hover:bg-sky-700"
-                >
-                  <Plus size={16} />
-                  Tạo dịch vụ
-                </button>
-              ) : null}
+              <div className="flex flex-wrap gap-3">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+                  <input
+                    value={serviceSearch}
+                    onChange={(event) => setServiceSearch(event.target.value)}
+                    placeholder="Tìm tên dịch vụ, đơn vị..."
+                    className="w-72 rounded-2xl border border-slate-200 bg-white py-3 pl-10 pr-4 text-sm text-slate-700 outline-none transition focus:border-sky-400"
+                  />
+                </div>
+
+                {canCreateService ? (
+                  <button
+                    type="button"
+                    onClick={handleOpenCreateForm}
+                    className="inline-flex items-center gap-2 rounded-2xl bg-sky-600 px-4 py-3 text-sm font-black text-white transition hover:bg-sky-700"
+                  >
+                    <Plus size={16} />
+                    Tạo dịch vụ
+                  </button>
+                ) : null}
+              </div>
             </div>
 
             <div className="mt-6 overflow-hidden rounded-[1.75rem] border border-slate-200">
@@ -432,51 +477,59 @@ const ReceptionistPOSServicePage = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 bg-white">
-                  {services.map((service) => (
-                    <tr key={service.id}>
-                      <td className="px-5 py-4">
-                        <p className="font-black text-slate-900">{service.name}</p>
-                        <p className="mt-1 text-sm text-slate-500">{service.unit || "Không có đơn vị"}</p>
-                      </td>
-                      <td className="px-5 py-4 text-sm font-bold text-slate-900">{formatCurrency(service.price)}</td>
-                      <td className="px-5 py-4">
-                        <span
-                          className={`inline-flex rounded-full px-3 py-1 text-xs font-black ${
-                            service.status
-                              ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"
-                              : "bg-slate-100 text-slate-600 ring-1 ring-slate-200"
-                          }`}
-                        >
-                          {service.status ? "Đang hoạt động" : "Ngừng sử dụng"}
-                        </span>
-                      </td>
-                      <td className="px-5 py-4">
-                        <div className="flex justify-end gap-2">
-                          {canEditService ? (
-                            <button
-                              type="button"
-                              onClick={() => handleOpenEditForm(service)}
-                              className="inline-flex items-center gap-2 rounded-2xl bg-sky-100 px-4 py-2.5 text-sm font-bold text-sky-700 transition hover:bg-sky-200"
-                            >
-                              <Pencil size={16} />
-                              Sửa
-                            </button>
-                          ) : null}
-
-                          {canDeleteService ? (
-                            <button
-                              type="button"
-                              onClick={() => deleteServiceMutation.mutate(service.id)}
-                              className="inline-flex items-center gap-2 rounded-2xl bg-rose-100 px-4 py-2.5 text-sm font-bold text-rose-700 transition hover:bg-rose-200"
-                            >
-                              <Trash2 size={16} />
-                              Xóa
-                            </button>
-                          ) : null}
-                        </div>
+                  {filteredServices.length === 0 ? (
+                    <tr>
+                      <td colSpan="4" className="px-5 py-10 text-center text-sm text-slate-500">
+                        Không tìm thấy dịch vụ phù hợp.
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    filteredServices.map((service) => (
+                      <tr key={service.id}>
+                        <td className="px-5 py-4">
+                          <p className="font-black text-slate-900">{service.name}</p>
+                          <p className="mt-1 text-sm text-slate-500">{service.unit || "Không có đơn vị"}</p>
+                        </td>
+                        <td className="px-5 py-4 text-sm font-bold text-slate-900">{formatCurrency(service.price)}</td>
+                        <td className="px-5 py-4">
+                          <span
+                            className={`inline-flex rounded-full px-3 py-1 text-xs font-black ${
+                              service.status
+                                ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"
+                                : "bg-slate-100 text-slate-600 ring-1 ring-slate-200"
+                            }`}
+                          >
+                            {service.status ? "Đang hoạt động" : "Ngừng sử dụng"}
+                          </span>
+                        </td>
+                        <td className="px-5 py-4">
+                          <div className="flex justify-end gap-2">
+                            {canEditService ? (
+                              <button
+                                type="button"
+                                onClick={() => handleOpenEditForm(service)}
+                                className="inline-flex items-center gap-2 rounded-2xl bg-sky-100 px-4 py-2.5 text-sm font-bold text-sky-700 transition hover:bg-sky-200"
+                              >
+                                <Pencil size={16} />
+                                Sửa
+                              </button>
+                            ) : null}
+
+                            {canDeleteService ? (
+                              <button
+                                type="button"
+                                onClick={() => deleteServiceMutation.mutate(service.id)}
+                                className="inline-flex items-center gap-2 rounded-2xl bg-rose-100 px-4 py-2.5 text-sm font-bold text-rose-700 transition hover:bg-rose-200"
+                              >
+                                <Trash2 size={16} />
+                                Xóa
+                              </button>
+                            ) : null}
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -496,21 +549,51 @@ const ReceptionistPOSServicePage = () => {
                   <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
                   <input
                     value={historyFilter.search}
-                    onChange={(event) => setHistoryFilter((current) => ({ ...current, search: event.target.value }))}
+                    onChange={(event) =>
+                      setHistoryFilter((current) => ({
+                        ...current,
+                        search: event.target.value,
+                      }))
+                    }
                     placeholder="Tìm phòng, khách, booking, dịch vụ..."
                     className="w-72 rounded-2xl border border-slate-200 bg-white py-3 pl-10 pr-4 text-sm text-slate-700 outline-none transition focus:border-sky-400"
                   />
                 </div>
 
+                <input
+                  type="date"
+                  value={historyFilter.date}
+                  onChange={(event) =>
+                    setHistoryFilter((current) => ({
+                      ...current,
+                      date: event.target.value,
+                    }))
+                  }
+                  className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-sky-400"
+                />
+
                 <select
                   value={historyFilter.paymentStatus}
-                  onChange={(event) => setHistoryFilter((current) => ({ ...current, paymentStatus: event.target.value }))}
+                  onChange={(event) =>
+                    setHistoryFilter((current) => ({
+                      ...current,
+                      paymentStatus: event.target.value,
+                    }))
+                  }
                   className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-sky-400"
                 >
                   <option value="all">Tất cả</option>
                   <option value="unpaid">Chưa thanh toán</option>
                   <option value="paid">Đã thanh toán</option>
                 </select>
+
+                <button
+                  type="button"
+                  onClick={handleClearHistoryFilter}
+                  className="rounded-2xl bg-slate-100 px-4 py-3 text-sm font-bold text-slate-600 transition hover:bg-slate-200"
+                >
+                  Clear filter
+                </button>
               </div>
             </div>
 
@@ -533,14 +616,14 @@ const ReceptionistPOSServicePage = () => {
                         Đang tải lịch sử dịch vụ...
                       </td>
                     </tr>
-                  ) : historyItems.length === 0 ? (
+                  ) : filteredHistoryItems.length === 0 ? (
                     <tr>
                       <td colSpan="6" className="px-4 py-10 text-center text-sm text-slate-500">
                         Chưa có lịch sử dịch vụ phù hợp.
                       </td>
                     </tr>
                   ) : (
-                    historyItems.map((item) => (
+                    filteredHistoryItems.map((item) => (
                       <tr key={item.id}>
                         <td className="px-4 py-4">
                           <p className="font-black text-slate-900">Phòng {item.roomNumber}</p>

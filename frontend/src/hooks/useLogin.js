@@ -3,33 +3,20 @@ import { useNavigate } from "react-router-dom";
 import { loginWithEmail, loginWithGoogle } from "../api/auth/authApi";
 import { saveAuth } from "../utils/authStorage";
 
+const ADMIN_ROLE_NAMES = new Set([
+  "admin",
+  "receptionist",
+  "front desk",
+  "frontdesk",
+  "le tan",
+  "housekeeping",
+]);
+
 const resolveRedirectPath = (role) => {
   const normalizedRole = role?.trim().toLowerCase();
 
-  if (
-    normalizedRole === "receptionist" ||
-    normalizedRole === "front desk" ||
-    normalizedRole === "frontdesk" ||
-    normalizedRole === "le tan"
-  ) {
+  if (ADMIN_ROLE_NAMES.has(normalizedRole)) {
     return "/admin/dashboard";
-  }
-
-  if (normalizedRole === "admin") {
-    return "/admin/dashboard";
-  }
-
-  if (normalizedRole === "housekeeping") {
-    return "/admin/dashboard";
-  }
-
-  if (
-    !normalizedRole ||
-    normalizedRole === "guest" ||
-    normalizedRole === "customer" ||
-    normalizedRole === "user"
-  ) {
-    return "/guest/dashboard";
   }
 
   return "/guest/dashboard";

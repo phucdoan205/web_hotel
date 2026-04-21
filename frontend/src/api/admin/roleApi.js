@@ -1,9 +1,16 @@
 import apiClient from "../client";
 
+const HIDDEN_ADMIN_ROLE_NAMES = new Set(["guest", "user"]);
+
+const normalizeRoleName = (roleName) => String(roleName ?? "").trim().toLowerCase();
+
 export const getRoles = async () => {
   const response = await apiClient.get("/Roles");
   return response.data ?? [];
 };
+
+export const shouldHideRoleFromAdminSettings = (role) =>
+  HIDDEN_ADMIN_ROLE_NAMES.has(normalizeRoleName(role?.name));
 
 export const getPermissions = async () => {
   const response = await apiClient.get("/Roles/permissions");

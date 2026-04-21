@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Ellipsis, PencilLine, Search, ShieldCheck, Trash2 } from "lucide-react";
-import { deleteRole, getRoles } from "../../../api/admin/roleApi";
+import { deleteRole, getRoles, shouldHideRoleFromAdminSettings } from "../../../api/admin/roleApi";
 import { hasPermission } from "../../../utils/permissions";
 
 const readMessage = (error, fallbackMessage) => {
@@ -28,12 +28,13 @@ const TeamManagementTab = () => {
 
   const visibleRoles = useMemo(() => {
     const normalizedKeyword = roleSearchKeyword.trim().toLowerCase();
+    const adminRoles = roles.filter((role) => !shouldHideRoleFromAdminSettings(role));
 
     if (!normalizedKeyword) {
-      return roles;
+      return adminRoles;
     }
 
-    return roles.filter((role) =>
+    return adminRoles.filter((role) =>
       [role.name, role.description, role.userCount]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(normalizedKeyword)),

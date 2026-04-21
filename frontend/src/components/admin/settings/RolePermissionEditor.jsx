@@ -6,6 +6,7 @@ import {
   getPermissions,
   getRolePermissions,
   getRoles,
+  shouldHideRoleFromAdminSettings,
   updateRole,
 } from "../../../api/admin/roleApi";
 import { buildPermissionSidebar } from "../../../utils/permissionCatalog";
@@ -36,6 +37,10 @@ const RolePermissionEditor = () => {
   const permissionSidebar = useMemo(
     () => buildPermissionSidebar(permissions),
     [permissions],
+  );
+  const visibleRoles = useMemo(
+    () => roles.filter((role) => !shouldHideRoleFromAdminSettings(role)),
+    [roles],
   );
 
   const selectedSidebarGroup =
@@ -228,7 +233,7 @@ const RolePermissionEditor = () => {
           </button>
 
           <div className="mt-8 space-y-2">
-            {roles.map((role) => {
+            {visibleRoles.map((role) => {
               const isActive = String(role.id) === String(roleId);
 
               return (
