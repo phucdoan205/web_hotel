@@ -2,6 +2,8 @@
 using backend.Common;
 using backend.Data;
 using backend.DTOs.Audit;
+using backend.Models;
+using backend.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -70,6 +72,57 @@ namespace backend.Controllers
 
             var result = new PagedResponse<AuditLogResponseDTO>(dtos, totalCount, page, pageSize);
             return Ok(result);
+        }
+
+        // GET: api/Logs/settings  → Lấy cấu hình hiện tại
+        [HttpGet("settings")]
+        public async Task<ActionResult<AuditLogSettingDTO>> GetRetentionSettings()
+        {
+            var setting = await _context.AuditLogSettings.FindAsync(1);
+            if (setting == null)
+            {
+                // Tạo mặc định nếu chưa có
+                setting = new AuditLogSetting { Id = 1 };
+                _context.AuditLogSettings.Add(setting);
+                await _context.SaveChangesAsync();
+            }
+
+            var dto = _mapper.Map<AuditLogSettingDTO>(setting);
+            return Ok(dto);
+        }
+
+        // POST: api/Logs/settings  → Thay đổi thời gian giữ log
+        [HttpPost("settings")]
+        public async Task<IActionResult> UpdateRetentionSettings([FromBody] AuditLogSettingDTO dto)
+        {
+            var setting = await _context.AuditLogSettings.FindAsync(1);
+            if (setting == null)
+            {
+                setting = new AuditLogSetting { Id = 1 };
+                _context.AuditLogSettings.Add(setting);
+            }
+
+            setting.RetentionYears = dto.RetentionYears;
+            setting.RetentionMonths = dto.RetentionMonths;
+            setting.RetentionDays = dto.RetentionDays;
+            setting.RetentionHours = dto.RetentionHours;
+            setting.RetentionMinutes = dto.RetentionMinutes;
+            setting.RetentionSeconds = dto.RetentionSeconds;
+            setting.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Đã cập nhật thời gian giữ log thành công." });
+        }
+
+        // POST: api/Logs/cleanup  → Chạy dọn dẹp ngay lập tức (manual)
+        [HttpPost("cleanup")]
+        public async Task<IActionResult> ManualCleanup()
+        {
+            using var scope = HttpContext.RequestServices.CreateScope();
+            var service = scope.ServiceProvider.GetRequiredService<AuditLogCleanupService>();
+            await service.PerformCleanupAsync();
+            return Ok(new { message = "Đã chạy dọn dẹp log thủ công thành công." });
         }
     }
 }

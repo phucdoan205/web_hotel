@@ -1,4 +1,6 @@
-﻿using backend.Data;
+﻿// backend/Services/AuditLogCleanupService.cs
+using backend.Data;
+using backend.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace backend.Services
@@ -8,9 +10,7 @@ namespace backend.Services
         private readonly IServiceProvider _serviceProvider;
         private readonly ILogger<AuditLogCleanupService> _logger;
 
-        public AuditLogCleanupService(
-            IServiceProvider serviceProvider,
-            ILogger<AuditLogCleanupService> logger)
+        public AuditLogCleanupService(IServiceProvider serviceProvider, ILogger<AuditLogCleanupService> logger)
         {
             _serviceProvider = serviceProvider;
             _logger = logger;
@@ -20,34 +20,53 @@ namespace backend.Services
         {
             while (!stoppingToken.IsCancellationRequested)
             {
-                try
+                await PerformCleanupAsync(stoppingToken);
+                await Task.Delay(TimeSpan.FromHours(24), stoppingToken); // chạy 1 lần/ngày
+            }
+        }
+
+        // Public để controller gọi manual
+        public async Task PerformCleanupAsync(CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                using var scope = _serviceProvider.CreateScope();
+                var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+                var setting = await context.AuditLogSettings.FindAsync(1);
+                if (setting == null)
                 {
-                    using var scope = _serviceProvider.CreateScope();
-                    var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-
-                    var cutoffDate = DateTime.UtcNow.AddMonths(-3); // 3 tháng
-
-                    var oldLogs = await context.AuditLogs
-                        .Where(l => l.LogDate < cutoffDate)
-                        .ToListAsync(stoppingToken);
-
-                    if (oldLogs.Any())
-                    {
-                        context.AuditLogs.RemoveRange(oldLogs);
-                        await context.SaveChangesAsync(stoppingToken);
-
-                        _logger.LogInformation(
-                            "Đã tự động xóa {Count} audit log cũ hơn 3 tháng.",
-                            oldLogs.Count);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Lỗi khi dọn dẹp AuditLog");
+                    setting = new AuditLogSetting { Id = 1 };
+                    context.AuditLogSettings.Add(setting);
+                    await context.SaveChangesAsync(cancellationToken);
                 }
 
-                // Chạy 1 lần/ngày
-                await Task.Delay(TimeSpan.FromHours(24), stoppingToken);
+                var cutoff = DateTime.UtcNow
+                    .AddYears(-setting.RetentionYears)
+                    .AddMonths(-setting.RetentionMonths)
+                    .AddDays(-setting.RetentionDays)
+                    .AddHours(-setting.RetentionHours)
+                    .AddMinutes(-setting.RetentionMinutes)
+                    .AddSeconds(-setting.RetentionSeconds);
+
+                var oldLogs = await context.AuditLogs
+                    .Where(l => l.LogDate < cutoff)
+                    .ToListAsync(cancellationToken);
+
+                if (oldLogs.Any())
+                {
+                    context.AuditLogs.RemoveRange(oldLogs);
+                    await context.SaveChangesAsync(cancellationToken);
+
+                    _logger.LogInformation("Đã xóa {Count} audit log cũ hơn {Years} năm {Months} tháng {Days} ngày {Hours} giờ {Minutes} phút {Seconds} giây.",
+                        oldLogs.Count,
+                        setting.RetentionYears, setting.RetentionMonths, setting.RetentionDays,
+                        setting.RetentionHours, setting.RetentionMinutes, setting.RetentionSeconds);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi dọn dẹp AuditLog");
             }
         }
     }

@@ -59,14 +59,11 @@ builder.Services.AddSingleton<NotificationRealtimeService>();
 builder.Services.AddScoped<NotificationService>();
 builder.Services.AddScoped<IEmailService, SmtpEmailService>();
 
-//builder.Services.AddValidatorsFromAssemblyContaining<CreateRoomDtoValidator>();
-//builder.Services.AddScoped<IValidator<BulkCreateRoomDTO>, BulkCreateRoomDtoValidator>();
-//builder.Services.AddScoped<IValidator<CloneRoomInventoryDTO>, CloneRoomInventoryDtoValidator>();
-
 //Dùng cho AuditLog, không được xoá
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<AuditSaveChangesInterceptor>();
-builder.Services.AddHostedService<AuditLogCleanupService>();
+builder.Services.AddSingleton<AuditLogCleanupService>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<AuditLogCleanupService>());
 
 builder.Services.AddDbContext<AppDbContext>((sp, options) =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))

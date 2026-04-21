@@ -30,6 +30,7 @@ namespace backend.Data
         public DbSet<ArticleComment> ArticleComments { get; set; }
         public DbSet<Attraction> Attractions { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
+        public DbSet<AuditLogSetting> AuditLogSettings { get; set; }
         public DbSet<Notification> Notifications { get; set; }
 
         public DbSet<Booking> Bookings { get; set; }
@@ -308,6 +309,12 @@ namespace backend.Data
                     .WithMany(c => c.Replies)
                     .HasForeignKey(c => c.ParentCommentId)
                     .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<AuditLogSetting>(entity =>
+            {
+                entity.HasKey(s => s.Id);
+                entity.Property(s => s.Id).ValueGeneratedNever(); // Id = 1 cố định
             });
 
             modelBuilder.Entity<AuditLog>(entity =>
