@@ -257,48 +257,27 @@ namespace backend.Migrations
             modelBuilder.Entity("backend.Models.AuditLogSetting", b =>
                 {
                     b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    b.Property<int>("CleanupIntervalDays")
-                        .HasColumnType("int");
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("CleanupIntervalHours")
-                        .HasColumnType("int");
-
-                    b.Property<int>("CleanupIntervalMinutes")
-                        .HasColumnType("int");
-
-                    b.Property<int>("CleanupIntervalMonths")
-                        .HasColumnType("int");
-
-                    b.Property<int>("CleanupIntervalSeconds")
-                        .HasColumnType("int");
-
-                    b.Property<int>("CleanupIntervalYears")
-                        .HasColumnType("int");
-
-                    b.Property<int>("RetentionDays")
-                        .HasColumnType("int");
-
-                    b.Property<int>("RetentionHours")
-                        .HasColumnType("int");
-
-                    b.Property<int>("RetentionMinutes")
-                        .HasColumnType("int");
-
-                    b.Property<int>("RetentionMonths")
-                        .HasColumnType("int");
-
-                    b.Property<int>("RetentionSeconds")
-                        .HasColumnType("int");
-
-                    b.Property<int>("RetentionYears")
-                        .HasColumnType("int");
+                    b.Property<string>("ConfigName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("ConfigName")
+                        .IsUnique();
 
                     b.ToTable("AuditLogSettings");
                 });

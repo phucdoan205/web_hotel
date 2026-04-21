@@ -314,7 +314,15 @@ namespace backend.Data
             modelBuilder.Entity<AuditLogSetting>(entity =>
             {
                 entity.HasKey(s => s.Id);
-                entity.Property(s => s.Id).ValueGeneratedNever(); // Id = 1 cố định
+
+                // Đảm bảo ConfigName không bị trùng
+                entity.HasIndex(s => s.ConfigName).IsUnique();
+
+                entity.Property(s => s.ConfigName)
+                      .IsRequired()
+                      .HasMaxLength(100);
+
+                entity.Property(s => s.Value).IsRequired();
             });
 
             modelBuilder.Entity<AuditLog>(entity =>

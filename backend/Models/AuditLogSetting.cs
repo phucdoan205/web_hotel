@@ -1,27 +1,21 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace backend.Models
 {
     [Table("AuditLogSettings")]
     public class AuditLogSetting
     {
-        public int Id { get; set; } = 1;
+        [Key]
+        public int Id { get; set; }
 
-        // === Thời gian giữ log (retention) ===
-        public int RetentionYears { get; set; } = 0;
-        public int RetentionMonths { get; set; } = 6;
-        public int RetentionDays { get; set; } = 0;
-        public int RetentionHours { get; set; } = 0;
-        public int RetentionMinutes { get; set; } = 0;
-        public int RetentionSeconds { get; set; } = 0;
+        [Required]
+        [MaxLength(100)]
+        public string ConfigName { get; set; } = string.Empty;
 
-        // === Lịch chạy dọn dẹp tự động (mới) ===
-        public int CleanupIntervalYears { get; set; } = 0;
-        public int CleanupIntervalMonths { get; set; } = 0; // Mặc định: mỗi 3 tháng
-        public int CleanupIntervalDays { get; set; } = 0;
-        public int CleanupIntervalHours { get; set; } = 0;
-        public int CleanupIntervalMinutes { get; set; } = 0;
-        public int CleanupIntervalSeconds { get; set; } = 0;
+        [Required]
+        public string Value { get; set; } = string.Empty;
+
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     }
 }
