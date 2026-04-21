@@ -12,7 +12,6 @@ namespace backend.Data.Interceptors
     {
         private readonly IHttpContextAccessor _httpContextAccessor;
 
-        // Cấu hình JsonSerializer hỗ trợ tiếng Việt
         private static readonly JsonSerializerOptions JsonOptions = new()
         {
             Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
@@ -30,41 +29,48 @@ namespace backend.Data.Interceptors
             InterceptionResult<int> result,
             CancellationToken cancellationToken = default)
         {
-            if (eventData.Context is not AppDbContext context) 
+            if (eventData.Context is not AppDbContext context)
                 return await base.SavingChangesAsync(eventData, result, cancellationToken);
 
-            var auditEntries = new List<AuditLog>();
+            var events = new List<AuditEvent>();
 
             foreach (var entry in context.ChangeTracker.Entries())
             {
-                if (entry.Entity is AuditLog || entry.State == EntityState.Unchanged || entry.State == EntityState.Detached)
+                if (entry.Entity is AuditLog ||
+                    entry.State == EntityState.Unchanged ||
+                    entry.State == EntityState.Detached)
                     continue;
 
-                var audit = CreateAuditEntry(entry);
-                if (audit != null)
-                    auditEntries.Add(audit);
+                var auditEvent = CreateAuditEvent(entry);
+                if (auditEvent != null)
+                    events.Add(auditEvent);
             }
 
-            if (auditEntries.Any())
+            if (events.Any())
             {
-                await context.AuditLogs.AddRangeAsync(auditEntries, cancellationToken);
+                var logEntry = new AuditLog
+                {
+                    UserId = GetCurrentUserId(),
+                    LogDate = DateTime.UtcNow,
+                    LogData = JsonSerializer.Serialize(new
+                    {
+                        TotalEvents = events.Count,
+                        Events = events
+                    }, JsonOptions)
+                };
+
+                context.AuditLogs.Add(logEntry);
             }
 
             return await base.SavingChangesAsync(eventData, result, cancellationToken);
         }
 
-        private AuditLog? CreateAuditEntry(EntityEntry entry)
+        private AuditEvent? CreateAuditEvent(EntityEntry entry)
         {
             var entityType = entry.Metadata.ClrType.Name;
             var recordId = GetPrimaryKeyValue(entry);
 
-            // Nếu là entity mới (temporary key) thì RecordId vẫn để tạm (sẽ thành dương sau SaveChanges)
-            if (recordId == 0 && entry.State == EntityState.Added)
-                recordId = -1; // hoặc giữ nguyên tạm thời
-
-            var userId = GetCurrentUserId();
-
-            string action = entry.State switch
+            string actionType = entry.State switch
             {
                 EntityState.Added => "CREATE",
                 EntityState.Modified => "UPDATE",
@@ -72,33 +78,43 @@ namespace backend.Data.Interceptors
                 _ => null
             };
 
-            if (action == null) return null;
+            if (actionType == null) return null;
 
             // Xử lý Soft Delete
-            if (entry.Entity is ISoftDelete softDelete && 
-                entry.State == EntityState.Modified && 
+            if (entry.Entity is ISoftDelete softDelete &&
+                entry.State == EntityState.Modified &&
                 softDelete.IsDeleted)
             {
-                action = "SOFT_DELETE";
+                actionType = "SOFT_DELETE";
             }
 
-            var oldValues = (entry.State == EntityState.Modified || entry.State == EntityState.Deleted)
+            var oldData = (entry.State == EntityState.Modified || entry.State == EntityState.Deleted)
                 ? GetValues(entry.OriginalValues)
                 : null;
 
-            var newValues = (entry.State == EntityState.Added || entry.State == EntityState.Modified)
+            var newData = (entry.State == EntityState.Added || entry.State == EntityState.Modified)
                 ? GetValues(entry.CurrentValues)
                 : null;
 
-            return new AuditLog
+            // Message tiếng Việt (có thể mở rộng sau)
+            var message = actionType switch
             {
-                UserId = userId,
-                Action = action,
-                TableName = entityType,
-                RecordId = recordId,
-                OldValue = oldValues,
-                NewValue = newValues,
-                CreatedAt = DateTime.UtcNow
+                "CREATE" => $"Tạo mới {entityType} #{recordId}",
+                "UPDATE" => $"Cập nhật {entityType} #{recordId}",
+                "DELETE" => $"Xóa {entityType} #{recordId}",
+                "SOFT_DELETE" => $"Soft delete {entityType} #{recordId}",
+                _ => $"Thay đổi {entityType} #{recordId}"
+            };
+
+            return new AuditEvent
+            {
+                EventId = Guid.NewGuid().ToString(),
+                Timestamp = DateTime.UtcNow,
+                ActionType = actionType,
+                EntityType = entityType,
+                Context = new { RecordId = recordId },
+                Changes = new { OldData = oldData, NewData = newData },
+                Message = message
             };
         }
 
@@ -106,21 +122,19 @@ namespace backend.Data.Interceptors
         {
             var key = entry.Metadata.FindPrimaryKey()?.Properties.FirstOrDefault();
             if (key == null) return 0;
-
             var value = entry.Property(key.Name).CurrentValue;
             return value is int id ? id : 0;
         }
 
-        private string? GetValues(PropertyValues values)
+        private object? GetValues(PropertyValues values)
         {
             var dict = new Dictionary<string, object?>();
             foreach (var prop in values.Properties)
             {
-                var name = prop.Name;
-                if (name is "PasswordHash") continue;
-                dict[name] = values[name];
+                if (prop.Name == "PasswordHash") continue;
+                dict[prop.Name] = values[prop.Name];
             }
-            return JsonSerializer.Serialize(dict, JsonOptions);
+            return dict;
         }
 
         private int? GetCurrentUserId()
@@ -128,14 +142,12 @@ namespace backend.Data.Interceptors
             var httpContext = _httpContextAccessor.HttpContext;
             if (httpContext == null) return null;
 
-            // Ưu tiên lấy từ Header X-User-Id (cách bạn đang dùng ở nhiều controller)
             var header = httpContext.Request.Headers["X-User-Id"].ToString();
-            if (!string.IsNullOrWhiteSpace(header) && int.TryParse(header, out var headerId))
-                return headerId;
+            if (!string.IsNullOrWhiteSpace(header) && int.TryParse(header, out var id))
+                return id;
 
-            // Fallback từ JWT Claims
-            var claim = httpContext.User.FindFirst("sub")?.Value 
-                     ?? httpContext.User.FindFirst("nameid")?.Value 
+            var claim = httpContext.User.FindFirst("sub")?.Value
+                     ?? httpContext.User.FindFirst("nameid")?.Value
                      ?? httpContext.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 
             return int.TryParse(claim, out var claimId) ? claimId : null;
