@@ -62,6 +62,12 @@ export const useVoucherData = () => {
   };
 
   const remove = async (id) => {
+    const res = await vouchersApi.softDeleteVoucher(id);
+    await fetch();
+    return res;
+  };
+
+  const toggleActive = async (id) => {
     const res = await vouchersApi.toggleActiveVoucher(id);
     await fetch();
     return res;
@@ -125,6 +131,7 @@ export const useVoucherData = () => {
     create,
     update,
     remove,
+    toggleActive,
     sendToUsers,
     sendToBirthdays,
     generateCode,

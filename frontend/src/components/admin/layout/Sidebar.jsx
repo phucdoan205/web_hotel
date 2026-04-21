@@ -79,7 +79,7 @@ const menuItems = [
     permission: "VIEW_INVOICES",
   },
   { name: "Địa điểm", icon: MapPin, path: "/admin/attractions", permission: "VIEW_ATTRACTIONS" },
-  { name: "Voucher", icon: Gift, path: "/admin/vouchers" },
+  { name: "Voucher", icon: Gift, path: "/admin/vouchers", permission: "VIEW_VOUCHERS" },
   { name: "Dịch vụ", icon: Wrench, path: "/admin/pos", permission: "VIEW_SERVICES" },
   { name: "Audit log", icon: History, path: "/admin/audit-log", permission: "VIEW_LOG" },
 ];

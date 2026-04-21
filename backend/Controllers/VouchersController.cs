@@ -1,6 +1,7 @@
 using backend.Data;
 using backend.DTOs;
 using backend.Models;
+using backend.Security;
 using backend.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -91,6 +92,7 @@ namespace backend.Controllers
         }
 
         [HttpGet]
+        [Permission("VIEW_VOUCHERS")]
         public async Task<IActionResult> GetAll([FromQuery] bool includeDeleted = false)
         {
             var query = includeDeleted
@@ -122,6 +124,7 @@ namespace backend.Controllers
         }
 
         [HttpGet("{id}")]
+        [Permission("VIEW_VOUCHERS")]
         public async Task<IActionResult> GetOne(int id, [FromQuery] bool includeDeleted = false)
         {
             var query = includeDeleted
@@ -151,6 +154,7 @@ namespace backend.Controllers
         }
 
         [HttpPost]
+        [Permission("CREATE_VOUCHERS")]
         public async Task<IActionResult> Create([FromBody] VoucherDTO dto)
         {
             if (string.IsNullOrWhiteSpace(dto.Code)) return BadRequest("Code is required");
@@ -184,6 +188,7 @@ namespace backend.Controllers
         }
 
         [HttpPut("{id}")]
+        [Permission("EDIT_VOUCHERS")]
         public async Task<IActionResult> Update(int id, [FromBody] VoucherDTO dto)
         {
             var voucher = await _context.Vouchers.FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted);
@@ -209,6 +214,7 @@ namespace backend.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Permission("DELETE_VOUCHERS")]
         public async Task<IActionResult> SoftDelete(int id)
         {
             var voucher = await _context.Vouchers.FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted);
@@ -228,6 +234,7 @@ namespace backend.Controllers
         }
 
         [HttpPost("send/users")]
+        [Permission("SEND_VOUCHER")]
         public async Task<IActionResult> SendToUsers([FromBody] SendToUsersRequest request)
         {
             var voucher = await _context.Vouchers.FirstOrDefaultAsync(x => x.Id == request.VoucherId && !x.IsDeleted);
@@ -282,6 +289,7 @@ namespace backend.Controllers
         }
 
         [HttpPost("send/birthdays")]
+        [Permission("SEND_VOUCHER")]
         public async Task<IActionResult> SendToBirthdays([FromBody] SendToBirthdaysRequest request)
         {
             var voucher = await _context.Vouchers.FirstOrDefaultAsync(x => x.Id == request.VoucherId && !x.IsDeleted);
@@ -332,6 +340,7 @@ namespace backend.Controllers
         }
 
         [HttpPost("{id}/toggle-active")]
+        [Permission("ENABLE_VOUCHER", "DISABLE_VOUCHER")]
         public async Task<IActionResult> ToggleActive(int id)
         {
             var voucher = await _context.Vouchers.IgnoreQueryFilters().FirstOrDefaultAsync(x => x.Id == id);

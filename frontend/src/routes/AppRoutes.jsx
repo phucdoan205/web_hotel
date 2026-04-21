@@ -287,7 +287,14 @@ const AppRoutes = () => {
             </RequirePermission>
           }
         />
-        <Route path="vouchers" element={<AdminVoucherPage />} />
+        <Route
+          path="vouchers"
+          element={
+            <RequirePermission permission="VIEW_VOUCHERS">
+              <AdminVoucherPage />
+            </RequirePermission>
+          }
+        />
         <Route
           path="housekeeping/tasks"
           element={
