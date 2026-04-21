@@ -1,5 +1,4 @@
-﻿// backend/Services/AuditLogCleanupService.cs
-using backend.Data;
+﻿using backend.Data;
 using backend.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -20,12 +19,18 @@ namespace backend.Services
         {
             while (!stoppingToken.IsCancellationRequested)
             {
-                await PerformCleanupAsync(stoppingToken);
-                await Task.Delay(TimeSpan.FromHours(24), stoppingToken); // chạy 1 lần/ngày
+                await PerformCleanupAsync(stoppingToken);   // chỉ dọn dẹp
+
+                var delay = await CalculateNextDelayAsync(stoppingToken);
+                _logger.LogInformation("Lịch dọn dẹp tiếp theo sau {Delay}", delay);
+
+                await Task.Delay(delay, stoppingToken);
             }
         }
 
-        // Public để controller gọi manual
+        /// <summary>
+        /// Chỉ thực hiện dọn dẹp theo Retention (có thể gọi thủ công từ nơi khác)
+        /// </summary>
         public async Task PerformCleanupAsync(CancellationToken cancellationToken = default)
         {
             try
@@ -33,14 +38,9 @@ namespace backend.Services
                 using var scope = _serviceProvider.CreateScope();
                 var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-                var setting = await context.AuditLogSettings.FindAsync(1);
-                if (setting == null)
-                {
-                    setting = new AuditLogSetting { Id = 1 };
-                    context.AuditLogSettings.Add(setting);
-                    await context.SaveChangesAsync(cancellationToken);
-                }
+                var setting = await GetOrCreateSettingAsync(context, cancellationToken);
 
+                // 1. Tính cutoff theo Retention
                 var cutoff = DateTime.UtcNow
                     .AddYears(-setting.RetentionYears)
                     .AddMonths(-setting.RetentionMonths)
@@ -49,25 +49,77 @@ namespace backend.Services
                     .AddMinutes(-setting.RetentionMinutes)
                     .AddSeconds(-setting.RetentionSeconds);
 
-                var oldLogs = await context.AuditLogs
-                    .Where(l => l.LogDate < cutoff)
-                    .ToListAsync(cancellationToken);
+                // Xóa theo batch để tránh OutOfMemory
+                const int batchSize = 1000;
+                int totalDeleted = 0;
 
-                if (oldLogs.Any())
+                while (true)
                 {
+                    var oldLogs = await context.AuditLogs
+                        .Where(l => l.LogDate < cutoff)
+                        .Take(batchSize)
+                        .ToListAsync(cancellationToken);
+
+                    if (!oldLogs.Any()) break;
+
                     context.AuditLogs.RemoveRange(oldLogs);
                     await context.SaveChangesAsync(cancellationToken);
 
-                    _logger.LogInformation("Đã xóa {Count} audit log cũ hơn {Years} năm {Months} tháng {Days} ngày {Hours} giờ {Minutes} phút {Seconds} giây.",
-                        oldLogs.Count,
-                        setting.RetentionYears, setting.RetentionMonths, setting.RetentionDays,
-                        setting.RetentionHours, setting.RetentionMinutes, setting.RetentionSeconds);
+                    totalDeleted += oldLogs.Count;
+                    _logger.LogInformation("Đã xóa batch {Count} audit log cũ (tổng: {Total}).", oldLogs.Count, totalDeleted);
                 }
+
+                if (totalDeleted > 0)
+                    _logger.LogInformation("Hoàn tất dọn dẹp: xóa tổng cộng {Total} audit log cũ.", totalDeleted);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Lỗi khi dọn dẹp AuditLog");
+                await Task.Delay(TimeSpan.FromMinutes(5), cancellationToken); // retry
             }
+        }
+
+        private async Task<TimeSpan> CalculateNextDelayAsync(CancellationToken cancellationToken)
+        {
+            try
+            {
+                using var scope = _serviceProvider.CreateScope();
+                var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+                var setting = await GetOrCreateSettingAsync(context, cancellationToken);
+
+                var nextRun = DateTime.UtcNow
+                    .AddYears(setting.CleanupIntervalYears)
+                    .AddMonths(setting.CleanupIntervalMonths)
+                    .AddDays(setting.CleanupIntervalDays)
+                    .AddHours(setting.CleanupIntervalHours)
+                    .AddMinutes(setting.CleanupIntervalMinutes)
+                    .AddSeconds(setting.CleanupIntervalSeconds);
+
+                var delay = nextRun - DateTime.UtcNow;
+
+                return delay < TimeSpan.FromMinutes(1)
+                    ? TimeSpan.FromMinutes(1)
+                    : delay;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi tính delay cho AuditLogCleanup");
+                return TimeSpan.FromMinutes(5); // fallback
+            }
+        }
+
+        private static async Task<AuditLogSetting> GetOrCreateSettingAsync(
+            AppDbContext context, CancellationToken cancellationToken)
+        {
+            var setting = await context.AuditLogSettings.FindAsync(new object[] { 1 }, cancellationToken);
+            if (setting == null)
+            {
+                setting = new AuditLogSetting { Id = 1 };
+                context.AuditLogSettings.Add(setting);
+                await context.SaveChangesAsync(cancellationToken);
+            }
+            return setting;
         }
     }
 }
