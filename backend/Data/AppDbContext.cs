@@ -320,7 +320,7 @@ namespace backend.Data
             modelBuilder.Entity<AuditLog>(entity =>
             {
                 entity.HasOne(l => l.User)
-                  .WithMany()
+                  .WithMany(u => u.AuditLogs)
                   .HasForeignKey(l => l.UserId)
                   .OnDelete(DeleteBehavior.SetNull);
                 entity.Property(l => l.LogData)
