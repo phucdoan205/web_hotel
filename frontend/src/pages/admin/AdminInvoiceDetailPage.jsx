@@ -44,7 +44,7 @@ const AdminInvoiceDetailPage = () => {
             Quay lại danh sách
           </button>
           <h1 className="mt-4 text-3xl font-black text-slate-900">Chi tiết hóa đơn</h1>
-          <p className="mt-2 text-sm font-medium text-slate-500">Chỉ xem lại hóa đơn và in hóa đơn từ màn này.</p>
+          <p className="mt-2 text-sm font-medium text-slate-500">Bao gồm tiền phòng và tiền dịch vụ đã cộng khi checkout.</p>
         </div>
 
         <button
@@ -98,17 +98,23 @@ const AdminInvoiceDetailPage = () => {
         </div>
 
         <div className="mt-6 rounded-[1.75rem] border border-slate-200">
-          <div className="grid grid-cols-[1.4fr_1fr_1fr_1fr] gap-4 border-b border-slate-200 bg-sky-50 px-5 py-4 text-xs font-black uppercase tracking-[0.2em] text-slate-500">
-            <div>Dịch vụ</div>
+          <div className="grid grid-cols-[1.6fr_1fr_1fr_1fr] gap-4 border-b border-slate-200 bg-sky-50 px-5 py-4 text-xs font-black uppercase tracking-[0.2em] text-slate-500">
+            <div>Hạng mục</div>
             <div>Đơn giá</div>
-            <div>Số ngày</div>
+            <div>Số lượng</div>
             <div className="text-right">Thành tiền</div>
           </div>
-          <div className="grid grid-cols-[1.4fr_1fr_1fr_1fr] gap-4 px-5 py-5 text-sm font-semibold text-slate-700">
+          <div className="grid grid-cols-[1.6fr_1fr_1fr_1fr] gap-4 px-5 py-5 text-sm font-semibold text-slate-700">
             <div>Tiền phòng {invoice.roomName}</div>
             <div>{formatCurrency(invoice.roomRate)}</div>
             <div>{invoice.stayedDays} ngày</div>
             <div className="text-right font-black text-slate-900">{formatCurrency(invoice.subtotal)}</div>
+          </div>
+          <div className="grid grid-cols-[1.6fr_1fr_1fr_1fr] gap-4 border-t border-slate-100 px-5 py-5 text-sm font-semibold text-slate-700">
+            <div>Dịch vụ đã sử dụng</div>
+            <div>{formatCurrency(invoice.totalServiceAmount)}</div>
+            <div>1 gói</div>
+            <div className="text-right font-black text-slate-900">{formatCurrency(invoice.totalServiceAmount)}</div>
           </div>
         </div>
 
@@ -118,9 +124,11 @@ const AdminInvoiceDetailPage = () => {
             <span className="font-bold">{formatCurrency(invoice.subtotal)}</span>
           </div>
           <div className="flex items-center justify-between text-sm">
-            <span className="text-white/80">
-              Voucher {invoice.voucher?.code ? `(${invoice.voucher.code})` : ""}
-            </span>
+            <span className="text-white/80">Tổng tiền dịch vụ</span>
+            <span className="font-bold">{formatCurrency(invoice.totalServiceAmount)}</span>
+          </div>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-white/80">Voucher {invoice.voucher?.code ? `(${invoice.voucher.code})` : ""}</span>
             <span className="font-bold text-cyan-100">- {formatCurrency(invoice.discountAmount)}</span>
           </div>
           <div className="h-px bg-white/15" />

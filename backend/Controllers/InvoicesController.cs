@@ -158,6 +158,16 @@ namespace backend.Controllers
             var roomNumber = bookingDetail.Room?.RoomNumber ?? "--";
             var roomName = bookingDetail.RoomType?.Name ?? "Phòng";
             var now = DateTime.UtcNow;
+            var totalServiceAmount = await _context.OrderServiceDetails
+                .AsNoTracking()
+                .Where(detail =>
+                    detail.OrderService != null &&
+                    detail.OrderService.BookingDetailId == bookingDetail.Id &&
+                    detail.OrderService.Status != "Paid")
+                .SumAsync(detail => (decimal?)(detail.Quantity * detail.UnitPrice)) ?? 0;
+            var totalRoomAmount = dto.TotalRoomAmount ?? 0;
+            var discountAmount = dto.DiscountAmount ?? 0;
+            var finalTotal = Math.Max(0, totalRoomAmount + totalServiceAmount - discountAmount);
 
             var invoice = new Invoice
             {
@@ -173,11 +183,11 @@ namespace backend.Controllers
                 CheckInDate = bookingDetail.CheckInDate,
                 CheckOutDate = dto.CheckOutDate ?? now,
                 StayedDays = dto.StayedDays ?? 1,
-                TotalRoomAmount = dto.TotalRoomAmount ?? 0,
-                TotalServiceAmount = 0,
-                DiscountAmount = dto.DiscountAmount ?? 0,
+                TotalRoomAmount = totalRoomAmount,
+                TotalServiceAmount = totalServiceAmount,
+                DiscountAmount = discountAmount,
                 TaxAmount = 0,
-                FinalTotal = dto.FinalTotal ?? 0,
+                FinalTotal = finalTotal,
                 Status = "Pending",
                 Notes = dto.Notes,
                 VoucherCode = dto.VoucherCode,
@@ -224,6 +234,20 @@ namespace backend.Controllers
                 PaymentDate = paidAt,
                 Status = "Completed"
             });
+
+            if (invoice.BookingDetailId.HasValue)
+            {
+                var unpaidOrderServices = await _context.OrderServices
+                    .Where(orderService =>
+                        orderService.BookingDetailId == invoice.BookingDetailId.Value &&
+                        orderService.Status != "Paid")
+                    .ToListAsync();
+
+                foreach (var orderService in unpaidOrderServices)
+                {
+                    orderService.Status = "Paid";
+                }
+            }
 
             await _context.SaveChangesAsync();
 

@@ -45,6 +45,7 @@ const AdminInvoiceListPage = () => {
     onSuccess: (invoice) => {
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
       queryClient.invalidateQueries({ queryKey: ["invoice", String(invoice.id)] });
+      queryClient.invalidateQueries({ queryKey: ["service-history"] });
       setPendingPaymentInvoice(null);
       setScreenNotice({
         type: "success",
