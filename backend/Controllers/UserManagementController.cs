@@ -160,7 +160,7 @@ namespace backend.Controllers
         }
 
         [HttpPut("{id:int}")]
-        [Permission("CREATE_USERS")]
+        [Permission("EDIT_USERS")]
         public async Task<ActionResult<UserManagementResponseDTO>> Update(int id, UserUpdateDTO request)
         {
             var user = await _context.Users

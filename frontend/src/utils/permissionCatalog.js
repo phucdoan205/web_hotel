@@ -2,6 +2,7 @@ const PERMISSION_LABELS = {
   VIEW_DASHBOARD: "Xem dashboard",
   VIEW_USERS: "Xem nhân viên",
   CREATE_USERS: "Tạo nhân viên",
+  EDIT_USERS: "Sửa nhân viên",
   DELETE_USERS: "Xóa nhân viên",
   VIEW_ROLES: "Xem vai trò",
   CREATE_ROLES: "Tạo vai trò",
@@ -43,6 +44,7 @@ const PERMISSION_LABELS = {
   VIEW_CONTENT: "Xem nội dung",
   CREATE_CONTENT: "Tạo nội dung",
   EDIT_CONTENT: "Sửa nội dung",
+  DELETE_CONTENT: "Xóa nội dung",
   PUBLISH_CONTENT: "Xuất bản nội dung",
   VIEW_INVENTORY: "Xem vật tư",
   CREATE_INVENTORY: "Tạo vật tư",
@@ -54,7 +56,6 @@ const PERMISSION_LABELS = {
   VIEW_COMPENSATION: "Xem thất thoát đền bù",
   CREATE_COMPENSATION: "Tạo thất thoát đền bù",
   EDIT_COMPENSATION: "Sửa thất thoát đền bù",
-  APPROVE_COMPENSATION: "Duyệt thất thoát đền bù",
   PROCESS_COMPENSATION: "Xử lý thất thoát đền bù",
   VIEW_LOG: "Xem audit log",
 };
@@ -63,6 +64,7 @@ const PERMISSION_DESCRIPTIONS = {
   VIEW_DASHBOARD: "Cho phép truy cập trang dashboard tổng quan.",
   VIEW_USERS: "Cho phép xem danh sách và thông tin nhân viên.",
   CREATE_USERS: "Cho phép tạo tài khoản nhân viên mới.",
+  EDIT_USERS: "Cho phép chỉnh sửa hồ sơ, vai trò và thông tin nhân viên.",
   DELETE_USERS: "Cho phép khóa hoặc xóa nhân viên khỏi hệ thống.",
   VIEW_ROLES: "Cho phép xem danh sách vai trò và quyền hiện có.",
   CREATE_ROLES: "Cho phép tạo vai trò mới.",
@@ -104,6 +106,7 @@ const PERMISSION_DESCRIPTIONS = {
   VIEW_CONTENT: "Cho phép xem bài viết và nội dung đã tạo.",
   CREATE_CONTENT: "Cho phép tạo nội dung mới.",
   EDIT_CONTENT: "Cho phép chỉnh sửa nội dung hiện có.",
+  DELETE_CONTENT: "Cho phép xóa, chuyển thùng rác hoặc khôi phục bài viết.",
   PUBLISH_CONTENT: "Cho phép duyệt và xuất bản nội dung.",
   VIEW_INVENTORY: "Cho phép xem tồn kho và vật tư.",
   CREATE_INVENTORY: "Cho phép thêm vật tư mới.",
@@ -115,7 +118,6 @@ const PERMISSION_DESCRIPTIONS = {
   VIEW_COMPENSATION: "Cho phép xem các phiếu thất thoát đền bù.",
   CREATE_COMPENSATION: "Cho phép tạo phiếu thất thoát đền bù.",
   EDIT_COMPENSATION: "Cho phép chỉnh sửa phiếu thất thoát đền bù.",
-  APPROVE_COMPENSATION: "Cho phép duyệt phiếu thất thoát đền bù.",
   PROCESS_COMPENSATION: "Cho phép xử lý và hoàn tất phiếu thất thoát đền bù.",
   VIEW_LOG: "Cho phép xem lịch sử thao tác hệ thống.",
 };
@@ -139,7 +141,7 @@ const SIDEBAR_PERMISSION_GROUPS = [
       {
         id: "staff-users",
         title: "Nhân viên",
-        permissionNames: ["VIEW_USERS", "CREATE_USERS", "DELETE_USERS"],
+        permissionNames: ["VIEW_USERS", "CREATE_USERS", "EDIT_USERS", "DELETE_USERS"],
       },
       {
         id: "staff-roles",
@@ -291,7 +293,7 @@ const SIDEBAR_PERMISSION_GROUPS = [
       {
         id: "content-management",
         title: "Nội dung",
-        permissionNames: ["VIEW_CONTENT", "CREATE_CONTENT", "EDIT_CONTENT", "PUBLISH_CONTENT"],
+        permissionNames: ["VIEW_CONTENT", "CREATE_CONTENT", "EDIT_CONTENT", "DELETE_CONTENT", "PUBLISH_CONTENT"],
       },
     ],
   },
@@ -308,7 +310,7 @@ const SIDEBAR_PERMISSION_GROUPS = [
   },
 ];
 
-const HIDDEN_PERMISSION_NAMES = new Set(["APPROVE_COMPENSATION"]);
+const HIDDEN_PERMISSION_NAMES = new Set();
 
 const humanizePermissionName = (permissionName) =>
   permissionName

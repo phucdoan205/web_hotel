@@ -3,6 +3,7 @@ using backend.Data;
 using backend.DTOs.Housekeeping;
 using backend.DTOs.RoomInventory;
 using backend.Models;
+using backend.Security;
 using backend.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -222,6 +223,7 @@ namespace backend.Controllers
         [HttpPost("inventory-issues/manual")]
         [Consumes("multipart/form-data")]
         [RequestSizeLimit(20_000_000)]
+        [Permission("CREATE_COMPENSATION")]
         public async Task<ActionResult<ReportInventoryIssueResponseDTO>> ReportInventoryIssueManual([FromForm] ManualInventoryIssueRequestDTO request)
         {
             return await CreateInventoryIssueAsync(
@@ -233,6 +235,7 @@ namespace backend.Controllers
         }
 
         [HttpGet("inventory-reports")]
+        [Permission("VIEW_COMPENSATION")]
         public async Task<ActionResult<HousekeepingInventoryReportResponseDTO>> GetInventoryReports()
         {
             var shortageNotifications = await _context.Notifications
@@ -317,6 +320,7 @@ namespace backend.Controllers
         }
 
         [HttpPost("inventory-reports/resolve")]
+        [Permission("PROCESS_COMPENSATION")]
         public async Task<IActionResult> ResolveInventoryReport([FromBody] ResolveInventoryReportRequestDTO request)
         {
             var reportType = request.ReportType?.Trim().ToLowerInvariant();

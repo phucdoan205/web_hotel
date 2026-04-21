@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { housekeepingApi } from "../../api/admin/housekeepingApi";
 import ManualIssueReportModal from "../housekeeping/inventory/ManualIssueReportModal";
+import { hasPermission } from "../../utils/permissions";
 import { formatVietnamDateTime } from "../../utils/vietnamTime";
 
 const parseApiError = (error, fallback) =>
@@ -172,6 +173,8 @@ export default function LossDamageManagementSection({
   title = "Thất thoát & đền bù",
   description = "Theo dõi vật tư hư hỏng và các khoản đền bù của Housekeeping.",
 }) {
+  const canCreateCompensation = hasPermission("CREATE_COMPENSATION");
+  const canProcessCompensation = hasPermission("PROCESS_COMPENSATION");
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("loss-damage");
   const [search, setSearch] = useState("");
@@ -245,7 +248,7 @@ export default function LossDamageManagementSection({
         <Eye className="size-4" />
         Xem
       </button>
-      {!isProcessed ? (
+      {!isProcessed && canProcessCompensation ? (
         <button
           type="button"
           onClick={() => {
@@ -273,10 +276,12 @@ export default function LossDamageManagementSection({
             <Search className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-gray-300" />
             <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tìm phòng, vật tư..." className="w-full rounded-2xl border border-gray-100 bg-white py-3 pl-11 pr-4 text-sm font-bold text-gray-700 shadow-sm outline-none focus:border-blue-200 focus:ring-2 focus:ring-blue-50 sm:w-80" />
           </label>
-          <button type="button" onClick={() => { setFeedback(""); setIsManualModalOpen(true); }} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-rose-600 px-5 py-3 text-sm font-black uppercase tracking-wide text-white hover:bg-rose-700">
-            <ClipboardList className="size-4" />
-            Thêm báo cáo
-          </button>
+          {canCreateCompensation ? (
+            <button type="button" onClick={() => { setFeedback(""); setIsManualModalOpen(true); }} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-rose-600 px-5 py-3 text-sm font-black uppercase tracking-wide text-white hover:bg-rose-700">
+              <ClipboardList className="size-4" />
+              Thêm báo cáo
+            </button>
+          ) : null}
         </div>
       </header>
 
@@ -360,7 +365,7 @@ export default function LossDamageManagementSection({
         )}
       </div>
 
-      <ManualIssueReportModal open={isManualModalOpen} isPending={manualReportMutation.isPending} onClose={() => setIsManualModalOpen(false)} onSubmit={(payload) => manualReportMutation.mutate(payload)} />
+      <ManualIssueReportModal open={isManualModalOpen && canCreateCompensation} isPending={manualReportMutation.isPending} onClose={() => setIsManualModalOpen(false)} onSubmit={(payload) => manualReportMutation.mutate(payload)} />
       <ReportDetailModal item={detailItem} onClose={() => setDetailItem(null)} />
       <ProcessReportModal item={processingItem} isPending={resolveReportMutation.isPending} errorMessage={processError} onClose={() => { setProcessingItem(null); setProcessError(""); }} onSubmit={(payload) => { setProcessError(""); resolveReportMutation.mutate(payload); }} />
     </div>

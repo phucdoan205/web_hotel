@@ -59,6 +59,7 @@ const AdminArticlePage = () => {
   const [dialogState, setDialogState] = useState({ open: false, mode: "delete", article: null });
   const canCreateContent = hasPermission("CREATE_CONTENT");
   const canEditContent = hasPermission("EDIT_CONTENT");
+  const canDeleteContent = hasPermission("DELETE_CONTENT");
   const canPublishContent = hasPermission("PUBLISH_CONTENT");
 
   const loadArticles = useCallback(async () => {
@@ -295,7 +296,7 @@ const AdminArticlePage = () => {
                           ) : null}
 
                           {article.isDeleted ? (
-                            canEditContent ? (
+                            canDeleteContent ? (
                               <button
                                 type="button"
                                 onClick={() => openActionDialog("restore", article)}
@@ -317,7 +318,7 @@ const AdminArticlePage = () => {
                                   Duyet
                                 </button>
                               ) : null}
-                              {canEditContent ? (
+                              {canDeleteContent ? (
                                 <button
                                   type="button"
                                   onClick={() => openActionDialog("hardDelete", article)}
@@ -329,7 +330,7 @@ const AdminArticlePage = () => {
                               ) : null}
                             </>
                           ) : (
-                            canEditContent ? (
+                            canDeleteContent ? (
                               <button
                                 type="button"
                                 onClick={() => openActionDialog("delete", article)}

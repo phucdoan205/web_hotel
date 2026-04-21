@@ -123,15 +123,16 @@ const StaffTable = ({
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => onEdit(member)}
-                          disabled={!canEdit}
-                          className="rounded-xl p-2 text-gray-400 transition-all hover:bg-sky-50 hover:text-sky-600 disabled:cursor-not-allowed disabled:opacity-40"
-                          title="Chỉnh sửa nhân sự"
-                        >
-                          <Edit2 className="size-4" />
-                        </button>
+                        {canEdit ? (
+                          <button
+                            type="button"
+                            onClick={() => onEdit(member)}
+                            className="rounded-xl p-2 text-gray-400 transition-all hover:bg-sky-50 hover:text-sky-600"
+                            title="Chỉnh sửa nhân sự"
+                          >
+                            <Edit2 className="size-4" />
+                          </button>
+                        ) : null}
                       </div>
                     </td>
                   </tr>

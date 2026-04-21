@@ -68,7 +68,7 @@ const AdminStaffPage = () => {
   const isEditMode = modalMode === "edit";
   const canCreateStaff = hasPermission("CREATE_USERS");
   const canDeleteStaff = hasPermission("DELETE_USERS");
-  const canEditStaff = hasPermission("VIEW_USERS");
+  const canEditStaff = hasPermission("EDIT_USERS");
 
   const loadStaffPageData = async () => {
     setIsLoading(true);

@@ -6,6 +6,7 @@ using System.Text;
 using backend.Data;
 using backend.DTOs.Article;
 using backend.Models;
+using backend.Security;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -188,6 +189,7 @@ namespace backend.Controllers
         [HttpPost]
         [Consumes("multipart/form-data")]
         [RequestSizeLimit(20_000_000)]
+        [Permission("CREATE_CONTENT")]
         public async Task<IActionResult> CreateArticle([FromForm] CreateArticleDTO request)
         {
             var currentUser = await RequireCurrentUserAsync();
@@ -253,6 +255,7 @@ namespace backend.Controllers
         [HttpPut("{id:int}")]
         [Consumes("multipart/form-data")]
         [RequestSizeLimit(20_000_000)]
+        [Permission("EDIT_CONTENT")]
         public async Task<IActionResult> UpdateArticle(int id, [FromForm] CreateArticleDTO request)
         {
             var currentUser = await RequireCurrentUserAsync();
@@ -343,6 +346,7 @@ namespace backend.Controllers
         }
 
         [HttpPut("{id:int}/approve")]
+        [Permission("PUBLISH_CONTENT")]
         public async Task<IActionResult> ApproveArticle(int id)
         {
             var currentUser = await RequireCurrentUserAsync();
@@ -423,6 +427,7 @@ namespace backend.Controllers
         }
 
         [HttpDelete("{id:int}")]
+        [Permission("DELETE_CONTENT")]
         public async Task<IActionResult> DeleteArticle(int id)
         {
             var currentUser = await RequireCurrentUserAsync();
@@ -474,6 +479,7 @@ namespace backend.Controllers
         }
 
         [HttpDelete("{id:int}/hard-delete")]
+        [Permission("DELETE_CONTENT")]
         public async Task<IActionResult> HardDeleteArticle(int id)
         {
             var currentUser = await RequireCurrentUserAsync();
@@ -498,6 +504,7 @@ namespace backend.Controllers
         }
 
         [HttpPost("{id:int}/restore")]
+        [Permission("DELETE_CONTENT")]
         public async Task<IActionResult> RestoreArticle(int id)
         {
             var currentUser = await RequireCurrentUserAsync();
