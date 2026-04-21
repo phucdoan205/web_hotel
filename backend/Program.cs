@@ -66,6 +66,7 @@ builder.Services.AddScoped<IEmailService, SmtpEmailService>();
 //Dùng cho AuditLog, không được xoá
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<AuditSaveChangesInterceptor>();
+builder.Services.AddHostedService<AuditLogCleanupService>();
 
 builder.Services.AddDbContext<AppDbContext>((sp, options) =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))

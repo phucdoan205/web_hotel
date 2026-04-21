@@ -310,6 +310,17 @@ namespace backend.Data
                     .OnDelete(DeleteBehavior.Restrict);
             });
 
+            modelBuilder.Entity<AuditLog>(entity =>
+            {
+                entity.HasOne(l => l.User)
+                  .WithMany()
+                  .HasForeignKey(l => l.UserId)
+                  .OnDelete(DeleteBehavior.SetNull);
+                entity.Property(l => l.LogData)
+                      .HasColumnType("nvarchar(max)");
+                entity.HasIndex(l => l.LogDate);
+            });
+
             // Soft-delete
             foreach (var entityType in modelBuilder.Model.GetEntityTypes())
             {

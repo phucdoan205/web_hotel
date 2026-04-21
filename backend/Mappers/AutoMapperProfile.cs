@@ -1,6 +1,7 @@
 using AutoMapper;
 using backend.DTOs;
 using backend.DTOs.Attraction;
+using backend.DTOs.Audit;
 using backend.DTOs.Room;
 using backend.DTOs.RoomInventory;
 using backend.DTOs.RoomType;
@@ -123,6 +124,11 @@ namespace backend.Mappers
             CreateMap<UpdateAttractionDTO, Attraction>()
                 .ForAllMembers(opt => opt.Condition((src, dest, srcValue) => srcValue != null));
 
+            CreateMap<AuditLog, AuditLogResponseDTO>()
+                .ForMember(dest => dest.UserName, opt =>
+                    opt.MapFrom(src => src.User != null ? src.User.FullName : null))
+                .ForMember(dest => dest.RoleName, opt =>
+                    opt.MapFrom(src => src.User != null && src.User.Role != null ? src.User.Role.Name : null));
         }
     }
 }
