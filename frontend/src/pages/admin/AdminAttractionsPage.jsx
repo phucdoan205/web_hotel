@@ -13,10 +13,8 @@ const emptyForm = {
   name: "",
   category: "",
   address: "",
-  latitude: "",
-  longitude: "",
   distanceKm: "",
-  imageUrl: "",
+  imageFile: null,
   mapEmbedLink: "",
   description: "",
   isActive: true,
@@ -31,10 +29,8 @@ const normalizePayload = (form) => ({
   name: form.name.trim(),
   category: form.category.trim() || null,
   address: form.address.trim() || null,
-  latitude: form.latitude === "" ? null : Number(form.latitude),
-  longitude: form.longitude === "" ? null : Number(form.longitude),
   distanceKm: form.distanceKm === "" ? null : Number(form.distanceKm),
-  imageUrl: form.imageUrl || null,
+  imageFile: form.imageFile || null,
   mapEmbedLink: form.mapEmbedLink.trim() || null,
   description: form.description.trim() || null,
   isActive: Boolean(form.isActive),
@@ -44,10 +40,8 @@ const mapToForm = (item) => ({
   name: item?.name ?? "",
   category: item?.category ?? "",
   address: item?.address ?? "",
-  latitude: item?.latitude ?? "",
-  longitude: item?.longitude ?? "",
   distanceKm: item?.distanceKm ?? "",
-  imageUrl: item?.imageUrl ?? "",
+  imageFile: null,
   mapEmbedLink: item?.mapEmbedLink ?? "",
   description: item?.description ?? "",
   isActive: item?.isActive ?? true,
@@ -149,23 +143,13 @@ function AttractionModal({
                 name="category"
                 value={formData.category}
                 onChange={onChange}
-                placeholder="Thiên nhiên, Ẩm thực, Giải trí..."
+                placeholder="Thiên nhiên, ẩm thực, giải trí..."
               />
             </label>
 
             <label className="flex flex-col gap-2 md:col-span-2">
               <FieldLabel>Địa chỉ</FieldLabel>
               <TextInput name="address" value={formData.address} onChange={onChange} />
-            </label>
-
-            <label className="flex flex-col gap-2">
-              <FieldLabel>Vĩ độ</FieldLabel>
-              <TextInput type="number" step="any" name="latitude" value={formData.latitude} onChange={onChange} />
-            </label>
-
-            <label className="flex flex-col gap-2">
-              <FieldLabel>Kinh độ</FieldLabel>
-              <TextInput type="number" step="any" name="longitude" value={formData.longitude} onChange={onChange} />
             </label>
 
             <label className="flex flex-col gap-2">
@@ -193,13 +177,16 @@ function AttractionModal({
             </div>
 
             <label className="flex flex-col gap-2 md:col-span-2">
-              <FieldLabel>Link nhúng bản đồ</FieldLabel>
+              <FieldLabel>Google Maps link</FieldLabel>
               <TextInput
                 name="mapEmbedLink"
                 value={formData.mapEmbedLink}
                 onChange={onChange}
-                placeholder="Dán link Google Maps embed hoặc iframe"
+                placeholder="Dán link Google Maps embed, share link hoặc iframe"
               />
+              <span className="text-xs font-semibold text-slate-400">
+                Kinh độ và vĩ độ sẽ tự động lấy từ Google Maps link khi lưu.
+              </span>
             </label>
 
             <label className="flex flex-col gap-2 md:col-span-2">
@@ -440,7 +427,7 @@ export default function AdminAttractionsPage() {
     reader.onload = () => {
       const result = typeof reader.result === "string" ? reader.result : "";
       setPreviewImage(result);
-      setFormData((current) => ({ ...current, imageUrl: result }));
+      setFormData((current) => ({ ...current, imageFile: file }));
     };
     reader.readAsDataURL(file);
     event.target.value = "";
@@ -456,6 +443,12 @@ export default function AdminAttractionsPage() {
 
       if (!payload.name) {
         setModalError("Tên địa điểm là bắt buộc.");
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (!payload.mapEmbedLink) {
+        setModalError("Google Maps link là bắt buộc để hệ thống tự lấy tọa độ.");
         setIsSubmitting(false);
         return;
       }
@@ -524,7 +517,7 @@ export default function AdminAttractionsPage() {
     <>
       <div className="mx-auto max-w-[1680px] space-y-8 pb-12">
         <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
-            <div>
+          <div>
             <h1 className="text-4xl font-black tracking-tight text-slate-950">Quản lý địa điểm</h1>
             <p className="mt-2 max-w-3xl text-sm font-medium text-slate-500">
               Quản lý điểm đến, tọa độ thực tế và dữ liệu dùng cho site map.
@@ -555,14 +548,14 @@ export default function AdminAttractionsPage() {
               <div className="inline-flex rounded-[1.2rem] border border-slate-200 bg-slate-50 p-1">
                 {[
                   { id: "list", label: "Danh sách địa điểm" },
-                  { id: "map", label: "Bản đồ" },
+                  { id: "map", label: "Site Map" },
                 ].map((tab) => (
                   <button
                     key={tab.id}
                     type="button"
                     onClick={() => setActiveTab(tab.id)}
                     className={`rounded-[1rem] px-4 py-3 text-sm font-black transition ${
-                      activeTab === tab.id ? "bg-sky-600 text-white shadow" : "text-slate-500 hover:text-slate-800"
+                      activeTab === tab.id ? "bg-sky-700 text-white shadow" : "text-slate-500 hover:text-slate-800"
                     }`}
                   >
                     {tab.label}
@@ -570,16 +563,18 @@ export default function AdminAttractionsPage() {
                 ))}
               </div>
 
-              <div className="relative w-full max-w-md">
-                <Search className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="text"
-                  value={searchKeyword}
-                  onChange={(event) => setSearchKeyword(event.target.value)}
-                  placeholder="Tìm theo tên, địa chỉ, danh mục..."
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-sm font-semibold text-slate-800 outline-none focus:border-sky-300 focus:bg-white focus:ring-4 focus:ring-sky-100"
-                />
-              </div>
+              {activeTab === "list" ? (
+                <div className="relative w-full max-w-md">
+                  <Search className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    value={searchKeyword}
+                    onChange={(event) => setSearchKeyword(event.target.value)}
+                    placeholder="Tìm theo tên, địa chỉ, danh mục..."
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-sm font-semibold text-slate-800 outline-none focus:border-sky-300 focus:bg-white focus:ring-4 focus:ring-sky-100"
+                  />
+                </div>
+              ) : null}
             </div>
           </div>
 
@@ -631,10 +626,20 @@ export default function AdminAttractionsPage() {
               )}
             </div>
           ) : (
-            <div className="grid gap-6 p-5 xl:grid-cols-[360px,minmax(0,1fr)]">
-              <div className="overflow-hidden rounded-[1.8rem] border border-slate-200 bg-white">
+            <div className="flex flex-col gap-6 bg-slate-50/60 p-5 xl:flex-row">
+              <div className="overflow-hidden rounded-[1.8rem] border border-slate-200 bg-white shadow-sm xl:w-[360px] xl:min-w-[360px]">
                 <div className="border-b border-slate-100 px-5 py-5">
                   <h2 className="text-3xl font-black tracking-tight text-slate-950">Danh sách điểm đến</h2>
+                  <div className="relative mt-4">
+                    <Search className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="text"
+                      value={searchKeyword}
+                      onChange={(event) => setSearchKeyword(event.target.value)}
+                      placeholder="Tìm theo tên, địa chỉ, danh mục..."
+                      className="w-full rounded-2xl border border-slate-200 bg-amber-50/30 py-3 pl-11 pr-4 text-sm font-semibold text-slate-800 outline-none focus:border-sky-300 focus:bg-white focus:ring-4 focus:ring-sky-100"
+                    />
+                  </div>
                 </div>
 
                 <div className="max-h-[720px] overflow-y-auto">
@@ -650,7 +655,9 @@ export default function AdminAttractionsPage() {
                           key={item.id}
                           type="button"
                           onClick={() => setSelectedId(item.id)}
-                          className={`flex w-full flex-col gap-1 border-b border-slate-100 px-5 py-4 text-left transition ${isSelected ? "bg-sky-50" : "hover:bg-slate-50"}`}
+                          className={`flex w-full flex-col gap-1 border-b border-slate-100 px-5 py-4 text-left transition ${
+                            isSelected ? "bg-sky-50" : "hover:bg-slate-50"
+                          }`}
                         >
                           <span className="text-lg font-black text-slate-900">{item.name}</span>
                           <span className="text-sm font-semibold text-slate-500">
@@ -666,7 +673,7 @@ export default function AdminAttractionsPage() {
                 </div>
               </div>
 
-              <div className="overflow-hidden rounded-[1.8rem] border border-slate-200 bg-white p-5">
+              <div className="min-w-0 flex-1 overflow-hidden rounded-[1.8rem] border border-slate-200 bg-white p-5 shadow-sm">
                 {selectedItem ? (
                   <div className="space-y-5">
                     <div className="flex flex-wrap items-start justify-between gap-4">
@@ -677,34 +684,22 @@ export default function AdminAttractionsPage() {
                         </p>
                       </div>
 
-                      <div className="flex items-center gap-3">
-                        <a
-                          href={mapLink}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-2 rounded-2xl bg-sky-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-sky-700"
+                      {canEdit ? (
+                        <button
+                          type="button"
+                          onClick={() => openEditModal(selectedItem)}
+                          className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700"
                         >
-                          <ExternalLink className="size-4" />
-                          Mở Google Maps
-                        </a>
-
-                        {canEdit ? (
-                          <button
-                            type="button"
-                            onClick={() => openEditModal(selectedItem)}
-                            className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700"
-                          >
-                            <Pencil className="size-4" />
-                            Chỉnh sửa
-                          </button>
-                        ) : null}
-                      </div>
+                          <Pencil className="size-4" />
+                          Chỉnh sửa
+                        </button>
+                      ) : null}
                     </div>
 
-                    <div className="grid gap-4 md:grid-cols-3">
+                    <div className="grid gap-4 xl:grid-cols-3">
                       {[
-                        { label: "Vĩ độ", value: formatCoord(selectedItem.latitude) },
-                        { label: "Kinh độ", value: formatCoord(selectedItem.longitude) },
+                        { label: "Latitude", value: formatCoord(selectedItem.latitude) },
+                        { label: "Longitude", value: formatCoord(selectedItem.longitude) },
                         { label: "Khoảng cách", value: formatDistance(selectedItem.distanceKm) },
                       ].map((stat) => (
                         <div key={stat.label} className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
@@ -719,23 +714,32 @@ export default function AdminAttractionsPage() {
                         <iframe
                           title={`map-${selectedItem.id}`}
                           src={mapSrc}
-                          className="h-[460px] w-full"
+                          className="h-[520px] w-full"
                           loading="lazy"
                           referrerPolicy="no-referrer-when-downgrade"
                         />
                       ) : (
-                        <div className="flex h-[460px] flex-col items-center justify-center gap-3 px-6 text-center">
+                        <div className="flex h-[520px] flex-col items-center justify-center gap-3 px-6 text-center">
                           <MapPin className="size-10 text-slate-300" />
                           <p className="text-lg font-bold text-slate-600">Địa điểm này chưa có link nhúng bản đồ.</p>
                         </div>
                       )}
                     </div>
 
-                    <div className="rounded-[1.8rem] border border-slate-200 bg-white p-5">
-                      <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Thông tin chi tiết</p>
-                      <p className="mt-3 text-sm font-semibold leading-7 text-slate-600">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div className="rounded-[1.5rem] border border-slate-200 bg-white px-5 py-4 text-sm font-semibold leading-7 text-slate-600">
                         {selectedItem.description || "Chưa có mô tả cho địa điểm này."}
-                      </p>
+                      </div>
+
+                      <a
+                        href={mapLink}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-2 rounded-2xl bg-sky-700 px-4 py-3 text-sm font-bold text-white transition hover:bg-sky-800"
+                      >
+                        <ExternalLink className="size-4" />
+                        Mở Google Maps
+                      </a>
                     </div>
                   </div>
                 ) : (

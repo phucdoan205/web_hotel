@@ -1,4 +1,6 @@
-﻿namespace backend.DTOs.Attraction
+using Microsoft.AspNetCore.Http;
+
+namespace backend.DTOs.Attraction
 {
     public class CreateAttractionDTO
     {
@@ -12,5 +14,6 @@
         public string? Address { get; set; }
         public bool IsActive { get; set; } = true;
         public string? ImageUrl { get; set; }
+        public IFormFile? ImageFile { get; set; }
     }
 }
