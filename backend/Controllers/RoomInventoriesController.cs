@@ -2,6 +2,7 @@ using backend.Data;
 using backend.DTOs.Housekeeping;
 using backend.DTOs.RoomInventory;
 using backend.Models;
+using backend.Security;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
@@ -38,6 +39,7 @@ namespace backend.Controllers
         }
 
         [HttpGet("room/{roomId:int}")]
+        [Permission("INVENTORY_ROOMS")]
         public async Task<ActionResult<List<RoomInventoryDTO>>> GetByRoom(int roomId)
         {
             var roomExists = await _context.Rooms
@@ -61,6 +63,7 @@ namespace backend.Controllers
         }
 
         [HttpPost]
+        [Permission("INVENTORY_ROOMS")]
         public async Task<IActionResult> Create([FromBody] CreateRoomInventoryDTO dto)
         {
             Equipment? equipment = null;
@@ -133,6 +136,7 @@ namespace backend.Controllers
         }
 
         [HttpPut("{id:int}")]
+        [Permission("INVENTORY_ROOMS")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateRoomInventoryDTO dto)
         {
             var item = await _context.RoomInventory
@@ -232,6 +236,7 @@ namespace backend.Controllers
         }
 
         [HttpDelete("{id:int}")]
+        [Permission("INVENTORY_ROOMS")]
         public async Task<IActionResult> Delete(int id)
         {
             var item = await _context.RoomInventory
@@ -272,6 +277,7 @@ namespace backend.Controllers
         }
 
         [HttpPost("clone")]
+        [Permission("INVENTORY_ROOMS")]
         public async Task<ActionResult<CloneRoomInventoryResponseDTO>> Clone([FromBody] CloneRoomInventoryDTO dto)
         {
             if (dto.SourceRoomId.HasValue)

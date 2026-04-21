@@ -11,6 +11,7 @@ import RoomInventoryModal from "../../components/admin/rooms/RoomInventoryModal"
 import RoomTypeManagement from "../../components/admin/roomtypes/RoomTypeManagement";
 import { roomsApi } from "../../api/admin/roomsApi";
 import { roomTypesApi } from "../../api/admin/roomTypesApi";
+import { hasPermission } from "../../utils/permissions";
 
 const defaultFilters = {
   search: "",
@@ -36,6 +37,11 @@ export default function AdminRoomPage() {
   const [openCleaning, setOpenCleaning] = useState(false);
   const [openDetail, setOpenDetail] = useState(false);
   const [openInventory, setOpenInventory] = useState(false);
+  const canCreateRooms = hasPermission("CREATE_ROOMS");
+  const canEditRooms = hasPermission("EDIT_ROOMS");
+  const canDeleteRooms = hasPermission("DELETE_ROOMS");
+  const canUpdateRoomStatus = hasPermission("UPDATE_ROOM_STATUS");
+  const canViewInventory = hasPermission("INVENTORY_ROOMS");
 
   const roomQueryParams = useMemo(() => {
     const params = {
@@ -151,6 +157,11 @@ export default function AdminRoomPage() {
           loading={isRoomsLoading}
           filters={filters}
           roomTypes={roomTypes}
+          canCreateRooms={canCreateRooms}
+          canEditRooms={canEditRooms}
+          canDeleteRooms={canDeleteRooms}
+          canUpdateRoomStatus={canUpdateRoomStatus}
+          canViewInventory={canViewInventory}
           onFilterChange={handleFilterChange}
           onResetFilters={() => setFilters(defaultFilters)}
           onCreate={() => setFormState({ open: true, room: null })}

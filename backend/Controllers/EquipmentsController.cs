@@ -138,6 +138,7 @@ namespace backend.Controllers
         [HttpPost]
         [Consumes("multipart/form-data")]
         [RequestSizeLimit(20_000_000)]
+        [Permission("CREATE_INVENTORY")]
         public async Task<ActionResult<EquipmentListItemDTO>> Create([FromForm] EquipmentUpsertRequestDTO request)
         {
             var normalizedItemCode = NormalizeRequired(request.ItemCode);
@@ -218,6 +219,7 @@ namespace backend.Controllers
         [HttpPut("{id:int}")]
         [Consumes("multipart/form-data")]
         [RequestSizeLimit(20_000_000)]
+        [Permission("EDIT_INVENTORY")]
         public async Task<ActionResult<EquipmentListItemDTO>> Update(int id, [FromForm] EquipmentUpsertRequestDTO request)
         {
             var equipment = await _context.Equipments.FirstOrDefaultAsync(e => e.Id == id && e.IsActive);

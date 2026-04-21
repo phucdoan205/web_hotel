@@ -2,6 +2,7 @@ using backend.Common;
 using backend.Data;
 using backend.DTOs.RoomType;
 using backend.Models;
+using backend.Security;
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -79,6 +80,7 @@ namespace backend.Controllers
         }
 
         [HttpGet]
+        [Permission("VIEW_ROOMS")]
         public async Task<ActionResult<PagedResponse<RoomTypeDTO>>> GetRoomTypes(
             [FromQuery] string? search = null,
             [FromQuery] int page = 1,
@@ -107,6 +109,7 @@ namespace backend.Controllers
         }
 
         [HttpGet("{id:int}")]
+        [Permission("VIEW_ROOMS")]
         public async Task<ActionResult<RoomTypeDetailDTO>> GetRoomType(int id)
         {
             var roomType = await _context.RoomTypes
@@ -126,6 +129,7 @@ namespace backend.Controllers
         }
 
         [HttpPost]
+        [Permission("CREATE_ROOMS")]
         public async Task<IActionResult> Create([FromBody] CreateRoomTypeDTO dto)
         {
             //var validation = await _createValidator.ValidateAsync(dto);
@@ -180,6 +184,7 @@ namespace backend.Controllers
         }
 
         [HttpPut("{id:int}")]
+        [Permission("EDIT_ROOMS")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateRoomTypeDTO dto)
         {
             var roomType = await _context.RoomTypes
@@ -246,6 +251,7 @@ namespace backend.Controllers
         }
 
         [HttpDelete("{id:int}")]
+        [Permission("DELETE_ROOMS")]
         public async Task<IActionResult> Delete(int id)
         {
             var roomType = await _context.RoomTypes
@@ -260,12 +266,12 @@ namespace backend.Controllers
 
             if (roomType.IsDeleted)
             {
-                return BadRequest("Loai phong da bi xoa truoc do.");
+                return BadRequest("Loại phòng đã bị xóa trước đó.");
             }
 
             if (roomType.Rooms.Any(r => !r.IsDeleted))
             {
-                return BadRequest("Khong the xoa loai phong khi van con phong hoat dong thuoc loai nay.");
+                return BadRequest("Không thể xóa loại phòng khi vẫn còn phòng hoạt động thuộc loại này.");
             }
 
             _context.RoomTypes.Remove(roomType);
@@ -275,6 +281,7 @@ namespace backend.Controllers
         }
 
         [HttpGet("deleted")]
+        [Permission("VIEW_ROOMS")]
         public async Task<ActionResult<PagedResponse<RoomTypeDTO>>> GetDeletedRoomTypes(
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 15,
@@ -304,6 +311,7 @@ namespace backend.Controllers
         }
 
         [HttpPost("{id:int}/restore")]
+        [Permission("DELETE_ROOMS")]
         public async Task<IActionResult> Restore(int id)
         {
             var roomType = await _context.RoomTypes
@@ -312,7 +320,7 @@ namespace backend.Controllers
 
             if (roomType == null || !roomType.IsDeleted)
             {
-                return NotFound("Khong tim thay loai phong da xoa.");
+                return NotFound("Không tìm thấy loại phòng đã xóa.");
             }
 
             roomType.IsDeleted = false;
@@ -325,6 +333,7 @@ namespace backend.Controllers
         [HttpPost("upload-image")]
         [Consumes("multipart/form-data")]
         [RequestSizeLimit(20_000_000)]
+        [Permission("CREATE_ROOMS", "EDIT_ROOMS")]
         public async Task<ActionResult<object>> UploadRoomTypeImage([FromForm] IFormFile file, [FromForm] string? roomTypeName = null)
         {
             if (file == null || file.Length <= 0)

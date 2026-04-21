@@ -3,13 +3,14 @@ import { CheckCircle2, Eye, RefreshCw, RotateCcw, Search, Trash2, Edit } from "l
 import { useNavigate } from "react-router-dom";
 import ArticleTrashDialog from "../../components/articles/ArticleTrashDialog";
 import { approveArticle, deleteArticle, getArticles, hardDeleteArticle, restoreArticle } from "../../api/articles/articleApi";
+import { hasPermission } from "../../utils/permissions";
 import { formatPreservedApiDateTime } from "../../utils/vietnamTime";
 
 const filterOptions = [
-  { value: "all", label: "Tất cả" },
-  { value: "approved", label: "Đã duyệt" },
-  { value: "pending", label: "Chờ duyệt" },
-  { value: "deleted", label: "Thùng rác" },
+  { value: "all", label: "Tat ca" },
+  { value: "approved", label: "Da duyet" },
+  { value: "pending", label: "Cho duyet" },
+  { value: "deleted", label: "Thung rac" },
 ];
 
 const getStatusBadgeClass = (article) => {
@@ -22,10 +23,10 @@ const getStatusBadgeClass = (article) => {
 
 const getStatusLabel = (article) => {
   if (article.isDeleted) {
-    return "Thùng rác";
+    return "Thung rac";
   }
 
-  return article.isApproved ? "Đã duyệt" : "Chờ duyệt";
+  return article.isApproved ? "Da duyet" : "Cho duyet";
 };
 
 const getDisplayTime = (article) => {
@@ -56,6 +57,9 @@ const AdminArticlePage = () => {
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState("");
   const [dialogState, setDialogState] = useState({ open: false, mode: "delete", article: null });
+  const canCreateContent = hasPermission("CREATE_CONTENT");
+  const canEditContent = hasPermission("EDIT_CONTENT");
+  const canPublishContent = hasPermission("PUBLISH_CONTENT");
 
   const loadArticles = useCallback(async () => {
     setLoading(true);
@@ -70,7 +74,7 @@ const AdminArticlePage = () => {
       });
       setArticles(data);
     } catch (fetchError) {
-      setError(fetchError?.response?.data || "Không tải được bài viết cho admin.");
+      setError(fetchError?.response?.data || "Khong tai duoc bai viet cho admin.");
     } finally {
       setLoading(false);
     }
@@ -101,7 +105,7 @@ const AdminArticlePage = () => {
       await approveArticle(articleId);
       await loadArticles();
     } catch (approveError) {
-      setError(approveError?.response?.data || "Không duyệt được bài viết.");
+      setError(approveError?.response?.data || "Khong duyet duoc bai viet.");
     }
   };
 
@@ -139,7 +143,7 @@ const AdminArticlePage = () => {
       setDialogState({ open: false, mode: "delete", article: null });
       await loadArticles();
     } catch (actionRequestError) {
-      setActionError(actionRequestError?.response?.data || "Không thực hiện được thao tác.");
+      setActionError(actionRequestError?.response?.data || "Khong thuc hien duoc thao tac.");
     } finally {
       setActionLoading(false);
     }
@@ -150,20 +154,22 @@ const AdminArticlePage = () => {
       <div className="space-y-6">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
           <div>
-            <h1 className="text-3xl font-black text-gray-900">Duyệt bài viết</h1>
+            <h1 className="text-3xl font-black text-gray-900">Duyet bai viet</h1>
             <p className="mt-1 text-sm font-medium text-gray-500">
-              Bài chờ duyệt có thể duyệt hoặc xóa hẳn. Bài đã duyệt sẽ có xem và chuyển vào thùng rác.
+              Bai cho duyet co the duyet hoac xoa han. Bai da duyet se co xem va chuyen vao thung rac.
             </p>
           </div>
 
           <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => navigate('/admin/articles/new')}
-              className="inline-flex items-center gap-2 rounded-2xl bg-sky-600 px-5 py-3 text-sm font-bold text-white shadow-sm"
-            >
-              Tạo bài viết
-            </button>
+            {canCreateContent ? (
+              <button
+                type="button"
+                onClick={() => navigate("/admin/articles/new")}
+                className="inline-flex items-center gap-2 rounded-2xl bg-sky-600 px-5 py-3 text-sm font-bold text-white shadow-sm"
+              >
+                Tao bai viet
+              </button>
+            ) : null}
 
             <button
               type="button"
@@ -171,7 +177,7 @@ const AdminArticlePage = () => {
               className="inline-flex items-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-bold text-gray-700 shadow-sm ring-1 ring-gray-200"
             >
               <RefreshCw className="size-4" />
-              Làm mới
+              Lam moi
             </button>
           </div>
         </div>
@@ -188,7 +194,7 @@ const AdminArticlePage = () => {
                     loadArticles();
                   }
                 }}
-                placeholder="Tìm theo tiêu đề, tác giả, slug..."
+                placeholder="Tim theo tieu de, tac gia, slug..."
                 className="w-full rounded-2xl border border-gray-200 bg-gray-50 py-3 pl-11 pr-4 text-sm outline-none focus:border-sky-300 focus:bg-white focus:ring-2 focus:ring-sky-100"
               />
             </div>
@@ -218,7 +224,7 @@ const AdminArticlePage = () => {
             <table className="min-w-full table-fixed text-left">
               <thead className="bg-slate-50">
                 <tr>
-                  {["Bài viết", "Tác giả", "Danh mục", "Trạng thái", "Ngày hiển thị", "Tác vụ"].map((header) => (
+                  {["Bai viet", "Tac gia", "Danh muc", "Trang thai", "Ngay hien thi", "Tac vu"].map((header) => (
                     <th key={header} className="px-4 py-4 text-xs font-black uppercase tracking-wider text-slate-500">
                       {header}
                     </th>
@@ -229,13 +235,13 @@ const AdminArticlePage = () => {
                 {loading ? (
                   <tr>
                     <td colSpan={6} className="px-4 py-10 text-center text-sm font-semibold text-gray-400">
-                      Đang tải bài viết...
+                      Dang tai bai viet...
                     </td>
                   </tr>
                 ) : sortedArticles.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-4 py-10 text-center text-sm font-semibold text-gray-400">
-                      Không có bài viết phù hợp bộ lọc.
+                      Khong co bai viet phu hop bo loc.
                     </td>
                   </tr>
                 ) : (
@@ -251,7 +257,7 @@ const AdminArticlePage = () => {
                           <div className="min-w-0">
                             <p className="break-words text-sm font-black text-slate-900">{article.title}</p>
                             <p className="mt-1 line-clamp-2 break-words text-xs font-medium text-slate-500">
-                              {article.summary || "Chưa có mô tả ngắn."}
+                              {article.summary || "Chua co mo ta ngan."}
                             </p>
                           </div>
                         </div>
@@ -264,7 +270,7 @@ const AdminArticlePage = () => {
                         </span>
                       </td>
                       <td className="px-4 py-4 align-top text-sm font-semibold text-slate-600">
-                        {getDisplayTime(article) ? formatPreservedApiDateTime(getDisplayTime(article)) : "Chưa hiển thị"}
+                        {getDisplayTime(article) ? formatPreservedApiDateTime(getDisplayTime(article)) : "Chua hien thi"}
                       </td>
                       <td className="px-4 py-4 align-top">
                         <div className="flex flex-wrap items-center gap-2">
@@ -277,52 +283,62 @@ const AdminArticlePage = () => {
                             Xem
                           </button>
 
-                          <button
-                            type="button"
-                            onClick={() => navigate(`/admin/articles/${article.id}/edit`)}
-                            className="inline-flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-bold text-gray-700 ring-1 ring-gray-200"
-                          >
-                            <Edit className="size-4" />
-                            Chỉnh sửa
-                          </button>
-
-                          {article.isDeleted ? (
+                          {canEditContent ? (
                             <button
                               type="button"
-                              onClick={() => openActionDialog("restore", article)}
-                              className="inline-flex items-center gap-2 rounded-xl bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-600"
+                              onClick={() => navigate(`/admin/articles/${article.id}/edit`)}
+                              className="inline-flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-bold text-gray-700 ring-1 ring-gray-200"
                             >
-                              <RotateCcw className="size-4" />
-                              Khôi phục
+                              <Edit className="size-4" />
+                              Chinh sua
                             </button>
-                          ) : !article.isApproved ? (
-                            <>
+                          ) : null}
+
+                          {article.isDeleted ? (
+                            canEditContent ? (
                               <button
                                 type="button"
-                                onClick={() => handleApprove(article.id)}
+                                onClick={() => openActionDialog("restore", article)}
                                 className="inline-flex items-center gap-2 rounded-xl bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-600"
                               >
-                                <CheckCircle2 className="size-4" />
-                                Duyệt
+                                <RotateCcw className="size-4" />
+                                Khoi phuc
                               </button>
+                            ) : null
+                          ) : !article.isApproved ? (
+                            <>
+                              {canPublishContent ? (
+                                <button
+                                  type="button"
+                                  onClick={() => handleApprove(article.id)}
+                                  className="inline-flex items-center gap-2 rounded-xl bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-600"
+                                >
+                                  <CheckCircle2 className="size-4" />
+                                  Duyet
+                                </button>
+                              ) : null}
+                              {canEditContent ? (
+                                <button
+                                  type="button"
+                                  onClick={() => openActionDialog("hardDelete", article)}
+                                  className="inline-flex items-center gap-2 rounded-xl bg-rose-50 px-3 py-2 text-sm font-bold text-rose-600"
+                                >
+                                  <Trash2 className="size-4" />
+                                  Khong duyet
+                                </button>
+                              ) : null}
+                            </>
+                          ) : (
+                            canEditContent ? (
                               <button
                                 type="button"
-                                onClick={() => openActionDialog("hardDelete", article)}
+                                onClick={() => openActionDialog("delete", article)}
                                 className="inline-flex items-center gap-2 rounded-xl bg-rose-50 px-3 py-2 text-sm font-bold text-rose-600"
                               >
                                 <Trash2 className="size-4" />
-                                Không duyệt
+                                Chuyen thung rac
                               </button>
-                            </>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => openActionDialog("delete", article)}
-                              className="inline-flex items-center gap-2 rounded-xl bg-rose-50 px-3 py-2 text-sm font-bold text-rose-600"
-                            >
-                              <Trash2 className="size-4" />
-                              Chuyển thùng rác
-                            </button>
+                            ) : null
                           )}
                         </div>
                       </td>
@@ -349,5 +365,3 @@ const AdminArticlePage = () => {
 };
 
 export default AdminArticlePage;
-
-

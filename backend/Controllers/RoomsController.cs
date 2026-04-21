@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using backend.Common;
 using backend.Data;
 using backend.DTOs.Room;
@@ -47,7 +47,7 @@ namespace backend.Controllers
             .ThenInclude(ri => ri.Equipment)
             .AsNoTracking();
 
-            // Ãp dá»¥ng filter
+            // Áp dụng filter
             if (!string.IsNullOrWhiteSpace(search))
                 query = query.Where(r => r.RoomNumber.Contains(search.Trim()));
 
@@ -63,10 +63,10 @@ namespace backend.Controllers
             if (floor.HasValue)
                 query = query.Where(r => r.Floor == floor.Value);
 
-            // Äáº¿m tá»•ng trÆ°á»›c khi phÃ¢n trang
+            // Đếm tổng trước khi phân trang
             var totalCount = await query.CountAsync();
 
-            // Láº¥y dá»¯ liá»‡u trang hiá»‡n táº¡i
+            // Lấy dữ liệu trang hiện tại
             var rooms = await query
                 .OrderBy(r => r.RoomNumber)
                 .Skip((page - 1) * pageSize)
@@ -97,7 +97,7 @@ namespace backend.Controllers
             }
         }
 
-        // GET: api/rooms/5 (chi tiáº¿t)
+        // GET: api/rooms/5 (chi tiết)
         [HttpGet("{id}")]
         [Permission("VIEW_ROOMS")]
         public async Task<ActionResult<RoomDetailDTO>> GetRoom(int id)
@@ -117,6 +117,7 @@ namespace backend.Controllers
 
         // POST: api/rooms
         [HttpPost]
+        [Permission("CREATE_ROOMS")]
         public async Task<ActionResult<RoomDetailDTO>> Create([FromBody] CreateRoomDTO dto)
         {
 
@@ -127,18 +128,18 @@ namespace backend.Controllers
             room.Status ??= RoomStatuses.Available;
             room.CleaningStatus ??= RoomCleaningStatuses.Dirty;
 
-            // ThÃªm inventory náº¿u cÃ³
+            // Thêm inventory nếu có
             if (dto.InitialInventories?.Any() == true)
             {
                 var inventories = _mapper.Map<List<RoomInventory>>(dto.InitialInventories);
-                inventories.ForEach(i => i.Room = room); // hoáº·c i.RoomId = room.Id sau khi save
+                inventories.ForEach(i => i.Room = room); // hoặc i.RoomId = room.Id sau khi save
                 room.RoomInventory = inventories;
             }
 
             _context.Rooms.Add(room);
             await _context.SaveChangesAsync();
 
-            // Reload Ä‘á»ƒ láº¥y Ä‘áº§y Ä‘á»§ navigation properties
+            // Reload để lấy đầy đủ navigation properties
             await _context.Entry(room)
                 .Reference(r => r.RoomType)
                 .LoadAsync();
@@ -149,6 +150,7 @@ namespace backend.Controllers
 
         // PUT: api/rooms/5
         [HttpPut("{id}")]
+        [Permission("EDIT_ROOMS")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateRoomDTO dto)
         {
             dto.ID = id;
@@ -160,15 +162,15 @@ namespace backend.Controllers
 
             var currentRoomNumber = room.RoomNumber;
 
-            // Business rule: khÃ´ng cho Ä‘á»•i sá»‘ phÃ²ng náº¿u Ä‘Ã£ cÃ³ booking
+            // Business rule: không cho đổi số phòng nếu đã có booking
             if (!string.IsNullOrEmpty(dto.RoomNumber) && dto.RoomNumber != currentRoomNumber)
             {
                 var hasBooking = await _context.BookingDetails
                     .AnyAsync(bd => bd.RoomId == id && bd.CheckOutDate >= DateTime.Today);
-                if (hasBooking) return BadRequest("PhÃ²ng Ä‘Ã£ cÃ³ Ä‘áº·t phÃ²ng, khÃ´ng thá»ƒ Ä‘á»•i sá»‘ phÃ²ng");
+                if (hasBooking) return BadRequest("Phòng đã có đặt phòng, không thể đổi số phòng");
             }
 
-            _mapper.Map(dto, room); // chá»‰ map field khÃ´ng null
+            _mapper.Map(dto, room); // chỉ map field không null
 
             await _context.SaveChangesAsync();
             return NoContent();
@@ -176,6 +178,7 @@ namespace backend.Controllers
 
         // DELETE: api/rooms/5 (mark OutOfOrder)
         [HttpDelete("{id}")]
+        [Permission("DELETE_ROOMS")]
         public async Task<IActionResult> Delete(int id)
         {
             var room = await _context.Rooms
@@ -202,6 +205,7 @@ namespace backend.Controllers
 
         // POST: api/rooms/5/restore
         [HttpPost("{id}/restore")]
+        [Permission("DELETE_ROOMS")]
         public async Task<IActionResult> RestoreRoom(int id)
         {
             var room = await _context.Rooms
@@ -225,24 +229,24 @@ namespace backend.Controllers
             [FromQuery] int pageSize = 15,
             [FromQuery] string? searchRoomNumber = null)
         {
-            // Báº¯t buá»™c IgnoreQueryFilters Ä‘á»ƒ tháº¥y cÃ¡c báº£n ghi Ä‘Ã£ soft-delete
+            // Bắt buộc IgnoreQueryFilters để thấy các bản ghi đã soft-delete
             var query = _context.Rooms
                 .IgnoreQueryFilters()
                 .Where(r => r.IsDeleted == true);
 
-            // Optional: tÃ¬m kiáº¿m theo sá»‘ phÃ²ng (náº¿u client gá»­i)
+            // Optional: tìm kiếm theo số phòng (nếu client gửi)
             if (!string.IsNullOrWhiteSpace(searchRoomNumber))
             {
                 query = query.Where(r => r.RoomNumber.Contains(searchRoomNumber.Trim()));
             }
 
-            // Sáº¯p xáº¿p máº·c Ä‘á»‹nh
+            // Sắp xếp mặc định
             query = query.OrderByDescending(r => r.DeletedAt);
 
-            // Äáº¿m tá»•ng trÆ°á»›c khi phÃ¢n trang
+            // Đếm tổng trước khi phân trang
             var totalCount = await query.CountAsync();
 
-            // PhÃ¢n trang
+            // Phân trang
             var rooms = await query
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
@@ -275,10 +279,10 @@ namespace backend.Controllers
             if (query.CheckIn.HasValue && query.CheckOut.HasValue)
             {
                 if (query.CheckIn >= query.CheckOut)
-                    return BadRequest("Check-in pháº£i trÆ°á»›c check-out");
+                    return BadRequest("Check-in phải trước check-out");
 
                 if (query.CheckIn < DateTime.Today)
-                    return BadRequest("Check-in khÃ´ng Ä‘Æ°á»£c trong quÃ¡ khá»©");
+                    return BadRequest("Check-in không được trong quá khứ");
             }
 
             var q = _context.Rooms
@@ -288,24 +292,24 @@ namespace backend.Controllers
                         .ThenInclude(rta => rta.Amenity)
                 .Where(r => !r.IsDeleted && r.Status == RoomStatuses.Available);
 
-            // Lá»c theo ngÃ y chá»‰ khi Cáº¢ HAI tham sá»‘ Ä‘á»u cÃ³
+            // Lọc theo ngày chỉ khi CẢ HAI tham số đều có
             if (query.CheckIn.HasValue && query.CheckOut.HasValue)
             {
-                // Logic kiá»ƒm tra phÃ²ng trá»‘ng trong khoáº£ng ngÃ y
-                // (trÃ¡nh overlap booking)
+                // Logic kiểm tra phòng trống trong khoảng ngày
+                // (tránh overlap booking)
                 q = q.Where(r => !r.BookingDetails.Any(bd =>
                     bd.Booking != null &&
                     bd.CheckInDate < query.CheckOut &&
                     bd.CheckOutDate > query.CheckIn));
             }
 
-            // Lá»c theo loáº¡i phÃ²ng (náº¿u cÃ³)
+            // Lọc theo loại phòng (nếu có)
             if (query.RoomTypeId.HasValue)
             {
                 q = q.Where(r => r.RoomTypeId == query.RoomTypeId.Value);
             }
 
-            // Lá»c theo sá»©c chá»©a (náº¿u cÃ³)
+            // Lọc theo sức chứa (nếu có)
             if (query.Adults.HasValue)
             {
                 q = q.Where(r => r.RoomType != null && r.RoomType.CapacityAdults >= query.Adults.Value);
@@ -316,7 +320,7 @@ namespace backend.Controllers
                 q = q.Where(r => r.RoomType != null && r.RoomType.CapacityChildren >= query.Children.Value);
             }
 
-            // PhÃ¢n trang
+            // Phân trang
             var total = await q.CountAsync();
             var items = await q
                 .OrderBy(r => r.RoomNumber)
@@ -333,6 +337,7 @@ namespace backend.Controllers
 
         // PATCH: api/rooms/{id}/status
         [HttpPatch("{id}/status")]
+        [Permission("UPDATE_ROOM_STATUS")]
         public async Task<IActionResult> PatchStatus(int id, [FromBody] PatchRoomStatusDTO dto)
         {
             //var validation = await _patchStatusValidator.ValidateAsync(dto);
@@ -343,10 +348,10 @@ namespace backend.Controllers
             if (room == null)
                 return NotFound();
 
-            // Business rule: má»™t sá»‘ tráº¡ng thÃ¡i khÃ´ng Ä‘Æ°á»£c chuyá»ƒn trá»±c tiáº¿p
+            // Business rule: một số trạng thái không được chuyển trực tiếp
             if (room.Status == RoomStatuses.Occupied && dto.Status != RoomStatuses.Cleaning && dto.Status != RoomStatuses.Maintenance)
             {
-                return BadRequest($"PhÃ²ng Ä‘ang {RoomStatuses.Occupied}, chá»‰ Ä‘Æ°á»£c chuyá»ƒn sang {RoomStatuses.Cleaning} hoáº·c {RoomStatuses.Maintenance}");
+                return BadRequest($"Phòng đang {RoomStatuses.Occupied}, chỉ được chuyển sang {RoomStatuses.Cleaning} hoặc {RoomStatuses.Maintenance}");
             }
 
             room.Status = dto.Status;
@@ -359,6 +364,7 @@ namespace backend.Controllers
 
         // PATCH: api/rooms/{id}/cleaning-status
         [HttpPatch("{id}/cleaning-status")]
+        [Permission("UPDATE_ROOM_STATUS")]
         public async Task<IActionResult> PatchCleaningStatus(int id, [FromBody] PatchRoomCleaningStatusDTO dto)
         {
             //var validation = await _patchCleaningValidator.ValidateAsync(dto);
@@ -372,12 +378,12 @@ namespace backend.Controllers
             // Business rules
             if (dto.CleaningStatus == RoomCleaningStatuses.Clean && room.Status == RoomStatuses.Occupied)
             {
-                return BadRequest("KhÃ´ng thá»ƒ Ä‘Ã¡nh dáº¥u Clean khi phÃ²ng Ä‘ang cÃ³ khÃ¡ch");
+                return BadRequest("Không thể đánh dấu Clean khi phòng đang có khách");
             }
 
             if (dto.CleaningStatus == RoomCleaningStatuses.Inspected && room.CleaningStatus != RoomCleaningStatuses.Clean)
             {
-                return BadRequest("PhÃ²ng pháº£i á»Ÿ tráº¡ng thÃ¡i Clean trÆ°á»›c khi chuyá»ƒn sang Inspected");
+                return BadRequest("Phòng phải ở trạng thái Clean trước khi chuyển sang Inspected");
             }
 
             room.CleaningStatus = dto.CleaningStatus;
@@ -400,6 +406,7 @@ namespace backend.Controllers
         }
 
         [HttpPost("bulk-create")]
+        [Permission("CREATE_ROOMS")]
         public async Task<IActionResult> BulkCreate([FromBody] BulkCreateRoomDTO dto)
         {
             //var validation = await _bulkCreateValidator.ValidateAsync(dto);
@@ -408,7 +415,7 @@ namespace backend.Controllers
             //    return BadRequest(validation.Errors);
             //}
 
-            // Kiá»ƒm tra duplicate RoomNumber trong danh sÃ¡ch gá»­i lÃªn (trÆ°á»›c khi vÃ o DB)
+            // Kiểm tra duplicate RoomNumber trong danh sách gửi lên (trước khi vào DB)
             var roomNumbers = dto.Rooms.Select(r => r.RoomNumber.Trim()).ToList();
             var duplicatesInRequest = roomNumbers
                 .GroupBy(n => n)
@@ -418,10 +425,10 @@ namespace backend.Controllers
 
             if (duplicatesInRequest.Any())
             {
-                return BadRequest($"CÃ³ sá»‘ phÃ²ng trÃ¹ng láº·p trong danh sÃ¡ch: {string.Join(", ", duplicatesInRequest)}");
+                return BadRequest($"Có số phòng trùng lặp trong danh sách: {string.Join(", ", duplicatesInRequest)}");
             }
 
-            // Kiá»ƒm tra RoomNumber Ä‘Ã£ tá»“n táº¡i trong database
+            // Kiểm tra RoomNumber đã tồn tại trong database
             var existingNumbers = await _context.Rooms
                 .Where(r => roomNumbers.Contains(r.RoomNumber))
                 .Select(r => r.RoomNumber)
@@ -429,10 +436,10 @@ namespace backend.Controllers
 
             if (existingNumbers.Any())
             {
-                return BadRequest($"CÃ¡c sá»‘ phÃ²ng Ä‘Ã£ tá»“n táº¡i: {string.Join(", ", existingNumbers)}");
+                return BadRequest($"Các số phòng đã tồn tại: {string.Join(", ", existingNumbers)}");
             }
 
-            // Kiá»ƒm tra RoomTypeId tá»“n táº¡i (náº¿u táº¥t cáº£ dÃ¹ng chung 1 loáº¡i thÃ¬ check 1 láº§n)
+            // Kiểm tra RoomTypeId tồn tại (nếu tất cả dùng chung 1 loại thì check 1 lần)
             var roomTypeIds = dto.Rooms
                 .Where(r => r.RoomTypeId.HasValue)
                 .Select(r => r.RoomTypeId!.Value)
@@ -444,21 +451,21 @@ namespace backend.Controllers
 
             if (validRoomTypeCount != roomTypeIds.Count)
             {
-                return BadRequest("Má»™t hoáº·c nhiá»u RoomTypeId khÃ´ng tá»“n táº¡i");
+                return BadRequest("Một hoặc nhiều RoomTypeId không tồn tại");
             }
 
-            // Mapping & táº¡o entities
+            // Mapping và tạo entities
             var roomsToAdd = new List<Room>();
 
             foreach (var roomDto in dto.Rooms)
             {
                 var room = _mapper.Map<Room>(roomDto);
 
-                // Default value náº¿u cáº§n
+                // Default value nếu cần
                 room.Status ??= RoomStatuses.Available;
                 room.CleaningStatus ??= RoomCleaningStatuses.Dirty;
 
-                // Xá»­ lÃ½ inventories náº¿u cÃ³
+                // Xử lý inventories nếu có
                 if (roomDto.InitialInventories?.Any() == true)
                 {
                     room.RoomInventory = _mapper.Map<List<RoomInventory>>(roomDto.InitialInventories);
@@ -471,7 +478,7 @@ namespace backend.Controllers
             await _context.Rooms.AddRangeAsync(roomsToAdd);
             await _context.SaveChangesAsync();
 
-            // Tráº£ vá» danh sÃ¡ch phÃ²ng vá»«a táº¡o (vá»›i ID)
+            // Trả về danh sách phòng vừa tạo (với ID)
             var createdDtos = _mapper.Map<List<RoomDetailDTO>>(roomsToAdd);
 
             return CreatedAtAction(nameof(BulkCreate), new { }, new
@@ -482,6 +489,7 @@ namespace backend.Controllers
         }
 
         [HttpPost("{id}/clone")]
+        [Permission("CREATE_ROOMS")]
         public async Task<ActionResult<RoomDetailDTO>> CloneRoom(int id, [FromBody] CloneRoomRequest request)
         {
             var originalRoom = await _context.Rooms
@@ -489,15 +497,15 @@ namespace backend.Controllers
                 .FirstOrDefaultAsync(r => r.Id == id);
 
             if (originalRoom == null)
-                return NotFound(new { message = "KhÃ´ng tÃ¬m tháº¥y phÃ²ng" });
+                return NotFound(new { message = "Không tìm thấy phòng" });
 
             if (await _context.Rooms.AnyAsync(r => r.RoomNumber == request.NewRoomNumber))
-                return BadRequest(new { message = $"Sá»‘ phÃ²ng {request.NewRoomNumber} Ä‘Ã£ tá»“n táº¡i." });
+                return BadRequest(new { message = $"Số phòng {request.NewRoomNumber} đã tồn tại." });
 
             if (!string.IsNullOrWhiteSpace(request.CleaningStatus) &&
                 !RoomCleaningStatuses.IsValid(request.CleaningStatus))
             {
-                return BadRequest(new { message = "Tr\u1ea1ng th\u00e1i d\u1ecdn ph\u00f2ng kh\u00f4ng h\u1ee3p l\u1ec7." });
+                return BadRequest(new { message = "Trạng thái dọn phòng không hợp lệ." });
             }
 
             var newRoom = new Room
@@ -544,7 +552,5 @@ namespace backend.Controllers
             var result = _mapper.Map<RoomDetailDTO>(createdRoom);
             return Ok(result);
         }
-
     }
 }
-

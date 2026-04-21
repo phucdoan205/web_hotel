@@ -3,6 +3,9 @@ import { BedDouble, Image as ImageIcon } from "lucide-react";
 export default function RoomTypeTable({
   roomTypes,
   isLoading,
+  canEdit = true,
+  canDelete = true,
+  canManageAmenities = true,
   onEdit,
   onDelete,
   onManageAmenities,
@@ -99,9 +102,15 @@ export default function RoomTypeTable({
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex flex-wrap gap-2">
-                      <button type="button" onClick={() => onManageAmenities(roomType)} className="rounded-xl bg-violet-50 px-3 py-2 text-xs font-black text-violet-700 transition-all hover:bg-violet-100">Tiện ích</button>
-                      <button type="button" onClick={() => onEdit(roomType)} className="rounded-xl bg-sky-50 px-3 py-2 text-xs font-black text-sky-700 transition-all hover:bg-sky-100">Sửa</button>
-                      <button type="button" onClick={() => onDelete(roomType)} className="rounded-xl bg-rose-50 px-3 py-2 text-xs font-black text-rose-700 transition-all hover:bg-rose-100">Xóa</button>
+                      {canManageAmenities ? (
+                        <button type="button" onClick={() => onManageAmenities(roomType)} className="rounded-xl bg-violet-50 px-3 py-2 text-xs font-black text-violet-700 transition-all hover:bg-violet-100">Tiện ích</button>
+                      ) : null}
+                      {canEdit ? (
+                        <button type="button" onClick={() => onEdit(roomType)} className="rounded-xl bg-sky-50 px-3 py-2 text-xs font-black text-sky-700 transition-all hover:bg-sky-100">Sửa</button>
+                      ) : null}
+                      {canDelete ? (
+                        <button type="button" onClick={() => onDelete(roomType)} className="rounded-xl bg-rose-50 px-3 py-2 text-xs font-black text-rose-700 transition-all hover:bg-rose-100">Xóa</button>
+                      ) : null}
                     </div>
                   </td>
                 </tr>

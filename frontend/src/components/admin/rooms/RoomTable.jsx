@@ -55,6 +55,11 @@ export default function RoomTable({
   loading,
   filters,
   roomTypes,
+  canCreateRooms = true,
+  canEditRooms = true,
+  canDeleteRooms = true,
+  canUpdateRoomStatus = true,
+  canViewInventory = true,
   onFilterChange,
   onResetFilters,
   onCreate,
@@ -86,20 +91,24 @@ export default function RoomTable({
           </div>
 
           <div className="flex flex-wrap items-center gap-2 lg:max-w-[430px] lg:justify-end">
-            <button
-              type="button"
-              onClick={onBulkCreate}
-              className="min-w-[180px] rounded-2xl border border-sky-200 px-5 py-3 text-sm font-black uppercase tracking-wide text-sky-700 transition-all hover:bg-sky-50"
-            >
-              {text.bulkCreate}
-            </button>
-            <button
-              type="button"
-              onClick={onCreate}
-              className="min-w-[150px] rounded-2xl bg-orange-600 px-5 py-3 text-sm font-black uppercase tracking-wide text-white shadow-lg shadow-orange-100 transition-all hover:bg-orange-700"
-            >
-              {text.create}
-            </button>
+            {canCreateRooms ? (
+              <>
+                <button
+                  type="button"
+                  onClick={onBulkCreate}
+                  className="min-w-[180px] rounded-2xl border border-sky-200 px-5 py-3 text-sm font-black uppercase tracking-wide text-sky-700 transition-all hover:bg-sky-50"
+                >
+                  {text.bulkCreate}
+                </button>
+                <button
+                  type="button"
+                  onClick={onCreate}
+                  className="min-w-[150px] rounded-2xl bg-orange-600 px-5 py-3 text-sm font-black uppercase tracking-wide text-white shadow-lg shadow-orange-100 transition-all hover:bg-orange-700"
+                >
+                  {text.create}
+                </button>
+              </>
+            ) : null}
           </div>
         </div>
 
@@ -261,70 +270,80 @@ export default function RoomTable({
                       </td>
                       <td className="px-6 py-4">
                         <div className="relative flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              closeMenu();
-                              onEdit(room);
-                            }}
-                            className="rounded-xl bg-sky-50 px-3 py-2 text-xs font-black text-sky-700 transition-all hover:bg-sky-100"
-                          >
-                            {text.edit}
-                          </button>
+                          {canEditRooms ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                closeMenu();
+                                onEdit(room);
+                              }}
+                              className="rounded-xl bg-sky-50 px-3 py-2 text-xs font-black text-sky-700 transition-all hover:bg-sky-100"
+                            >
+                              {text.edit}
+                            </button>
+                          ) : null}
 
-                          <button
-                            type="button"
-                            onClick={() => toggleMenu(room.id)}
-                            className="inline-flex items-center justify-center rounded-xl bg-slate-100 px-3 py-2 text-slate-700 transition-all hover:bg-slate-200"
-                          >
-                            <MoreHorizontal className="size-4" />
-                          </button>
+                          {canUpdateRoomStatus || canViewInventory || canDeleteRooms ? (
+                            <button
+                              type="button"
+                              onClick={() => toggleMenu(room.id)}
+                              className="inline-flex items-center justify-center rounded-xl bg-slate-100 px-3 py-2 text-slate-700 transition-all hover:bg-slate-200"
+                            >
+                              <MoreHorizontal className="size-4" />
+                            </button>
+                          ) : null}
 
                           {isMenuOpen ? (
                             <div className="absolute right-0 top-[calc(100%+8px)] z-20 min-w-[160px] overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 shadow-xl">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  closeMenu();
-                                  onClean(room);
-                                }}
-                                className="flex w-full rounded-xl px-3 py-2 text-left text-sm font-bold text-amber-700 transition-all hover:bg-amber-50"
-                              >
-                                {text.clean}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  closeMenu();
-                                  onOpenInventory(room);
-                                }}
-                                className="flex w-full rounded-xl px-3 py-2 text-left text-sm font-bold text-violet-700 transition-all hover:bg-violet-50"
-                              >
-                                {text.inventory}
-                              </button>
-                              {room.status === "OutOfOrder" ? (
+                              {canUpdateRoomStatus ? (
                                 <button
                                   type="button"
                                   onClick={() => {
                                     closeMenu();
-                                    onRestore(room);
+                                    onClean(room);
                                   }}
-                                  className="flex w-full rounded-xl px-3 py-2 text-left text-sm font-bold text-emerald-700 transition-all hover:bg-emerald-50"
+                                  className="flex w-full rounded-xl px-3 py-2 text-left text-sm font-bold text-amber-700 transition-all hover:bg-amber-50"
                                 >
-                                  {text.restore}
+                                  {text.clean}
                                 </button>
-                              ) : (
+                              ) : null}
+                              {canViewInventory ? (
                                 <button
                                   type="button"
                                   onClick={() => {
                                     closeMenu();
-                                    onDelete(room);
+                                    onOpenInventory(room);
                                   }}
-                                  className="flex w-full rounded-xl px-3 py-2 text-left text-sm font-bold text-rose-700 transition-all hover:bg-rose-50"
+                                  className="flex w-full rounded-xl px-3 py-2 text-left text-sm font-bold text-violet-700 transition-all hover:bg-violet-50"
                                 >
-                                  {text.hide}
+                                  {text.inventory}
                                 </button>
-                              )}
+                              ) : null}
+                              {canDeleteRooms ? (
+                                room.status === "OutOfOrder" ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      closeMenu();
+                                      onRestore(room);
+                                    }}
+                                    className="flex w-full rounded-xl px-3 py-2 text-left text-sm font-bold text-emerald-700 transition-all hover:bg-emerald-50"
+                                  >
+                                    {text.restore}
+                                  </button>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      closeMenu();
+                                      onDelete(room);
+                                    }}
+                                    className="flex w-full rounded-xl px-3 py-2 text-left text-sm font-bold text-rose-700 transition-all hover:bg-rose-50"
+                                  >
+                                    {text.hide}
+                                  </button>
+                                )
+                              ) : null}
                             </div>
                           ) : null}
                         </div>

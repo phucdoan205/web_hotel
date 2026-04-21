@@ -11,6 +11,7 @@ const PERMISSION_LABELS = {
   CREATE_ROOMS: "Tạo phòng",
   EDIT_ROOMS: "Sửa phòng",
   DELETE_ROOMS: "Xóa phòng",
+  INVENTORY_ROOMS: "Vật tư phòng",
   VIEW_ROOM_TRACKING: "Xem theo dõi phòng",
   UPDATE_ROOM_STATUS: "Cập nhật trạng thái phòng",
   VIEW_BOOKINGS: "Xem booking",
@@ -44,6 +45,7 @@ const PERMISSION_LABELS = {
   EDIT_CONTENT: "Sửa nội dung",
   PUBLISH_CONTENT: "Xuất bản nội dung",
   VIEW_INVENTORY: "Xem vật tư",
+  CREATE_INVENTORY: "Tạo vật tư",
   EDIT_INVENTORY: "Sửa vật tư",
   DELETE_INVENTORY: "Xóa vật tư",
   VIEW_HOUSEKEEPING: "Xem nhiệm vụ dọn phòng",
@@ -70,6 +72,7 @@ const PERMISSION_DESCRIPTIONS = {
   CREATE_ROOMS: "Cho phép thêm phòng mới.",
   EDIT_ROOMS: "Cho phép cập nhật thông tin phòng.",
   DELETE_ROOMS: "Cho phép xóa hoặc ẩn phòng khỏi hệ thống.",
+  INVENTORY_ROOMS: "Cho phép xem và quản lý vật tư theo từng phòng.",
   VIEW_ROOM_TRACKING: "Cho phép xem trạng thái vận hành của phòng.",
   UPDATE_ROOM_STATUS: "Cho phép cập nhật trạng thái phòng theo thời gian thực.",
   VIEW_BOOKINGS: "Cho phép xem danh sách booking.",
@@ -103,6 +106,7 @@ const PERMISSION_DESCRIPTIONS = {
   EDIT_CONTENT: "Cho phép chỉnh sửa nội dung hiện có.",
   PUBLISH_CONTENT: "Cho phép duyệt và xuất bản nội dung.",
   VIEW_INVENTORY: "Cho phép xem tồn kho và vật tư.",
+  CREATE_INVENTORY: "Cho phép thêm vật tư mới.",
   EDIT_INVENTORY: "Cho phép cập nhật số lượng hoặc thông tin vật tư.",
   DELETE_INVENTORY: "Cho phép xóa vật tư.",
   VIEW_HOUSEKEEPING: "Cho phép xem danh sách nhiệm vụ dọn phòng.",
@@ -162,7 +166,7 @@ const SIDEBAR_PERMISSION_GROUPS = [
       {
         id: "rooms-management",
         title: "Phòng",
-        permissionNames: ["VIEW_ROOMS", "CREATE_ROOMS", "EDIT_ROOMS", "DELETE_ROOMS"],
+        permissionNames: ["VIEW_ROOMS", "CREATE_ROOMS", "EDIT_ROOMS", "DELETE_ROOMS", "INVENTORY_ROOMS"],
       },
     ],
   },
@@ -184,7 +188,7 @@ const SIDEBAR_PERMISSION_GROUPS = [
       {
         id: "inventory-management",
         title: "Vật tư",
-        permissionNames: ["VIEW_INVENTORY", "EDIT_INVENTORY", "DELETE_INVENTORY"],
+        permissionNames: ["VIEW_INVENTORY", "CREATE_INVENTORY", "EDIT_INVENTORY", "DELETE_INVENTORY"],
       },
     ],
   },
@@ -199,7 +203,6 @@ const SIDEBAR_PERMISSION_GROUPS = [
           "VIEW_COMPENSATION",
           "CREATE_COMPENSATION",
           "EDIT_COMPENSATION",
-          "APPROVE_COMPENSATION",
           "PROCESS_COMPENSATION",
         ],
       },
@@ -305,6 +308,8 @@ const SIDEBAR_PERMISSION_GROUPS = [
   },
 ];
 
+const HIDDEN_PERMISSION_NAMES = new Set(["APPROVE_COMPENSATION"]);
+
 const humanizePermissionName = (permissionName) =>
   permissionName
     .toLowerCase()
@@ -320,8 +325,12 @@ const buildPermissionMeta = (permission) => ({
 });
 
 export const buildPermissionSidebar = (permissions) => {
+  const visiblePermissions = permissions.filter(
+    (permission) => !HIDDEN_PERMISSION_NAMES.has(permission.name),
+  );
+
   const permissionMap = new Map(
-    permissions.map((permission) => [permission.name, buildPermissionMeta(permission)]),
+    visiblePermissions.map((permission) => [permission.name, buildPermissionMeta(permission)]),
   );
 
   const sidebar = SIDEBAR_PERMISSION_GROUPS.map((group) => ({
@@ -367,7 +376,7 @@ export const buildPermissionSidebar = (permissions) => {
     ),
   );
 
-  const uncategorizedPermissions = permissions
+  const uncategorizedPermissions = visiblePermissions
     .filter((permission) => !groupedPermissionNames.has(permission.name))
     .map(buildPermissionMeta)
     .sort((left, right) => left.displayName.localeCompare(right.displayName));

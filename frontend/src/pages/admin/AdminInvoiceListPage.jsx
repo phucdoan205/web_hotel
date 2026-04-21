@@ -3,11 +3,12 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, Clock3, CreditCard, Eye, Receipt, Search, X } from "lucide-react";
 import { invoicesApi } from "../../api/admin/invoicesApi";
+import { hasPermission } from "../../utils/permissions";
 import { formatVietnamDateTime } from "../../utils/vietnamTime";
 
 const currencyFormatter = new Intl.NumberFormat("vi-VN");
 
-const formatCurrency = (value) => `${currencyFormatter.format(Number(value || 0))} đ`;
+const formatCurrency = (value) => `${currencyFormatter.format(Number(value || 0))} d`;
 
 const statusClasses = {
   Pending: "bg-amber-50 text-amber-700 ring-1 ring-amber-200",
@@ -21,6 +22,7 @@ const AdminInvoiceListPage = () => {
   const [search, setSearch] = useState("");
   const [screenNotice, setScreenNotice] = useState(location.state?.notice || null);
   const [pendingPaymentInvoice, setPendingPaymentInvoice] = useState(null);
+  const canPayInvoice = hasPermission("PAY_INVOICE");
 
   const invoicesQuery = useQuery({
     queryKey: ["invoices", search],
@@ -46,8 +48,8 @@ const AdminInvoiceListPage = () => {
       setPendingPaymentInvoice(null);
       setScreenNotice({
         type: "success",
-        title: "Đã thanh toán hóa đơn",
-        message: `${invoice.code || "Hóa đơn"} đã chuyển sang Completed.`,
+        title: "Da thanh toan hoa don",
+        message: `${invoice.code || "Hoa don"} da chuyen sang Completed.`,
       });
     },
   });
@@ -85,9 +87,9 @@ const AdminInvoiceListPage = () => {
 
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-black text-slate-900">Danh sách hóa đơn</h1>
+            <h1 className="text-3xl font-black text-slate-900">Danh sach hoa don</h1>
             <p className="mt-2 text-sm font-medium text-slate-500">
-              Hóa đơn mới lưu sẽ ở trạng thái Pending cho tới khi được thanh toán.
+              Hoa don moi luu se o trang thai Pending cho toi khi duoc thanh toan.
             </p>
           </div>
 
@@ -96,7 +98,7 @@ const AdminInvoiceListPage = () => {
             onClick={() => navigate("/admin/check-out")}
             className="rounded-2xl bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm ring-1 ring-slate-200 transition hover:bg-slate-50"
           >
-            Quay lại trả phòng
+            Quay lai tra phong
           </button>
         </div>
 
@@ -107,26 +109,26 @@ const AdminInvoiceListPage = () => {
               <input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="Tìm mã hóa đơn, booking, khách..."
+                placeholder="Tim ma hoa don, booking, khach..."
                 className="w-80 rounded-2xl bg-slate-50 py-3 pl-10 pr-4 text-sm text-slate-700 outline-none ring-1 ring-slate-200 transition focus:ring-sky-300"
               />
             </div>
 
             <div className="rounded-2xl bg-sky-50 px-4 py-3 text-sm font-semibold text-sky-700">
-              Tổng hóa đơn: {filteredInvoices.length}
+              Tong hoa don: {filteredInvoices.length}
             </div>
           </div>
 
           {invoicesQuery.isLoading ? (
             <div className="rounded-[1.75rem] bg-slate-50 px-6 py-14 text-center text-slate-500">
-              Đang tải danh sách hóa đơn...
+              Dang tai danh sach hoa don...
             </div>
           ) : filteredInvoices.length === 0 ? (
             <div className="rounded-[1.75rem] border border-dashed border-slate-200 bg-sky-50/60 px-6 py-14 text-center">
               <Receipt className="mx-auto text-sky-300" size={34} />
-              <p className="mt-4 text-lg font-black text-slate-900">Chưa có hóa đơn nào</p>
+              <p className="mt-4 text-lg font-black text-slate-900">Chua co hoa don nao</p>
               <p className="mt-2 text-sm font-medium text-slate-500">
-                Từ trang Trả phòng, bấm Tạo hóa đơn để tạo invoice mới.
+                Tu trang Tra phong, bam Tao hoa don de tao invoice moi.
               </p>
             </div>
           ) : (
@@ -134,12 +136,12 @@ const AdminInvoiceListPage = () => {
               <table className="min-w-full divide-y divide-slate-200">
                 <thead className="bg-sky-50">
                   <tr className="text-left text-xs font-black uppercase tracking-[0.2em] text-slate-500">
-                    <th className="px-5 py-4">Hóa đơn</th>
-                    <th className="px-5 py-4">Khách</th>
-                    <th className="px-5 py-4">Tổng tiền</th>
-                    <th className="px-5 py-4">Trạng thái</th>
-                    <th className="px-5 py-4">Tạo lúc</th>
-                    <th className="px-5 py-4 text-right">Hành động</th>
+                    <th className="px-5 py-4">Hoa don</th>
+                    <th className="px-5 py-4">Khach</th>
+                    <th className="px-5 py-4">Tong tien</th>
+                    <th className="px-5 py-4">Trang thai</th>
+                    <th className="px-5 py-4">Tao luc</th>
+                    <th className="px-5 py-4 text-right">Hanh dong</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 bg-white">
@@ -148,7 +150,7 @@ const AdminInvoiceListPage = () => {
                       <td className="px-5 py-4">
                         <p className="font-black text-slate-900">{invoice.code}</p>
                         <p className="mt-1 text-sm text-slate-500">
-                          Booking {invoice.bookingCode} - Phòng {invoice.roomNumber}
+                          Booking {invoice.bookingCode} - Phong {invoice.roomNumber}
                         </p>
                       </td>
                       <td className="px-5 py-4 text-sm font-semibold text-slate-700">{invoice.guestName}</td>
@@ -174,15 +176,17 @@ const AdminInvoiceListPage = () => {
                             <Eye size={16} />
                             Xem
                           </Link>
-                          <button
-                            type="button"
-                            onClick={() => setPendingPaymentInvoice(invoice)}
-                            disabled={invoice.status === "Completed"}
-                            className="inline-flex items-center gap-2 rounded-2xl bg-sky-600 px-4 py-2.5 text-sm font-black text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:bg-sky-300"
-                          >
-                            <CreditCard size={16} />
-                            {invoice.status === "Completed" ? "Completed" : "Thanh toán"}
-                          </button>
+                          {canPayInvoice ? (
+                            <button
+                              type="button"
+                              onClick={() => setPendingPaymentInvoice(invoice)}
+                              disabled={invoice.status === "Completed"}
+                              className="inline-flex items-center gap-2 rounded-2xl bg-sky-600 px-4 py-2.5 text-sm font-black text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:bg-sky-300"
+                            >
+                              <CreditCard size={16} />
+                              {invoice.status === "Completed" ? "Completed" : "Thanh toan"}
+                            </button>
+                          ) : null}
                         </div>
                       </td>
                     </tr>
@@ -194,7 +198,7 @@ const AdminInvoiceListPage = () => {
         </div>
       </div>
 
-      {pendingPaymentInvoice ? (
+      {pendingPaymentInvoice && canPayInvoice ? (
         <div className="fixed inset-0 z-[80] flex items-center justify-center bg-sky-950/35 p-4 backdrop-blur-sm">
           <div className="w-full max-w-md rounded-[2rem] bg-white p-6 shadow-2xl">
             <div className="flex items-start gap-4">
@@ -202,10 +206,10 @@ const AdminInvoiceListPage = () => {
                 <Clock3 size={22} />
               </div>
               <div>
-                <h3 className="text-xl font-black text-slate-900">Xác nhận thanh toán</h3>
+                <h3 className="text-xl font-black text-slate-900">Xac nhan thanh toan</h3>
                 <p className="mt-2 text-sm leading-6 text-slate-500">
-                  Thanh toán xong sẽ chuyển hóa đơn <span className="font-bold">{pendingPaymentInvoice.code}</span> sang
-                  trạng thái Completed.
+                  Thanh toan xong se chuyen hoa don <span className="font-bold">{pendingPaymentInvoice.code}</span> sang
+                  trang thai Completed.
                 </p>
               </div>
             </div>
@@ -215,7 +219,7 @@ const AdminInvoiceListPage = () => {
                 onClick={() => setPendingPaymentInvoice(null)}
                 className="rounded-2xl bg-slate-100 px-4 py-2.5 text-sm font-bold text-slate-600 transition hover:bg-slate-200"
               >
-                Không
+                Khong
               </button>
               <button
                 type="button"
@@ -223,7 +227,7 @@ const AdminInvoiceListPage = () => {
                 disabled={completeInvoiceMutation.isPending}
                 className="rounded-2xl bg-sky-600 px-4 py-2.5 text-sm font-black text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:bg-sky-300"
               >
-                {completeInvoiceMutation.isPending ? "Đang xử lý..." : "Có, thanh toán"}
+                {completeInvoiceMutation.isPending ? "Dang xu ly..." : "Co, thanh toan"}
               </button>
             </div>
           </div>

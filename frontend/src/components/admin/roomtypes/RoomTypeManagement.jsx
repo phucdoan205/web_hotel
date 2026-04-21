@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { roomTypesApi } from "../../../api/admin/roomTypesApi";
+import { hasPermission } from "../../../utils/permissions";
 import RoomTypeForm from "./RoomTypeForm";
 import RoomTypeTable from "./RoomTypeTable";
 import RoomTypeAmenities from "./RoomTypeAmenities";
@@ -15,6 +16,9 @@ export default function RoomTypeManagement() {
     roomTypeId: null,
     roomTypeName: "",
   });
+  const canCreateRoomTypes = hasPermission("CREATE_ROOMS");
+  const canEditRoomTypes = hasPermission("EDIT_ROOMS");
+  const canDeleteRoomTypes = hasPermission("DELETE_ROOMS");
 
   const { data, isLoading } = useQuery({
     queryKey: ["roomTypes", { search, page: 1, pageSize: 100 }],
@@ -66,16 +70,18 @@ export default function RoomTypeManagement() {
               placeholder="Tìm loại phòng"
               className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition-all focus:border-orange-300 focus:bg-white"
             />
-            <button
-              type="button"
-              onClick={() => {
-                setEditingRoomType(null);
-                setOpenForm(true);
-              }}
-              className="rounded-2xl bg-orange-600 px-5 py-3 text-sm font-black uppercase tracking-wide text-white shadow-lg shadow-orange-100 transition-all hover:bg-orange-700"
-            >
-              Thêm loại phòng
-            </button>
+            {canCreateRoomTypes ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingRoomType(null);
+                  setOpenForm(true);
+                }}
+                className="rounded-2xl bg-orange-600 px-5 py-3 text-sm font-black uppercase tracking-wide text-white shadow-lg shadow-orange-100 transition-all hover:bg-orange-700"
+              >
+                Thêm loại phòng
+              </button>
+            ) : null}
           </div>
         </div>
       </div>
@@ -83,6 +89,9 @@ export default function RoomTypeManagement() {
       <RoomTypeTable
         roomTypes={roomTypes}
         isLoading={isLoading}
+        canEdit={canEditRoomTypes}
+        canDelete={canDeleteRoomTypes}
+        canManageAmenities={canEditRoomTypes}
         onEdit={async (roomType) => {
           const detail = await roomTypesApi.getRoomTypeById(roomType.id);
           setEditingRoomType(detail);

@@ -17,6 +17,7 @@ import {
   getEquipmentSummary,
   updateEquipment,
 } from "../../api/admin/equipmentApi";
+import { hasPermission } from "../../utils/permissions";
 
 const CATEGORY_OPTIONS = ["Điện tử", "Đồ vải", "Minibar"];
 const PAGE_SIZE = 8;
@@ -161,6 +162,8 @@ export default function EquipmentManagementSection({
   title = "Quản lý tồn kho vật tư",
   description = "Quản lý bảng vật tư, lọc tồn kho, tìm kiếm, thêm và cập nhật vật tư.",
 }) {
+  const canCreateInventory = hasPermission("CREATE_INVENTORY");
+  const canEditInventory = hasPermission("EDIT_INVENTORY");
   const [equipmentItems, setEquipmentItems] = useState([]);
   const [categories, setCategories] = useState(CATEGORY_OPTIONS);
   const [searchTerm, setSearchTerm] = useState("");
@@ -414,14 +417,16 @@ export default function EquipmentManagementSection({
               <RefreshCw className={`size-4 ${isRefreshing ? "animate-spin" : ""}`} />
               Làm mới
             </button>
-            <button
-              type="button"
-              onClick={openCreateModal}
-              className="inline-flex items-center gap-2 rounded-2xl bg-sky-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-sky-100 transition hover:bg-sky-700"
-            >
-              <PackagePlus className="size-4" />
-              Thêm vật tư
-            </button>
+            {canCreateInventory ? (
+              <button
+                type="button"
+                onClick={openCreateModal}
+                className="inline-flex items-center gap-2 rounded-2xl bg-sky-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-sky-100 transition hover:bg-sky-700"
+              >
+                <PackagePlus className="size-4" />
+                Thêm vật tư
+              </button>
+            ) : null}
           </div>
         </div>
 
@@ -566,14 +571,16 @@ export default function EquipmentManagementSection({
                       <td className="px-4 py-4 text-sm font-semibold text-slate-600">{formatCurrency(item.defaultPriceIfLost)}</td>
                       <td className="px-4 py-4 text-sm font-semibold text-slate-600">{item.supplier || "-"}</td>
                       <td className="px-4 py-4">
-                        <button
-                          type="button"
-                          onClick={() => openEditModal(item)}
-                          className="inline-flex items-center gap-2 rounded-xl bg-slate-100 px-4 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-200"
-                        >
-                          <Pencil className="size-4" />
-                          Sửa
-                        </button>
+                        {canEditInventory ? (
+                          <button
+                            type="button"
+                            onClick={() => openEditModal(item)}
+                            className="inline-flex items-center gap-2 rounded-xl bg-slate-100 px-4 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-200"
+                          >
+                            <Pencil className="size-4" />
+                            Sửa
+                          </button>
+                        ) : null}
                       </td>
                     </tr>
                   ))
