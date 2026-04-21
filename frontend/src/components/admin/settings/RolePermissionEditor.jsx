@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Save, Search, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Plus, Save, Search, ShieldCheck } from "lucide-react";
 import {
   assignRolePermissions,
+  createRole,
   getPermissions,
   getRolePermissions,
   getRoles,
@@ -10,6 +11,7 @@ import {
   updateRole,
 } from "../../../api/admin/roleApi";
 import { buildPermissionSidebar } from "../../../utils/permissionCatalog";
+import { hasPermission } from "../../../utils/permissions";
 
 const readMessage = (error, fallbackMessage) => {
   const responseMessage = error.response?.data?.message || error.response?.data;
@@ -24,6 +26,8 @@ const readMessage = (error, fallbackMessage) => {
 const RolePermissionEditor = () => {
   const navigate = useNavigate();
   const { roleId } = useParams();
+  const isCreatingRole = roleId === "new";
+
   const [roles, setRoles] = useState([]);
   const [permissions, setPermissions] = useState([]);
   const [selectedSidebarId, setSelectedSidebarId] = useState(null);
@@ -33,11 +37,9 @@ const RolePermissionEditor = () => {
   const [selectedPermissionIds, setSelectedPermissionIds] = useState(new Set());
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const canCreateRoles = hasPermission("CREATE_ROLES");
 
-  const permissionSidebar = useMemo(
-    () => buildPermissionSidebar(permissions),
-    [permissions],
-  );
+  const permissionSidebar = useMemo(() => buildPermissionSidebar(permissions), [permissions]);
   const visibleRoles = useMemo(
     () => roles.filter((role) => !shouldHideRoleFromAdminSettings(role)),
     [roles],
@@ -80,6 +82,17 @@ const RolePermissionEditor = () => {
   }, [permissionSearchKeyword, selectedSidebarGroup]);
 
   useEffect(() => {
+    if (!isCreatingRole) {
+      return;
+    }
+
+    setMessage("");
+    setRoleForm({ name: "", description: "" });
+    setSelectedPermissionIds(new Set());
+    setPermissionSearchKeyword("");
+  }, [isCreatingRole]);
+
+  useEffect(() => {
     let isMounted = true;
 
     const loadData = async () => {
@@ -87,10 +100,9 @@ const RolePermissionEditor = () => {
       setMessage("");
 
       try {
-        const [rolesResponse, permissionsResponse, roleResponse] = await Promise.all([
+        const [rolesResponse, permissionsResponse] = await Promise.all([
           getRoles(),
           getPermissions(),
-          getRolePermissions(roleId),
         ]);
 
         if (!isMounted) {
@@ -99,6 +111,20 @@ const RolePermissionEditor = () => {
 
         setRoles(rolesResponse);
         setPermissions(permissionsResponse);
+
+        if (isCreatingRole) {
+          setRoleForm({ name: "", description: "" });
+          setSelectedPermissionIds(new Set());
+          setPermissionSearchKeyword("");
+          return;
+        }
+
+        const roleResponse = await getRolePermissions(roleId);
+
+        if (!isMounted) {
+          return;
+        }
+
         setRoleForm({
           name: roleResponse.roleName ?? "",
           description: roleResponse.description ?? "",
@@ -106,7 +132,7 @@ const RolePermissionEditor = () => {
         setSelectedPermissionIds(new Set(roleResponse.permissionIds ?? []));
       } catch (error) {
         if (isMounted) {
-          setMessage(readMessage(error, "Không thể tải thông tin vai trò."));
+          setMessage(readMessage(error, "Khong the tai thong tin vai tro."));
         }
       } finally {
         if (isMounted) {
@@ -120,7 +146,7 @@ const RolePermissionEditor = () => {
     return () => {
       isMounted = false;
     };
-  }, [roleId]);
+  }, [isCreatingRole, roleId]);
 
   useEffect(() => {
     if (!selectedSidebarId && permissionSidebar[0]) {
@@ -137,6 +163,10 @@ const RolePermissionEditor = () => {
   };
 
   const toggleSectionPermission = (section, permission) => {
+    if (isCreatingRole) {
+      return;
+    }
+
     setSelectedPermissionIds((current) => {
       const next = new Set(current);
       const isEnabled = next.has(permission.id);
@@ -175,6 +205,10 @@ const RolePermissionEditor = () => {
   };
 
   const clearSectionPermissions = (section) => {
+    if (isCreatingRole) {
+      return;
+    }
+
     setSelectedPermissionIds((current) => {
       const next = new Set(current);
       section.permissions.forEach((permission) => {
@@ -185,6 +219,10 @@ const RolePermissionEditor = () => {
   };
 
   const handleToggleAll = () => {
+    if (isCreatingRole) {
+      return;
+    }
+
     setSelectedPermissionIds(isAllEnabled ? new Set() : new Set(allPermissionIds));
   };
 
@@ -192,7 +230,7 @@ const RolePermissionEditor = () => {
     const normalizedName = roleForm.name.trim();
 
     if (!normalizedName) {
-      setMessage("Tên vai trò không được để trống.");
+      setMessage("Ten vai tro khong duoc de trong.");
       return;
     }
 
@@ -200,6 +238,16 @@ const RolePermissionEditor = () => {
     setMessage("");
 
     try {
+      if (isCreatingRole) {
+        const createdRole = await createRole({
+          name: normalizedName,
+          description: roleForm.description.trim(),
+        });
+
+        navigate(`/admin/settings/roles/${createdRole.id}`, { replace: true });
+        return;
+      }
+
       await Promise.all([
         updateRole(roleId, {
           name: normalizedName,
@@ -211,9 +259,9 @@ const RolePermissionEditor = () => {
         }),
       ]);
 
-      setMessage("Đã lưu thay đổi vai trò.");
+      setMessage("Da luu thay doi vai tro.");
     } catch (error) {
-      setMessage(readMessage(error, "Không thể lưu thay đổi vai trò."));
+      setMessage(readMessage(error, ""));
     } finally {
       setIsSaving(false);
     }
@@ -229,12 +277,27 @@ const RolePermissionEditor = () => {
             className="flex items-center gap-2 rounded-2xl px-3 py-2 text-sm font-black text-sky-700 transition hover:bg-white"
           >
             <ArrowLeft className="size-4" />
-            Trở về
+            Tro ve
           </button>
+
+          {canCreateRoles ? (
+            <button
+              type="button"
+              onClick={() => navigate("/admin/settings/roles/new")}
+              className={`mt-3 flex w-full items-center gap-2 rounded-2xl border px-4 py-3 text-left text-sm font-black transition ${
+                isCreatingRole
+                  ? "border-sky-600 bg-sky-600 text-white shadow-lg shadow-sky-100"
+                  : "border-sky-100 bg-white text-sky-700 hover:bg-sky-100"
+              }`}
+            >
+              <Plus className="size-4" />
+              Tao role
+            </button>
+          ) : null}
 
           <div className="mt-8 space-y-2">
             {visibleRoles.map((role) => {
-              const isActive = String(role.id) === String(roleId);
+              const isActive = !isCreatingRole && String(role.id) === String(roleId);
 
               return (
                 <button
@@ -247,15 +310,18 @@ const RolePermissionEditor = () => {
                       : "bg-white text-slate-600 hover:bg-sky-100 hover:text-sky-700"
                   }`}
                 >
-                  <span
-                    className={`size-2.5 rounded-full ${
-                      isActive ? "bg-white" : "bg-sky-400"
-                    }`}
-                  />
+                  <span className={`size-2.5 rounded-full ${isActive ? "bg-white" : "bg-sky-400"}`} />
                   <span className="truncate text-sm font-bold">{role.name}</span>
                 </button>
               );
             })}
+
+            {isCreatingRole ? (
+              <div className="flex w-full items-center gap-3 rounded-2xl border border-dashed border-sky-300 bg-white px-4 py-3 text-slate-600">
+                <span className="size-2.5 rounded-full bg-sky-400" />
+                <span className="truncate text-sm font-bold">Vai tro moi</span>
+              </div>
+            ) : null}
           </div>
         </aside>
 
@@ -267,21 +333,25 @@ const RolePermissionEditor = () => {
                   Team Management
                 </p>
                 <h2 className="mt-2 text-3xl font-black tracking-tight text-slate-950">
-                  Chỉnh sửa vai trò
+                  {isCreatingRole ? "Tao vai tro moi" : "Chinh sua vai tro"}
                 </h2>
                 <p className="mt-2 max-w-2xl text-sm font-medium text-slate-500">
-                  Trang sửa riêng cho từng vai trò, giao diện trắng xanh và phân quyền theo từng tab sidebar.
+                  {isCreatingRole
+                    ? "Tao role moi o day. Sau khi luu, he thong se chuyen vao trang chinh sua role vua tao."
+                    : "Trang sua rieng cho tung vai tro va phan quyen theo tung tab sidebar."}
                 </p>
               </div>
 
               <div className="flex flex-wrap items-center gap-3">
-                <button
-                  type="button"
-                  onClick={handleToggleAll}
-                  className="rounded-2xl border border-sky-100 bg-sky-50 px-4 py-3 text-sm font-bold text-sky-700 transition hover:bg-sky-100"
-                >
-                  {isAllEnabled ? "Bỏ chọn tất cả" : "Bật tất cả"}
-                </button>
+                {!isCreatingRole ? (
+                  <button
+                    type="button"
+                    onClick={handleToggleAll}
+                    className="rounded-2xl border border-sky-100 bg-sky-50 px-4 py-3 text-sm font-bold text-sky-700 transition hover:bg-sky-100"
+                  >
+                    {isAllEnabled ? "Bo chon tat ca" : "Bat tat ca"}
+                  </button>
+                ) : null}
                 <button
                   type="button"
                   onClick={handleSave}
@@ -289,7 +359,7 @@ const RolePermissionEditor = () => {
                   className="inline-flex items-center gap-2 rounded-2xl bg-sky-600 px-5 py-3 text-sm font-black text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <Save className="size-4" />
-                  {isSaving ? "Đang lưu..." : "Lưu thay đổi"}
+                  {isSaving ? "Dang luu..." : isCreatingRole ? "Luu vai tro" : "Luu thay doi"}
                 </button>
               </div>
             </div>
@@ -305,28 +375,28 @@ const RolePermissionEditor = () => {
             <div className="grid gap-4 lg:grid-cols-2">
               <label className="space-y-2">
                 <span className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">
-                  Tên vai trò
+                  Ten vai tro
                 </span>
                 <input
                   type="text"
                   name="name"
                   value={roleForm.name}
                   onChange={handleRoleFieldChange}
-                  placeholder="Nhập tên vai trò"
+                  placeholder="Nhap ten vai tro"
                   className="w-full rounded-2xl border border-sky-100 bg-white px-4 py-3 text-sm font-semibold text-slate-900 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
                 />
               </label>
 
               <label className="space-y-2">
                 <span className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">
-                  Mô tả
+                  Mo ta
                 </span>
                 <input
                   type="text"
                   name="description"
                   value={roleForm.description}
                   onChange={handleRoleFieldChange}
-                  placeholder="Mô tả ngắn cho vai trò"
+                  placeholder="Mo ta ngan cho vai tro"
                   className="w-full rounded-2xl border border-sky-100 bg-white px-4 py-3 text-sm font-semibold text-slate-900 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
                 />
               </label>
@@ -381,10 +451,10 @@ const RolePermissionEditor = () => {
               <div className="flex flex-col gap-4 border-b border-sky-100 pb-5 lg:flex-row lg:items-center lg:justify-between">
                 <div>
                   <h3 className="text-2xl font-black text-slate-950">
-                    {selectedSidebarGroup?.label ?? "Quyền hạn"}
+                    {selectedSidebarGroup?.label ?? "Quyen han"}
                   </h3>
                   <p className="mt-1 text-sm font-medium text-slate-500">
-                    Nếu tắt quyền xem thì các quyền liên quan trong cùng nhóm cũng tắt theo.
+                    Neu tat quyen xem thi cac quyen lien quan trong cung nhom cung tat theo.
                   </p>
                 </div>
 
@@ -394,21 +464,29 @@ const RolePermissionEditor = () => {
                     type="text"
                     value={permissionSearchKeyword}
                     onChange={(event) => setPermissionSearchKeyword(event.target.value)}
-                    placeholder="Tìm permission..."
-                    className="w-full rounded-2xl border border-sky-100 bg-white py-3 pl-11 pr-4 text-sm font-semibold text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+                    placeholder="Tim permission..."
+                    disabled={isCreatingRole}
+                    className="w-full rounded-2xl border border-sky-100 bg-white py-3 pl-11 pr-4 text-sm font-semibold text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-300 focus:ring-4 focus:ring-sky-100 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
                   />
                 </div>
               </div>
 
               {isLoading ? (
                 <div className="flex min-h-[360px] items-center justify-center text-sm font-semibold text-slate-400">
-                  Đang tải quyền của vai trò...
+                  Dang tai quyen cua vai tro...
+                </div>
+              ) : isCreatingRole ? (
+                <div className="flex min-h-[360px] flex-col items-center justify-center gap-3 text-center">
+                  <ShieldCheck className="size-10 text-sky-300" />
+                  <p className="max-w-lg text-sm font-semibold text-slate-500">
+                    Hay luu vai tro moi truoc. Sau do ban se duoc chuyen sang trang chinh sua de phan quyen cho role nay.
+                  </p>
                 </div>
               ) : filteredSections.length === 0 ? (
                 <div className="flex min-h-[360px] flex-col items-center justify-center gap-3 text-center">
                   <ShieldCheck className="size-10 text-sky-300" />
                   <p className="text-sm font-semibold text-slate-500">
-                    Không có permission phù hợp với từ khóa tìm kiếm.
+                    Khong co permission phu hop voi tu khoa tim kiem.
                   </p>
                 </div>
               ) : (
@@ -425,9 +503,12 @@ const RolePermissionEditor = () => {
                           <div>
                             <h4 className="text-xl font-black text-slate-950">{section.title}</h4>
                             <p className="mt-1 text-sm font-medium text-slate-500">
-                              {fullSection.permissions.filter((permission) =>
-                                selectedPermissionIds.has(permission.id),
-                              ).length} quyền đang bật
+                              {
+                                fullSection.permissions.filter((permission) =>
+                                  selectedPermissionIds.has(permission.id),
+                                ).length
+                              }{" "}
+                              quyen dang bat
                             </p>
                           </div>
 
@@ -436,7 +517,7 @@ const RolePermissionEditor = () => {
                             onClick={() => clearSectionPermissions(fullSection)}
                             className="text-sm font-bold text-sky-600 transition hover:text-sky-700"
                           >
-                            Xóa quyền
+                            Xoa quyen
                           </button>
                         </div>
 

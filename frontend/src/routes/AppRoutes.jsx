@@ -110,6 +110,14 @@ const AppRoutes = () => {
         />
         <Route path="settings" element={<AdminSettingsPage />} />
         <Route
+          path="settings/roles/new"
+          element={
+            <RequirePermission permission="CREATE_ROLES">
+              <AdminRolePermissionsPage />
+            </RequirePermission>
+          }
+        />
+        <Route
           path="settings/roles/:roleId"
           element={
             <RequirePermission permission="EDIT_ROLES">

@@ -1,7 +1,11 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Ellipsis, PencilLine, Search, ShieldCheck, Trash2 } from "lucide-react";
-import { deleteRole, getRoles, shouldHideRoleFromAdminSettings } from "../../../api/admin/roleApi";
+import { Ellipsis, PencilLine, Plus, Search, ShieldCheck, Trash2 } from "lucide-react";
+import {
+  deleteRole,
+  getRoles,
+  shouldHideRoleFromAdminSettings,
+} from "../../../api/admin/roleApi";
 import { hasPermission } from "../../../utils/permissions";
 
 const readMessage = (error, fallbackMessage) => {
@@ -23,6 +27,7 @@ const TeamManagementTab = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isDeletingRoleId, setIsDeletingRoleId] = useState(null);
 
+  const canCreateRoles = hasPermission("CREATE_ROLES");
   const canEditRoles = hasPermission("EDIT_ROLES");
   const canDeleteRoles = hasPermission("DELETE_ROLES");
 
@@ -56,7 +61,7 @@ const TeamManagementTab = () => {
         }
       } catch (error) {
         if (isMounted) {
-          setMessage(readMessage(error, "Không thể tải danh sách vai trò."));
+          setMessage(readMessage(error, "Khong the tai danh sach vai tro."));
         }
       } finally {
         if (isMounted) {
@@ -74,7 +79,7 @@ const TeamManagementTab = () => {
 
   const handleDeleteRole = async (role) => {
     const shouldDelete = window.confirm(
-      `Xóa vai trò "${role.name}"? Hành động này không thể hoàn tác.`,
+      `Xoa vai tro "${role.name}"? Hanh dong nay khong the hoan tac.`,
     );
 
     if (!shouldDelete) {
@@ -89,7 +94,7 @@ const TeamManagementTab = () => {
       setRoles((current) => current.filter((item) => item.id !== role.id));
       setActiveMenuRoleId(null);
     } catch (error) {
-      setMessage(readMessage(error, "Không thể xóa vai trò."));
+      setMessage(readMessage(error, "Khong the xoa vai tro."));
     } finally {
       setIsDeletingRoleId(null);
     }
@@ -109,22 +114,35 @@ const TeamManagementTab = () => {
             Team Management
           </p>
           <h2 className="mt-2 text-3xl font-black tracking-tight text-slate-950">
-            Phân quyền theo vai trò
+            Phan quyen theo vai tro
           </h2>
           <p className="mt-2 max-w-2xl text-sm font-medium text-slate-500">
-            Danh sách vai trò hiện có, số thành viên của từng vai trò và trang sửa riêng cho từng role.
+            Danh sach vai tro hien co, so thanh vien cua tung vai tro va trang sua rieng cho tung role.
           </p>
         </div>
 
-        <div className="relative w-full max-w-md">
-          <Search className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-          <input
-            type="text"
-            value={roleSearchKeyword}
-            onChange={(event) => setRoleSearchKeyword(event.target.value)}
-            placeholder="Tìm vai trò..."
-            className="w-full rounded-2xl border border-sky-100 bg-white py-3 pl-11 pr-4 text-sm font-semibold text-slate-900 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
-          />
+        <div className="flex w-full max-w-2xl flex-col gap-3 sm:flex-row sm:justify-end">
+          <div className="relative w-full sm:max-w-md">
+            <Search className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              value={roleSearchKeyword}
+              onChange={(event) => setRoleSearchKeyword(event.target.value)}
+              placeholder="Tim vai tro..."
+              className="w-full rounded-2xl border border-sky-100 bg-white py-3 pl-11 pr-4 text-sm font-semibold text-slate-900 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+            />
+          </div>
+
+          {canCreateRoles ? (
+            <button
+              type="button"
+              onClick={() => navigate("/admin/settings/roles/new")}
+              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-sky-600 px-5 py-3 text-sm font-black text-white transition hover:bg-sky-700"
+            >
+              <Plus className="size-4" />
+              Tao role
+            </button>
+          ) : null}
         </div>
       </div>
 
@@ -134,16 +152,16 @@ const TeamManagementTab = () => {
             <thead className="border-b border-sky-100 bg-sky-50/80">
               <tr>
                 <th className="px-8 py-5 text-left text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
-                  Vai trò
+                  Vai tro
                 </th>
                 <th className="px-6 py-5 text-left text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
-                  Thành viên
+                  Thanh vien
                 </th>
                 <th className="px-6 py-5 text-center text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
-                  Chỉnh sửa
+                  Chinh sua
                 </th>
                 <th className="px-8 py-5 text-right text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
-                  Tùy chọn
+                  Tuy chon
                 </th>
               </tr>
             </thead>
@@ -151,13 +169,13 @@ const TeamManagementTab = () => {
               {isLoading ? (
                 <tr>
                   <td colSpan={4} className="px-8 py-12 text-center text-sm font-semibold text-slate-400">
-                    Đang tải danh sách vai trò...
+                    Dang tai danh sach vai tro...
                   </td>
                 </tr>
               ) : visibleRoles.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="px-8 py-12 text-center text-sm font-semibold text-slate-400">
-                    Không tìm thấy vai trò phù hợp.
+                    Khong tim thay vai tro phu hop.
                   </td>
                 </tr>
               ) : (
@@ -175,14 +193,14 @@ const TeamManagementTab = () => {
                           <div>
                             <p className="text-sm font-black text-slate-900">{role.name}</p>
                             <p className="mt-1 text-xs font-medium text-slate-400">
-                              {role.description || "Chưa có mô tả vai trò."}
+                              {role.description || "Chua co mo ta vai tro."}
                             </p>
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-5">
                         <span className="inline-flex rounded-full bg-sky-50 px-3 py-1.5 text-xs font-black text-sky-700">
-                          {role.userCount ?? 0} thành viên
+                          {role.userCount ?? 0} thanh vien
                         </span>
                       </td>
                       <td className="px-6 py-5 text-center">
@@ -191,7 +209,7 @@ const TeamManagementTab = () => {
                           onClick={() => navigate(`/admin/settings/roles/${role.id}`)}
                           disabled={!canEditRoles}
                           className="inline-flex rounded-2xl border border-sky-100 p-2.5 text-sky-600 transition hover:border-sky-200 hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-40"
-                          title={canEditRoles ? "Chỉnh sửa vai trò" : "Bạn không có quyền sửa vai trò"}
+                          title={canEditRoles ? "Chinh sua vai tro" : "Ban khong co quyen sua vai tro"}
                         >
                           <PencilLine className="size-4" />
                         </button>
@@ -207,7 +225,7 @@ const TeamManagementTab = () => {
                             }
                             disabled={!canDeleteRoles}
                             className="rounded-2xl border border-sky-100 p-2.5 text-sky-600 transition hover:border-sky-200 hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-40"
-                            title={canDeleteRoles ? "Tùy chọn vai trò" : "Bạn không có quyền xóa vai trò"}
+                            title={canDeleteRoles ? "Tuy chon vai tro" : "Ban khong co quyen xoa vai tro"}
                           >
                             <Ellipsis className="size-4" />
                           </button>
@@ -221,7 +239,7 @@ const TeamManagementTab = () => {
                                 className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60"
                               >
                                 <Trash2 className="size-4" />
-                                {isDeleting ? "Đang xóa..." : "Xóa quyền"}
+                                {isDeleting ? "Dang xoa..." : "Xoa quyen"}
                               </button>
                             </div>
                           ) : null}

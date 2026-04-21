@@ -12,6 +12,11 @@ export const getRoles = async () => {
 export const shouldHideRoleFromAdminSettings = (role) =>
   HIDDEN_ADMIN_ROLE_NAMES.has(normalizeRoleName(role?.name));
 
+export const createRole = async (payload) => {
+  const response = await apiClient.post("/Roles", payload);
+  return response.data;
+};
+
 export const getPermissions = async () => {
   const response = await apiClient.get("/Roles/permissions");
   return response.data ?? [];
