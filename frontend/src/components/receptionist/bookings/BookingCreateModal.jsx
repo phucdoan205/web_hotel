@@ -404,6 +404,7 @@ const BookingCreateModal = ({ open, onClose, onNotice }) => {
                 </div>
 
                 <div>
+                                    <label className="mb-1 block text-sm font-bold text-gray-600">Email</label>
                   <input
                     type="email"
                     value={guestInfo.email}
