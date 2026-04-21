@@ -18,7 +18,7 @@ const Sidebar = () => {
     { icon: CalendarDays, label: "My Bookings", path: "/guest/bookings" },
     { icon: Utensils, label: "In-room Dining", path: "/guest/dining" },
     { icon: Ticket, label: "Vouchers", path: "/guest/vouchers" },
-    { icon: Star, label: "Bai viet & Review", path: "/guest/reviews" },
+    { icon: Star, label: "Bài viết & Review", path: "/guest/reviews" },
     { icon: Heart, label: "Favorites", path: "/guest/favorites" },
   ];
 

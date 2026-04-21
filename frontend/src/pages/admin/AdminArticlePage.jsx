@@ -7,10 +7,10 @@ import { hasPermission } from "../../utils/permissions";
 import { formatPreservedApiDateTime } from "../../utils/vietnamTime";
 
 const filterOptions = [
-  { value: "all", label: "Tat ca" },
-  { value: "approved", label: "Da duyet" },
-  { value: "pending", label: "Cho duyet" },
-  { value: "deleted", label: "Thung rac" },
+  { value: "all", label: "Tất cả" },
+  { value: "approved", label: "Đã duyệt" },
+  { value: "pending", label: "Chờ duyệt" },
+  { value: "deleted", label: "Thùng rác" },
 ];
 
 const getStatusBadgeClass = (article) => {
@@ -23,10 +23,10 @@ const getStatusBadgeClass = (article) => {
 
 const getStatusLabel = (article) => {
   if (article.isDeleted) {
-    return "Thung rac";
+    return "Thùng rác";
   }
 
-  return article.isApproved ? "Da duyet" : "Cho duyet";
+  return article.isApproved ? "Đã duyệt" : "Chờ duyệt";
 };
 
 const getDisplayTime = (article) => {
@@ -75,7 +75,7 @@ const AdminArticlePage = () => {
       });
       setArticles(data);
     } catch (fetchError) {
-      setError(fetchError?.response?.data || "Khong tai duoc bai viet cho admin.");
+      setError(fetchError?.response?.data || "Không tải được bài viết cho admin.");
     } finally {
       setLoading(false);
     }
@@ -106,7 +106,7 @@ const AdminArticlePage = () => {
       await approveArticle(articleId);
       await loadArticles();
     } catch (approveError) {
-      setError(approveError?.response?.data || "Khong duyet duoc bai viet.");
+      setError(approveError?.response?.data || "Không duyệt được bài viết.");
     }
   };
 
@@ -144,7 +144,7 @@ const AdminArticlePage = () => {
       setDialogState({ open: false, mode: "delete", article: null });
       await loadArticles();
     } catch (actionRequestError) {
-      setActionError(actionRequestError?.response?.data || "Khong thuc hien duoc thao tac.");
+      setActionError(actionRequestError?.response?.data || "Không thực hiện được thao tác.");
     } finally {
       setActionLoading(false);
     }
@@ -155,9 +155,9 @@ const AdminArticlePage = () => {
       <div className="space-y-6">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
           <div>
-            <h1 className="text-3xl font-black text-gray-900">Duyet bai viet</h1>
+            <h1 className="text-3xl font-black text-gray-900">Duyệt bài viết</h1>
             <p className="mt-1 text-sm font-medium text-gray-500">
-              Bai cho duyet co the duyet hoac xoa han. Bai da duyet se co xem va chuyen vao thung rac.
+              Bài chờ duyệt có thể được duyệt hoặc xóa hẳn. Bài đã duyệt sẽ hiển thị và có thể chuyển vào thùng rác.
             </p>
           </div>
 
@@ -168,7 +168,7 @@ const AdminArticlePage = () => {
                 onClick={() => navigate("/admin/articles/new")}
                 className="inline-flex items-center gap-2 rounded-2xl bg-sky-600 px-5 py-3 text-sm font-bold text-white shadow-sm"
               >
-                Tao bai viet
+                Tạo bài viết
               </button>
             ) : null}
 
@@ -178,7 +178,7 @@ const AdminArticlePage = () => {
               className="inline-flex items-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-bold text-gray-700 shadow-sm ring-1 ring-gray-200"
             >
               <RefreshCw className="size-4" />
-              Lam moi
+              Làm mới
             </button>
           </div>
         </div>
@@ -195,7 +195,7 @@ const AdminArticlePage = () => {
                     loadArticles();
                   }
                 }}
-                placeholder="Tim theo tieu de, tac gia, slug..."
+                placeholder="Tìm theo tiêu đề, tác giả, slug..."
                 className="w-full rounded-2xl border border-gray-200 bg-gray-50 py-3 pl-11 pr-4 text-sm outline-none focus:border-sky-300 focus:bg-white focus:ring-2 focus:ring-sky-100"
               />
             </div>
@@ -225,7 +225,7 @@ const AdminArticlePage = () => {
             <table className="min-w-full table-fixed text-left">
               <thead className="bg-slate-50">
                 <tr>
-                  {["Bai viet", "Tac gia", "Danh muc", "Trang thai", "Ngay hien thi", "Tac vu"].map((header) => (
+                  {["Bài viết", "Tác giả", "Danh mục", "Trạng thái", "Ngày hiển thị", "Tác vụ"].map((header) => (
                     <th key={header} className="px-4 py-4 text-xs font-black uppercase tracking-wider text-slate-500">
                       {header}
                     </th>
@@ -236,13 +236,13 @@ const AdminArticlePage = () => {
                 {loading ? (
                   <tr>
                     <td colSpan={6} className="px-4 py-10 text-center text-sm font-semibold text-gray-400">
-                      Dang tai bai viet...
+                      Đang tải bài viết...
                     </td>
                   </tr>
                 ) : sortedArticles.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-4 py-10 text-center text-sm font-semibold text-gray-400">
-                      Khong co bai viet phu hop bo loc.
+                      Không có bài viết phù hợp bộ lọc.
                     </td>
                   </tr>
                 ) : (
@@ -258,7 +258,7 @@ const AdminArticlePage = () => {
                           <div className="min-w-0">
                             <p className="break-words text-sm font-black text-slate-900">{article.title}</p>
                             <p className="mt-1 line-clamp-2 break-words text-xs font-medium text-slate-500">
-                              {article.summary || "Chua co mo ta ngan."}
+                              {article.summary || "Chưa có mô tả ngắn."}
                             </p>
                           </div>
                         </div>
@@ -271,7 +271,7 @@ const AdminArticlePage = () => {
                         </span>
                       </td>
                       <td className="px-4 py-4 align-top text-sm font-semibold text-slate-600">
-                        {getDisplayTime(article) ? formatPreservedApiDateTime(getDisplayTime(article)) : "Chua hien thi"}
+                        {getDisplayTime(article) ? formatPreservedApiDateTime(getDisplayTime(article)) : "Chưa hiển thị"}
                       </td>
                       <td className="px-4 py-4 align-top">
                         <div className="flex flex-wrap items-center gap-2">
@@ -291,7 +291,7 @@ const AdminArticlePage = () => {
                               className="inline-flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-bold text-gray-700 ring-1 ring-gray-200"
                             >
                               <Edit className="size-4" />
-                              Chinh sua
+                              Chỉnh sửa
                             </button>
                           ) : null}
 
@@ -303,7 +303,7 @@ const AdminArticlePage = () => {
                                 className="inline-flex items-center gap-2 rounded-xl bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-600"
                               >
                                 <RotateCcw className="size-4" />
-                                Khoi phuc
+                                Khôi phục
                               </button>
                             ) : null
                           ) : !article.isApproved ? (
@@ -315,7 +315,7 @@ const AdminArticlePage = () => {
                                   className="inline-flex items-center gap-2 rounded-xl bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-600"
                                 >
                                   <CheckCircle2 className="size-4" />
-                                  Duyet
+                                  Duyệt
                                 </button>
                               ) : null}
                               {canDeleteContent ? (
@@ -325,7 +325,7 @@ const AdminArticlePage = () => {
                                   className="inline-flex items-center gap-2 rounded-xl bg-rose-50 px-3 py-2 text-sm font-bold text-rose-600"
                                 >
                                   <Trash2 className="size-4" />
-                                  Khong duyet
+                                  Không duyệt
                                 </button>
                               ) : null}
                             </>
@@ -337,7 +337,7 @@ const AdminArticlePage = () => {
                                 className="inline-flex items-center gap-2 rounded-xl bg-rose-50 px-3 py-2 text-sm font-bold text-rose-600"
                               >
                                 <Trash2 className="size-4" />
-                                Chuyen thung rac
+                                Chuyển vào thùng rác
                               </button>
                             ) : null
                           )}

@@ -39,7 +39,7 @@ export const useVoucherData = () => {
     } catch (e) {
       console.error(e);
       setVouchers([]);
-      setError(e?.response?.data?.message || e?.message || "Khong tai duoc danh sach voucher");
+      setError(e?.response?.data?.message || e?.message || "Không tải được danh sách voucher");
     } finally {
       setLoading(false);
     }

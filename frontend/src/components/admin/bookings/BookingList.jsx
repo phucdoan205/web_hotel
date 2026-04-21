@@ -46,7 +46,7 @@ const BookingList = ({ filters, onPageChange }) => {
       setCancelTarget(null);
     },
     onError: (err) => {
-      window.alert(`Huy booking that bai: ${err.response?.data?.message || err.message}`);
+      window.alert(`Hủy booking thất bại: ${err.response?.data?.message || err.message}`);
     },
   });
 
@@ -196,7 +196,7 @@ const BookingList = ({ filters, onPageChange }) => {
                               setIsDetailOpen(true);
                             }}
                             className="rounded-xl p-2 text-sky-600 transition-all hover:bg-sky-100"
-                            title="Xem chi tiet"
+                            title="Xem chi tiết"
                           >
                             <Eye size={18} />
                           </button>
@@ -205,7 +205,7 @@ const BookingList = ({ filters, onPageChange }) => {
                             <button
                               onClick={() => setCancelTarget(booking)}
                               className="rounded-xl p-2 text-red-600 transition-all hover:bg-red-100"
-                              title="Huy booking"
+                                title="Hủy booking"
                             >
                               <Trash2 size={18} />
                             </button>

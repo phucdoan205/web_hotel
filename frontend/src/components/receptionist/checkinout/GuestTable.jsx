@@ -448,7 +448,7 @@ const GuestTable = ({
                       }`}
                     >
                       <CheckCircle size={18} />
-                      {isCheckInLoading ? "Dang xu ly..." : "Check in phong nay"}
+                      {isCheckInLoading ? "Đang xử lý..." : "Check-in phòng này"}
                     </button>
                   </>
                 ) : !entry.checkedOut ? (
@@ -463,7 +463,7 @@ const GuestTable = ({
                     }`}
                   >
                     <SquareArrowRightExit size={18} />
-                    {isCheckOutLoading ? "Đang xử lý..." : "Check out phòng này"}
+                    {isCheckOutLoading ? "Đang xử lý..." : "Check-out phòng này"}
                   </button>
                 ) : (
                   <div className="space-y-3">
