@@ -9,11 +9,12 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using backend.Data.Interceptors;
 using backend.Services;
-using backend.DTOs.Room;
-using backend.DTOs.RoomInventory;
-//using backend.Validators;
 
 var builder = WebApplication.CreateBuilder(args);
+
+//Hiển thị tiếng Việt
+Console.OutputEncoding = Encoding.UTF8;
+Console.InputEncoding = Encoding.UTF8;
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
