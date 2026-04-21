@@ -1,7 +1,9 @@
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Printer, Receipt } from "lucide-react";
 import { invoicesApi } from "../../api/admin/invoicesApi";
+import { servicesApi } from "../../api/admin/servicesApi";
 import { formatVietnamDate, formatVietnamDateTime } from "../../utils/vietnamTime";
 
 const currencyFormatter = new Intl.NumberFormat("vi-VN");
@@ -11,6 +13,7 @@ const formatCurrency = (value) => `${currencyFormatter.format(Number(value || 0)
 const AdminInvoiceDetailPage = () => {
   const navigate = useNavigate();
   const { invoiceId } = useParams();
+
   const invoiceQuery = useQuery({
     queryKey: ["invoice", invoiceId],
     queryFn: () => invoicesApi.getInvoiceById(invoiceId),
@@ -18,6 +21,27 @@ const AdminInvoiceDetailPage = () => {
   });
 
   const invoice = invoiceQuery.data;
+
+  const serviceUsagesQuery = useQuery({
+    queryKey: ["invoice-service-items", invoice?.detailId, invoice?.status, invoice?.createdAt],
+    queryFn: async () => {
+      const items = await servicesApi.getUsageHistory({
+        bookingDetailId: invoice.detailId,
+      });
+
+      return items.filter((item) => {
+        if (item.bookingDetailId !== invoice.detailId) return false;
+
+        const usedAtTime = item.usedAt ? new Date(item.usedAt).getTime() : 0;
+        const invoiceCreatedTime = invoice.createdAt ? new Date(invoice.createdAt).getTime() : Number.MAX_SAFE_INTEGER;
+
+        return usedAtTime <= invoiceCreatedTime;
+      });
+    },
+    enabled: Boolean(invoice?.detailId),
+  });
+
+  const serviceItems = useMemo(() => serviceUsagesQuery.data || [], [serviceUsagesQuery.data]);
 
   if (invoiceQuery.isLoading) {
     return <div className="rounded-[2rem] bg-white p-8 text-center text-slate-500">Đang tải chi tiết hóa đơn...</div>;
@@ -44,7 +68,7 @@ const AdminInvoiceDetailPage = () => {
             Quay lại danh sách
           </button>
           <h1 className="mt-4 text-3xl font-black text-slate-900">Chi tiết hóa đơn</h1>
-          <p className="mt-2 text-sm font-medium text-slate-500">Bao gồm tiền phòng và tiền dịch vụ đã cộng khi checkout.</p>
+          <p className="mt-2 text-sm font-medium text-slate-500">Bao gồm tiền phòng và các dịch vụ đã cộng khi checkout.</p>
         </div>
 
         <button
@@ -98,24 +122,39 @@ const AdminInvoiceDetailPage = () => {
         </div>
 
         <div className="mt-6 rounded-[1.75rem] border border-slate-200">
-          <div className="grid grid-cols-[1.6fr_1fr_1fr_1fr] gap-4 border-b border-slate-200 bg-sky-50 px-5 py-4 text-xs font-black uppercase tracking-[0.2em] text-slate-500">
+          <div className="grid grid-cols-[1.7fr_1fr_1fr_1fr] gap-4 border-b border-slate-200 bg-sky-50 px-5 py-4 text-xs font-black uppercase tracking-[0.2em] text-slate-500">
             <div>Hạng mục</div>
             <div>Đơn giá</div>
             <div>Số lượng</div>
             <div className="text-right">Thành tiền</div>
           </div>
-          <div className="grid grid-cols-[1.6fr_1fr_1fr_1fr] gap-4 px-5 py-5 text-sm font-semibold text-slate-700">
+
+          <div className="grid grid-cols-[1.7fr_1fr_1fr_1fr] gap-4 px-5 py-5 text-sm font-semibold text-slate-700">
             <div>Tiền phòng {invoice.roomName}</div>
             <div>{formatCurrency(invoice.roomRate)}</div>
             <div>{invoice.stayedDays} ngày</div>
             <div className="text-right font-black text-slate-900">{formatCurrency(invoice.subtotal)}</div>
           </div>
-          <div className="grid grid-cols-[1.6fr_1fr_1fr_1fr] gap-4 border-t border-slate-100 px-5 py-5 text-sm font-semibold text-slate-700">
-            <div>Dịch vụ đã sử dụng</div>
-            <div>{formatCurrency(invoice.totalServiceAmount)}</div>
-            <div>1 gói</div>
-            <div className="text-right font-black text-slate-900">{formatCurrency(invoice.totalServiceAmount)}</div>
-          </div>
+
+          {serviceUsagesQuery.isLoading ? (
+            <div className="border-t border-slate-100 px-5 py-5 text-sm text-slate-500">Đang tải chi tiết dịch vụ...</div>
+          ) : serviceItems.length > 0 ? (
+            serviceItems.map((item) => (
+              <div
+                key={item.id}
+                className="grid grid-cols-[1.7fr_1fr_1fr_1fr] gap-4 border-t border-slate-100 px-5 py-5 text-sm font-semibold text-slate-700"
+              >
+                <div>{item.serviceName}</div>
+                <div>{formatCurrency(item.unitPrice)}</div>
+                <div>{item.quantity}</div>
+                <div className="text-right font-black text-slate-900">
+                  {formatCurrency(item.quantity * item.unitPrice)}
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="border-t border-slate-100 px-5 py-5 text-sm text-slate-500">Không có dịch vụ nào trong hóa đơn này.</div>
+          )}
         </div>
 
         <div className="mt-6 ml-auto max-w-md space-y-3 rounded-[1.75rem] bg-gradient-to-br from-sky-700 via-sky-600 to-cyan-500 p-5 text-white">
