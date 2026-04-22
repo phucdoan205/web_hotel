@@ -18,7 +18,6 @@ import {
 import {
   getBookingPaymentState,
   isBookingDetailPaid,
-  markBookingAllPaid,
   markBookingDetailPaid,
 } from "../../utils/bookingPaymentState";
 
@@ -46,7 +45,8 @@ const AdminBookingPaymentPage = () => {
   const queryClient = useQueryClient();
   const { id } = useParams();
   const [searchParams] = useSearchParams();
-  const detailId = Number(searchParams.get("detailId"));
+  const rawDetailId = searchParams.get("detailId");
+  const detailId = rawDetailId ? Number(rawDetailId) : null;
   const [paymentMethod, setPaymentMethod] = useState("bank");
   const [copied, setCopied] = useState(false);
   const [confirmMessage, setConfirmMessage] = useState("");
@@ -59,7 +59,10 @@ const AdminBookingPaymentPage = () => {
 
   const paymentState = getBookingPaymentState(booking);
   const selectedDetailFromQuery = useMemo(
-    () => booking?.bookingDetails?.find((detail) => detail.id === detailId) || null,
+    () =>
+      Number.isFinite(detailId)
+        ? booking?.bookingDetails?.find((detail) => detail.id === detailId) || null
+        : null,
     [booking, detailId],
   );
   const unpaidDetails = useMemo(
@@ -76,6 +79,7 @@ const AdminBookingPaymentPage = () => {
 
   const isSingleRoomPayment = Boolean(selectedDetail);
   const isCancelled = booking?.status === "Cancelled";
+  const mustChooseRoom = !selectedDetail && unpaidDetails.length > 1;
 
   const totalDepositAmount = useMemo(() => {
     if (!booking?.bookingDetails?.length) return 0;
@@ -108,9 +112,12 @@ const AdminBookingPaymentPage = () => {
         throw new Error("Booking đã hủy, không thể xác nhận thanh toán.");
       }
 
+      if (mustChooseRoom) {
+        throw new Error("Booking nhiều phòng, vui lòng chọn đúng 1 phòng cần thanh toán.");
+      }
+
       if (selectedDetail?.id) {
         markBookingDetailPaid(booking.id, selectedDetail.id);
-        // inform backend that this detail has been confirmed (paid)
         await bookingsApi.confirmBookingDetail(booking.id, selectedDetail.id);
 
         const allDetailsPaid = (booking.bookingDetails || []).every(
@@ -118,23 +125,24 @@ const AdminBookingPaymentPage = () => {
         );
 
         if (allDetailsPaid) {
-          markBookingAllPaid(booking);
           return { scope: "all" };
         }
 
         return { scope: "detail" };
       }
 
-      markBookingAllPaid(booking);
       const unpaidBookingDetails = (booking.bookingDetails || []).filter(
         (detail) => !isBookingDetailPaid(booking, detail.id),
       );
 
-      await Promise.all(
-        unpaidBookingDetails.map((detail) => bookingsApi.confirmBookingDetail(booking.id, detail.id)),
-      );
+      if (unpaidBookingDetails.length === 1) {
+        const [onlyDetail] = unpaidBookingDetails;
+        markBookingDetailPaid(booking.id, onlyDetail.id);
+        await bookingsApi.confirmBookingDetail(booking.id, onlyDetail.id);
+        return { scope: "detail" };
+      }
 
-      return { scope: "all" };
+      throw new Error("Không xác định được phòng cần thanh toán.");
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["bookings"] });
@@ -146,7 +154,7 @@ const AdminBookingPaymentPage = () => {
       setConfirmMessage(
         result?.scope === "detail"
           ? "Đã xác nhận thanh toán QR cho phòng này."
-          : "Đã xác nhận thanh toán QR cho toàn bộ booking.",
+          : "Đã xác nhận thanh toán QR.",
       );
     },
     onError: (error) => {
@@ -177,18 +185,20 @@ const AdminBookingPaymentPage = () => {
             Quay lại bookings
           </button>
           <h1 className="text-3xl font-black text-slate-900">
-            {isSingleRoomPayment ? "Mã QR thanh toán phòng" : "Mã QR thanh toán booking"}
+            {isSingleRoomPayment ? "Mã QR thanh toán phòng" : "Mã QR thanh toán"}
           </h1>
           <p className="mt-1 text-sm text-slate-500">
             {isSingleRoomPayment
               ? `Thanh toán 1 đêm cho phòng ${selectedRoomNumber}`
-              : `Thanh toán 1 đêm cho mỗi phòng của booking ${booking?.bookingCode || id}`}
+              : mustChooseRoom
+                ? `Booking ${booking?.bookingCode || id} có nhiều phòng, hãy chọn đúng phòng cần thanh toán.`
+                : `Thanh toán 1 đêm cho booking ${booking?.bookingCode || id}`}
           </p>
         </div>
 
         <div className="rounded-3xl bg-gradient-to-r from-sky-600 to-cyan-500 px-5 py-4 text-white shadow-lg">
           <p className="text-xs font-bold uppercase tracking-[0.25em] text-white/75">
-            {isSingleRoomPayment ? "Tiền thanh toán phòng này" : "Tổng tiền thanh toán còn lại"}
+            {isSingleRoomPayment ? "Tiền thanh toán phòng này" : "Số tiền cần thanh toán"}
           </p>
           <p className="mt-2 text-3xl font-black">{formatCurrency(totalDepositAmount)}</p>
         </div>
@@ -212,6 +222,12 @@ const AdminBookingPaymentPage = () => {
       {isCancelled ? (
         <div className="rounded-3xl border border-rose-200 bg-rose-50 px-5 py-4 text-rose-900">
           <p className="font-bold">Booking này đã hủy nên không thể thanh toán.</p>
+        </div>
+      ) : null}
+
+      {mustChooseRoom ? (
+        <div className="rounded-3xl border border-sky-200 bg-sky-50 px-5 py-4 text-sky-900">
+          <p className="font-bold">Booking nÃ y cÃ³ nhiá»u phÃ²ng. Vui lÃ²ng chá»n Ä‘Ãºng 1 phÃ²ng trÆ°á»›c khi xÃ¡c nháº­n thanh toÃ¡n.</p>
         </div>
       ) : null}
 
@@ -393,7 +409,13 @@ const AdminBookingPaymentPage = () => {
                 <button
                   type="button"
                   onClick={() => confirmOnlineMutation.mutate()}
-                  disabled={confirmOnlineMutation.isPending || alreadyPaid || isCancelled || totalDepositAmount <= 0}
+                  disabled={
+                    confirmOnlineMutation.isPending ||
+                    alreadyPaid ||
+                    isCancelled ||
+                    totalDepositAmount <= 0 ||
+                    mustChooseRoom
+                  }
                   className="rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-black text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300"
                 >
                   {alreadyPaid

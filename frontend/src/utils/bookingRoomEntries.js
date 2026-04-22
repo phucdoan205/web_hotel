@@ -51,9 +51,6 @@ export const buildBookingRoomEntries = (bookings = [], todayKey = "", options = 
         else roomStatus = detail.status; // Pending or Confirmed
       } else if (detail.room?.status) {
         roomStatus = detail.room.status;
-      } else if (booking?.status) {
-        // If booking already confirmed, reflect that
-        roomStatus = booking.status === "Confirmed" ? "Confirmed" : "Pending";
       }
 
       return {

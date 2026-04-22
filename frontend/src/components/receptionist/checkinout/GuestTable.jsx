@@ -91,10 +91,9 @@ const getBookingStateLabel = (booking, activeTab) => {
   }
 
   if (activeTab === "out") return "Booking: CheckedOut";
-  if (booking.status === "CheckedOut") return "Booking: CheckedOut";
-  if (booking.status === "CheckedIn") return "Booking: CheckedIn";
-  if (booking.status === "Pending") return "Booking: Pending";
-  return "Booking: Confirmed";
+  if (booking.status === "Completed") return "Booking: Completed";
+  if (booking.status === "Cancelled") return "Booking: Cancelled";
+  return "Booking: Pending";
 };
 
 const getVisibleDetails = (booking, activeTab) => {
@@ -172,15 +171,12 @@ const GuestTable = ({
 
   const checkInMutation = useMutation({
     mutationFn: async (subject) => {
-      if (!subject?.detailId) {
-        const updatedBooking = await bookingsApi.checkIn(subject.id);
-        return { mode: "booking", booking: updatedBooking || subject };
+      if (!subject?.bookingId || !subject?.detailId) {
+        throw new Error("Vui lòng chọn đúng phòng cần check-in.");
       }
 
-      // Per-room check-in: call backend endpoint to mark this booking detail as CheckedIn
       await bookingsApi.checkInBookingDetail(subject.bookingId, subject.detailId);
 
-      // Save a local snapshot for immediate UI responsiveness
       saveBookingDetailCheckedInSnapshot(subject.bookingId, subject.detailId, {
         ...subject,
         checkedIn: true,
@@ -195,7 +191,7 @@ const GuestTable = ({
         },
       });
 
-      return { mode: "room", roomEntry: subject };
+      return { roomEntry: subject };
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["in-house"] });
@@ -206,8 +202,8 @@ const GuestTable = ({
       setConfirmingBooking(null);
       onActionSuccess?.({
         actionType: "in",
-        bookingId: result?.mode === "room" ? result.roomEntry.bookingId : result?.booking?.id,
-        detailId: result?.mode === "room" ? result.roomEntry.detailId : undefined,
+        bookingId: result?.roomEntry?.bookingId,
+        detailId: result?.roomEntry?.detailId,
         notice: {
           type: "success",
           title: "Check in thành công",
@@ -345,7 +341,7 @@ const GuestTable = ({
                         // Show per-room label: if this detail is paid or explicitly Confirmed => ready to receive,
                         // otherwise show 'Chờ xác nhận' so receptionist can pay the room.
                       }
-                      {entry.detail?.status === "Confirmed" || getRoomEntryPaidState(entry) || entry.booking?.status === "Confirmed"
+                      {entry.detail?.status === "Confirmed" || getRoomEntryPaidState(entry)
                         ? "Cho nhan phong"
                         : "Cho xac nhan"}
                     </span>
@@ -513,8 +509,6 @@ const GuestTable = ({
               else roomStatus = detail.status; // Pending or Confirmed
             } else if (detail.room?.status) {
               roomStatus = detail.room.status;
-            } else if (booking?.status) {
-              roomStatus = booking.status === "Confirmed" ? "Confirmed" : "Pending";
             }
 
             const cleaningStatus =
@@ -609,16 +603,8 @@ const GuestTable = ({
               <div className="space-y-2 rounded-2xl border border-sky-100 bg-sky-50 px-4 py-4">
                 <div className="flex items-center gap-2 text-sm font-black text-sky-900">
                   <QrCode size={16} />
-                  Thanh toán QR 1 đêm
+                  Thanh toán QR theo từng phòng
                 </div>
-                <button
-                  type="button"
-                  onClick={() => handleOpenPayment(booking.id)}
-                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-sky-600 px-4 py-3 text-sm font-black text-white transition hover:bg-sky-700"
-                >
-                  <CircleDollarSign size={18} />
-                  Thanh toán QR tất cả phòng
-                </button>
                 {unpaidDetails.map((detail, index) => {
                   const roomNumber = getRoomNumber(detail) || index + 1;
 
@@ -779,9 +765,10 @@ const GuestTable = ({
               <div>
                 <h3 className="text-xl font-black text-slate-900">Xác nhận check in</h3>
                 <p className="mt-2 text-sm text-slate-500">
-                  Bạn có chắc muốn check in booking{" "}
+                  Bạn có chắc muốn check in phòng{" "}
+                  <span className="font-bold">{confirmingBooking.roomNumber || "--"}</span> trong booking{" "}
                   <span className="font-bold">{confirmingBooking.bookingCode}</span> cho khách{" "}
-                  <span className="font-bold">{getGuestName(confirmingBooking)}</span> không?
+                  <span className="font-bold">{confirmingBooking.guestName || getGuestName(confirmingBooking)}</span> không?
                 </p>
               </div>
             </div>

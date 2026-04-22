@@ -19,6 +19,24 @@ namespace backend.Controllers
             _context = context;
         }
 
+        private static string ResolveBookingStatusFromDetails(IEnumerable<BookingDetail> details)
+        {
+            var detailList = details.ToList();
+            if (!detailList.Any()) return "Pending";
+
+            if (detailList.All(detail => detail.Status == "Completed"))
+            {
+                return "Completed";
+            }
+
+            if (detailList.All(detail => detail.Status == "Cancelled"))
+            {
+                return "Cancelled";
+            }
+
+            return "Pending";
+        }
+
         private static string GenerateInvoiceCode(string? bookingCode, string? roomNumber, int detailId)
         {
             var normalizedBookingCode = string.IsNullOrWhiteSpace(bookingCode)
@@ -146,6 +164,11 @@ namespace backend.Controllers
                 return NotFound("Không tìm thấy chi tiết phòng của booking.");
             }
 
+            if (!string.Equals(bookingDetail.Status, "CheckedOut", StringComparison.OrdinalIgnoreCase))
+            {
+                return BadRequest("Chỉ có thể tạo hóa đơn cho phòng đã check-out.");
+            }
+
             var duplicatedInvoice = await _context.Invoices
                 .AsNoTracking()
                 .FirstOrDefaultAsync(item => item.BookingDetailId == dto.BookingDetailId.Value);
@@ -198,6 +221,22 @@ namespace backend.Controllers
             };
 
             _context.Invoices.Add(invoice);
+
+            var trackedBookingDetail = await _context.BookingDetails.FirstOrDefaultAsync(item => item.Id == bookingDetail.Id);
+            if (trackedBookingDetail != null)
+            {
+                trackedBookingDetail.Status = "Pending";
+            }
+
+            var trackedBooking = await _context.Bookings
+                .Include(item => item.BookingDetails)
+                .FirstOrDefaultAsync(item => item.Id == booking.Id);
+
+            if (trackedBooking != null)
+            {
+                trackedBooking.Status = ResolveBookingStatusFromDetails(trackedBooking.BookingDetails);
+            }
+
             await _context.SaveChangesAsync();
 
             return CreatedAtAction(nameof(GetInvoiceById), new { id = invoice.Id }, MapInvoice(invoice));
@@ -237,6 +276,21 @@ namespace backend.Controllers
 
             if (invoice.BookingDetailId.HasValue)
             {
+                var bookingDetail = await _context.BookingDetails
+                    .Include(item => item.Booking)
+                    .ThenInclude(item => item!.BookingDetails)
+                    .FirstOrDefaultAsync(item => item.Id == invoice.BookingDetailId.Value);
+
+                if (bookingDetail != null)
+                {
+                    bookingDetail.Status = "Completed";
+
+                    if (bookingDetail.Booking != null)
+                    {
+                        bookingDetail.Booking.Status = ResolveBookingStatusFromDetails(bookingDetail.Booking.BookingDetails);
+                    }
+                }
+
                 var unpaidOrderServices = await _context.OrderServices
                     .Where(orderService =>
                         orderService.BookingDetailId == invoice.BookingDetailId.Value &&

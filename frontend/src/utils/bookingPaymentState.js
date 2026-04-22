@@ -1,5 +1,5 @@
 const STORAGE_KEY = "receptionist-booking-payment-state";
-const PAID_DETAIL_STATUSES = ["Confirmed", "CheckedIn", "CheckedOut"];
+const PAID_DETAIL_STATUSES = ["Confirmed", "CheckedIn", "CheckedOut", "Completed"];
 
 const readStore = () => {
   if (typeof window === "undefined") return {};
@@ -40,9 +40,7 @@ export const getBookingPaymentState = (booking) => {
     .map((detail) => detail.id)
     .filter(Boolean);
   const paidDetailIds = Array.from(new Set([...storedPaidDetailIds, ...statusPaidDetailIds]));
-  const depositComplete =
-    booking.status === "Completed" ||
-    (detailIds.length > 0 && detailIds.every((id) => paidDetailIds.includes(id)));
+  const depositComplete = detailIds.length > 0 && detailIds.every((id) => paidDetailIds.includes(id));
 
   return {
     paidDetailIds,
@@ -59,9 +57,8 @@ export const isBookingDeleteLocked = (booking) => {
   return (
     paymentState.hasAnyPayment ||
     booking?.status === "Cancelled" ||
-    booking?.status === "Confirmed" ||
-    booking?.status === "CheckedIn" ||
-    booking?.status === "Completed"
+    booking?.status === "Completed" ||
+    (booking?.bookingDetails || []).some((detail) => detail?.status && detail.status !== "Pending")
   );
 };
 

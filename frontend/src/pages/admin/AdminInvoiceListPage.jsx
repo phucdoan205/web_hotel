@@ -46,6 +46,11 @@ const AdminInvoiceListPage = () => {
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
       queryClient.invalidateQueries({ queryKey: ["invoice", String(invoice.id)] });
       queryClient.invalidateQueries({ queryKey: ["service-history"] });
+      queryClient.invalidateQueries({ queryKey: ["bookings"] });
+      queryClient.invalidateQueries({ queryKey: ["booking", String(invoice.bookingId)] });
+      queryClient.invalidateQueries({ queryKey: ["in-house"] });
+      queryClient.invalidateQueries({ queryKey: ["departures"] });
+      queryClient.invalidateQueries({ queryKey: ["checkout-bookings"] });
       setPendingPaymentInvoice(null);
       setScreenNotice({
         type: "success",

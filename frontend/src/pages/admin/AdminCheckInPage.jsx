@@ -20,7 +20,6 @@ import {
 } from "../../utils/vietnamTime";
 
 const DAY_LABELS = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
-const ACTIVE_BOOKING_STATUSES = ["Pending", "Confirmed", "CheckedIn"];
 const DAY_MS = 1000 * 60 * 60 * 24;
 
 const DAY_NAME_MAP = {
@@ -128,7 +127,7 @@ const AdminCheckInPage = () => {
 
   const weeklyBookings = useMemo(() => {
     return (weeklyBookingsQuery.data?.items || []).filter((booking) =>
-      ACTIVE_BOOKING_STATUSES.includes(booking.status)
+      !["Cancelled", "Completed"].includes(booking.status)
     );
   }, [weeklyBookingsQuery.data]);
 
@@ -164,7 +163,7 @@ const AdminCheckInPage = () => {
           guestName: booking.guestName || booking.guest?.name || "Khách chưa rõ tên",
           roomNumber: detail.room?.roomNumber || detail.roomNumber || "--",
           roomTypeName: detail.roomTypeName || detail.roomType?.name || "Phòng",
-          status: booking.status,
+          status: detail?.status || booking.status,
           checkInKey,
           checkOutKey,
           visibleStartKey,

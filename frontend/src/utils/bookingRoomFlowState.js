@@ -97,7 +97,10 @@ export const markBookingDetailInvoiced = (bookingId, detailId) => {
   updateEntry(bookingId, (current) => ({
     ...current,
     invoicedDetailIds: Array.from(new Set([...(current.invoicedDetailIds || []), detailId])),
-    checkedOutSnapshots: current.checkedOutSnapshots || {},
+    checkedOutDetailIds: (current.checkedOutDetailIds || []).filter((id) => id !== detailId),
+    checkedOutSnapshots: Object.fromEntries(
+      Object.entries(current.checkedOutSnapshots || {}).filter(([id]) => Number(id) !== detailId),
+    ),
   }));
 };
 

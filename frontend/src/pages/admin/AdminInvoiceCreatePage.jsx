@@ -142,6 +142,11 @@ const AdminInvoiceCreatePage = () => {
       queryClient.invalidateQueries({ queryKey: ["invoice-exists", bookingId, detailId] });
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
       queryClient.invalidateQueries({ queryKey: ["service-history"] });
+      queryClient.invalidateQueries({ queryKey: ["booking", bookingId] });
+      queryClient.invalidateQueries({ queryKey: ["bookings"] });
+      queryClient.invalidateQueries({ queryKey: ["in-house"] });
+      queryClient.invalidateQueries({ queryKey: ["departures"] });
+      queryClient.invalidateQueries({ queryKey: ["checkout-bookings"] });
       setConfirmAction("");
       navigate("/admin/invoices", {
         replace: true,

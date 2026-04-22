@@ -34,8 +34,6 @@ const BookingFilters = ({ filters, onFilterChange, onOpenCreate, onClearFilters,
           >
             <option value="">Tất cả trạng thái</option>
             <option value="Pending">Pending</option>
-            <option value="Confirmed">Confirmed</option>
-            <option value="CheckedIn">Checked In</option>
             <option value="Completed">Completed</option>
             <option value="Cancelled">Cancelled</option>
           </select>

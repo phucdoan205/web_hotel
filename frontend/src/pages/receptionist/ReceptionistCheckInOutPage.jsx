@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, CheckCircle2, X } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import GuestFlowStats from "../../components/receptionist/checkinout/GuestFlowStats";
 import GuestTable from "../../components/receptionist/checkinout/GuestTable";
 import { bookingsApi } from "../../api/admin/bookingsApi";
+import { buildBookingRoomEntries } from "../../utils/bookingRoomEntries";
 import { getVietnamDateKey } from "../../utils/vietnamTime";
 
 const normalizeTab = (value) => (["schedule", "in", "out"].includes(value) ? value : "schedule");
@@ -13,6 +14,7 @@ const ReceptionistCheckInOutPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [screenNotice, setScreenNotice] = useState(null);
   const activeTab = normalizeTab(searchParams.get("tab"));
+  const todayKey = getVietnamDateKey();
 
   useEffect(() => {
     if (!screenNotice) return undefined;
@@ -37,16 +39,15 @@ const ReceptionistCheckInOutPage = () => {
     queryKey: ["confirmed-check-ins"],
     queryFn: () =>
       bookingsApi.getBookings({
-        status: "Confirmed",
         page: 1,
-        pageSize: 200,
+        pageSize: 500,
       }),
     staleTime: 1000 * 60 * 5,
   });
 
   const arrivalsQuery = useQuery({
     queryKey: ["arrivals"],
-    queryFn: () => bookingsApi.getArrivals({ date: getVietnamDateKey() }),
+    queryFn: () => bookingsApi.getArrivals({ date: todayKey }),
     staleTime: 1000 * 60 * 5,
   });
 
@@ -58,21 +59,35 @@ const ReceptionistCheckInOutPage = () => {
 
   const departuresQuery = useQuery({
     queryKey: ["departures"],
-    queryFn: () => bookingsApi.getDepartures({ date: getVietnamDateKey() }),
+    queryFn: () => bookingsApi.getDepartures({ date: todayKey }),
     staleTime: 1000 * 60 * 5,
   });
 
   const arrivals = (arrivalsQuery.data?.items || []).filter((booking) =>
     (booking.bookingDetails || []).some((detail) => detail?.status === "Confirmed"),
   );
-  const confirmedBookings = (confirmedBookingsQuery.data?.items || []).filter(
-    (booking) => booking.status === "Confirmed",
+  const confirmedBookings = (confirmedBookingsQuery.data?.items || []).filter((booking) =>
+    (booking.bookingDetails || []).some((detail) => detail?.status === "Confirmed"),
   );
   const inHouse = (inHouseQuery.data?.items || []).filter((booking) =>
     (booking.bookingDetails || []).some((detail) => detail?.status === "CheckedIn"),
   );
   const departures = (departuresQuery.data?.items || []).filter(
     (booking) => !["Completed", "Cancelled"].includes(booking.status),
+  );
+
+  const arrivalRooms = useMemo(
+    () =>
+      buildBookingRoomEntries(arrivals, todayKey, {
+        dateKey: todayKey,
+        detailStatuses: ["Pending", "Confirmed"],
+      }).filter((entry) => !entry.checkedIn),
+    [arrivals, todayKey],
+  );
+
+  const stayRooms = useMemo(
+    () => buildBookingRoomEntries(inHouse, todayKey).filter((entry) => entry.checkedIn && !entry.checkedOut),
+    [inHouse, todayKey],
   );
 
   const scheduleData = [
@@ -92,16 +107,16 @@ const ReceptionistCheckInOutPage = () => {
   });
 
   const tabData =
-    activeTab === "schedule" ? scheduleData : activeTab === "in" ? confirmedBookings : inHouse;
+    activeTab === "schedule" ? scheduleData : activeTab === "in" ? arrivalRooms : stayRooms;
 
   const isLoading =
     (activeTab === "schedule" && (arrivalsQuery.isLoading || departuresQuery.isLoading)) ||
-    (activeTab === "in" && confirmedBookingsQuery.isLoading) ||
+    (activeTab === "in" && arrivalsQuery.isLoading) ||
     (activeTab === "out" && inHouseQuery.isLoading);
 
   const isError =
     (activeTab === "schedule" && (arrivalsQuery.isError || departuresQuery.isError)) ||
-    (activeTab === "in" && confirmedBookingsQuery.isError) ||
+    (activeTab === "in" && arrivalsQuery.isError) ||
     (activeTab === "out" && inHouseQuery.isError);
 
   return (
@@ -211,6 +226,7 @@ const ReceptionistCheckInOutPage = () => {
         <GuestTable
           activeTab={activeTab}
           data={tabData}
+          dataMode={activeTab === "schedule" ? "booking" : "room"}
           onActionSuccess={(result) => {
             if (result?.notice) {
               setScreenNotice(result.notice);

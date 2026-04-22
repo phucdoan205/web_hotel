@@ -56,12 +56,8 @@ const BookingList = ({ filters, onPageChange }) => {
 
   const getStatusStyle = (status) => {
     switch (status?.toLowerCase()) {
-      case "confirmed":
-        return "bg-emerald-100 text-emerald-700";
       case "pending":
         return "bg-amber-100 text-amber-700";
-      case "checkedin":
-        return "bg-blue-100 text-blue-700";
       case "completed":
         return "bg-purple-100 text-purple-700";
       case "cancelled":
@@ -73,14 +69,10 @@ const BookingList = ({ filters, onPageChange }) => {
 
   const getStatusLabel = (status) => {
     switch (status?.toLowerCase()) {
-      case "checkedin":
-        return "Checked in";
       case "completed":
         return "Completed";
       case "cancelled":
         return "Cancelled";
-      case "confirmed":
-        return "Confirmed";
       case "pending":
         return "Pending";
       default:

@@ -32,9 +32,8 @@ const AdminCheckOutPage = () => {
     queryKey: ["confirmed-check-ins"],
     queryFn: () =>
       bookingsApi.getBookings({
-        status: "Confirmed",
         page: 1,
-        pageSize: 200,
+        pageSize: 500,
       }),
     staleTime: 1000 * 60 * 5,
   });
@@ -61,9 +60,11 @@ const AdminCheckOutPage = () => {
     staleTime: 1000 * 60 * 5,
   });
 
-  const arrivals = (arrivalsQuery.data?.items || []).filter((booking) => booking.status === "Confirmed");
-  const confirmedBookings = (confirmedBookingsQuery.data?.items || []).filter(
-    (booking) => booking.status === "Confirmed",
+  const arrivals = (arrivalsQuery.data?.items || []).filter((booking) =>
+    (booking.bookingDetails || []).some((detail) => detail?.status === "Confirmed"),
+  );
+  const confirmedBookings = (confirmedBookingsQuery.data?.items || []).filter((booking) =>
+    (booking.bookingDetails || []).some((detail) => detail?.status === "Confirmed"),
   );
   const checkoutBookings = (checkoutBookingsQuery.data?.items || []).filter((booking) =>
     (booking.bookingDetails || []).some((detail) => detail?.status === "CheckedOut"),
