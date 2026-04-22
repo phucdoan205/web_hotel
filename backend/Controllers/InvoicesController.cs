@@ -1,5 +1,11 @@
+using System.Globalization;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using backend.Data;
 using backend.DTOs.Invoice;
+using backend.DTOs.Payment;
 using backend.Models;
 using backend.Security;
 using Microsoft.AspNetCore.Mvc;
@@ -13,10 +19,22 @@ namespace backend.Controllers
     public class InvoicesController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly IConfiguration _configuration;
+        private readonly IHttpClientFactory _httpClientFactory;
+        private readonly ILogger<InvoicesController> _logger;
 
-        public InvoicesController(AppDbContext context)
+        private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+
+        public InvoicesController(
+            AppDbContext context,
+            IConfiguration configuration,
+            IHttpClientFactory httpClientFactory,
+            ILogger<InvoicesController> logger)
         {
             _context = context;
+            _configuration = configuration;
+            _httpClientFactory = httpClientFactory;
+            _logger = logger;
         }
 
         private static string ResolveBookingStatusFromDetails(IEnumerable<BookingDetail> details)
@@ -306,6 +324,224 @@ namespace backend.Controllers
             await _context.SaveChangesAsync();
 
             return Ok(MapInvoice(invoice));
+        }
+
+        [HttpPost("{id:int}/momo")]
+        [Permission("PAY_INVOICE")]
+        public async Task<ActionResult<MomoCreatePaymentResponseDTO>> CreateInvoiceMomoPayment(
+            int id,
+            CancellationToken cancellationToken)
+        {
+            var invoice = await _context.Invoices
+                .AsNoTracking()
+                .FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
+
+            if (invoice == null)
+            {
+                return NotFound(new { message = "Khong tim thay hoa don." });
+            }
+
+            if (string.Equals(invoice.Status, "Completed", StringComparison.OrdinalIgnoreCase))
+            {
+                return BadRequest(new { message = "Hoa don nay da duoc thanh toan." });
+            }
+
+            var totalAmount = Convert.ToInt64(Math.Round(invoice.FinalTotal ?? 0, MidpointRounding.AwayFromZero));
+            if (totalAmount < 1000)
+            {
+                return BadRequest(new { message = "So tien thanh toan MoMo toi thieu la 1.000 VND." });
+            }
+
+            var partnerCode = _configuration["MoMo:PartnerCode"];
+            var accessKey = _configuration["MoMo:AccessKey"];
+            var secretKey = _configuration["MoMo:SecretKey"];
+            var endpoint = _configuration["MoMo:Endpoint"] ?? "https://test-payment.momo.vn/v2/gateway/api/create";
+            var redirectTemplate = _configuration["MoMo:InvoiceRedirectUrl"];
+            var ipnTemplate = _configuration["MoMo:IpnUrl"];
+            var storeName = _configuration["MoMo:StoreName"] ?? "Hotel";
+            var lang = _configuration["MoMo:Lang"] ?? "vi";
+
+            if (string.IsNullOrWhiteSpace(partnerCode) ||
+                string.IsNullOrWhiteSpace(accessKey) ||
+                string.IsNullOrWhiteSpace(secretKey))
+            {
+                return BadRequest(new
+                {
+                    message = "Chua cau hinh MoMo. Vui long dien PartnerCode, AccessKey va SecretKey trong appsettings."
+                });
+            }
+
+            var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            var orderId = BuildInvoiceOrderId(invoice.Code, id, now);
+            var requestId = $"REQ-{orderId}";
+            var redirectUrl = ResolveInvoiceUrlTemplate(
+                redirectTemplate,
+                $"{Request.Scheme}://localhost:5173/admin/invoices/{id}/payment",
+                id);
+            var ipnUrl = ResolveInvoiceUrlTemplate(
+                ipnTemplate,
+                $"{Request.Scheme}://{Request.Host}/api/momo/ipn",
+                id);
+            var orderInfo = BuildInvoiceOrderInfo(invoice);
+            var extraData = BuildInvoiceExtraData(id, invoice.BookingId, invoice.BookingDetailId);
+            const string requestType = "captureWallet";
+
+            var rawSignature =
+                $"accessKey={accessKey}&amount={totalAmount.ToString(CultureInfo.InvariantCulture)}&extraData={extraData}" +
+                $"&ipnUrl={ipnUrl}&orderId={orderId}&orderInfo={orderInfo}" +
+                $"&partnerCode={partnerCode}&redirectUrl={redirectUrl}" +
+                $"&requestId={requestId}&requestType={requestType}";
+
+            var signature = Sign(rawSignature, secretKey);
+
+            var payload = new MomoCreateRequestPayload
+            {
+                PartnerCode = partnerCode,
+                AccessKey = accessKey,
+                RequestType = requestType,
+                IpnUrl = ipnUrl,
+                RedirectUrl = redirectUrl,
+                OrderId = orderId,
+                Amount = totalAmount,
+                OrderInfo = orderInfo,
+                RequestId = requestId,
+                ExtraData = extraData,
+                Signature = signature,
+                Lang = lang,
+                AutoCapture = true,
+                StoreName = storeName,
+                StoreId = $"INVOICE-{id}"
+            };
+
+            var client = _httpClientFactory.CreateClient();
+            using var content = new StringContent(JsonSerializer.Serialize(payload, JsonOptions), Encoding.UTF8, "application/json");
+
+            HttpResponseMessage response;
+            string rawResponse;
+
+            try
+            {
+                response = await client.PostAsync(endpoint, content, cancellationToken);
+                rawResponse = await response.Content.ReadAsStringAsync(cancellationToken);
+            }
+            catch (HttpRequestException ex)
+            {
+                _logger.LogError(ex, "MoMo create invoice payment request failed for invoice {InvoiceId}.", id);
+                return StatusCode(502, new { message = "Khong the ket noi den cong thanh toan MoMo." });
+            }
+
+            var momoResponse = JsonSerializer.Deserialize<MomoCreatePaymentResponseDTO>(rawResponse, JsonOptions);
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning(
+                    "MoMo create invoice payment failed for invoice {InvoiceId} with status {StatusCode}. Body: {Body}",
+                    id,
+                    response.StatusCode,
+                    rawResponse);
+
+                return StatusCode((int)response.StatusCode, new
+                {
+                    message = momoResponse?.Message ?? "Khong the tao thanh toan MoMo cho hoa don.",
+                    resultCode = momoResponse?.ResultCode
+                });
+            }
+
+            if (momoResponse == null)
+            {
+                _logger.LogWarning("MoMo create invoice payment returned an unreadable payload: {Body}", rawResponse);
+                return StatusCode(502, new { message = "Phan hoi MoMo khong hop le." });
+            }
+
+            return Ok(momoResponse);
+        }
+
+        private static string BuildInvoiceOrderId(string? invoiceCode, int invoiceId, long timestamp)
+        {
+            var normalizedCode = new string((invoiceCode ?? $"INV-{invoiceId}")
+                .Where(ch => char.IsLetterOrDigit(ch) || ch is '-' or '_' or '.')
+                .ToArray());
+
+            return $"MOMO-{normalizedCode}-{timestamp}";
+        }
+
+        private static string BuildInvoiceOrderInfo(Invoice invoice)
+        {
+            var value = $"Thanh toan hoa don {invoice.Code ?? invoice.Id.ToString(CultureInfo.InvariantCulture)}";
+            return value[..Math.Min(255, value.Length)];
+        }
+
+        private static string BuildInvoiceExtraData(int invoiceId, int? bookingId, int? bookingDetailId)
+        {
+            var payload = new Dictionary<string, string?>
+            {
+                ["invoiceId"] = invoiceId.ToString(CultureInfo.InvariantCulture),
+                ["bookingId"] = bookingId?.ToString(CultureInfo.InvariantCulture),
+                ["detailId"] = bookingDetailId?.ToString(CultureInfo.InvariantCulture),
+                ["source"] = "admin-invoice-payment"
+            };
+
+            return Convert.ToBase64String(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(payload, JsonOptions)));
+        }
+
+        private static string ResolveInvoiceUrlTemplate(string? template, string fallback, int invoiceId)
+        {
+            var value = string.IsNullOrWhiteSpace(template) ? fallback : template.Trim();
+            return value.Replace("{invoiceId}", invoiceId.ToString(CultureInfo.InvariantCulture), StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string Sign(string rawData, string secretKey)
+        {
+            using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(secretKey));
+            var hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(rawData));
+            return Convert.ToHexString(hash).ToLowerInvariant();
+        }
+
+        private sealed class MomoCreateRequestPayload
+        {
+            [JsonPropertyName("partnerCode")]
+            public string PartnerCode { get; set; } = string.Empty;
+
+            [JsonPropertyName("accessKey")]
+            public string AccessKey { get; set; } = string.Empty;
+
+            [JsonPropertyName("requestType")]
+            public string RequestType { get; set; } = string.Empty;
+
+            [JsonPropertyName("ipnUrl")]
+            public string IpnUrl { get; set; } = string.Empty;
+
+            [JsonPropertyName("redirectUrl")]
+            public string RedirectUrl { get; set; } = string.Empty;
+
+            [JsonPropertyName("orderId")]
+            public string OrderId { get; set; } = string.Empty;
+
+            [JsonPropertyName("amount")]
+            public long Amount { get; set; }
+
+            [JsonPropertyName("orderInfo")]
+            public string OrderInfo { get; set; } = string.Empty;
+
+            [JsonPropertyName("requestId")]
+            public string RequestId { get; set; } = string.Empty;
+
+            [JsonPropertyName("extraData")]
+            public string ExtraData { get; set; } = string.Empty;
+
+            [JsonPropertyName("signature")]
+            public string Signature { get; set; } = string.Empty;
+
+            [JsonPropertyName("lang")]
+            public string Lang { get; set; } = "vi";
+
+            [JsonPropertyName("autoCapture")]
+            public bool AutoCapture { get; set; } = true;
+
+            [JsonPropertyName("storeName")]
+            public string StoreName { get; set; } = string.Empty;
+
+            [JsonPropertyName("storeId")]
+            public string StoreId { get; set; } = string.Empty;
         }
     }
 }

@@ -27,6 +27,7 @@ import AdminCheckInPage from "../pages/admin/AdminCheckInPage";
 import AdminInvoiceCreatePage from "../pages/admin/AdminInvoiceCreatePage";
 import AdminInvoiceDetailPage from "../pages/admin/AdminInvoiceDetailPage";
 import AdminInvoiceListPage from "../pages/admin/AdminInvoiceListPage";
+import AdminInvoicePaymentPage from "../pages/admin/AdminInvoicePaymentPage";
 import AdminStayPage from "../pages/admin/AdminStayPage";
 import AdminCheckOutPage from "../pages/admin/AdminCheckOutPage";
 import AdminPOSServicePage from "../pages/admin/AdminPOSServicePage";
@@ -171,6 +172,14 @@ const AppRoutes = () => {
           element={
             <RequirePermission permission="VIEW_INVOICES">
               <AdminInvoiceDetailPage />
+            </RequirePermission>
+          }
+        />
+        <Route
+          path="invoices/:invoiceId/payment"
+          element={
+            <RequirePermission permission="PAY_INVOICE">
+              <AdminInvoicePaymentPage />
             </RequirePermission>
           }
         />

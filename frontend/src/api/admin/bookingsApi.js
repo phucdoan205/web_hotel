@@ -62,6 +62,11 @@ export const bookingsApi = {
     return response.data;
   },
 
+  createMomoPayment: async (bookingId, payload) => {
+    const response = await apiClient.post(`/bookings/${bookingId}/payments/momo`, payload);
+    return response.data;
+  },
+
   checkInBookingDetail: async (bookingId, detailId) => {
     const response = await apiClient.patch(`/Bookings/${bookingId}/details/${detailId}/check-in`);
     return response.data;

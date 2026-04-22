@@ -55,6 +55,11 @@ export const invoicesApi = {
     const response = await apiClient.patch(`/Invoices/${id}/complete`, payload);
     return normalizeInvoice(response.data);
   },
+
+  async createMomoPayment(id) {
+    const response = await apiClient.post(`/Invoices/${id}/momo`);
+    return response.data;
+  },
 };
 
 export default invoicesApi;
