@@ -1,11 +1,32 @@
-const BASE_URL = "http://localhost:5291/api/Logs"; // sửa nếu khác port
+import apiClient from "../client";
 
-export const fetchAuditLogs = async (page = 1, pageSize = 50) => {
-  const res = await fetch(`${BASE_URL}?page=${page}&pageSize=${pageSize}`);
+const normalizePagedResponse = (data) => ({
+  items: data?.items ?? data?.Items ?? [],
+  totalCount: data?.totalCount ?? data?.TotalCount ?? 0,
+  page: data?.page ?? data?.Page ?? 1,
+  pageSize: data?.pageSize ?? data?.PageSize ?? 50,
+  totalPages: data?.totalPages ?? data?.TotalPages ?? 0,
+});
 
-  if (!res.ok) {
-    throw new Error("Không lấy được audit logs");
+export const fetchAuditLogs = async (page = 1, pageSize = 200) => {
+  const response = await apiClient.get("/Logs", {
+    params: { page, pageSize },
+  });
+
+  return normalizePagedResponse(response.data);
+};
+
+export const fetchAllAuditLogs = async () => {
+  const firstPage = await fetchAuditLogs(1, 200);
+  const totalPages = Math.max(firstPage.totalPages || 1, 1);
+
+  if (totalPages === 1) {
+    return firstPage.items;
   }
 
-  return res.json();
+  const pageResponses = await Promise.all(
+    Array.from({ length: totalPages - 1 }, (_, index) => fetchAuditLogs(index + 2, 200)),
+  );
+
+  return [firstPage, ...pageResponses].flatMap((pageResult) => pageResult.items);
 };

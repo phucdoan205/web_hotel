@@ -1,4 +1,3 @@
-﻿using AutoMapper;
 using backend.Common;
 using backend.Data;
 using backend.DTOs.Audit;
@@ -14,68 +13,84 @@ namespace backend.Controllers
     public class LogsController : ControllerBase
     {
         private readonly AppDbContext _context;
-        private readonly IMapper _mapper;
+        private readonly AuditLogViewService _auditLogViewService;
 
-        public LogsController(AppDbContext context, IMapper mapper)
+        public LogsController(AppDbContext context, AuditLogViewService auditLogViewService)
         {
             _context = context;
-            _mapper = mapper;
+            _auditLogViewService = auditLogViewService;
         }
 
-        // GET: api/Logs  (xem tất cả log + phân trang)
         [HttpGet]
         public async Task<ActionResult<PagedResponse<AuditLogResponseDTO>>> GetAllLogs(
             [FromQuery] int page = 1,
-            [FromQuery] int pageSize = 50)
+            [FromQuery] int pageSize = 50,
+            [FromQuery] string? employeeName = null,
+            [FromQuery] string? roleName = null,
+            [FromQuery] DateTime? fromDate = null,
+            [FromQuery] DateTime? toDate = null,
+            CancellationToken cancellationToken = default)
         {
-            var query = _context.AuditLogs
-                .Include(a => a.User)
-                    .ThenInclude(u => u.Role)
-                .OrderByDescending(a => a.LogDate)
-                .AsNoTracking();
-
-            var totalCount = await query.CountAsync();
+            var query = BuildLogQuery(employeeName, roleName, fromDate, toDate);
+            var totalCount = await query.CountAsync(cancellationToken);
 
             var logs = await query
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
 
-            var dtos = _mapper.Map<List<AuditLogResponseDTO>>(logs);
-
-            var result = new PagedResponse<AuditLogResponseDTO>(dtos, totalCount, page, pageSize);
-            return Ok(result);
+            var dtos = await _auditLogViewService.BuildResponseAsync(logs, cancellationToken);
+            return Ok(new PagedResponse<AuditLogResponseDTO>(dtos, totalCount, page, pageSize));
         }
 
-        // GET: api/Logs/user/5  (xem log theo UserId)
         [HttpGet("user/{userId}")]
         public async Task<ActionResult<PagedResponse<AuditLogResponseDTO>>> GetLogsByUserId(
             int userId,
             [FromQuery] int page = 1,
-            [FromQuery] int pageSize = 50)
+            [FromQuery] int pageSize = 50,
+            CancellationToken cancellationToken = default)
         {
             var query = _context.AuditLogs
+                .AsNoTracking()
                 .Include(a => a.User)
-                    .ThenInclude(u => u.Role)
+                    .ThenInclude(u => u!.Role)
                 .Where(a => a.UserId == userId)
-                .OrderByDescending(a => a.LogDate)
-                .AsNoTracking();
+                .OrderByDescending(a => a.LogDate);
 
-            var totalCount = await query.CountAsync();
-
+            var totalCount = await query.CountAsync(cancellationToken);
             var logs = await query
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
 
-            var dtos = _mapper.Map<List<AuditLogResponseDTO>>(logs);
-
-            var result = new PagedResponse<AuditLogResponseDTO>(dtos, totalCount, page, pageSize);
-            return Ok(result);
+            var dtos = await _auditLogViewService.BuildResponseAsync(logs, cancellationToken);
+            return Ok(new PagedResponse<AuditLogResponseDTO>(dtos, totalCount, page, pageSize));
         }
 
-        // ====================== SETTINGS ======================
-        // GET: api/Logs/settings
+        [HttpGet("filters")]
+        public async Task<ActionResult<AuditLogFilterOptionsDTO>> GetFilterOptions(CancellationToken cancellationToken = default)
+        {
+            var response = await _auditLogViewService.GetFilterOptionsAsync(cancellationToken);
+            return Ok(response);
+        }
+
+        [HttpGet("export")]
+        public async Task<IActionResult> ExportLogs(
+            [FromQuery] string? employeeName = null,
+            [FromQuery] string? roleName = null,
+            [FromQuery] DateTime? fromDate = null,
+            [FromQuery] DateTime? toDate = null,
+            CancellationToken cancellationToken = default)
+        {
+            var logs = await BuildLogQuery(employeeName, roleName, fromDate, toDate)
+                .ToListAsync(cancellationToken);
+
+            var dtos = await _auditLogViewService.BuildResponseAsync(logs, cancellationToken);
+            var content = _auditLogViewService.ExportSpreadsheet(dtos);
+            var fileName = $"audit-log-{DateTime.UtcNow:yyyyMMddHHmmss}.xls";
+            return File(content, "application/vnd.ms-excel", fileName);
+        }
+
         [HttpGet("settings")]
         public async Task<ActionResult<AuditLogSettingDTO>> GetRetentionSettings()
         {
@@ -91,11 +106,9 @@ namespace backend.Controllers
                 RetentionHours = GetInt(settings, "RetentionHours"),
                 RetentionMinutes = GetInt(settings, "RetentionMinutes"),
                 RetentionSeconds = GetInt(settings, "RetentionSeconds"),
-
                 CleanupIntervalYears = GetInt(settings, "CleanupIntervalYears"),
                 CleanupIntervalMonths = GetInt(settings, "CleanupIntervalMonths"),
                 CleanupIntervalDays = GetInt(settings, "CleanupIntervalDays"),
-
                 CleanupHour = GetInt(settings, "CleanupHour", 20),
                 CleanupMinute = GetInt(settings, "CleanupMinute", 0)
             };
@@ -103,7 +116,6 @@ namespace backend.Controllers
             return Ok(dto);
         }
 
-        // POST: api/Logs/settings
         [HttpPost("settings")]
         public async Task<IActionResult> UpdateRetentionSettings([FromBody] AuditLogSettingDTO dto)
         {
@@ -115,20 +127,54 @@ namespace backend.Controllers
             await UpdateSettingAsync("RetentionHours", dto.RetentionHours.ToString());
             await UpdateSettingAsync("RetentionMinutes", dto.RetentionMinutes.ToString());
             await UpdateSettingAsync("RetentionSeconds", dto.RetentionSeconds.ToString());
-
             await UpdateSettingAsync("CleanupIntervalYears", dto.CleanupIntervalYears.ToString());
             await UpdateSettingAsync("CleanupIntervalMonths", dto.CleanupIntervalMonths.ToString());
             await UpdateSettingAsync("CleanupIntervalDays", dto.CleanupIntervalDays.ToString());
-
             await UpdateSettingAsync("CleanupHour", dto.CleanupHour.ToString());
             await UpdateSettingAsync("CleanupMinute", dto.CleanupMinute.ToString());
 
             await _context.SaveChangesAsync();
-
             return Ok(new { message = "Đã cập nhật cấu hình Audit Log thành công." });
         }
 
-        // ====================== HELPER METHODS (đã rút gọn) ======================
+        private IQueryable<AuditLog> BuildLogQuery(
+            string? employeeName,
+            string? roleName,
+            DateTime? fromDate,
+            DateTime? toDate)
+        {
+            var query = _context.AuditLogs
+                .AsNoTracking()
+                .Include(a => a.User)
+                    .ThenInclude(u => u!.Role)
+                .AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(employeeName))
+            {
+                var normalizedName = employeeName.Trim();
+                query = query.Where(a => a.User != null && a.User.FullName.Contains(normalizedName));
+            }
+
+            if (!string.IsNullOrWhiteSpace(roleName))
+            {
+                var normalizedRole = roleName.Trim();
+                query = query.Where(a => a.User != null && a.User.Role != null && a.User.Role.Name == normalizedRole);
+            }
+
+            if (fromDate.HasValue)
+            {
+                var start = fromDate.Value.Date;
+                query = query.Where(a => a.LogDate >= start);
+            }
+
+            if (toDate.HasValue)
+            {
+                var endExclusive = toDate.Value.Date.AddDays(1);
+                query = query.Where(a => a.LogDate < endExclusive);
+            }
+
+            return query.OrderByDescending(a => a.LogDate);
+        }
 
         private async Task EnsureDefaultSettingsAsync()
         {
@@ -137,16 +183,14 @@ namespace backend.Controllers
                 .ToListAsync();
 
             var defaults = new Dictionary<string, string>
-    {
-        { "RetentionYears", "0" }, { "RetentionMonths", "6" }, { "RetentionDays", "0" },
-        { "RetentionHours", "0" }, { "RetentionMinutes", "0" }, { "RetentionSeconds", "0" },
+            {
+                { "RetentionYears", "0" }, { "RetentionMonths", "6" }, { "RetentionDays", "0" },
+                { "RetentionHours", "0" }, { "RetentionMinutes", "0" }, { "RetentionSeconds", "0" },
+                { "CleanupIntervalYears", "0" }, { "CleanupIntervalMonths", "3" }, { "CleanupIntervalDays", "0" },
+                { "CleanupHour", "20" }, { "CleanupMinute", "0" }
+            };
 
-        { "CleanupIntervalYears", "0" }, { "CleanupIntervalMonths", "3" }, { "CleanupIntervalDays", "0" },
-
-        { "CleanupHour", "20" }, { "CleanupMinute", "0" }   // mặc định 20:00
-    };
-
-            bool changed = false;
+            var changed = false;
             foreach (var kv in defaults)
             {
                 if (!existingNames.Contains(kv.Key))
@@ -162,7 +206,9 @@ namespace backend.Controllers
             }
 
             if (changed)
+            {
                 await _context.SaveChangesAsync();
+            }
         }
 
         private async Task<Dictionary<string, string>> GetAllSettingsDictAsync()

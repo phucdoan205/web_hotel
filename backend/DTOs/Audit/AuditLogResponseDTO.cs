@@ -8,5 +8,8 @@
         public string? RoleName { get; set; }
         public DateTime LogDate { get; set; }
         public string LogData { get; set; } = string.Empty;
+        public string Summary { get; set; } = string.Empty;
+        public int TotalEvents { get; set; }
+        public List<AuditLogEventResponseDTO> Events { get; set; } = new();
     }
 }

@@ -59,6 +59,7 @@ builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddSingleton<NotificationRealtimeService>();
 builder.Services.AddScoped<NotificationService>();
 builder.Services.AddScoped<IEmailService, SmtpEmailService>();
+builder.Services.AddScoped<AuditLogViewService>();
 
 //Dùng cho AuditLog, không được xoá
 builder.Services.AddHttpContextAccessor();
