@@ -126,13 +126,6 @@ const AdminCheckInPage = () => {
     enabled: Boolean(weekStartKey && weekEndKey),
   });
 
-  const arrivalsQuery = useQuery({
-    queryKey: ["arrivals", selectedDate],
-    queryFn: () => bookingsApi.getArrivals({ date: selectedDate, page: 1, pageSize: 200 }),
-    staleTime: 1000 * 60 * 5,
-    enabled: Boolean(selectedDate),
-  });
-
   const weeklyBookings = useMemo(() => {
     return (weeklyBookingsQuery.data?.items || []).filter((booking) =>
       ACTIVE_BOOKING_STATUSES.includes(booking.status)
@@ -216,12 +209,13 @@ const AdminCheckInPage = () => {
 
   const arrivals = useMemo(
     () =>
-      (arrivalsQuery.data?.items || []).filter((booking) =>
-        (booking.bookingDetails || []).some((detail) =>
-          ["Pending", "Confirmed"].includes(detail?.status),
-        ),
+      weeklyBookings.filter((booking) =>
+        (booking.bookingDetails || []).some((detail) => {
+          const checkInKey = toDateKey(detail?.checkInDate);
+          return checkInKey === selectedDate && ["Pending", "Confirmed"].includes(detail?.status);
+        }),
       ),
-    [arrivalsQuery.data],
+    [selectedDate, weeklyBookings],
   );
 
   // Show all arrival room entries for the date (both paid and unpaid) so receptionist
@@ -235,10 +229,9 @@ const AdminCheckInPage = () => {
     [arrivals, selectedDate],
   );
 
-  const isLoading =
-    activeTab === "schedule" ? weeklyBookingsQuery.isLoading : arrivalsQuery.isLoading;
+  const isLoading = weeklyBookingsQuery.isLoading;
 
-  const isError = activeTab === "schedule" ? weeklyBookingsQuery.isError : arrivalsQuery.isError;
+  const isError = weeklyBookingsQuery.isError;
 
   return (
     <div className="animate-in space-y-8 p-8 fade-in duration-700">

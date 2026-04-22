@@ -5,7 +5,14 @@ const ACTION_LABELS = {
   SOFT_DELETE: "SOFT_DELETE",
 };
 
-const HIDDEN_OBJECTS = new Set(["Notification", "BookingDetail", "Guest"]);
+const HIDDEN_OBJECTS = new Set([
+  "Notification",
+  "BookingDetail",
+  "Guest",
+  "OrderService",
+  "OrderServiceDetail",
+  "Room",
+]);
 
 const IGNORED_FIELDS = new Set([
   "Id",
@@ -522,6 +529,84 @@ const buildVoucherEvent = (event, fallbackEventId) => {
   };
 };
 
+const buildInvoiceEvent = (event, fallbackEventId) => {
+  const actionType = getValue(event, "actionType", "ActionType");
+  const oldData = getEventData(event, "old");
+  const newData = getEventData(event);
+  const activeData = actionType === "DELETE" ? oldData : newData;
+  const invoiceId = formatValue(getValue(activeData, "Id", "id", "InvoiceId", "invoiceId"));
+  const roomNumber = formatValue(getValue(activeData, "RoomNumber", "roomNumber"));
+
+  let summary = `Đã tạo hóa đơn cho phòng ${roomNumber}.`;
+  if (actionType === "UPDATE") {
+    summary = `Hóa đơn của phòng ${roomNumber} đã được cập nhật.`;
+  } else if (actionType === "DELETE") {
+    summary = `Hóa đơn của phòng ${roomNumber} đã bị xóa.`;
+  }
+
+  return {
+    eventId: getValue(event, "eventId", "EventId") ?? fallbackEventId,
+    timestamp: getValue(event, "timestamp", "Timestamp"),
+    actionType,
+    actionLabel: toActionLabel(actionType),
+    objectName: "Invoice",
+    summary,
+    detail: summary,
+  };
+};
+
+const buildPaymentEvent = (event, rawEvents, fallbackEventId) => {
+  const actionType = getValue(event, "actionType", "ActionType");
+  const oldData = getEventData(event, "old");
+  const newData = getEventData(event);
+  const activeData = actionType === "DELETE" ? oldData : newData;
+  const amountPaid = formatValue(getValue(activeData, "AmountPaid", "amountPaid"));
+  const transactionCode = formatValue(
+    getValue(activeData, "TransactionCode", "transactionCode"),
+  );
+  const status = formatValue(getValue(activeData, "Status", "status"));
+  const invoiceId = formatValue(getValue(activeData, "InvoiceId", "invoiceId"));
+  const relatedInvoiceEvent = rawEvents.find(
+    (item) => getValue(item, "entityType", "EntityType") === "Invoice",
+  );
+  const relatedInvoiceData = getEventData(relatedInvoiceEvent);
+  const roomNumber = formatValue(getValue(relatedInvoiceData, "RoomNumber", "roomNumber"));
+
+  const paymentTarget =
+    roomNumber !== "-"
+      ? `hóa đơn của phòng ${roomNumber}`
+      : invoiceId !== "-"
+        ? `hóa đơn ${invoiceId}`
+        : transactionCode !== "-"
+          ? `mã ${transactionCode}`
+          : "giao dịch";
+
+  let summary = `Thanh toán ${paymentTarget} đã thành công.`;
+
+  if (status !== "-" && status !== "Completed") {
+    summary = `Thanh toán ${paymentTarget} ở trạng thái ${status}.`;
+  }
+
+  if (actionType === "DELETE") {
+    summary = `Thanh toán ${paymentTarget} đã bị xóa.`;
+  }
+
+  const detailParts = [summary];
+  if (amountPaid !== "-") {
+    detailParts.push(`Số tiền: ${amountPaid}.`);
+  }
+
+  return {
+    eventId: getValue(event, "eventId", "EventId") ?? fallbackEventId,
+    timestamp: getValue(event, "timestamp", "Timestamp"),
+    actionType,
+    actionLabel: toActionLabel(actionType),
+    objectName: "Payment",
+    summary,
+    detail: detailParts.join(" "),
+  };
+};
+
 const buildGenericEvent = (event, fallbackEventId) => {
   const actionType = getValue(event, "actionType", "ActionType");
   const entityType = getValue(event, "entityType", "EntityType");
@@ -581,6 +666,10 @@ const buildEvent = (event, rawEvents, lookups, fallbackEventId) => {
       return buildRoleEvent(event, fallbackEventId);
     case "Voucher":
       return buildVoucherEvent(event, fallbackEventId);
+    case "Invoice":
+      return buildInvoiceEvent(event, fallbackEventId);
+    case "Payment":
+      return buildPaymentEvent(event, rawEvents, fallbackEventId);
     default:
       return buildGenericEvent(event, fallbackEventId);
   }
