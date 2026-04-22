@@ -691,19 +691,27 @@ export default function EquipmentManagementSection({
                     ["liquidatedQuantity", "Số lượng thanh lý"],
                     ["basePrice", "Giá nhập (VND)"],
                     ["defaultPriceIfLost", "Giá đền bù (VND)"],
-                  ].map(([name, label]) => (
-                    <label key={name} className="flex flex-col gap-2">
-                      <span className="text-sm font-bold text-slate-700">{label}</span>
-                      <input
-                        type="number"
-                        min="0"
-                        name={name}
-                        value={formData[name]}
-                        onChange={handleFormChange}
-                        className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-sky-300 focus:bg-white focus:ring-2 focus:ring-sky-100"
-                      />
-                    </label>
-                  ))}
+                  ].map(([name, label]) => {
+                    const isLocked = name === "inUseQuantity" || name === "damagedQuantity";
+
+                    return (
+                      <label key={name} className="flex flex-col gap-2">
+                        <span className="text-sm font-bold text-slate-700">{label}</span>
+                        <input
+                          type="number"
+                          min="0"
+                          name={name}
+                          value={formData[name]}
+                          onChange={handleFormChange}
+                          disabled={isLocked}
+                          className={
+                            "rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-sky-300 focus:ring-2 focus:ring-sky-100 " +
+                            (isLocked ? "bg-gray-100 text-gray-500 cursor-not-allowed" : "bg-gray-50 focus:bg-white")
+                          }
+                        />
+                      </label>
+                    );
+                  })}
                 </div>
 
                 <div className="rounded-2xl bg-slate-50 px-4 py-3">
