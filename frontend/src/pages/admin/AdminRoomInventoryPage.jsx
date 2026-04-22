@@ -10,8 +10,12 @@ import {
 import RoomStats from "../../components/admin/rooms/RoomStats";
 import RoomCard from "../../components/admin/rooms/RoomCard";
 import ServiceCard from "../../components/admin/rooms/ServiceCard";
+import { hasPermission } from "../../utils/permissions";
 
 const AdminRoomInventoryPage = () => {
+  const canViewRooms = hasPermission("VIEW_ROOMS");
+  const canCreateRooms = hasPermission("CREATE_ROOMS");
+  const canViewServices = hasPermission("VIEW_SERVICES");
   const categories = ["All Rooms", "Standard", "Deluxe", "Suite", "Penthouse"];
 
   const rooms = [
@@ -49,6 +53,12 @@ const AdminRoomInventoryPage = () => {
 
   return (
     <div className="space-y-6">
+      {!canViewRooms ? (
+        <div className="rounded-[2rem] border border-amber-200 bg-amber-50 px-5 py-6 text-sm font-bold text-amber-900">
+          Bạn không có quyền xem kho phòng.
+        </div>
+      ) : null}
+
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -66,9 +76,11 @@ const AdminRoomInventoryPage = () => {
               className="pl-11 pr-4 py-2.5 bg-gray-100/50 rounded-xl text-sm outline-none w-64"
             />
           </div>
-          <button className="flex items-center gap-2 px-6 py-2.5 bg-orange-600 rounded-xl text-sm font-bold text-white hover:bg-orange-700 shadow-lg shadow-orange-100 transition-all">
-            <Plus className="size-4" /> New Room
-          </button>
+          {canCreateRooms ? (
+            <button className="flex items-center gap-2 px-6 py-2.5 bg-orange-600 rounded-xl text-sm font-bold text-white hover:bg-orange-700 shadow-lg shadow-orange-100 transition-all">
+              <Plus className="size-4" /> New Room
+            </button>
+          ) : null}
         </div>
       </div>
 
@@ -94,17 +106,19 @@ const AdminRoomInventoryPage = () => {
         ))}
 
         {/* Add New Room Placeholder (như trong ảnh) */}
-        <button className="border-2 border-dashed border-gray-200 rounded-4xl flex flex-col items-center justify-center gap-3 text-gray-400 hover:bg-gray-50 transition-all min-h-87.5">
-          <div className="size-12 rounded-full bg-sky-50 flex items-center justify-center text-sky-500 font-bold text-xl">
-            +
-          </div>
-          <div className="text-center px-6">
-            <p className="font-bold text-gray-900 text-sm">Add New Room</p>
-            <p className="text-[10px] font-medium text-gray-400 mt-1">
-              Add a new unit to inventory
-            </p>
-          </div>
-        </button>
+        {canCreateRooms ? (
+          <button className="border-2 border-dashed border-gray-200 rounded-4xl flex flex-col items-center justify-center gap-3 text-gray-400 hover:bg-gray-50 transition-all min-h-87.5">
+            <div className="size-12 rounded-full bg-sky-50 flex items-center justify-center text-sky-500 font-bold text-xl">
+              +
+            </div>
+            <div className="text-center px-6">
+              <p className="font-bold text-gray-900 text-sm">Add New Room</p>
+              <p className="text-[10px] font-medium text-gray-400 mt-1">
+                Add a new unit to inventory
+              </p>
+            </div>
+          </button>
+        ) : null}
       </div>
       {/* Hotel Services Management Section */}
       <div className="mt-12">
@@ -112,9 +126,11 @@ const AdminRoomInventoryPage = () => {
           <h3 className="text-xl font-black text-gray-900">
             Hotel Services Management
           </h3>
-          <button className="text-orange-600 text-xs font-bold hover:underline">
-            View All Services →
-          </button>
+          {canViewServices ? (
+            <button className="text-orange-600 text-xs font-bold hover:underline">
+              View All Services →
+            </button>
+          ) : null}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

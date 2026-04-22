@@ -5,6 +5,7 @@ import GuestFlowStats from "../../components/receptionist/checkinout/GuestFlowSt
 import GuestTable from "../../components/receptionist/checkinout/GuestTable";
 import { bookingsApi } from "../../api/admin/bookingsApi";
 import { buildBookingRoomEntries } from "../../utils/bookingRoomEntries";
+import { hasPermission } from "../../utils/permissions";
 import {
   getStoredCheckedOutRoomEntries,
   subscribeBookingRoomFlowState,
@@ -12,6 +13,9 @@ import {
 import { formatVietnamDate, getVietnamDateKey } from "../../utils/vietnamTime";
 
 const AdminCheckOutPage = () => {
+  const canViewBookings = hasPermission("VIEW_BOOKINGS");
+  const canCheckOutBooking = hasPermission("CHECKOUT_BOOKING");
+  const canCreateInvoices = hasPermission("CREATE_INVOICES");
   const [screenNotice, setScreenNotice] = useState(null);
   const [, setRoomFlowVersion] = useState(0);
   const todayKey = getVietnamDateKey();
@@ -147,7 +151,11 @@ const AdminCheckOutPage = () => {
         </p>
       </div>
 
-      {isLoading ? (
+      {!canViewBookings ? (
+        <div className="rounded-[2rem] border border-amber-200 bg-amber-50 px-5 py-6 text-sm font-bold text-amber-900">
+          Bạn không có quyền xem danh sách trả phòng.
+        </div>
+      ) : isLoading ? (
         <div className="py-10 text-center text-gray-400">Loading...</div>
       ) : isError ? (
         <div className="py-10 text-center text-red-400">Không tải được dữ liệu trả phòng.</div>
@@ -167,6 +175,7 @@ const AdminCheckOutPage = () => {
               data={checkedOutRooms}
               dataMode="room"
               onInvoiceCreated={(roomEntry) => {
+                if (!canCreateInvoices) return;
                 setScreenNotice({
                   type: "success",
                   title: "Đã tạo hóa đơn",
@@ -174,7 +183,7 @@ const AdminCheckOutPage = () => {
                 });
               }}
               onActionSuccess={(result) => {
-                if (result?.notice) {
+                if (result?.notice && canCheckOutBooking) {
                   setScreenNotice(result.notice);
                 }
               }}

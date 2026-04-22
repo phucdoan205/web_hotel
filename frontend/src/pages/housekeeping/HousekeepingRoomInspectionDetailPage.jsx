@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, ArrowLeft, CheckCircle2, Search } from "lucide-react";
 import { housekeepingApi } from "../../api/admin/housekeepingApi";
 import ReportIssueModal from "../../components/housekeeping/inspection/ReportIssueModal";
+import { hasPermission } from "../../utils/permissions";
 
 const getStatusClass = (status) => {
   switch (status) {
@@ -21,6 +22,9 @@ const getStatusClass = (status) => {
 };
 
 export default function HousekeepingRoomInspectionDetailPage() {
+  const canViewHousekeeping = hasPermission("VIEW_HOUSEKEEPING");
+  const canAssignHousekeeping = hasPermission("ASSIGN_HOUSEKEEPING");
+  const canCreateCompensation = hasPermission("CREATE_COMPENSATION");
   const { roomId } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -30,7 +34,7 @@ export default function HousekeepingRoomInspectionDetailPage() {
   const { data, isLoading, error } = useQuery({
     queryKey: ["housekeepingTaskDetail", roomId],
     queryFn: () => housekeepingApi.getTaskDetail(roomId),
-    enabled: Boolean(roomId),
+    enabled: Boolean(roomId) && canViewHousekeeping,
   });
 
   const acceptMutation = useMutation({
@@ -72,37 +76,44 @@ export default function HousekeepingRoomInspectionDetailPage() {
   if (!roomId) {
     return (
       <div className="rounded-[2rem] border border-rose-100 bg-rose-50 p-8 text-sm font-bold text-rose-700">
-        Không tìm thấy mã phòng.
+        Khong tim thay ma phong.
       </div>
     );
   }
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
+      {!canViewHousekeeping ? (
+        <div className="rounded-[2rem] border border-amber-200 bg-amber-50 p-8 text-sm font-bold text-amber-900">
+          Ban khong co quyen xem checklist don phong.
+        </div>
+      ) : null}
+
       <div className="flex items-center gap-4">
         <Link
           to="/admin/housekeeping/tasks"
           className="inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-3 text-sm font-black text-gray-600 shadow-sm ring-1 ring-gray-100 transition-all hover:bg-gray-50"
         >
           <ArrowLeft className="size-4" />
-          Quay lại
+          Quay lai
         </Link>
         <div>
-          <h1 className="text-3xl font-black text-gray-900">Checklist phòng {data?.roomNumber ?? roomId}</h1>
+          <h1 className="text-3xl font-black text-gray-900">Checklist phong {data?.roomNumber ?? roomId}</h1>
           <p className="mt-1 text-sm font-bold text-gray-400">
-            Kiểm tra vật tư, ghi nhận hỏng/mất và hoàn tất nhiệm vụ dọn phòng.
+            Kiem tra vat tu, ghi nhan hong mat va hoan tat nhiem vu don phong.
           </p>
         </div>
       </div>
 
-      {isLoading ? (
+      {!canViewHousekeeping ? null : isLoading ? (
         <div className="rounded-[2.5rem] border border-gray-100 bg-white p-10 shadow-sm">
           <div className="h-6 w-56 animate-pulse rounded-full bg-gray-100" />
           <div className="mt-6 h-40 animate-pulse rounded-[2rem] bg-gray-100" />
         </div>
       ) : error ? (
         <div className="rounded-[2rem] border border-rose-100 bg-rose-50 p-8 text-sm font-bold text-rose-700">
-          {error.response?.data || "Bạn không thể mở checklist này vì phòng đã được tài khoản khác nhận nhiệm vụ."}
+          {error.response?.data ||
+            "Ban khong the mo checklist nay vi phong da duoc tai khoan khac nhan nhiem vu."}
         </div>
       ) : data ? (
         <>
@@ -113,14 +124,14 @@ export default function HousekeepingRoomInspectionDetailPage() {
                   <p className="text-[11px] font-black uppercase tracking-widest text-blue-500">
                     {data.roomTypeName}
                   </p>
-                  <h2 className="mt-2 text-3xl font-black text-gray-900">
-                    Phòng {data.roomNumber}
-                  </h2>
+                  <h2 className="mt-2 text-3xl font-black text-gray-900">Phong {data.roomNumber}</h2>
                   <div className="mt-4 flex flex-wrap gap-3">
                     <span className="rounded-full bg-gray-100 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-gray-500">
-                      Tầng {data.floor ?? "-"}
+                      Tang {data.floor ?? "-"}
                     </span>
-                    <span className={`rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-wide ${getStatusClass(data.cleaningStatus)}`}>
+                    <span
+                      className={`rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-wide ${getStatusClass(data.cleaningStatus)}`}
+                    >
                       {data.cleaningStatus}
                     </span>
                   </div>
@@ -139,33 +150,39 @@ export default function HousekeepingRoomInspectionDetailPage() {
             </div>
 
             <div className="rounded-[2.5rem] border border-gray-100 bg-white p-8 shadow-sm">
-              <h3 className="text-sm font-black uppercase tracking-widest text-gray-400">
-                Hành động
-              </h3>
+              <h3 className="text-sm font-black uppercase tracking-widest text-gray-400">Hanh dong</h3>
               <div className="mt-5 space-y-3">
-                {data.cleaningStatus === "Dirty" || data.cleaningStatus === "Pickup" ? (
+                {(data.cleaningStatus === "Dirty" || data.cleaningStatus === "Pickup") &&
+                canAssignHousekeeping ? (
                   <button
                     type="button"
                     onClick={() => acceptMutation.mutate()}
                     disabled={acceptMutation.isPending}
                     className="w-full rounded-2xl bg-blue-600 px-5 py-4 text-sm font-black uppercase tracking-wide text-white transition-all hover:bg-blue-700 disabled:opacity-60"
                   >
-                    Nhận nhiệm vụ
+                    Nhan nhiem vu
                   </button>
                 ) : null}
 
-                <button
-                  type="button"
-                  onClick={() => completeMutation.mutate()}
-                  disabled={completeMutation.isPending || data.cleaningStatus !== "InProgress" || data.isLockedByOther}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-500 px-5 py-4 text-sm font-black uppercase tracking-wide text-white transition-all hover:bg-emerald-600 disabled:opacity-60"
-                >
-                  <CheckCircle2 className="size-4" />
-                  Hoàn tất dọn phòng
-                </button>
+                {canAssignHousekeeping ? (
+                  <button
+                    type="button"
+                    onClick={() => completeMutation.mutate()}
+                    disabled={
+                      completeMutation.isPending ||
+                      data.cleaningStatus !== "InProgress" ||
+                      data.isLockedByOther
+                    }
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-500 px-5 py-4 text-sm font-black uppercase tracking-wide text-white transition-all hover:bg-emerald-600 disabled:opacity-60"
+                  >
+                    <CheckCircle2 className="size-4" />
+                    Hoan tat don phong
+                  </button>
+                ) : null}
 
                 <div className="rounded-[1.5rem] border border-gray-100 bg-gray-50 p-4 text-sm font-semibold text-gray-600">
-                  Khi hoàn tất, trạng thái dọn phòng sẽ được chuyển sang <span className="font-black text-emerald-600">Clean</span>.
+                  Khi hoan tat, trang thai don phong se duoc chuyen sang{" "}
+                  <span className="font-black text-emerald-600">Clean</span>.
                 </div>
               </div>
             </div>
@@ -174,9 +191,9 @@ export default function HousekeepingRoomInspectionDetailPage() {
           <div className="rounded-[2.5rem] border border-gray-100 bg-white p-8 shadow-sm">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div>
-                <h3 className="text-2xl font-black text-gray-900">Checklist vật tư phòng</h3>
+                <h3 className="text-2xl font-black text-gray-900">Checklist vat tu phong</h3>
                 <p className="mt-1 text-sm font-bold text-gray-400">
-                  Danh sách vật tư hiện có trong phòng. Bấm báo hỏng/mất để ghi nhận và cập nhật hệ thống.
+                  Danh sach vat tu hien co trong phong. Bam bao hong mat de ghi nhan va cap nhat he thong.
                 </p>
               </div>
 
@@ -185,7 +202,7 @@ export default function HousekeepingRoomInspectionDetailPage() {
                 <input
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
-                  placeholder="Tìm nhanh vật tư..."
+                  placeholder="Tim nhanh vat tu..."
                   className="w-full rounded-2xl border border-gray-100 bg-white py-3 pl-11 pr-4 text-sm font-bold text-gray-700 shadow-sm outline-none transition-all focus:border-blue-200 focus:ring-2 focus:ring-blue-50 lg:w-80"
                 />
               </label>
@@ -195,8 +212,11 @@ export default function HousekeepingRoomInspectionDetailPage() {
               <table className="w-full min-w-[860px] text-left">
                 <thead className="border-b border-gray-100">
                   <tr>
-                    {["Tên vật tư", "Mã", "Số lượng chuẩn", "Đơn giá đền bù", "Trạng thái"].map((heading) => (
-                      <th key={heading} className="px-4 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400 first:px-0">
+                    {["Ten vat tu", "Ma", "So luong chuan", "Don gia den bu", "Trang thai"].map((heading) => (
+                      <th
+                        key={heading}
+                        className="px-4 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400 first:px-0"
+                      >
                         {heading}
                       </th>
                     ))}
@@ -208,27 +228,27 @@ export default function HousekeepingRoomInspectionDetailPage() {
                       <td className="px-0 py-4">
                         <div>
                           <p className="text-sm font-black text-gray-900">{item.equipmentName || item.itemType}</p>
-                          <p className="mt-1 text-xs font-bold text-gray-400">{item.note || "Không có ghi chú"}</p>
+                          <p className="mt-1 text-xs font-bold text-gray-400">{item.note || "Khong co ghi chu"}</p>
                         </div>
                       </td>
                       <td className="px-4 py-4 text-sm font-black text-gray-500">{item.equipmentCode || "-"}</td>
                       <td className="px-4 py-4 text-sm font-black text-gray-900">{item.quantity ?? 0}</td>
                       <td className="px-4 py-4 text-sm font-black text-amber-700">
-                        {Number(item.priceIfLost ?? 0).toLocaleString("vi-VN")} đ
+                        {Number(item.priceIfLost ?? 0).toLocaleString("vi-VN")} d
                       </td>
                       <td className="px-4 py-4">
-                        {Number(item.quantity ?? 0) > 0 ? (
+                        {Number(item.quantity ?? 0) > 0 && canCreateCompensation ? (
                           <button
                             type="button"
                             onClick={() => setSelectedItem(item)}
                             className="inline-flex items-center gap-2 rounded-2xl bg-rose-50 px-4 py-2 text-xs font-black uppercase tracking-wide text-rose-600 transition-all hover:bg-rose-100"
                           >
                             <AlertTriangle className="size-4" />
-                            Báo hỏng / mất
+                            Bao hong / mat
                           </button>
                         ) : (
                           <span className="rounded-full bg-gray-100 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-gray-400">
-                            Đã hết
+                            {Number(item.quantity ?? 0) > 0 ? "Khong co quyen bao hong / mat" : "Da het"}
                           </span>
                         )}
                       </td>
@@ -241,14 +261,16 @@ export default function HousekeepingRoomInspectionDetailPage() {
         </>
       ) : null}
 
-      <ReportIssueModal
-        key={selectedItem?.id ?? "report-issue"}
-        open={Boolean(selectedItem)}
-        item={selectedItem}
-        isPending={reportIssueMutation.isPending}
-        onClose={() => setSelectedItem(null)}
-        onSubmit={(payload) => reportIssueMutation.mutate(payload)}
-      />
+      {canCreateCompensation ? (
+        <ReportIssueModal
+          key={selectedItem?.id ?? "report-issue"}
+          open={Boolean(selectedItem)}
+          item={selectedItem}
+          isPending={reportIssueMutation.isPending}
+          onClose={() => setSelectedItem(null)}
+          onSubmit={(payload) => reportIssueMutation.mutate(payload)}
+        />
+      ) : null}
     </div>
   );
 }

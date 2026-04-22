@@ -12,6 +12,7 @@ import {
   WandSparkles,
 } from "lucide-react";
 import { housekeepingApi } from "../../api/admin/housekeepingApi";
+import { hasPermission } from "../../utils/permissions";
 
 const STATUS_OPTIONS = [
   { value: "", label: "Tất cả trạng thái" },
@@ -100,6 +101,8 @@ function TaskCard({ task, onAccept, onOpenChecklist, isAccepting }) {
   const actionable = isActionableTask(task);
   const canAccept = actionable && !task.isLockedByOther;
   const canContinue = actionable && task.isAssignedToCurrentUser;
+  const canViewHousekeeping = hasPermission("VIEW_HOUSEKEEPING");
+  const canAssignHousekeeping = hasPermission("ASSIGN_HOUSEKEEPING");
 
   return (
     <article className="rounded-[2rem] border border-sky-100 bg-white/95 p-6 shadow-sm shadow-sky-100/70 transition hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-md">
@@ -174,7 +177,7 @@ function TaskCard({ task, onAccept, onOpenChecklist, isAccepting }) {
         </div>
 
         <div className="flex w-full shrink-0 flex-col gap-3 xl:w-56">
-          {canAccept ? (
+          {canAccept && canAssignHousekeeping ? (
             <button
               type="button"
               onClick={() => onAccept(task.roomId)}
@@ -185,7 +188,7 @@ function TaskCard({ task, onAccept, onOpenChecklist, isAccepting }) {
             </button>
           ) : null}
 
-          {!actionable || task.isAssignedToCurrentUser ? (
+          {canViewHousekeeping && (!actionable || task.isAssignedToCurrentUser) ? (
             <button
               type="button"
               onClick={() => onOpenChecklist(task.roomId)}
@@ -207,6 +210,8 @@ function TaskCard({ task, onAccept, onOpenChecklist, isAccepting }) {
 }
 
 export default function HousekeepingTasksPage() {
+  const canViewHousekeeping = hasPermission("VIEW_HOUSEKEEPING");
+  const canAssignHousekeeping = hasPermission("ASSIGN_HOUSEKEEPING");
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
@@ -223,6 +228,7 @@ export default function HousekeepingTasksPage() {
   const { data, isLoading, error } = useQuery({
     queryKey: ["housekeepingTasks", queryParams],
     queryFn: () => housekeepingApi.getTasks(queryParams),
+    enabled: canViewHousekeeping,
   });
 
   const acceptMutation = useMutation({
@@ -280,6 +286,12 @@ export default function HousekeepingTasksPage() {
 
   return (
     <div className="animate-in space-y-7 fade-in duration-500">
+      {!canViewHousekeeping ? (
+        <div className="rounded-[2rem] border border-amber-200 bg-amber-50 px-6 py-5 text-sm font-bold text-amber-900">
+          Bạn không có quyền xem nhiệm vụ dọn phòng.
+        </div>
+      ) : null}
+
       <section className="overflow-hidden rounded-[2.5rem] border border-sky-100 bg-white text-slate-900 shadow-xl shadow-sky-100/70">
         <div className="bg-[radial-gradient(circle_at_top_right,_rgba(59,130,246,0.14),_transparent_28%),linear-gradient(135deg,_#ffffff,_#f5fbff_55%,_#e0f2fe)] px-7 py-8 sm:px-9">
           <div className="flex flex-col gap-6 2xl:flex-row 2xl:items-end 2xl:justify-between">
@@ -379,7 +391,7 @@ export default function HousekeepingTasksPage() {
         </div>
       </section>
 
-      {error ? (
+      {canViewHousekeeping && error ? (
         <div className="rounded-[2rem] border border-rose-200 bg-rose-50 px-6 py-4 text-sm font-bold text-rose-700">
           Không tải được nhiệm vụ dọn phòng. Khả năng cao backend chưa restart nên route
           ` /api/Housekeeping/tasks ` chưa có.
@@ -406,7 +418,7 @@ export default function HousekeepingTasksPage() {
           </div>
         </div>
 
-        {isLoading ? (
+        {!canViewHousekeeping ? null : isLoading ? (
           <div className="grid gap-4">
             {Array.from({ length: 4 }).map((_, index) => (
               <div
@@ -432,12 +444,18 @@ export default function HousekeepingTasksPage() {
         ) : (
           <div className="grid gap-4">
             {visibleTasks.map((task) => (
-                <TaskCard
+              <TaskCard
                 key={task.roomId}
                 task={task}
                 isAccepting={acceptMutation.isPending}
-                onAccept={(roomId) => acceptMutation.mutate(roomId)}
-                onOpenChecklist={(roomId) => navigate(`/admin/housekeeping/tasks/${roomId}`)}
+                onAccept={(roomId) => {
+                  if (!canAssignHousekeeping) return;
+                  acceptMutation.mutate(roomId);
+                }}
+                onOpenChecklist={(roomId) => {
+                  if (!canViewHousekeeping) return;
+                  navigate(`/admin/housekeeping/tasks/${roomId}`);
+                }}
               />
             ))}
           </div>

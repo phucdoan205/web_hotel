@@ -6,6 +6,7 @@ import GuestFlowStats from "../../components/receptionist/checkinout/GuestFlowSt
 import GuestTable from "../../components/receptionist/checkinout/GuestTable";
 import { bookingsApi } from "../../api/admin/bookingsApi";
 import { buildBookingRoomEntries } from "../../utils/bookingRoomEntries";
+import { hasPermission } from "../../utils/permissions";
 import {
   getStoredCheckedInRoomEntries,
   subscribeBookingRoomFlowState,
@@ -13,6 +14,8 @@ import {
 import { getVietnamDateKey } from "../../utils/vietnamTime";
 
 const AdminStayPage = () => {
+  const canViewBookings = hasPermission("VIEW_BOOKINGS");
+  const canCheckOutBooking = hasPermission("CHECKOUT_BOOKING");
   const [screenNotice, setScreenNotice] = useState(null);
   const [, setRoomFlowVersion] = useState(0);
   const navigate = useNavigate();
@@ -133,7 +136,11 @@ const AdminStayPage = () => {
         />
       </div>
 
-      {isLoading ? (
+      {!canViewBookings ? (
+        <div className="rounded-[2rem] border border-amber-200 bg-amber-50 px-5 py-6 text-sm font-bold text-amber-900">
+          Bạn không có quyền xem danh sách lưu trú.
+        </div>
+      ) : isLoading ? (
         <div className="py-10 text-center text-gray-400">Loading...</div>
       ) : isError ? (
         <div className="py-10 text-center text-red-400">Không tải được dữ liệu khách đang lưu trú.</div>
@@ -147,7 +154,7 @@ const AdminStayPage = () => {
               setScreenNotice(result.notice);
             }
 
-            if (result?.actionType === "out") {
+            if (result?.actionType === "out" && canCheckOutBooking) {
               navigate("/admin/check-out");
             }
           }}
