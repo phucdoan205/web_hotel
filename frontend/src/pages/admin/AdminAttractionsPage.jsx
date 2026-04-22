@@ -95,6 +95,8 @@ function AttractionModal({
   previewImage,
   isSubmitting,
   error,
+  canSubmit,
+  canToggleStatus,
   canDelete,
   onClose,
   onChange,
@@ -356,6 +358,7 @@ export default function AdminAttractionsPage() {
   const [modalError, setModalError] = useState("");
   const deferredSearch = useDeferredValue(searchKeyword);
 
+  const canCreate = hasPermission("CREATE_ATTRACTIONS");
   const canEdit = hasPermission("EDIT_ATTRACTIONS");
   const canDelete = hasPermission("DELETE_ATTRACTIONS");
 
@@ -393,6 +396,7 @@ export default function AdminAttractionsPage() {
   );
 
   const openCreateModal = () => {
+    if (!canCreate) return;
     setModalError("");
     setFormData(emptyForm);
     setPreviewImage("");
@@ -400,6 +404,7 @@ export default function AdminAttractionsPage() {
   };
 
   const openEditModal = (item) => {
+    if (!canEdit) return;
     setModalError("");
     setFormData(mapToForm(item));
     setPreviewImage(item.imageUrl || "");
@@ -435,6 +440,8 @@ export default function AdminAttractionsPage() {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    if (modalState.mode === "create" && !canCreate) return;
+    if (modalState.mode === "edit" && !canEdit) return;
     setIsSubmitting(true);
     setModalError("");
 
@@ -471,6 +478,7 @@ export default function AdminAttractionsPage() {
   };
 
   const handleToggle = async (item) => {
+    if (!canEdit) return;
     setPendingToggleId(item.id);
     setMessage("");
 
@@ -489,6 +497,7 @@ export default function AdminAttractionsPage() {
   };
 
   const handleDelete = async () => {
+    if (!canDelete) return;
     if (!modalState.item?.id) return;
     const shouldDelete = window.confirm(
       `Xóa địa điểm "${modalState.item.name}"? Hành động này không thể hoàn tác.`,
@@ -760,6 +769,8 @@ export default function AdminAttractionsPage() {
           previewImage={previewImage}
           isSubmitting={isSubmitting}
           error={modalError}
+          canSubmit={modalState.mode === "create" ? canCreate : canEdit}
+          canToggleStatus={canEdit}
           canDelete={canDelete}
           onClose={closeModal}
           onChange={handleFormChange}

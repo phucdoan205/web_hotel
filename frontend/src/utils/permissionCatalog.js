@@ -41,6 +41,8 @@ const PERMISSION_LABELS = {
   CREATE_SERVICES: "Tạo dịch vụ",
   EDIT_SERVICES: "Sửa dịch vụ",
   DELETE_SERVICES: "Xóa dịch vụ",
+  ASSIGN_SERVICES: "Gán dịch vụ",
+  HISTORY_SERVICES: "Lịch sử dịch vụ",
   VIEW_CONTENT: "Xem nội dung",
   CREATE_CONTENT: "Tạo nội dung",
   EDIT_CONTENT: "Sửa nội dung",
@@ -58,6 +60,7 @@ const PERMISSION_LABELS = {
   EDIT_COMPENSATION: "Sửa thất thoát đền bù",
   PROCESS_COMPENSATION: "Xử lý thất thoát đền bù",
   VIEW_LOG: "Xem audit log",
+  EXPLORT_LOG: "Xuất audit log",
 };
 
 const PERMISSION_DESCRIPTIONS = {
@@ -103,6 +106,8 @@ const PERMISSION_DESCRIPTIONS = {
   CREATE_SERVICES: "Cho phép thêm dịch vụ mới.",
   EDIT_SERVICES: "Cho phép cập nhật thông tin dịch vụ.",
   DELETE_SERVICES: "Cho phép xóa dịch vụ.",
+  ASSIGN_SERVICES: "Cho phép gán dịch vụ vào booking hoặc hóa đơn liên quan.",
+  HISTORY_SERVICES: "Cho phép xem lịch sử sử dụng dịch vụ.",
   VIEW_CONTENT: "Cho phép xem bài viết và nội dung đã tạo.",
   CREATE_CONTENT: "Cho phép tạo nội dung mới.",
   EDIT_CONTENT: "Cho phép chỉnh sửa nội dung hiện có.",
@@ -120,6 +125,7 @@ const PERMISSION_DESCRIPTIONS = {
   EDIT_COMPENSATION: "Cho phép chỉnh sửa phiếu thất thoát đền bù.",
   PROCESS_COMPENSATION: "Cho phép xử lý và hoàn tất phiếu thất thoát đền bù.",
   VIEW_LOG: "Cho phép xem lịch sử thao tác hệ thống.",
+  EXPLORT_LOG: "Cho phép xuất dữ liệu audit log.",
 };
 
 const SIDEBAR_PERMISSION_GROUPS = [
@@ -252,7 +258,7 @@ const SIDEBAR_PERMISSION_GROUPS = [
       {
         id: "service-management",
         title: "Dịch vụ",
-        permissionNames: ["VIEW_SERVICES", "CREATE_SERVICES", "EDIT_SERVICES", "DELETE_SERVICES"],
+        permissionNames: ["VIEW_SERVICES", "CREATE_SERVICES", "EDIT_SERVICES", "DELETE_SERVICES", "ASSIGN_SERVICES", "HISTORY_SERVICES"],
       },
     ],
   },
@@ -304,7 +310,7 @@ const SIDEBAR_PERMISSION_GROUPS = [
       {
         id: "audit-log-management",
         title: "Audit log",
-        permissionNames: ["VIEW_LOG"],
+        permissionNames: ["VIEW_LOG", "EXPLORT_LOG"],
       },
     ],
   },
@@ -319,9 +325,12 @@ const humanizePermissionName = (permissionName) =>
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
 
+export const getPermissionDisplayName = (permissionName) =>
+  PERMISSION_LABELS[permissionName] ?? humanizePermissionName(permissionName);
+
 const buildPermissionMeta = (permission) => ({
   ...permission,
-  displayName: PERMISSION_LABELS[permission.name] ?? humanizePermissionName(permission.name),
+  displayName: getPermissionDisplayName(permission.name),
   description:
     PERMISSION_DESCRIPTIONS[permission.name] ?? "Cho phép thao tác chức năng này trong hệ thống.",
 });

@@ -14,9 +14,12 @@ import {
   getBookingPaymentState,
   isBookingDeleteLocked,
 } from "../../../utils/bookingPaymentState";
+import { hasPermission } from "../../../utils/permissions";
 import { formatVietnamDate } from "../../../utils/vietnamTime";
 
 const BookingList = ({ filters, onPageChange }) => {
+  const canViewBookings = hasPermission("VIEW_BOOKINGS");
+  const canDeleteBookings = hasPermission("DELETE_BOOKINGS");
   const queryClient = useQueryClient();
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
@@ -25,7 +28,7 @@ const BookingList = ({ filters, onPageChange }) => {
   const { data, isLoading, error } = useQuery({
     queryKey: ["bookings", filters],
     queryFn: async () => {
-      const res = await bookingsApi.getBookings({
+      const response = await bookingsApi.getBookings({
         search: filters.search,
         status: filters.status,
         roomTypeId: filters.roomTypeId,
@@ -34,7 +37,8 @@ const BookingList = ({ filters, onPageChange }) => {
         page: filters.page,
         pageSize: filters.pageSize,
       });
-      return res;
+
+      return response;
     },
     keepPreviousData: true,
   });
@@ -45,8 +49,8 @@ const BookingList = ({ filters, onPageChange }) => {
       queryClient.invalidateQueries({ queryKey: ["bookings"] });
       setCancelTarget(null);
     },
-    onError: (err) => {
-      window.alert(`Hủy booking thất bại: ${err.response?.data?.message || err.message}`);
+    onError: (error) => {
+      window.alert(`Hủy booking thất bại: ${error.response?.data?.message || error.message}`);
     },
   });
 
@@ -173,7 +177,7 @@ const BookingList = ({ filters, onPageChange }) => {
                         >
                           {getStatusLabel(booking.status)}
                         </span>
-                          {paymentState.hasDeposit ? (
+                        {paymentState.hasDeposit ? (
                           <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-bold text-emerald-700">
                             <CircleCheckBig size={12} />
                             Đã có đặt cọc
@@ -182,22 +186,24 @@ const BookingList = ({ filters, onPageChange }) => {
                       </td>
                       <td className="px-4 py-3 align-top">
                         <div className="flex justify-end gap-2">
-                          <button
-                            onClick={() => {
-                              setSelectedBooking(booking);
-                              setIsDetailOpen(true);
-                            }}
-                            className="rounded-xl p-2 text-sky-600 transition-all hover:bg-sky-100"
-                            title="Xem chi tiết"
-                          >
-                            <Eye size={18} />
-                          </button>
+                          {canViewBookings ? (
+                            <button
+                              onClick={() => {
+                                setSelectedBooking(booking);
+                                setIsDetailOpen(true);
+                              }}
+                              className="rounded-xl p-2 text-sky-600 transition-all hover:bg-sky-100"
+                              title="Xem chi tiết"
+                            >
+                              <Eye size={18} />
+                            </button>
+                          ) : null}
 
-                          {!deleteLocked ? (
+                          {!deleteLocked && canDeleteBookings ? (
                             <button
                               onClick={() => setCancelTarget(booking)}
                               className="rounded-xl p-2 text-red-600 transition-all hover:bg-red-100"
-                                title="Hủy booking"
+                              title="Hủy booking"
                             >
                               <Trash2 size={18} />
                             </button>
@@ -237,27 +243,29 @@ const BookingList = ({ filters, onPageChange }) => {
           </div>
         </div>
 
-        <BookingDetailModal
-          open={isDetailOpen}
-          onClose={() => setIsDetailOpen(false)}
-          booking={selectedBooking}
-          onBookingUpdated={(updatedBooking) => {
-            setSelectedBooking(updatedBooking);
-            queryClient.setQueryData(["bookings", filters], (oldData) => {
-              if (!oldData) return oldData;
+        {canViewBookings ? (
+          <BookingDetailModal
+            open={isDetailOpen}
+            onClose={() => setIsDetailOpen(false)}
+            booking={selectedBooking}
+            onBookingUpdated={(updatedBooking) => {
+              setSelectedBooking(updatedBooking);
+              queryClient.setQueryData(["bookings", filters], (oldData) => {
+                if (!oldData) return oldData;
 
-              return {
-                ...oldData,
-                items: oldData.items.map((item) =>
-                  item.id === updatedBooking.id ? { ...item, ...updatedBooking } : item,
-                ),
-              };
-            });
-          }}
-        />
+                return {
+                  ...oldData,
+                  items: oldData.items.map((item) =>
+                    item.id === updatedBooking.id ? { ...item, ...updatedBooking } : item,
+                  ),
+                };
+              });
+            }}
+          />
+        ) : null}
       </div>
 
-      {cancelTarget ? (
+      {cancelTarget && canDeleteBookings ? (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
           <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
             <div className="flex items-start gap-3">

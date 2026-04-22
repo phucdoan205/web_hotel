@@ -1,3 +1,5 @@
+import { getPermissionDisplayName } from "./permissionCatalog";
+
 const ACTION_LABELS = {
   CREATE: "CREATE",
   UPDATE: "UPDATE",
@@ -115,6 +117,10 @@ const FIELD_LABEL_OVERRIDES = {
 
 const getFieldLabel = (propertyName) =>
   FIELD_LABEL_OVERRIDES[propertyName] ?? mapFieldLabel(propertyName);
+
+const unique = (items) => Array.from(new Set(items.filter(Boolean)));
+
+const formatList = (items) => unique(items).join(", ");
 
 const parseLogPayload = (logData) => {
   if (!logData) return [];
@@ -484,6 +490,126 @@ const buildRoleEvent = (event, fallbackEventId) => {
   };
 };
 
+const getPermissionIdFromEvent = (event, mode = "new") => {
+  const data = getEventData(event, mode);
+  return getValue(data, "PermissionId", "permissionId");
+};
+
+const getRoleIdFromEvent = (event, mode = "new") => {
+  const data = getEventData(event, mode);
+  return getValue(data, "RoleId", "roleId");
+};
+
+const buildPermissionName = (permissionId, lookups) => {
+  const permission = lookups.permissionMap?.get(permissionId);
+  if (permission?.displayName) {
+    return permission.displayName;
+  }
+
+  if (permission?.name) {
+    return getPermissionDisplayName(permission.name);
+  }
+
+  return permissionId ? `quyền ${permissionId}` : null;
+};
+
+const buildRoleLabel = (roleId, lookups) => {
+  const roleName = lookups.roleMap?.get(roleId)?.name;
+  if (roleName) {
+    return `vai trò ${roleName}`;
+  }
+
+  return roleId ? `vai trò ${roleId}` : "vai trò chưa xác định";
+};
+
+const buildRolePermissionAggregateEvent = (events, lookups, fallbackEventId) => {
+  if (!events.length) return null;
+
+  const addedPermissionIds = [];
+  const removedPermissionIds = [];
+
+  events.forEach((event) => {
+    const actionType = getValue(event, "actionType", "ActionType");
+
+    if (actionType === "CREATE") {
+      addedPermissionIds.push(getPermissionIdFromEvent(event));
+      return;
+    }
+
+    if (actionType === "DELETE") {
+      removedPermissionIds.push(getPermissionIdFromEvent(event, "old"));
+      return;
+    }
+
+    const oldPermissionId = getPermissionIdFromEvent(event, "old");
+    const newPermissionId = getPermissionIdFromEvent(event);
+
+    if (oldPermissionId && oldPermissionId !== newPermissionId) {
+      removedPermissionIds.push(oldPermissionId);
+    }
+
+    if (newPermissionId) {
+      addedPermissionIds.push(newPermissionId);
+    }
+  });
+
+  const uniqueAddedPermissionIds = unique(addedPermissionIds);
+  const uniqueRemovedPermissionIds = unique(removedPermissionIds);
+  const overlapPermissionIds = new Set(
+    uniqueAddedPermissionIds.filter((permissionId) =>
+      uniqueRemovedPermissionIds.includes(permissionId),
+    ),
+  );
+  const netAddedPermissionIds = uniqueAddedPermissionIds.filter(
+    (permissionId) => !overlapPermissionIds.has(permissionId),
+  );
+  const netRemovedPermissionIds = uniqueRemovedPermissionIds.filter(
+    (permissionId) => !overlapPermissionIds.has(permissionId),
+  );
+
+  const roleId =
+    getRoleIdFromEvent(events[0]) ??
+    getRoleIdFromEvent(events[0], "old");
+  const roleLabel = buildRoleLabel(roleId, lookups);
+  const addedNames = unique(
+    netAddedPermissionIds.map((permissionId) => buildPermissionName(permissionId, lookups)),
+  );
+  const removedNames = unique(
+    netRemovedPermissionIds.map((permissionId) => buildPermissionName(permissionId, lookups)),
+  );
+
+  let actionType = "UPDATE";
+  let summary = `Đã cập nhật quyền cho ${roleLabel}.`;
+  const detailParts = [];
+
+  if (addedNames.length > 0 && removedNames.length === 0) {
+    actionType = "CREATE";
+    summary = `Đã thêm quyền cho ${roleLabel}.`;
+    detailParts.push(`Đã thêm quyền ${formatList(addedNames)} cho ${roleLabel}.`);
+  } else if (removedNames.length > 0 && addedNames.length === 0) {
+    actionType = "DELETE";
+    summary = `Đã bỏ quyền của ${roleLabel}.`;
+    detailParts.push(`Đã bỏ quyền ${formatList(removedNames)} cho ${roleLabel}.`);
+  } else {
+    if (addedNames.length > 0) {
+      detailParts.push(`Đã thêm quyền ${formatList(addedNames)} cho ${roleLabel}.`);
+    }
+    if (removedNames.length > 0) {
+      detailParts.push(`Đã bỏ quyền ${formatList(removedNames)} cho ${roleLabel}.`);
+    }
+  }
+
+  return {
+    eventId: fallbackEventId,
+    timestamp: getValue(events[0], "timestamp", "Timestamp"),
+    actionType,
+    actionLabel: toActionLabel(actionType),
+    objectName: "RolePermission",
+    summary,
+    detail: detailParts.join(" ") || summary,
+  };
+};
+
 const buildVoucherEvent = (event, fallbackEventId) => {
   const actionType = getValue(event, "actionType", "ActionType");
   const oldData = getEventData(event, "old");
@@ -677,12 +803,35 @@ const buildEvent = (event, rawEvents, lookups, fallbackEventId) => {
 
 export const normalizeAuditLog = (
   log,
-  lookups = { roomMap: new Map(), equipmentMap: new Map() },
+  lookups = {
+    roomMap: new Map(),
+    equipmentMap: new Map(),
+    roleMap: new Map(),
+    permissionMap: new Map(),
+  },
 ) => {
   const rawEvents = parseLogPayload(log.logData);
-  const normalizedEvents = rawEvents
-    .map((event, index) => buildEvent(event, rawEvents, lookups, `${log.id}-${index}`))
-    .filter((event) => !HIDDEN_OBJECTS.has(event.objectName));
+  const rolePermissionEvents = rawEvents.filter(
+    (event) => getValue(event, "entityType", "EntityType") === "RolePermission",
+  );
+  const nonRolePermissionEvents = rawEvents.filter(
+    (event) => getValue(event, "entityType", "EntityType") !== "RolePermission",
+  );
+
+  const normalizedEvents = [
+    ...nonRolePermissionEvents.map((event, index) =>
+      buildEvent(event, rawEvents, lookups, `${log.id}-${index}`),
+    ),
+    ...(rolePermissionEvents.length > 0
+      ? [
+          buildRolePermissionAggregateEvent(
+            rolePermissionEvents,
+            lookups,
+            `${log.id}-role-permissions`,
+          ),
+        ]
+      : []),
+  ].filter((event) => event && !HIDDEN_OBJECTS.has(event.objectName));
 
   return {
     id: log.id,

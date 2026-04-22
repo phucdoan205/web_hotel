@@ -2,6 +2,7 @@ using backend.Common;
 using backend.Data;
 using backend.DTOs.Audit;
 using backend.Models;
+using backend.Security;
 using backend.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -22,6 +23,7 @@ namespace backend.Controllers
         }
 
         [HttpGet]
+        [Permission("VIEW_LOG")]
         public async Task<ActionResult<PagedResponse<AuditLogResponseDTO>>> GetAllLogs(
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 50,
@@ -44,6 +46,7 @@ namespace backend.Controllers
         }
 
         [HttpGet("user/{userId}")]
+        [Permission("VIEW_LOG")]
         public async Task<ActionResult<PagedResponse<AuditLogResponseDTO>>> GetLogsByUserId(
             int userId,
             [FromQuery] int page = 1,
@@ -68,6 +71,7 @@ namespace backend.Controllers
         }
 
         [HttpGet("filters")]
+        [Permission("VIEW_LOG")]
         public async Task<ActionResult<AuditLogFilterOptionsDTO>> GetFilterOptions(CancellationToken cancellationToken = default)
         {
             var response = await _auditLogViewService.GetFilterOptionsAsync(cancellationToken);
@@ -75,6 +79,7 @@ namespace backend.Controllers
         }
 
         [HttpGet("export")]
+        [Permission("EXPLORT_LOG")]
         public async Task<IActionResult> ExportLogs(
             [FromQuery] string? employeeName = null,
             [FromQuery] string? roleName = null,

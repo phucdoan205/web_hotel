@@ -3,12 +3,15 @@ import { Download, FileSpreadsheet, RefreshCw, Search } from "lucide-react";
 import AuditTable from "../../components/admin/audit/AuditTable";
 import { fetchAllAuditLogs } from "../../api/admin/audit";
 import { getEquipmentList } from "../../api/admin/equipmentApi";
+import { getPermissions, getRoles } from "../../api/admin/roleApi";
 import { roomsApi } from "../../api/admin/roomsApi";
+import { getPermissionDisplayName } from "../../utils/permissionCatalog";
 import {
   downloadAuditSpreadsheet,
   filterAuditLogs,
   normalizeAuditLog,
 } from "../../utils/auditLog";
+import { hasPermission } from "../../utils/permissions";
 
 const DEFAULT_FILTERS = {
   employeeName: "",
@@ -40,6 +43,27 @@ const buildEquipmentMap = (items) =>
     ]),
   );
 
+const buildRoleMap = (roles) =>
+  new Map(
+    roles.map((role) => [
+      role.id,
+      {
+        name: role.name,
+      },
+    ]),
+  );
+
+const buildPermissionMap = (permissions) =>
+  new Map(
+    permissions.map((permission) => [
+      permission.id,
+      {
+        name: permission.name,
+        displayName: getPermissionDisplayName(permission.name),
+      },
+    ]),
+  );
+
 const buildRoleOptions = (logs) =>
   Array.from(
     new Set(
@@ -54,6 +78,7 @@ const buildRoleOptions = (logs) =>
   ).sort((a, b) => a.localeCompare(b, "vi"));
 
 const AdminAuditLogPage = () => {
+  const canExportLog = hasPermission("EXPLORT_LOG");
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
   const [allLogs, setAllLogs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -66,11 +91,14 @@ const AdminAuditLogPage = () => {
       setLoading(true);
 
       try {
-        const [rawLogs, roomsResult, equipmentResult] = await Promise.allSettled([
-          fetchAllAuditLogs(),
-          roomsApi.getRooms({ page: 1, pageSize: 500 }),
-          getEquipmentList({ page: 1, pageSize: 500 }),
-        ]);
+        const [rawLogs, roomsResult, equipmentResult, rolesResult, permissionsResult] =
+          await Promise.allSettled([
+            fetchAllAuditLogs(),
+            roomsApi.getRooms({ page: 1, pageSize: 500 }),
+            getEquipmentList({ page: 1, pageSize: 500 }),
+            getRoles(),
+            getPermissions(),
+          ]);
 
         if (rawLogs.status !== "fulfilled") {
           throw rawLogs.reason;
@@ -84,9 +112,14 @@ const AdminAuditLogPage = () => {
         const roomMap = buildRoomMap(roomsResponse?.items ?? []);
         const equipmentItems = equipmentResponse?.items ?? equipmentResponse?.Items ?? [];
         const equipmentMap = buildEquipmentMap(equipmentItems);
+        const roles = rolesResult?.status === "fulfilled" ? rolesResult.value : [];
+        const permissions =
+          permissionsResult?.status === "fulfilled" ? permissionsResult.value : [];
+        const roleMap = buildRoleMap(roles);
+        const permissionMap = buildPermissionMap(permissions);
 
         const normalizedLogs = rawLogs.value.map((log) =>
-          normalizeAuditLog(log, { roomMap, equipmentMap }),
+          normalizeAuditLog(log, { roomMap, equipmentMap, roleMap, permissionMap }),
         );
 
         setAllLogs(normalizedLogs);
@@ -149,26 +182,28 @@ const AdminAuditLogPage = () => {
             </h1>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              onClick={handleExportFiltered}
-              disabled={exportingFiltered || filteredLogs.length === 0}
-              className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <FileSpreadsheet className="size-4" />
-              {exportingFiltered ? "Đang xuất..." : "Xuất theo bộ lọc"}
-            </button>
-            <button
-              type="button"
-              onClick={handleExportAll}
-              disabled={exportingAll || allLogs.length === 0}
-              className="inline-flex items-center gap-2 rounded-2xl bg-sky-600 px-4 py-3 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(2,132,199,0.28)] transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <Download className="size-4" />
-              {exportingAll ? "Đang xuất..." : "Xuất toàn bộ"}
-            </button>
-          </div>
+          {canExportLog ? (
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={handleExportFiltered}
+                disabled={exportingFiltered || filteredLogs.length === 0}
+                className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <FileSpreadsheet className="size-4" />
+                {exportingFiltered ? "Đang xuất..." : "Xuất theo bộ lọc"}
+              </button>
+              <button
+                type="button"
+                onClick={handleExportAll}
+                disabled={exportingAll || allLogs.length === 0}
+                className="inline-flex items-center gap-2 rounded-2xl bg-sky-600 px-4 py-3 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(2,132,199,0.28)] transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <Download className="size-4" />
+                {exportingAll ? "Đang xuất..." : "Xuất toàn bộ"}
+              </button>
+            </div>
+          ) : null}
         </div>
 
         <div className="mt-8 grid gap-3 xl:grid-cols-[1.3fr_1fr_1fr_1fr_auto]">

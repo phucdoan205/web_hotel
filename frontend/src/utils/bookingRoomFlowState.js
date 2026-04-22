@@ -83,7 +83,11 @@ export const saveBookingDetailCheckedOutSnapshot = (bookingId, detailId, snapsho
 
   updateEntry(bookingId, (current) => ({
     ...current,
+    checkedInDetailIds: (current.checkedInDetailIds || []).filter((id) => id !== detailId),
     checkedOutDetailIds: Array.from(new Set([...(current.checkedOutDetailIds || []), detailId])),
+    checkedInSnapshots: Object.fromEntries(
+      Object.entries(current.checkedInSnapshots || {}).filter(([id]) => Number(id) !== detailId),
+    ),
     checkedOutSnapshots: {
       ...(current.checkedOutSnapshots || {}),
       [String(detailId)]: snapshot,
@@ -97,7 +101,11 @@ export const markBookingDetailInvoiced = (bookingId, detailId) => {
   updateEntry(bookingId, (current) => ({
     ...current,
     invoicedDetailIds: Array.from(new Set([...(current.invoicedDetailIds || []), detailId])),
+    checkedInDetailIds: (current.checkedInDetailIds || []).filter((id) => id !== detailId),
     checkedOutDetailIds: (current.checkedOutDetailIds || []).filter((id) => id !== detailId),
+    checkedInSnapshots: Object.fromEntries(
+      Object.entries(current.checkedInSnapshots || {}).filter(([id]) => Number(id) !== detailId),
+    ),
     checkedOutSnapshots: Object.fromEntries(
       Object.entries(current.checkedOutSnapshots || {}).filter(([id]) => Number(id) !== detailId),
     ),
@@ -123,14 +131,22 @@ export const getStoredCheckedInRoomEntries = () => {
   return Object.entries(store).flatMap(([bookingId, entry]) => {
     const snapshots = entry?.checkedInSnapshots || {};
 
-    return Object.entries(snapshots).map(([detailId, snapshot]) => ({
-      ...snapshot,
-      bookingId: Number(bookingId),
-      detailId: Number(detailId),
-      checkedIn: true,
-      checkedOut: (entry?.checkedOutDetailIds || []).includes(Number(detailId)),
-      invoiced: (entry?.invoicedDetailIds || []).includes(Number(detailId)),
-    }));
+    return Object.entries(snapshots)
+      .filter(([detailId]) => {
+        const numericDetailId = Number(detailId);
+        return !(
+          (entry?.checkedOutDetailIds || []).includes(numericDetailId) ||
+          (entry?.invoicedDetailIds || []).includes(numericDetailId)
+        );
+      })
+      .map(([detailId, snapshot]) => ({
+        ...snapshot,
+        bookingId: Number(bookingId),
+        detailId: Number(detailId),
+        checkedIn: true,
+        checkedOut: false,
+        invoiced: false,
+      }));
   });
 };
 

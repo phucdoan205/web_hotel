@@ -13,6 +13,7 @@ import {
 import GuestTable from "../../components/receptionist/checkinout/GuestTable";
 import { bookingsApi } from "../../api/admin/bookingsApi";
 import { buildBookingRoomEntries } from "../../utils/bookingRoomEntries";
+import { hasPermission } from "../../utils/permissions";
 import {
   formatVietnamDate,
   getVietnamDateKey,
@@ -70,13 +71,17 @@ const getRangeDayCount = (startKey, endKey) => {
 };
 
 const AdminCheckInPage = () => {
+  const canViewBookings = hasPermission("VIEW_BOOKINGS");
+  const canCheckInBooking = hasPermission("CHECKIN_BOOKING");
   const todayKey = getVietnamDateKey();
   const [searchParams] = useSearchParams();
   const requestedDate = searchParams.get("date");
   const requestedTab = searchParams.get("tab");
   const initialSelectedDate = requestedDate || todayKey;
   const [screenNotice, setScreenNotice] = useState(null);
-  const [activeTab, setActiveTab] = useState(requestedTab === "in" ? "in" : "schedule");
+  const [activeTab, setActiveTab] = useState(
+    requestedTab === "in" && canCheckInBooking ? "in" : "schedule",
+  );
   const [selectedDate, setSelectedDate] = useState(initialSelectedDate);
   const [weekAnchor, setWeekAnchor] = useState(getWeekStart(initialSelectedDate));
 
@@ -291,6 +296,7 @@ const AdminCheckInPage = () => {
           <button
             type="button"
             onClick={() => setActiveTab("in")}
+            hidden={!canCheckInBooking}
             className={`rounded-xl px-8 py-2.5 text-[11px] font-black uppercase tracking-widest transition-all ${
               activeTab === "in"
                 ? "bg-blue-700 text-white shadow-lg shadow-blue-200"
@@ -371,7 +377,7 @@ const AdminCheckInPage = () => {
                         type="button"
                         onClick={() => {
                           setSelectedDate(day.key);
-                          setActiveTab("in");
+                          setActiveTab(canCheckInBooking ? "in" : "schedule");
                         }}
                         className={`flex items-center justify-between border-r-2 border-slate-300 px-4 py-3 text-left text-base font-black text-white transition last:border-r-0 ${
                           isToday
@@ -411,7 +417,7 @@ const AdminCheckInPage = () => {
                         type="button"
                         onClick={() => {
                           setSelectedDate(span.visibleStartKey);
-                          setActiveTab("in");
+                          setActiveTab(canCheckInBooking ? "in" : "schedule");
                         }}
                         className="m-3 rounded-2xl border-2 border-slate-300 bg-white px-4 py-4 text-center shadow-md ring-1 ring-slate-200 transition hover:border-blue-400 hover:bg-blue-50/30"
                         style={{

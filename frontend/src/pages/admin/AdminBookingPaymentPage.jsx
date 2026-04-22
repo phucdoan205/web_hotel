@@ -20,6 +20,7 @@ import {
   isBookingDetailPaid,
   markBookingDetailPaid,
 } from "../../utils/bookingPaymentState";
+import { hasPermission } from "../../utils/permissions";
 
 const formatCurrency = (amount) => `${amount.toLocaleString("vi-VN")} đ`;
 
@@ -41,6 +42,7 @@ const buildPseudoQr = (seed) => {
 };
 
 const AdminBookingPaymentPage = () => {
+  const canPayInvoice = hasPermission("PAY_INVOICE");
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { id } = useParams();
@@ -295,7 +297,7 @@ const AdminBookingPaymentPage = () => {
                     const roomNumber = detail?.room?.roomNumber || detail?.roomNumber || index + 1;
                     const roomType = detail?.roomTypeName || detail?.roomType?.name || "Phong";
 
-                    return (
+                    return canPayInvoice ? (
                       <button
                         key={detail.id || `${booking?.id}-detail-${index}`}
                         type="button"
@@ -307,7 +309,7 @@ const AdminBookingPaymentPage = () => {
                         </span>
                         <span>{formatCurrency(getBookingDetailDeposit(detail))}</span>
                       </button>
-                    );
+                    ) : null;
                   })}
                 </div>
               </div>
@@ -406,7 +408,8 @@ const AdminBookingPaymentPage = () => {
                   <Copy size={16} />
                   {copied ? "Đã sao chép" : "Sao chép nội dung"}
                 </button>
-                <button
+                {canPayInvoice ? (
+                  <button
                   type="button"
                   onClick={() => confirmOnlineMutation.mutate()}
                   disabled={
@@ -425,7 +428,8 @@ const AdminBookingPaymentPage = () => {
                       : confirmOnlineMutation.isPending
                         ? "Đang xác nhận..."
                         : "Xác nhận đã thanh toán"}
-                </button>
+                  </button>
+                ) : null}
                 <button
                   type="button"
                   onClick={() => navigate("/admin/bookings")}

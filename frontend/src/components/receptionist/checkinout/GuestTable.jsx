@@ -31,6 +31,7 @@ import {
   getRoomEntryNumber,
   getRoomEntryPrice,
 } from "../../../utils/bookingRoomEntries";
+import { hasPermission } from "../../../utils/permissions";
 import { formatVietnamDate } from "../../../utils/vietnamTime";
 
 const priceFormatter = new Intl.NumberFormat("vi-VN");
@@ -121,6 +122,11 @@ const GuestTable = ({
   onActionSuccess,
   onInvoiceCreated,
 }) => {
+  const canViewBookings = hasPermission("VIEW_BOOKINGS");
+  const canCheckInBooking = hasPermission("CHECKIN_BOOKING");
+  const canCheckOutBooking = hasPermission("CHECKOUT_BOOKING");
+  const canPayInvoice = hasPermission("PAY_INVOICE");
+  const canCreateInvoices = hasPermission("CREATE_INVOICES");
   const [search, setSearch] = useState("");
   const [roomFilter, setRoomFilter] = useState("");
   const [confirmingBooking, setConfirmingBooking] = useState(null);
@@ -423,7 +429,7 @@ const GuestTable = ({
                       <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700">
                         Phong nay da thanh toan 1 dem.
                       </div>
-                    ) : (
+                    ) : canPayInvoice ? (
                       <button
                         type="button"
                         onClick={() => handleOpenPayment(entry.bookingId, entry.detailId)}
@@ -432,35 +438,39 @@ const GuestTable = ({
                         <QrCode size={18} />
                         Thanh toan QR phong {entry.roomNumber}
                       </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => setConfirmingBooking(entry)}
-                      disabled={isCheckInLoading || !canCheckIn}
-                      className={`flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-black transition-all disabled:cursor-not-allowed ${
-                        isCheckInLoading || !canCheckIn
-                          ? actionConfig.in.loadingClassName
-                          : actionConfig.in.idleClassName
-                      }`}
-                    >
-                      <CheckCircle size={18} />
-                      {isCheckInLoading ? "Đang xử lý..." : "Check-in phòng này"}
-                    </button>
+                    ) : null}
+                    {canCheckInBooking ? (
+                      <button
+                        type="button"
+                        onClick={() => setConfirmingBooking(entry)}
+                        disabled={isCheckInLoading || !canCheckIn}
+                        className={`flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-black transition-all disabled:cursor-not-allowed ${
+                          isCheckInLoading || !canCheckIn
+                            ? actionConfig.in.loadingClassName
+                            : actionConfig.in.idleClassName
+                        }`}
+                      >
+                        <CheckCircle size={18} />
+                        {isCheckInLoading ? "Đang xử lý..." : "Check-in phòng này"}
+                      </button>
+                    ) : null}
                   </>
                 ) : !entry.checkedOut ? (
-                  <button
-                    type="button"
-                    onClick={() => setConfirmingRoom(entry)}
-                    disabled={isCheckOutLoading}
-                    className={`flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-black transition-all disabled:cursor-not-allowed ${
-                      isCheckOutLoading
-                        ? actionConfig.out.loadingClassName
-                        : actionConfig.out.idleClassName
-                    }`}
-                  >
-                    <SquareArrowRightExit size={18} />
-                    {isCheckOutLoading ? "Đang xử lý..." : "Check-out phòng này"}
-                  </button>
+                  canCheckOutBooking ? (
+                    <button
+                      type="button"
+                      onClick={() => setConfirmingRoom(entry)}
+                      disabled={isCheckOutLoading}
+                      className={`flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-black transition-all disabled:cursor-not-allowed ${
+                        isCheckOutLoading
+                          ? actionConfig.out.loadingClassName
+                          : actionConfig.out.idleClassName
+                      }`}
+                    >
+                      <SquareArrowRightExit size={18} />
+                      {isCheckOutLoading ? "Đang xử lý..." : "Check-out phòng này"}
+                    </button>
+                  ) : null
                 ) : (
                   <div className="space-y-3">
                     <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700">
@@ -470,7 +480,7 @@ const GuestTable = ({
                       <div className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm font-bold text-sky-700">
                         Hóa đơn đã được tạo.
                       </div>
-                    ) : (
+                    ) : canCreateInvoices ? (
                       <button
                         type="button"
                         onClick={() => handleCreateInvoice(entry)}
@@ -479,7 +489,7 @@ const GuestTable = ({
                         <FileText size={18} />
                         Tạo hóa đơn
                       </button>
-                    )}
+                    ) : null}
                   </div>
                 )}
               </div>
@@ -599,7 +609,7 @@ const GuestTable = ({
               <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700">
                 Booking đã thanh toán đủ 1 đêm cho tất cả phòng.
               </div>
-            ) : (
+            ) : canPayInvoice ? (
               <div className="space-y-2 rounded-2xl border border-sky-100 bg-sky-50 px-4 py-4">
                 <div className="flex items-center gap-2 text-sm font-black text-sky-900">
                   <QrCode size={16} />
@@ -621,9 +631,10 @@ const GuestTable = ({
                   );
                 })}
               </div>
-            )
+            ) : null
           ) : null}
-          <button
+          {(activeTab === "in" ? canCheckInBooking : canCheckOutBooking) ? (
+            <button
             type="button"
             onClick={() => setConfirmingBooking(booking)}
             disabled={isLoading || (activeTab === "in" && !canCheckIn)}
@@ -635,7 +646,8 @@ const GuestTable = ({
           >
             <Icon size={18} />
             {isLoading ? "Đang xử lý..." : config.label}
-          </button>
+            </button>
+          ) : null}
         </div>
       );
     };
