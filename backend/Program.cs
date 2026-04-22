@@ -4,16 +4,17 @@ using backend.Mappers;
 using System.Text.Json.Serialization;
 using FluentValidation;
 using FluentValidation.AspNetCore;
-using Microsoft.AspNetCore.Authentication.JwtBearer; 
-using Microsoft.IdentityModel.Tokens; 
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using backend.Data.Interceptors;
 using backend.Services;
-using backend.DTOs.Room;
-using backend.DTOs.RoomInventory;
-//using backend.Validators;
 
 var builder = WebApplication.CreateBuilder(args);
+
+//Hiển thị tiếng Việt
+Console.OutputEncoding = Encoding.UTF8;
+Console.InputEncoding = Encoding.UTF8;
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
@@ -54,18 +55,21 @@ builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 builder.Services.AddHttpClient();
 builder.Services.AddScoped<CloudinaryService>();
 builder.Services.AddSingleton<backend.Services.HousekeepingTaskLockService>();
-builder.Services.AddScoped<IJwtService, JwtService>(); 
+builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddSingleton<NotificationRealtimeService>();
 builder.Services.AddScoped<NotificationService>();
 builder.Services.AddScoped<IEmailService, SmtpEmailService>();
 
-//builder.Services.AddValidatorsFromAssemblyContaining<CreateRoomDtoValidator>();
-//builder.Services.AddScoped<IValidator<BulkCreateRoomDTO>, BulkCreateRoomDtoValidator>();
-//builder.Services.AddScoped<IValidator<CloneRoomInventoryDTO>, CloneRoomInventoryDtoValidator>();
+//Dùng cho AuditLog, không được xoá
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<AuditSaveChangesInterceptor>();
+builder.Services.AddSingleton<AuditLogCleanupService>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<AuditLogCleanupService>());
 
-builder.Services.AddDbContext<AppDbContext>(options =>
+builder.Services.AddDbContext<AppDbContext>((sp, options) =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
-    .AddInterceptors(new SoftDeleteInterceptor()));
+    .AddInterceptors(new SoftDeleteInterceptor())
+    .AddInterceptors(sp.GetRequiredService<AuditSaveChangesInterceptor>())); //Dùng cho AuditLog, không được xoá
 builder.Services.AddAutoMapper(typeof(AutoMapperProfile));
 
 var app = builder.Build();
@@ -80,7 +84,7 @@ BEGIN
     ADD IsActive bit NOT NULL CONSTRAINT DF_Vouchers_IsActive DEFAULT(1);
 END
 ");
-await db.Database.ExecuteSqlRawAsync(@"
+    await db.Database.ExecuteSqlRawAsync(@"
 IF COL_LENGTH('Articles', 'Summary') IS NULL ALTER TABLE Articles ADD Summary nvarchar(max) NULL;
 IF COL_LENGTH('Articles', 'Tags') IS NULL ALTER TABLE Articles ADD Tags nvarchar(max) NULL;
 IF COL_LENGTH('Articles', 'IsApproved') IS NULL ALTER TABLE Articles ADD IsApproved bit NOT NULL CONSTRAINT DF_Articles_IsApproved DEFAULT(0);
@@ -152,7 +156,7 @@ if (!app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 }
 
-app.UseAuthentication(); 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

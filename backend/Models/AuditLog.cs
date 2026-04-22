@@ -7,12 +7,13 @@ namespace backend.Models
     {
         public int Id { get; set; }
         public int? UserId { get; set; }
-        public string Action { get; set; } = null!;
-        public string TableName { get; set; } = null!;
-        public int RecordId { get; set; }
-        public string? OldValue { get; set; }
-        public string? NewValue { get; set; }
-        public DateTime? CreatedAt { get; set; }
+
+        public DateTime LogDate { get; set; } = DateTime.Now;
+
+        /// <summary>
+        /// JSON chứa toàn bộ events (TotalEvents + danh sách Events)
+        /// </summary>
+        public string LogData { get; set; } = string.Empty;
         public User? User { get; set; }
     }
 }

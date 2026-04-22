@@ -224,6 +224,7 @@ namespace backend.Controllers
 
         // GET: api/rooms/deleted
         [HttpGet("deleted")]
+        [Permission("MANAGEROOMS")]
         public async Task<ActionResult<PagedResult<RoomDetailDTO>>> GetDeletedRooms(
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 15,

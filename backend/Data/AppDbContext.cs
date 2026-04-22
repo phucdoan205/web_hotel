@@ -30,6 +30,7 @@ namespace backend.Data
         public DbSet<ArticleComment> ArticleComments { get; set; }
         public DbSet<Attraction> Attractions { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
+        public DbSet<AuditLogSetting> AuditLogSettings { get; set; }
         public DbSet<Notification> Notifications { get; set; }
 
         public DbSet<Booking> Bookings { get; set; }
@@ -308,6 +309,31 @@ namespace backend.Data
                     .WithMany(c => c.Replies)
                     .HasForeignKey(c => c.ParentCommentId)
                     .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<AuditLogSetting>(entity =>
+            {
+                entity.HasKey(s => s.Id);
+
+                // Đảm bảo ConfigName không bị trùng
+                entity.HasIndex(s => s.ConfigName).IsUnique();
+
+                entity.Property(s => s.ConfigName)
+                      .IsRequired()
+                      .HasMaxLength(100);
+
+                entity.Property(s => s.Value).IsRequired();
+            });
+
+            modelBuilder.Entity<AuditLog>(entity =>
+            {
+                entity.HasOne(l => l.User)
+                  .WithMany(u => u.AuditLogs)
+                  .HasForeignKey(l => l.UserId)
+                  .OnDelete(DeleteBehavior.SetNull);
+                entity.Property(l => l.LogData)
+                      .HasColumnType("nvarchar(max)");
+                entity.HasIndex(l => l.LogDate);
             });
 
             // Soft-delete
