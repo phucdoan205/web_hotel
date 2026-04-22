@@ -25,6 +25,7 @@ const buildRoomMap = (rooms) =>
       room.id,
       {
         roomNumber: room.roomNumber,
+        roomTypeName: room.roomTypeName,
       },
     ]),
   );
@@ -144,12 +145,8 @@ const AdminAuditLogPage = () => {
               Nhật ký hoạt động
             </div>
             <h1 className="mt-4 text-3xl font-black tracking-tight text-slate-900 md:text-4xl">
-              Theo dõi thao tác hệ thống rõ ràng hơn
+              Theo dõi thao tác hệ thống.
             </h1>
-            <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600 md:text-base">
-              Xem nhanh ai thao tác, thao tác ở trang nào, nội dung chi tiết và
-              xuất Excel theo bộ lọc hoặc toàn bộ lịch sử khi cần đối soát.
-            </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">

@@ -1,3 +1,5 @@
+using System.Text.Json;
+using backend.Common;
 using backend.Data;
 using backend.DTOs;
 using backend.Models;
@@ -28,6 +30,76 @@ namespace backend.Controllers
             _notificationService = notificationService;
             _emailService = emailService;
             _logger = logger;
+        }
+
+        private int? ResolveCurrentUserId()
+        {
+            var header = Request.Headers["X-User-Id"].ToString();
+            if (!string.IsNullOrWhiteSpace(header) && int.TryParse(header, out var headerUserId))
+            {
+                return headerUserId;
+            }
+
+            var claim = User.FindFirst("sub")?.Value
+                     ?? User.FindFirst("nameid")?.Value
+                     ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+            return int.TryParse(claim, out var claimUserId) ? claimUserId : null;
+        }
+
+        private async Task CreateVoucherSendAuditLogAsync(
+            Voucher voucher,
+            string dispatchType,
+            int sentCount,
+            IEnumerable<string>? recipients = null)
+        {
+            if (sentCount <= 0)
+            {
+                return;
+            }
+
+            var recipientList = recipients?
+                .Where(item => !string.IsNullOrWhiteSpace(item))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Take(10)
+                .ToList() ?? new List<string>();
+
+            var auditEvent = new AuditEvent
+            {
+                EventId = Guid.NewGuid().ToString(),
+                Timestamp = DateTime.UtcNow,
+                ActionType = "UPDATE",
+                EntityType = "Voucher",
+                Context = new
+                {
+                    RecordId = voucher.Id
+                },
+                Changes = new
+                {
+                    NewData = new
+                    {
+                        VoucherId = voucher.Id,
+                        Code = voucher.Code,
+                        DispatchType = dispatchType,
+                        SentCount = sentCount,
+                        Recipients = recipientList
+                    }
+                },
+                Message = $"Voucher {voucher.Code} có id {voucher.Id} đã được gửi đi"
+            };
+
+            _context.AuditLogs.Add(new AuditLog
+            {
+                UserId = ResolveCurrentUserId(),
+                LogDate = DateTime.UtcNow,
+                LogData = JsonSerializer.Serialize(new
+                {
+                    TotalEvents = 1,
+                    Events = new[] { auditEvent }
+                })
+            });
+
+            await _context.SaveChangesAsync();
         }
 
         private static string FormatVoucherValue(Voucher voucher)
@@ -278,6 +350,8 @@ namespace backend.Controllers
                 }
             }
 
+            await CreateVoucherSendAuditLogAsync(voucher, "SendToUsers", sent, recipients);
+
             return Ok(new { sent, failed });
         }
 
@@ -335,6 +409,12 @@ namespace backend.Controllers
                     _logger?.LogError(ex, "Failed to send voucher {VoucherId} to birthday user {Email}", voucher.Id, user.Email);
                 }
             }
+
+            await CreateVoucherSendAuditLogAsync(
+                voucher,
+                "BirthdayCampaign",
+                sent,
+                users.Where(item => !string.IsNullOrWhiteSpace(item.Email)).Select(item => item.Email!));
 
             return Ok(new { sent, failed });
         }
