@@ -1,12 +1,16 @@
 import React from "react";
 import {
   CalendarDays,
+  ClipboardList,
   FileText,
+  Gift,
   Heart,
   LayoutDashboard,
   LifeBuoy,
   MessageSquareText,
+  ReceiptText,
   Settings,
+  ShoppingBag,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 
@@ -15,8 +19,12 @@ const Sidebar = () => {
     { icon: LayoutDashboard, label: "Dashboard", path: "/user/dashboard" },
     { icon: CalendarDays, label: "Booking", path: "/user/bookings" },
     { icon: Heart, label: "Yêu thích", path: "/user/favorites" },
-    { icon: FileText, label: "Bài viết", path: "/articles" },
+    { icon: ReceiptText, label: "Hóa đơn", path: "/user/invoices" },
+    { icon: ClipboardList, label: "Lịch sử đặt phòng", path: "/user/booking-history" },
+    { icon: ShoppingBag, label: "Dịch vụ", path: "/user/services" },
+    { icon: FileText, label: "Bài viết", path: "/user/articles" },
     { icon: MessageSquareText, label: "Review", path: "/user/reviews" },
+    { icon: Gift, label: "Voucher", path: "/user/vouchers" },
     { icon: LifeBuoy, label: "Hỗ trợ khách hàng", path: "/user/support" },
     { icon: Settings, label: "Setting", path: "/user/settings" },
   ];
@@ -27,9 +35,7 @@ const Sidebar = () => {
         <div className="flex size-10 items-center justify-center rounded-xl bg-[#0085FF] shadow-lg shadow-blue-100">
           <span className="text-xl text-white">H</span>
         </div>
-        <h1 className="text-xl font-black tracking-tight text-[#0085FF]">
-          TravelEase
-        </h1>
+        <h1 className="text-xl font-black tracking-tight text-[#0085FF]">TravelEase</h1>
       </div>
 
       <nav className="flex-1 space-y-1 px-4 py-4">

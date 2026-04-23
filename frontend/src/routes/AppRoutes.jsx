@@ -53,7 +53,11 @@ import UserBookingDetailPage from "../pages/user/UserBookingDetailPage";
 import UserRoomDetailPage from "../pages/user/UserRoomDetailPage";
 import UserFavoritesPage from "../pages/user/UserFavoritesPage";
 import UserCustomerSupportPage from "../pages/user/UserCustomerSupportPage";
+import UserInvoicesPage from "../pages/user/UserInvoicesPage";
+import UserBookingHistoryPage from "../pages/user/UserBookingHistoryPage";
 import RequirePermission from "../components/auth/RequirePermission";
+import UserServicesPage from "../pages/user/UserServicesPage";
+import UserVouchersPage from "../pages/user/UserVouchersPage";
 
 const AppRoutes = () => {
   function RedirectReceptionistBookingPayment() {
@@ -344,7 +348,12 @@ const AppRoutes = () => {
         <Route path="booking/:id" element={<UserBookingDetailPage />} />
         <Route path="room-types/:id" element={<UserRoomDetailPage />} />
         <Route path="favorites" element={<UserFavoritesPage />} />
+        <Route path="invoices" element={<UserInvoicesPage />} />
+        <Route path="booking-history" element={<UserBookingHistoryPage />} />
+        <Route path="services" element={<UserServicesPage />} />
+        <Route path="articles" element={<BlogPage />} />
         <Route path="reviews" element={<UserReviewsPage />} />
+        <Route path="vouchers" element={<UserVouchersPage />} />
         <Route path="support" element={<UserCustomerSupportPage />} />
         <Route path="settings" element={<UserSettingsPage />} />
       </Route>

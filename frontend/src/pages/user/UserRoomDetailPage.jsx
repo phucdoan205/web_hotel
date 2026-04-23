@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, BedDouble, CalendarRange, Check, DoorClosed, Users } from "lucide-react";
+import { ArrowLeft, BedDouble, CalendarRange, Check, DoorClosed, Heart, Users } from "lucide-react";
 import { roomsApi } from "../../api/admin/roomsApi";
+import { isFavoriteRoomType, toggleFavoriteRoomType } from "../../utils/userFavorites";
 
 const fallbackImage =
   "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80";
@@ -91,6 +92,7 @@ const UserRoomDetailPage = () => {
   const [filters, setFilters] = useState(() => createInitialFilters(location.state?.filters));
   const [appliedFilters, setAppliedFilters] = useState(() => createInitialFilters(location.state?.filters));
   const [selectedRoomId, setSelectedRoomId] = useState(null);
+  const [isFavorite, setIsFavorite] = useState(false);
 
   const availableRoomsQuery = useQuery({
     queryKey: ["user-room-type-detail", id, appliedFilters],
@@ -138,6 +140,11 @@ const UserRoomDetailPage = () => {
   const totalPrice = (roomType.basePrice || 0) * stayDays;
   const imageUrls = roomType.imageUrls.length ? roomType.imageUrls : [fallbackImage];
 
+  useEffect(() => {
+    if (!roomType.roomTypeId) return;
+    setIsFavorite(isFavoriteRoomType(roomType.roomTypeId));
+  }, [roomType.roomTypeId]);
+
   const handleFilterChange = (field, value) => {
     setFilters((current) => {
       const nextFilters = {
@@ -154,6 +161,14 @@ const UserRoomDetailPage = () => {
 
       return nextFilters;
     });
+  };
+
+  const handleToggleFavorite = () => {
+    const result = toggleFavoriteRoomType({
+      ...roomType,
+      imageUrls,
+    });
+    setIsFavorite(result.isFavorite);
   };
 
   if (availableRoomsQuery.isLoading && !roomTypeFromState) {
@@ -202,7 +217,19 @@ const UserRoomDetailPage = () => {
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
         <section className="space-y-6">
-          <div className="overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-sm">
+          <div className="relative overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-sm">
+            <button
+              type="button"
+              onClick={handleToggleFavorite}
+              className={`absolute right-6 top-6 z-10 flex h-12 w-12 items-center justify-center rounded-full border transition ${
+                isFavorite
+                  ? "border-rose-500 bg-rose-500 text-white shadow-lg shadow-rose-200"
+                  : "border-white/70 bg-white/80 text-slate-900 backdrop-blur-md hover:bg-white"
+              }`}
+              aria-label={isFavorite ? "Bỏ khỏi yêu thích" : "Thêm vào yêu thích"}
+            >
+              <Heart size={22} fill={isFavorite ? "currentColor" : "none"} />
+            </button>
             <img src={imageUrls[0]} alt={roomType.roomTypeName} className="h-[380px] w-full object-cover" />
           </div>
 
