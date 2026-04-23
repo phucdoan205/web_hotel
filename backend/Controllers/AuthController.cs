@@ -15,6 +15,7 @@ namespace backend.Controllers
     public class AuthController : ControllerBase
     {
         private const int DefaultGoogleUserRoleId = 2;
+        private const int DefaultRegisterUserRoleId = 2;
 
         private readonly AppDbContext _context;
         private readonly IJwtService _jwtService;
@@ -149,6 +150,77 @@ namespace backend.Controllers
             }
 
             return Ok(BuildAuthResponse(user));
+        }
+
+        [HttpPost("register")]
+        public async Task<IActionResult> Register([FromBody] RegisterDto registerDto)
+        {
+            if (string.IsNullOrWhiteSpace(registerDto.FullName) ||
+                string.IsNullOrWhiteSpace(registerDto.Email) ||
+                string.IsNullOrWhiteSpace(registerDto.Password))
+            {
+                return BadRequest(new { message = "Vui lòng nhập đầy đủ họ tên, email và mật khẩu." });
+            }
+
+            if (!registerDto.AgreeTerms)
+            {
+                return BadRequest(new { message = "Bạn phải đồng ý với Điều khoản và Điều kiện." });
+            }
+
+            var normalizedEmail = registerDto.Email.Trim();
+
+            var emailExists = await _context.Users.AnyAsync(u => u.Email == normalizedEmail);
+            if (emailExists)
+            {
+                return Conflict(new { message = "Email đã tồn tại." });
+            }
+
+            var user = new User
+            {
+                RoleId = DefaultRegisterUserRoleId,
+                FullName = registerDto.FullName.Trim(),
+                Email = normalizedEmail,
+                Phone = string.IsNullOrWhiteSpace(registerDto.PhoneNumber)
+                    ? null
+                    : registerDto.PhoneNumber.Trim(),
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(registerDto.Password),
+                Status = true
+            };
+
+            _context.Users.Add(user);
+            await _context.SaveChangesAsync();
+
+            await _context.Entry(user).Reference(u => u.Role).LoadAsync();
+            if (user.Role != null)
+            {
+                await _context.Entry(user.Role)
+                    .Collection(role => role.RolePermissions)
+                    .Query()
+                    .Include(rolePermission => rolePermission.Permission)
+                    .LoadAsync();
+            }
+
+            await _notificationService.CreateAsync(
+                "Tài khoản mới",
+                $"{user.FullName} vừa đăng ký tài khoản mới.",
+                "Success",
+                "/admin/staff");
+
+            return Ok(BuildAuthResponse(user));
+        }
+
+        [HttpGet("check-email")]
+        public async Task<ActionResult<EmailCheckResponseDto>> CheckEmail([FromQuery] string? email)
+        {
+            if (string.IsNullOrWhiteSpace(email))
+            {
+                return Ok(new EmailCheckResponseDto { Exists = false });
+            }
+
+            var normalizedEmail = email.Trim();
+            var exists = await _context.Users.AnyAsync(u => u.Email == normalizedEmail);
+
+            return Ok(new EmailCheckResponseDto { Exists = exists });
         }
 
         private AuthResponseDto BuildAuthResponse(User user)
