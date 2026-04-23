@@ -1,111 +1,201 @@
-import React from "react";
+import React, { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { ArrowDownWideNarrow } from "lucide-react";
 import BookingFilter from "../../components/user/bookings/BookingFilter";
 import BookingCard from "../../components/user/bookings/BookingCard";
-import { Search, Plus, HelpCircle } from "lucide-react";
+import { roomsApi } from "../../api/admin/roomsApi";
 
-const UserBookingsPage = ({ onViewDetail }) => {
-  const mockBookings = [
-    {
-      id: "TRV-8829102",
-      hotel: "The Ritz-Carlton Jakarta",
-      status: "Confirmed",
-      price: "4.520.000",
-      date: "12 Oct - 15 Oct 2023",
-      type: "Deluxe King Room",
-      guests: "2 Adults",
-      img: "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb",
-    },
-    {
-      id: "TRV-7718290",
-      hotel: "Alila Seminyak Bali",
-      status: "Completed",
-      price: "8.120.000",
-      date: "20 Aug - 23 Aug 2023",
-      type: "Ocean View Suite",
-      guests: "2 Adults",
-      img: "https://images.unsplash.com/photo-1571896349842-33c89424de2d",
-    },
-  ];
+const DEFAULT_CHECK_IN_HOUR = 14;
+const DEFAULT_CHECK_OUT_HOUR = 12;
+
+const createDefaultDateTime = (offsetDays, hour) => {
+  const date = new Date();
+  date.setDate(date.getDate() + offsetDays);
+  date.setHours(hour, 0, 0, 0);
+  return date;
+};
+
+const toDateTimeInputValue = (date) => {
+  const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return localDate.toISOString().slice(0, 16);
+};
+
+const toApiDate = (value) => {
+  if (!value) return null;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
+};
+
+const calculateStayDays = (checkIn, checkOut) => {
+  const start = new Date(checkIn);
+  const end = new Date(checkOut);
+
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end <= start) {
+    return 1;
+  }
+
+  const diffInMs = end.getTime() - start.getTime();
+  return Math.max(1, Math.ceil(diffInMs / (1000 * 60 * 60 * 24)));
+};
+
+const buildQueryParams = (filters) => ({
+  checkIn: toApiDate(filters.checkIn),
+  checkOut: toApiDate(filters.checkOut),
+  adults: filters.adults,
+  children: filters.children,
+  page: 1,
+  pageSize: 50,
+});
+
+const sortRooms = (rooms, sortBy, numberOfNights) => {
+  const nextRooms = [...rooms];
+
+  nextRooms.sort((left, right) => {
+    const leftTotal = (left.basePrice || 0) * Math.max(1, numberOfNights);
+    const rightTotal = (right.basePrice || 0) * Math.max(1, numberOfNights);
+
+    if (sortBy === "price-asc") return leftTotal - rightTotal;
+    if (sortBy === "price-desc") return rightTotal - leftTotal;
+    return (left.roomNumber || "").localeCompare(right.roomNumber || "", "vi");
+  });
+
+  return nextRooms;
+};
+
+const createDefaultFilters = () => ({
+  checkIn: toDateTimeInputValue(createDefaultDateTime(0, DEFAULT_CHECK_IN_HOUR)),
+  checkOut: toDateTimeInputValue(createDefaultDateTime(1, DEFAULT_CHECK_OUT_HOUR)),
+  adults: 1,
+  children: 0,
+});
+
+const UserBookingsPage = () => {
+  const [filters, setFilters] = useState(createDefaultFilters);
+  const [appliedFilters, setAppliedFilters] = useState(filters);
+  const [sortBy, setSortBy] = useState("price-asc");
+
+  const stayDays = useMemo(
+    () => calculateStayDays(appliedFilters.checkIn, appliedFilters.checkOut),
+    [appliedFilters.checkIn, appliedFilters.checkOut],
+  );
+
+  const availableRoomsQuery = useQuery({
+    queryKey: ["user-available-rooms", appliedFilters],
+    queryFn: () => roomsApi.getAvailableRooms(buildQueryParams(appliedFilters)),
+  });
+
+  const rooms = availableRoomsQuery.data?.items ?? [];
+
+  const availableCountByType = useMemo(() => {
+    const map = new Map();
+
+    rooms.forEach((room) => {
+      const key = room.roomTypeName || room.roomTypeId || room.id;
+      map.set(key, (map.get(key) || 0) + 1);
+    });
+
+    return map;
+  }, [rooms]);
+
+  const sortedRooms = useMemo(
+    () => sortRooms(rooms, sortBy, stayDays),
+    [rooms, sortBy, stayDays],
+  );
+
+  const handleFilterChange = (field, value) => {
+    setFilters((current) => ({
+      ...current,
+      [field]: value,
+    }));
+  };
+
+  const handleSearch = (event) => {
+    event.preventDefault();
+    setAppliedFilters(filters);
+  };
+
+  const handleClearFilters = () => {
+    const defaultFilters = createDefaultFilters();
+    setFilters(defaultFilters);
+    setAppliedFilters(defaultFilters);
+  };
 
   return (
-    <div className="p-8 bg-[#F8FAFC] min-h-screen">
-      {/* Header Section */}
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-2xl font-black text-gray-900 tracking-tight">
-          My Bookings
-        </h1>
-        <button className="bg-[#0085FF] text-white px-6 py-3 rounded-2xl text-xs font-black shadow-lg shadow-blue-100 flex items-center gap-2 hover:scale-105 transition-transform">
-          <Plus size={16} /> New Booking
-        </button>
-      </div>
-
-      {/* Search & Filter Bar */}
-      <div className="flex items-center justify-between mb-8 bg-white p-2 rounded-2xl border border-gray-100 shadow-sm">
-        <div className="flex-1 max-w-md relative ml-2">
-          <Search
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-            size={16}
-          />
-          <input
-            type="text"
-            placeholder="Search booking ID or hotel name..."
-            className="w-full pl-10 pr-4 py-2 text-[11px] font-bold bg-gray-50 rounded-xl border-none focus:ring-2 focus:ring-blue-100 outline-none"
-          />
-        </div>
-      </div>
-
-      <div className="space-y-10">
-        <BookingFilter />
-      </div>
-
-      {/* Bookings List */}
-      <div className="space-y-6">
-        {mockBookings.map((booking) => (
-          <div
-            key={booking.id}
-            onClick={() => onViewDetail(booking.id)}
-            className="cursor-pointer"
-          >
-            <BookingCard data={booking} />
+    <div className="-mx-2 min-h-screen rounded-[36px] bg-[#eef3f9] p-5 lg:-mx-4 lg:p-8 2xl:-mx-6">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_350px]">
+        <section className="order-2 xl:order-1">
+          <div className="mb-5 flex items-center justify-end rounded-[28px] border border-slate-200 bg-white px-5 py-4 shadow-sm">
+            <div className="flex items-center gap-3">
+              <ArrowDownWideNarrow size={16} className="text-slate-400" />
+              <label className="text-sm font-semibold text-slate-500">
+                Giá theo:
+              </label>
+              <select
+                value={sortBy}
+                onChange={(event) => setSortBy(event.target.value)}
+                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+              >
+                <option value="price-asc">Tổng giá tiền tăng dần</option>
+                <option value="price-desc">Tổng giá tiền giảm dần</option>
+                <option value="room-number">Số phòng</option>
+              </select>
+            </div>
           </div>
-        ))}
-      </div>
 
-      {/* Support Banner */}
-      <div className="mt-12 bg-blue-50/40 border border-dashed border-blue-200 p-8 rounded-[2.5rem] flex justify-between items-center">
-        <div className="flex items-center gap-5">
-          <div className="size-14 bg-white rounded-2xl flex items-center justify-center text-[#0085FF] shadow-sm">
-            <HelpCircle size={24} />
-          </div>
-          <div>
-            <h4 className="text-sm font-black text-gray-900">
-              Need help with your booking?
-            </h4>
-            <p className="text-[11px] font-bold text-gray-400 mt-0.5">
-              Our customer support team is available 24/7 to assist you with any
-              inquiries.
-            </p>
-          </div>
-        </div>
-        <button className="bg-[#0085FF] text-white px-8 py-3.5 rounded-2xl text-[11px] font-black shadow-lg shadow-blue-100 hover:bg-blue-600 transition-colors">
-          Contact Support
-        </button>
-      </div>
+          <div className="space-y-4">
+            {availableRoomsQuery.isLoading ? (
+              <div className="rounded-[28px] border border-dashed border-slate-300 bg-white px-6 py-12 text-center text-sm font-semibold text-slate-500">
+                Đang tải danh sách phòng trống...
+              </div>
+            ) : null}
 
-      {/* Footer Links */}
-      <div className="mt-12 flex justify-between items-center text-[10px] font-bold text-gray-300 border-t border-gray-100 pt-6">
-        <p>© 2023 Traveloka. All rights reserved.</p>
-        <div className="flex gap-6">
-          <span className="hover:text-gray-500 cursor-pointer">
-            Terms of Service
-          </span>
-          <span className="hover:text-gray-500 cursor-pointer">
-            Privacy Policy
-          </span>
-          <span className="hover:text-gray-500 cursor-pointer">
-            Cookie Policy
-          </span>
-        </div>
+            {availableRoomsQuery.isError ? (
+              <div className="rounded-[28px] border border-rose-200 bg-rose-50 px-6 py-8 text-sm font-semibold text-rose-600">
+                Không tải được danh sách phòng. Vui lòng thử lại.
+              </div>
+            ) : null}
+
+            {!availableRoomsQuery.isLoading && !availableRoomsQuery.isError && sortedRooms.length === 0 ? (
+              <div className="rounded-[28px] border border-dashed border-slate-300 bg-white px-6 py-12 text-center">
+                <h3 className="text-xl font-bold text-slate-900">Không tìm thấy phòng phù hợp</h3>
+                <p className="mt-2 text-sm font-medium text-slate-500">
+                  Thử đổi ngày nhận, ngày trả hoặc số lượng khách để xem thêm phòng trống.
+                </p>
+              </div>
+            ) : null}
+
+            {sortedRooms.map((room) => {
+              const roomTypeKey = room.roomTypeName || room.roomTypeId || room.id;
+
+              return (
+                <BookingCard
+                  key={room.id}
+                  room={room}
+                  numberOfNights={stayDays}
+                  availableCount={availableCountByType.get(roomTypeKey) || 1}
+                  detailLinkState={{
+                    room,
+                    filters: appliedFilters,
+                    numberOfNights: stayDays,
+                  }}
+                />
+              );
+            })}
+          </div>
+        </section>
+
+        <aside className="order-1 xl:order-2">
+          <div className="sticky top-24">
+            <BookingFilter
+              filters={filters}
+              onChange={handleFilterChange}
+              onSubmit={handleSearch}
+              onClear={handleClearFilters}
+              isSearching={availableRoomsQuery.isFetching}
+              numberOfNights={calculateStayDays(filters.checkIn, filters.checkOut)}
+            />
+          </div>
+        </aside>
       </div>
     </div>
   );

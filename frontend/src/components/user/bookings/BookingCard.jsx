@@ -1,88 +1,152 @@
-import React from "react";
-import { MapPin, Calendar, Users, Home } from "lucide-react";
+import React, { useMemo, useState } from "react";
+import { CircleHelp, DoorClosed, Users } from "lucide-react";
 import { NavLink } from "react-router-dom";
 
-const BookingCard = ({ data }) => {
+const formatCurrency = (value) =>
+  new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+    maximumFractionDigits: 0,
+  }).format(value || 0);
+
+const BookingCard = ({ room, numberOfNights, availableCount, detailLinkState }) => {
+  const [showPriceDetail, setShowPriceDetail] = useState(false);
+
+  const totalPrice = useMemo(
+    () => (room.basePrice || 0) * Math.max(1, numberOfNights),
+    [numberOfNights, room.basePrice],
+  );
+
+  const priceBreakdown = useMemo(
+    () =>
+      Array.from({ length: Math.max(1, numberOfNights) }, (_, index) => ({
+        label: `Đêm ${index + 1}`,
+        price: room.basePrice || 0,
+      })),
+    [numberOfNights, room.basePrice],
+  );
+
+  const imageUrl =
+    room.imageUrls?.[0] ||
+    "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80";
+
+  const capacityText = `${room.capacityAdults || 0} người lớn, ${room.capacityChildren || 0} trẻ em`;
+
   return (
-    <div className="bg-white rounded-[2.5rem] p-6 border border-gray-100 shadow-sm flex gap-6 hover:shadow-md transition-all group">
-      {/* Hình ảnh khách sạn */}
-      <div className="w-56 h-40 rounded-[2rem] overflow-hidden flex-shrink-0">
-        <img
-          src={data.img}
-          alt={data.hotel}
-          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-        />
-      </div>
+    <article className="relative rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)_180px]">
+        <div className="overflow-hidden rounded-3xl bg-slate-100">
+          <img
+            src={imageUrl}
+            alt={room.roomTypeName || room.roomNumber}
+            className="h-52 w-full object-cover"
+          />
+        </div>
 
-      {/* Nội dung thông tin */}
-      <div className="flex-grow flex flex-col justify-between py-1">
-        <div>
-          <div className="flex justify-between items-start">
-            <div className="flex items-center gap-2">
-              <span className="bg-emerald-50 text-emerald-500 text-[9px] font-black px-2 py-0.5 rounded uppercase tracking-tighter">
-                {data.status}
+        <div className="flex min-w-0 flex-col justify-between border-slate-200 lg:border-r lg:pr-5">
+          <div>
+            <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-slate-500">
+              <span>Phòng {room.roomNumber}</span>
+            </div>
+
+            <h3 className="text-2xl font-bold text-slate-900">
+              {room.roomTypeName || "Phòng"}
+            </h3>
+
+            <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-slate-600">
+              <span className="flex items-center gap-1.5">
+                <Users size={16} className="text-slate-400" />
+                {capacityText}
               </span>
-              <span className="text-[10px] font-bold text-gray-300 uppercase">
-                {data.id}
+              <span className="flex items-center gap-1.5">
+                <DoorClosed size={16} className="text-slate-400" />
+                {room.bedType || "Chưa cập nhật loại giường"}
               </span>
             </div>
-            <div className="text-right">
-              <p className="text-[9px] font-bold text-gray-400 uppercase">
-                Total Price
-              </p>
-              <p className="text-sm font-black text-[#0085FF]">
-                IDR {data.price}
-              </p>
-            </div>
+
+            <p className="mt-4 line-clamp-2 text-sm leading-6 text-slate-500">
+              {room.amenities?.length
+                ? `Tiện ích: ${room.amenities.join(", ")}`
+                : "Chưa có mô tả cho phòng này."}
+            </p>
           </div>
 
-          <h3 className="text-lg font-black text-gray-900 mt-1">
-            {data.hotel}
-          </h3>
-          <p className="text-[10px] font-bold text-gray-400 flex items-center gap-1 mt-0.5">
-            <MapPin size={10} /> Mega Kuningan, Jakarta Selatan
-          </p>
-
-          <div className="grid grid-cols-3 gap-4 mt-4">
-            <div className="space-y-1">
-              <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">
-                Stay Dates
-              </p>
-              <p className="text-[10px] font-bold text-gray-700 flex items-center gap-1.5">
-                <Calendar size={12} className="text-[#0085FF]" /> {data.date}
-              </p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">
-                Room Type
-              </p>
-              <p className="text-[10px] font-bold text-gray-700 flex items-center gap-1.5">
-                <Home size={12} className="text-[#0085FF]" /> {data.type}
-              </p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">
-                Users
-              </p>
-              <p className="text-[10px] font-bold text-gray-700 flex items-center gap-1.5">
-                <Users size={12} className="text-[#0085FF]" /> {data.guests}
-              </p>
-            </div>
+          <div className="mt-6 flex items-center gap-4">
+            <NavLink
+              to={`/user/rooms/${room.id}`}
+              state={detailLinkState}
+              className="text-sm font-semibold text-blue-600 transition hover:text-blue-700"
+            >
+              Chi tiết ->
+            </NavLink>
           </div>
         </div>
 
-        <div className="flex justify-end gap-3 mt-4">
-          <button className="text-[11px] font-black text-gray-500 px-4 py-2 hover:bg-gray-50 rounded-xl transition-colors">
-            Manage Booking
-          </button>
-          <NavLink
-            to={`/user/booking/${data.id}`}
-            className="bg-[#0085FF] text-white text-[11px] font-black px-6 py-2.5 rounded-xl shadow-lg shadow-blue-100 transition-transform active:scale-95">
-            View Details
-          </NavLink>
+        <div className="relative flex flex-col justify-between pt-2">
+          <div className="text-right">
+            <div className="flex items-center justify-end gap-2 text-xs font-semibold text-slate-500">
+              <span>Giá theo:</span>
+              <button
+                type="button"
+                onClick={() => setShowPriceDetail((current) => !current)}
+                className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-slate-700 transition hover:bg-slate-100"
+              >
+                Tổng giá tiền
+              </button>
+            </div>
+
+            <div className="mt-6 flex items-center justify-end gap-2">
+              <p className="text-4xl font-black tracking-tight text-slate-900">
+                {formatCurrency(totalPrice)}
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowPriceDetail((current) => !current)}
+                className="text-slate-400 transition hover:text-blue-600"
+                aria-label="Xem chi tiết giá"
+              >
+                <CircleHelp size={18} />
+              </button>
+            </div>
+          </div>
+
+          {showPriceDetail ? (
+            <div className="absolute right-0 top-28 z-10 w-72 rounded-[24px] border border-blue-200 bg-white p-5 shadow-[0_18px_40px_rgba(37,99,235,0.15)]">
+              <h4 className="text-sm font-bold text-slate-900">Chi tiết giá</h4>
+              <div className="mt-4 space-y-2 text-sm text-slate-600">
+                {priceBreakdown.map((item) => (
+                  <div key={item.label} className="flex items-center justify-between">
+                    <span>{item.label}</span>
+                    <span className="font-semibold text-slate-900">
+                      {formatCurrency(item.price)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4 border-t border-slate-200 pt-4">
+                <div className="flex items-center justify-between text-sm font-bold text-slate-900">
+                  <span>Tổng giá tiền:</span>
+                  <span>{formatCurrency(totalPrice)}</span>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          <div className="mt-8 text-right">
+            <p className="text-lg font-semibold text-rose-500">
+              Còn {availableCount} phòng trống
+            </p>
+            <NavLink
+              to={`/user/rooms/${room.id}`}
+              state={detailLinkState}
+              className="mt-4 inline-flex h-12 min-w-[132px] items-center justify-center rounded-2xl border border-blue-500 px-6 text-sm font-bold text-blue-600 transition hover:bg-blue-50"
+            >
+              Chọn
+            </NavLink>
+          </div>
         </div>
       </div>
-    </div>
+    </article>
   );
 };
 

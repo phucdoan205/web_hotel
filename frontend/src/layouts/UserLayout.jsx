@@ -16,7 +16,7 @@ const UserLayout = () => {
         </header>
 
         <main className="flex-1 p-8">
-          <div className="mx-auto max-w-7xl">
+          <div className="mx-auto max-w-[1500px]">
             <Outlet />
           </div>
         </main>
