@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, BedDouble, CalendarRange, Check, DoorClosed, Search, Users } from "lucide-react";
+import { ArrowLeft, BedDouble, CalendarRange, Check, DoorClosed, Users } from "lucide-react";
 import { roomsApi } from "../../api/admin/roomsApi";
 
 const fallbackImage =
@@ -139,33 +139,21 @@ const UserRoomDetailPage = () => {
   const imageUrls = roomType.imageUrls.length ? roomType.imageUrls : [fallbackImage];
 
   const handleFilterChange = (field, value) => {
-    setFilters((current) => ({
-      ...current,
-      [field]: value,
-    }));
-  };
+    setFilters((current) => {
+      const nextFilters = {
+        ...current,
+        [field]: value,
+      };
 
-  const handleSearch = (event) => {
-    event.preventDefault();
-    setAppliedFilters((current) => ({
-      ...current,
-      checkIn: filters.checkIn,
-      checkOut: filters.checkOut,
-    }));
-  };
+      if (field === "checkIn" || field === "checkOut") {
+        setAppliedFilters((currentApplied) => ({
+          ...currentApplied,
+          [field]: value,
+        }));
+      }
 
-  const handleResetDates = () => {
-    const initialFilters = createInitialFilters(location.state?.filters);
-    setFilters((current) => ({
-      ...current,
-      checkIn: initialFilters.checkIn,
-      checkOut: initialFilters.checkOut,
-    }));
-    setAppliedFilters((current) => ({
-      ...current,
-      checkIn: initialFilters.checkIn,
-      checkOut: initialFilters.checkOut,
-    }));
+      return nextFilters;
+    });
   };
 
   if (availableRoomsQuery.isLoading && !roomTypeFromState) {
@@ -344,7 +332,7 @@ const UserRoomDetailPage = () => {
               {formatCurrency(roomType.basePrice)} / đêm
             </p>
 
-            <form onSubmit={handleSearch} className="mt-6 space-y-4 rounded-3xl bg-slate-50 p-5">
+            <div className="mt-6 space-y-4 rounded-3xl bg-slate-50 p-5">
               <div className="flex items-start gap-3">
                 <CalendarRange size={18} className="mt-0.5 text-blue-600" />
                 <div>
@@ -378,24 +366,7 @@ const UserRoomDetailPage = () => {
               <div className="rounded-2xl bg-blue-50 px-4 py-3 text-center text-sm font-bold text-blue-700">
                 {stayDays} ngày
               </div>
-
-              <button
-                type="submit"
-                disabled={availableRoomsQuery.isFetching}
-                className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 text-sm font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
-              >
-                <Search size={18} />
-                {availableRoomsQuery.isFetching ? "Đang kiểm tra phòng..." : "Kiểm tra phòng trống"}
-              </button>
-
-              <button
-                type="button"
-                onClick={handleResetDates}
-                className="flex h-11 w-full items-center justify-center rounded-2xl border border-slate-200 bg-white text-sm font-bold text-slate-700 transition hover:bg-slate-50"
-              >
-                Đặt lại ngày
-              </button>
-            </form>
+            </div>
 
             <div className="mt-6 rounded-3xl bg-slate-50 p-5">
               <p className="text-sm font-semibold text-slate-500">Phòng đang chọn</p>

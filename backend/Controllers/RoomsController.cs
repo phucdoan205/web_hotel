@@ -18,6 +18,7 @@ namespace backend.Controllers
     {
         private readonly AppDbContext _context;
         private readonly IMapper _mapper;
+        private static readonly string[] BlockingBookingStatuses = { "Pending", "Confirmed", "CheckedIn" };
 
         public RoomsController(AppDbContext context, IMapper mapper)
         {
@@ -291,6 +292,8 @@ namespace backend.Controllers
                 .Include(r => r.RoomType)
                     .ThenInclude(rt => rt!.RoomTypeAmenities)
                         .ThenInclude(rta => rta.Amenity)
+                .Include(r => r.RoomType)
+                    .ThenInclude(rt => rt!.RoomImages)
                 .Where(r => !r.IsDeleted && r.Status == RoomStatuses.Available);
 
             // Lọc theo ngày chỉ khi CẢ HAI tham số đều có
@@ -299,7 +302,7 @@ namespace backend.Controllers
                 // Logic kiểm tra phòng trống trong khoảng ngày
                 // (tránh overlap booking)
                 q = q.Where(r => !r.BookingDetails.Any(bd =>
-                    bd.Booking != null &&
+                    (string.IsNullOrWhiteSpace(bd.Status) || BlockingBookingStatuses.Contains(bd.Status)) &&
                     bd.CheckInDate < query.CheckOut &&
                     bd.CheckOutDate > query.CheckIn));
             }
