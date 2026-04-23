@@ -1,9 +1,9 @@
 import React from "react";
-import BookingFilter from "../../components/guest/bookings/BookingFilter";
-import BookingCard from "../../components/guest/bookings/BookingCard";
+import BookingFilter from "../../components/user/bookings/BookingFilter";
+import BookingCard from "../../components/user/bookings/BookingCard";
 import { Search, Plus, HelpCircle } from "lucide-react";
 
-const GuestMyBookingsPage = ({ onViewDetail }) => {
+const UserBookingsPage = ({ onViewDetail }) => {
   const mockBookings = [
     {
       id: "TRV-8829102",
@@ -111,4 +111,4 @@ const GuestMyBookingsPage = ({ onViewDetail }) => {
   );
 };
 
-export default GuestMyBookingsPage;
+export default UserBookingsPage;

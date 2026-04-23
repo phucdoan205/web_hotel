@@ -1,9 +1,9 @@
 import React, { useState } from "react";
-import ProfileSection from "../../components/guest/settings/ProfileSection";
-import NotificationConfig from "../../components/guest/settings/NotificationConfig";
-import SecuritySection from "../../components/guest/settings/SecuritySection";
+import ProfileSection from "../../components/user/settings/ProfileSection";
+import NotificationConfig from "../../components/user/settings/NotificationConfig";
+import SecuritySection from "../../components/user/settings/SecuritySection";
 
-const GuestSettingsPage = () => {
+const UserSettingsPage = () => {
   const [activeTab, setActiveTab] = useState("profile");
 
   const tabs = [
@@ -70,4 +70,4 @@ const GuestSettingsPage = () => {
   );
 };
 
-export default GuestSettingsPage;
+export default UserSettingsPage;

@@ -1,11 +1,11 @@
 import React from "react";
 import { Calendar, CreditCard, ShieldCheck, ChevronRight } from "lucide-react";
-import SupportHero from "../../components/guest/support/SupportHero";
-import CategoryCard from "../../components/guest/support/CategoryCard";
-import LiveChatBox from "../../components/guest/support/LiveChatBox";
-import FAQAccordion from "../../components/guest/support/FAQAccordion";
+import SupportHero from "../../components/user/support/SupportHero";
+import CategoryCard from "../../components/user/support/CategoryCard";
+import LiveChatBox from "../../components/user/support/LiveChatBox";
+import FAQAccordion from "../../components/user/support/FAQAccordion";
 
-const GuestCustomerSupportPage = () => {
+const UserCustomerSupportPage = () => {
   return (
     <div className="p-10 bg-[#F8FAFC] min-h-screen">
       <SupportHero />
@@ -47,4 +47,4 @@ const GuestCustomerSupportPage = () => {
   );
 };
 
-export default GuestCustomerSupportPage;
+export default UserCustomerSupportPage;

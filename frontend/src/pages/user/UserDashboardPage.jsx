@@ -7,14 +7,14 @@ import {
   MessageSquare,
   History,
 } from "lucide-react";
-import StatsCards from "../../components/guest/dashboard/StatsCards";
-import UpcomingBooking from "../../components/guest/dashboard/UpcomingBooking";
-import Recommendation from "../../components/guest/dashboard/Recommendation";
-import VoucherList from "../../components/guest/dashboard/VoucherList";
-import RecentHistory from "../../components/guest/dashboard/RecentHistory";
-import RecentReviews from "../../components/guest/dashboard/RecentReviews";
+import StatsCards from "../../components/user/dashboard/StatsCards";
+import UpcomingBooking from "../../components/user/dashboard/UpcomingBooking";
+import Recommendation from "../../components/user/dashboard/Recommendation";
+import VoucherList from "../../components/user/dashboard/VoucherList";
+import RecentHistory from "../../components/user/dashboard/RecentHistory";
+import RecentReviews from "../../components/user/dashboard/RecentReviews";
 
-const GuestDashboardPage = () => {
+const UserDashboardPage = () => {
   return (
     <div className="p-8 bg-[#F8FAFC] min-h-screen">
       {/* 1. Header: Chào mừng và nút chỉnh sửa */}
@@ -109,4 +109,4 @@ const GuestDashboardPage = () => {
   );
 };
 
-export default GuestDashboardPage;
+export default UserDashboardPage;

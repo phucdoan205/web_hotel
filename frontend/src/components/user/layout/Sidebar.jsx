@@ -1,31 +1,24 @@
 import React from "react";
 import {
   CalendarDays,
-  CreditCard,
+  FileText,
   Heart,
   LayoutDashboard,
   LifeBuoy,
+  MessageSquareText,
   Settings,
-  Star,
-  Ticket,
-  Utensils,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 
 const Sidebar = () => {
   const menuItems = [
-    { icon: LayoutDashboard, label: "Dashboard", path: "/guest/dashboard" },
-    { icon: CalendarDays, label: "My Bookings", path: "/guest/bookings" },
-    { icon: Utensils, label: "In-room Dining", path: "/guest/dining" },
-    { icon: Ticket, label: "Vouchers", path: "/guest/vouchers" },
-    { icon: Star, label: "Bài viết & Review", path: "/guest/reviews" },
-    { icon: Heart, label: "Favorites", path: "/guest/favorites" },
-  ];
-
-  const secondaryItems = [
-    { icon: CreditCard, label: "Payment Methods", path: "/guest/payments" },
-    { icon: LifeBuoy, label: "Customer Support", path: "/guest/support" },
-    { icon: Settings, label: "Account Settings", path: "/guest/settings" },
+    { icon: LayoutDashboard, label: "Dashboard", path: "/user/dashboard" },
+    { icon: CalendarDays, label: "Booking", path: "/user/bookings" },
+    { icon: Heart, label: "Yêu thích", path: "/user/favorites" },
+    { icon: FileText, label: "Bài viết", path: "/articles" },
+    { icon: MessageSquareText, label: "Review", path: "/user/reviews" },
+    { icon: LifeBuoy, label: "Hỗ trợ khách hàng", path: "/user/support" },
+    { icon: Settings, label: "Setting", path: "/user/settings" },
   ];
 
   return (
@@ -51,21 +44,6 @@ const Sidebar = () => {
                   ? "bg-blue-50 text-blue-600 shadow-sm shadow-blue-100/50"
                   : "text-gray-400 hover:bg-gray-50 hover:text-gray-600"
               }
-            `}
-            end
-          >
-            <item.icon size={20} />
-            {item.label}
-          </NavLink>
-        ))}
-
-        {secondaryItems.map((item) => (
-          <NavLink
-            key={item.path}
-            to={item.path}
-            className={({ isActive }) => `
-              flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-black transition-all
-              ${isActive ? "bg-blue-50 text-blue-600" : "text-gray-400 hover:bg-gray-50"}
             `}
             end
           >

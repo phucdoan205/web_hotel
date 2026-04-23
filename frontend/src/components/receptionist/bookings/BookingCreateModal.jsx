@@ -14,6 +14,33 @@ import { clearBookingPaymentState } from "../../../utils/bookingPaymentState";
 
 const initialGuestInfo = { name: "", phone: "", email: "" };
 const inactiveBookingStatuses = new Set(["Cancelled", "Completed"]);
+const DEFAULT_CHECK_IN_TIME = "14:00";
+const DEFAULT_CHECK_OUT_TIME = "12:00";
+const BACKEND_CHECK_IN_OFFSET_HOURS = 14;
+const BACKEND_CHECK_OUT_OFFSET_HOURS = 12;
+
+const combineDateAndTime = (date, time) => {
+  if (!date) return "";
+  return `${date}T${time || "00:00"}:00`;
+};
+
+const shiftDateTimeValue = (value, hours) => {
+  if (!value) return "";
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return value;
+
+  parsed.setHours(parsed.getHours() + hours, 0, 0, 0);
+
+  const year = parsed.getFullYear();
+  const month = String(parsed.getMonth() + 1).padStart(2, "0");
+  const day = String(parsed.getDate()).padStart(2, "0");
+  const hour = String(parsed.getHours()).padStart(2, "0");
+  const minute = String(parsed.getMinutes()).padStart(2, "0");
+  const second = String(parsed.getSeconds()).padStart(2, "0");
+
+  return `${year}-${month}-${day}T${hour}:${minute}:${second}`;
+};
 
 const toComparableDate = (value) => {
   if (!value) return null;
@@ -41,7 +68,9 @@ const getOverlapEntryForRoom = (bookings, roomId, checkInDate, checkOutDate) => 
   for (const booking of bookings) {
     for (const detail of booking.bookingDetails || []) {
       if (!detail?.roomId || detail.roomId !== roomId) continue;
-      if (!hasDateOverlap(detail.checkInDate, detail.checkOutDate, checkInDate, checkOutDate)) continue;
+      if (!hasDateOverlap(detail.checkInDate, detail.checkOutDate, checkInDate, checkOutDate)) {
+        continue;
+      }
 
       return {
         bookingId: booking.id,
@@ -64,8 +93,13 @@ const BookingCreateModal = ({ open, onClose, onNotice }) => {
   const [guestInfo, setGuestInfo] = useState(initialGuestInfo);
   const [checkInDate, setCheckInDate] = useState(getVietnamDateKey());
   const [checkOutDate, setCheckOutDate] = useState(getVietnamDateOffsetKey(1));
+  const [checkInTime, setCheckInTime] = useState(DEFAULT_CHECK_IN_TIME);
+  const [checkOutTime, setCheckOutTime] = useState(DEFAULT_CHECK_OUT_TIME);
   const [inlineNotice, setInlineNotice] = useState(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
+
+  const checkInDateTime = combineDateAndTime(checkInDate, checkInTime);
+  const checkOutDateTime = combineDateAndTime(checkOutDate, checkOutTime);
 
   const { data: roomTypes = [], isLoading: loadingTypes } = useQuery({
     queryKey: ["roomTypes"],
@@ -113,14 +147,19 @@ const BookingCreateModal = ({ open, onClose, onNotice }) => {
     const map = new Map();
 
     allRooms.forEach((room) => {
-      const overlapEntry = getOverlapEntryForRoom(activeBookings, room.id, checkInDate, checkOutDate);
+      const overlapEntry = getOverlapEntryForRoom(
+        activeBookings,
+        room.id,
+        checkInDateTime,
+        checkOutDateTime,
+      );
       if (overlapEntry) {
         map.set(room.id, overlapEntry);
       }
     });
 
     return map;
-  }, [activeBookings, allRooms, checkInDate, checkOutDate]);
+  }, [activeBookings, allRooms, checkInDateTime, checkOutDateTime]);
 
   useEffect(() => {
     setSelectedRooms((prev) =>
@@ -135,6 +174,8 @@ const BookingCreateModal = ({ open, onClose, onNotice }) => {
     setGuestInfo(initialGuestInfo);
     setCheckInDate(getVietnamDateKey());
     setCheckOutDate(getVietnamDateOffsetKey(1));
+    setCheckInTime(DEFAULT_CHECK_IN_TIME);
+    setCheckOutTime(DEFAULT_CHECK_OUT_TIME);
     setInlineNotice(null);
     setShowConfirmation(false);
   };
@@ -146,8 +187,8 @@ const BookingCreateModal = ({ open, onClose, onNotice }) => {
     bookingDetails: selectedRooms.map((room) => ({
       roomTypeId: getRoomTypeId(room),
       roomId: room.id,
-      checkInDate,
-      checkOutDate,
+      checkInDate: shiftDateTimeValue(checkInDateTime, -BACKEND_CHECK_IN_OFFSET_HOURS),
+      checkOutDate: shiftDateTimeValue(checkOutDateTime, -BACKEND_CHECK_OUT_OFFSET_HOURS),
     })),
   });
 
@@ -212,13 +253,13 @@ const BookingCreateModal = ({ open, onClose, onNotice }) => {
       return false;
     }
 
-    if (!checkInDate || !checkOutDate) {
-      showMessage("warning", "Vui lòng chọn ngày check-in và check-out.");
+    if (!checkInDateTime || !checkOutDateTime) {
+      showMessage("warning", "Vui lòng chọn đầy đủ ngày giờ check-in và check-out.");
       return false;
     }
 
-    if (checkInDate >= checkOutDate) {
-      showMessage("warning", "Ngày check-out phải sau ngày check-in.");
+    if (new Date(checkInDateTime) >= new Date(checkOutDateTime)) {
+      showMessage("warning", "Thời gian check-out phải sau thời gian check-in.");
       return false;
     }
 
@@ -236,7 +277,7 @@ const BookingCreateModal = ({ open, onClose, onNotice }) => {
     if (overlappingBooking) {
       showMessage(
         "warning",
-        `Phòng ${room.roomNumber} đã có booking ${overlappingBooking.bookingCode} trong khoảng ngày đã chọn.`,
+        `Phòng ${room.roomNumber} đã có booking ${overlappingBooking.bookingCode} trong khoảng thời gian đã chọn.`,
       );
       return;
     }
@@ -273,7 +314,7 @@ const BookingCreateModal = ({ open, onClose, onNotice }) => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
       <div className="flex h-[95vh] w-full max-w-6xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl">
-            <div className="flex items-center justify-between border-b bg-gray-50 px-8 py-4">
+        <div className="flex items-center justify-between border-b bg-gray-50 px-8 py-4">
           <div>
             <h2 className="text-2xl font-black text-gray-900">Tạo Booking Mới</h2>
             <p className="text-sm text-gray-500">Chọn phòng và nhập thông tin khách hàng</p>
@@ -328,21 +369,21 @@ const BookingCreateModal = ({ open, onClose, onNotice }) => {
                       </p>
                     </div>
                     <div className="flex gap-3">
-                        <button
-                          type="button"
-                          onClick={() => setShowConfirmation(false)}
-                          className="rounded-2xl bg-white px-4 py-2 font-bold text-slate-600 transition hover:bg-slate-100"
-                        >
-                          Không
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleConfirmCreate}
-                          disabled={createMutation.isPending}
-                          className="rounded-2xl bg-orange-600 px-4 py-2 font-black text-white transition hover:bg-orange-700 disabled:cursor-not-allowed disabled:bg-orange-300"
-                        >
-                          {createMutation.isPending ? "Đang tạo..." : "Có, xác nhận đặt"}
-                        </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmation(false)}
+                        className="rounded-2xl bg-white px-4 py-2 font-bold text-slate-600 transition hover:bg-slate-100"
+                      >
+                        Không
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleConfirmCreate}
+                        disabled={createMutation.isPending}
+                        className="rounded-2xl bg-orange-600 px-4 py-2 font-black text-white transition hover:bg-orange-700 disabled:cursor-not-allowed disabled:bg-orange-300"
+                      >
+                        {createMutation.isPending ? "Đang tạo..." : "Có, xác nhận đặt"}
+                      </button>
                     </div>
                   </div>
 
@@ -404,7 +445,7 @@ const BookingCreateModal = ({ open, onClose, onNotice }) => {
                 </div>
 
                 <div>
-                                    <label className="mb-1 block text-sm font-bold text-gray-600">Email</label>
+                  <label className="mb-1 block text-sm font-bold text-gray-600">Email</label>
                   <input
                     type="email"
                     value={guestInfo.email}
@@ -444,6 +485,36 @@ const BookingCreateModal = ({ open, onClose, onNotice }) => {
                         setShowConfirmation(false);
                       }}
                       min={checkInDate || getVietnamDateKey()}
+                      className="w-full rounded-2xl border border-gray-300 px-4 py-2 outline-none focus:border-orange-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="mb-1 block text-sm font-bold text-gray-600">Giờ check-in *</label>
+                    <input
+                      type="time"
+                      value={checkInTime}
+                      onChange={(e) => {
+                        setCheckInTime(e.target.value);
+                        setInlineNotice(null);
+                        setShowConfirmation(false);
+                      }}
+                      className="w-full rounded-2xl border border-gray-300 px-4 py-2 outline-none focus:border-orange-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-sm font-bold text-gray-600">Giờ check-out *</label>
+                    <input
+                      type="time"
+                      value={checkOutTime}
+                      onChange={(e) => {
+                        setCheckOutTime(e.target.value);
+                        setInlineNotice(null);
+                        setShowConfirmation(false);
+                      }}
                       className="w-full rounded-2xl border border-gray-300 px-4 py-2 outline-none focus:border-orange-500"
                     />
                   </div>

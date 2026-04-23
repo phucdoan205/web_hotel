@@ -1,9 +1,9 @@
 import React from "react";
-import FavoriteFilter from "../../components/guest/favorites/FavoriteFilter";
-import FavoriteCard from "../../components/guest/favorites/FavoriteCard";
+import FavoriteFilter from "../../components/user/favorites/FavoriteFilter";
+import FavoriteCard from "../../components/user/favorites/FavoriteCard";
 import { Trash2 } from "lucide-react";
 
-const GuestMyFavoritesPage = () => {
+const UserFavoritesPage = () => {
   const favorites = [
     {
       name: "Grand Hyatt Bali",
@@ -71,4 +71,4 @@ const GuestMyFavoritesPage = () => {
   );
 };
 
-export default GuestMyFavoritesPage;
+export default UserFavoritesPage;

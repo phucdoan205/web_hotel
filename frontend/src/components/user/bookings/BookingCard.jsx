@@ -62,7 +62,7 @@ const BookingCard = ({ data }) => {
             </div>
             <div className="space-y-1">
               <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">
-                Guests
+                Users
               </p>
               <p className="text-[10px] font-bold text-gray-700 flex items-center gap-1.5">
                 <Users size={12} className="text-[#0085FF]" /> {data.guests}
@@ -76,7 +76,7 @@ const BookingCard = ({ data }) => {
             Manage Booking
           </button>
           <NavLink
-            to={`/guest/booking/${data.id}`}
+            to={`/user/booking/${data.id}`}
             className="bg-[#0085FF] text-white text-[11px] font-black px-6 py-2.5 rounded-xl shadow-lg shadow-blue-100 transition-transform active:scale-95">
             View Details
           </NavLink>

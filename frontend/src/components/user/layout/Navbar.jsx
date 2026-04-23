@@ -5,7 +5,7 @@ import UserMenu from "../../shared/UserMenu";
 const Navbar = () => {
   return (
     <div className="flex items-center justify-between h-full px-6">
-      <div className="text-lg font-semibold text-gray-800">Guest</div>
+      <div className="text-lg font-semibold text-gray-800">User</div>
 
       <div className="flex items-center space-x-6">
         <div className="flex items-center gap-x-3.5 border-r border-gray-100 pr-6">

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { ChevronDown, MessageCircle } from "lucide-react";
 import { Link } from "react-router-dom";
-import ReviewCard from "../../components/guest/reviews/ReviewCard";
+import ReviewCard from "../../components/user/reviews/ReviewCard";
 import { getArticles } from "../../api/articles/articleApi";
 
 const reviewsData = [
@@ -19,7 +19,7 @@ const reviewsData = [
   },
 ];
 
-const GuestMyReviewsPage = () => {
+const UserReviewsPage = () => {
   const [activeTab, setActiveTab] = useState("reviews");
   const [articles, setArticles] = useState([]);
   const [loadingArticles, setLoadingArticles] = useState(true);
@@ -126,4 +126,4 @@ const GuestMyReviewsPage = () => {
   );
 };
 
-export default GuestMyReviewsPage;
+export default UserReviewsPage;

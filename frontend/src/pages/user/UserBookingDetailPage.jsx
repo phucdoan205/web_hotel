@@ -8,13 +8,13 @@ import {
   CreditCard,
   ExternalLink,
 } from "lucide-react";
-import DetailStayInfo from "../../components/guest/bookings/DetailStayInfo";
-import DetailQuickCheckIn from "../../components/guest/bookings/DetailQuickCheckIn";
-import DetailPriceBreakdown from "../../components/guest/bookings/DetailPriceBreakdown";
-import DetailPolicy from "../../components/guest/bookings/DetailPolicy";
+import DetailStayInfo from "../../components/user/bookings/DetailStayInfo";
+import DetailQuickCheckIn from "../../components/user/bookings/DetailQuickCheckIn";
+import DetailPriceBreakdown from "../../components/user/bookings/DetailPriceBreakdown";
+import DetailPolicy from "../../components/user/bookings/DetailPolicy";
 import { NavLink } from "react-router-dom";
 
-const GuestBookingDetailPage = ({ onBack, bookingId }) => {
+const UserBookingDetailPage = ({ onBack, bookingId }) => {
   return (
     <div className="p-8 bg-[#F8FAFC] min-h-screen">
       {/* Breadcrumb Navigation */}
@@ -34,7 +34,7 @@ const GuestBookingDetailPage = ({ onBack, bookingId }) => {
       <div className="flex justify-between items-start mb-10">
         <div className="flex items-center gap-4">
           <NavLink
-            to="/guest/bookings"
+            to="/user/bookings"
             onClick={onBack}
             className="p-3 bg-white border border-gray-100 rounded-2xl text-gray-900 hover:bg-gray-50 transition-colors shadow-sm"
           >
@@ -99,7 +99,7 @@ const GuestBookingDetailPage = ({ onBack, bookingId }) => {
                 <div className="size-11 rounded-full bg-blue-100 overflow-hidden">
                   <img
                     src="https://ui-avatars.com/api/?name=John+Doe&background=0085FF&color=fff"
-                    alt="Guest"
+                    alt="User"
                   />
                 </div>
                 <div>
@@ -181,4 +181,4 @@ const GuestBookingDetailPage = ({ onBack, bookingId }) => {
   );
 };
 
-export default GuestBookingDetailPage;
+export default UserBookingDetailPage;

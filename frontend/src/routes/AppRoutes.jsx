@@ -3,7 +3,7 @@ import { Routes, Route, Navigate, useLocation, useParams } from "react-router-do
 
 import MainLayout from "../layouts/MainLayout";
 import AdminLayout from "../layouts/AdminLayout";
-import GuestLayout from "../layouts/GuestLayout";
+import UserLayout from "../layouts/UserLayout";
 
 import HomePage from "../pages/public/HomePage";
 import BlogPage from "../pages/public/BlogPage";
@@ -45,16 +45,13 @@ import AdminArticleEditorPage from "../pages/admin/AdminArticleEditorPage";
 import AdminAttractionsPage from "../pages/admin/AdminAttractionsPage";
 import AdminVoucherPage from "../pages/admin/AdminVoucherPage";
 
-import GuestSettingsPage from "../pages/guest/GuestSettingsPage";
-import GuestDashboardPage from "../pages/guest/GuestDashboardPage";
-import GuestMyBookingsPage from "../pages/guest/GuestMyBookingsPage";
-import GuestMyReviewsPage from "../pages/guest/GuestMyReviewsPage";
-import GuestInRoomDiningPage from "../pages/guest/GuestInRoomDiningPage";
-import GuestBookingDetailPage from "../pages/guest/GuestBookingDetailPage";
-import GuestPaymentMethodsPage from "../pages/guest/GuestPaymentMethodsPage";
-import GuestVoucherPage from "../pages/guest/GuestVoucherPage";
-import GuestMyFavoritesPage from "../pages/guest/GuestMyFavoritesPage";
-import GuestCustomerSupportPage from "../pages/guest/GuestCustomerSupportPage";
+import UserSettingsPage from "../pages/user/UserSettingsPage";
+import UserDashboardPage from "../pages/user/UserDashboardPage";
+import UserBookingsPage from "../pages/user/UserBookingsPage";
+import UserReviewsPage from "../pages/user/UserReviewsPage";
+import UserBookingDetailPage from "../pages/user/UserBookingDetailPage";
+import UserFavoritesPage from "../pages/user/UserFavoritesPage";
+import UserCustomerSupportPage from "../pages/user/UserCustomerSupportPage";
 import RequirePermission from "../components/auth/RequirePermission";
 
 const AppRoutes = () => {
@@ -339,20 +336,16 @@ const AppRoutes = () => {
       <Route path="/housekeeping/tasks" element={<RedirectLegacyHousekeepingTask />} />
       <Route path="/housekeeping/*" element={<Navigate to="/admin/dashboard" replace />} />
 
-      <Route path="/guest" element={<GuestLayout />}>
-        <Route index element={<GuestDashboardPage />} />
-        <Route path="dashboard" element={<GuestDashboardPage />} />
-        <Route path="bookings" element={<GuestMyBookingsPage />} />
-        <Route path="reviews" element={<GuestMyReviewsPage />} />
-        <Route path="dining" element={<GuestInRoomDiningPage />} />
-        <Route path="booking/:id" element={<GuestBookingDetailPage />} />
-        <Route path="payments" element={<GuestPaymentMethodsPage />} />
-        <Route path="vouchers" element={<GuestVoucherPage />} />
-        <Route path="favorites" element={<GuestMyFavoritesPage />} />
-        <Route path="support" element={<GuestCustomerSupportPage />} />
-        <Route path="settings" element={<GuestSettingsPage />} />
+      <Route path="/user" element={<UserLayout />}>
+        <Route index element={<UserDashboardPage />} />
+        <Route path="dashboard" element={<UserDashboardPage />} />
+        <Route path="bookings" element={<UserBookingsPage />} />
+        <Route path="booking/:id" element={<UserBookingDetailPage />} />
+        <Route path="favorites" element={<UserFavoritesPage />} />
+        <Route path="reviews" element={<UserReviewsPage />} />
+        <Route path="support" element={<UserCustomerSupportPage />} />
+        <Route path="settings" element={<UserSettingsPage />} />
       </Route>
-
       <Route
         path="*"
         element={

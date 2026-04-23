@@ -47,7 +47,7 @@ const UserMenu = ({
 
   const user = useMemo(
     () => ({
-      name: auth?.fullName || auth?.email || "Guest User",
+      name: auth?.fullName || auth?.email || "User",
       email: auth?.email || "",
       role: auth?.role || "",
       avatarUrl: auth?.avatarUrl || "",

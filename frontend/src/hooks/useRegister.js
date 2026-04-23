@@ -110,7 +110,7 @@ export const useRegister = () => {
       });
 
       saveAuth(response);
-      navigate("/guest/dashboard");
+      navigate("/user/dashboard");
     } catch (error) {
       const message =
         error.response?.data?.message || "Email đã tồn tại.";
