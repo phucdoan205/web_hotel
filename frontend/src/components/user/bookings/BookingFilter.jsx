@@ -35,6 +35,7 @@ const BookingFilter = ({
   onClear,
   isSearching,
   numberOfNights,
+  showDateFields = true,
 }) => {
   return (
     <form
@@ -42,33 +43,33 @@ const BookingFilter = ({
       className="rounded-[30px] border border-slate-200 bg-white p-6 shadow-[0_20px_50px_rgba(15,23,42,0.08)]"
     >
       <div className="space-y-5">
-        <label className="block">
-          <span className="mb-2 block text-sm font-semibold text-slate-700">
-            Nhận phòng
-          </span>
-          <input
-            type="datetime-local"
-            value={filters.checkIn}
-            onChange={(event) => onChange("checkIn", event.target.value)}
-            className="h-14 w-full rounded-2xl border border-slate-200 px-4 text-sm font-medium text-slate-800 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-          />
-        </label>
+        {showDateFields ? (
+          <>
+            <label className="block">
+              <span className="mb-2 block text-sm font-semibold text-slate-700">Nhận phòng</span>
+              <input
+                type="datetime-local"
+                value={filters.checkIn}
+                onChange={(event) => onChange("checkIn", event.target.value)}
+                className="h-14 w-full rounded-2xl border border-slate-200 px-4 text-sm font-medium text-slate-800 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+              />
+            </label>
 
-        <label className="block">
-          <span className="mb-2 block text-sm font-semibold text-slate-700">
-            Trả phòng
-          </span>
-          <input
-            type="datetime-local"
-            value={filters.checkOut}
-            onChange={(event) => onChange("checkOut", event.target.value)}
-            className="h-14 w-full rounded-2xl border border-slate-200 px-4 text-sm font-medium text-slate-800 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-          />
-        </label>
+            <label className="block">
+              <span className="mb-2 block text-sm font-semibold text-slate-700">Trả phòng</span>
+              <input
+                type="datetime-local"
+                value={filters.checkOut}
+                onChange={(event) => onChange("checkOut", event.target.value)}
+                className="h-14 w-full rounded-2xl border border-slate-200 px-4 text-sm font-medium text-slate-800 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+              />
+            </label>
 
-        <div className="rounded-2xl bg-blue-50 px-4 py-3 text-center text-sm font-bold text-blue-700">
-          {numberOfNights} ngày
-        </div>
+            <div className="rounded-2xl bg-blue-50 px-4 py-3 text-center text-sm font-bold text-blue-700">
+              {numberOfNights} ngày
+            </div>
+          </>
+        ) : null}
 
         <CounterControl
           label="Người lớn"

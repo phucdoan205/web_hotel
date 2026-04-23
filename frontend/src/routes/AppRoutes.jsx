@@ -342,7 +342,7 @@ const AppRoutes = () => {
         <Route path="dashboard" element={<UserDashboardPage />} />
         <Route path="bookings" element={<UserBookingsPage />} />
         <Route path="booking/:id" element={<UserBookingDetailPage />} />
-        <Route path="rooms/:id" element={<UserRoomDetailPage />} />
+        <Route path="room-types/:id" element={<UserRoomDetailPage />} />
         <Route path="favorites" element={<UserFavoritesPage />} />
         <Route path="reviews" element={<UserReviewsPage />} />
         <Route path="support" element={<UserCustomerSupportPage />} />

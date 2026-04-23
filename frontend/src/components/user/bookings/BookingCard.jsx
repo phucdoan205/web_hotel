@@ -2,6 +2,9 @@ import React, { useMemo, useState } from "react";
 import { CircleHelp, DoorClosed, Users } from "lucide-react";
 import { NavLink } from "react-router-dom";
 
+const fallbackImage =
+  "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80";
+
 const formatCurrency = (value) =>
   new Intl.NumberFormat("vi-VN", {
     style: "currency",
@@ -9,48 +12,37 @@ const formatCurrency = (value) =>
     maximumFractionDigits: 0,
   }).format(value || 0);
 
-const BookingCard = ({ room, numberOfNights, availableCount, detailLinkState }) => {
+const BookingCard = ({ roomType, availableCount = 0, numberOfNights, detailLinkState }) => {
   const [showPriceDetail, setShowPriceDetail] = useState(false);
 
   const totalPrice = useMemo(
-    () => (room.basePrice || 0) * Math.max(1, numberOfNights),
-    [numberOfNights, room.basePrice],
+    () => (roomType.basePrice || 0) * Math.max(1, numberOfNights),
+    [numberOfNights, roomType.basePrice],
   );
 
   const priceBreakdown = useMemo(
     () =>
       Array.from({ length: Math.max(1, numberOfNights) }, (_, index) => ({
         label: `Đêm ${index + 1}`,
-        price: room.basePrice || 0,
+        price: roomType.basePrice || 0,
       })),
-    [numberOfNights, room.basePrice],
+    [numberOfNights, roomType.basePrice],
   );
 
-  const imageUrl =
-    room.imageUrls?.[0] ||
-    "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80";
-
-  const capacityText = `${room.capacityAdults || 0} người lớn, ${room.capacityChildren || 0} trẻ em`;
+  const imageUrl = roomType.imageUrls?.[0] || fallbackImage;
+  const capacityText = `${roomType.capacityAdults || 0} người lớn, ${roomType.capacityChildren || 0} trẻ em`;
 
   return (
     <article className="relative rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm">
       <div className="grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)_180px]">
         <div className="overflow-hidden rounded-3xl bg-slate-100">
-          <img
-            src={imageUrl}
-            alt={room.roomTypeName || room.roomNumber}
-            className="h-52 w-full object-cover"
-          />
+          <img src={imageUrl} alt={roomType.roomTypeName} className="h-52 w-full object-cover" />
         </div>
 
         <div className="flex min-w-0 flex-col justify-between border-slate-200 lg:border-r lg:pr-5">
           <div>
-            <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-slate-500">
-              <span>Phòng {room.roomNumber}</span>
-            </div>
-
             <h3 className="text-2xl font-bold text-slate-900">
-              {room.roomTypeName || "Phòng"}
+              {roomType.roomTypeName || "Loại phòng"}
             </h3>
 
             <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-slate-600">
@@ -60,24 +52,22 @@ const BookingCard = ({ room, numberOfNights, availableCount, detailLinkState }) 
               </span>
               <span className="flex items-center gap-1.5">
                 <DoorClosed size={16} className="text-slate-400" />
-                {room.bedType || "Chưa cập nhật loại giường"}
+                {roomType.bedType || "Chưa cập nhật loại giường"}
               </span>
             </div>
 
             <p className="mt-4 line-clamp-2 text-sm leading-6 text-slate-500">
-              {room.amenities?.length
-                ? `Tiện ích: ${room.amenities.join(", ")}`
-                : "Chưa có mô tả cho phòng này."}
+              {roomType.size ? `Diện tích ${roomType.size} m2` : "Xem chi tiết để chọn ngày và phòng phù hợp."}
             </p>
           </div>
 
           <div className="mt-6 flex items-center gap-4">
             <NavLink
-              to={`/user/rooms/${room.id}`}
+              to={`/user/room-types/${roomType.roomTypeId}`}
               state={detailLinkState}
               className="text-sm font-semibold text-blue-600 transition hover:text-blue-700"
             >
-              Chi tiết ->
+              Chi tiết
             </NavLink>
           </div>
         </div>
@@ -137,7 +127,7 @@ const BookingCard = ({ room, numberOfNights, availableCount, detailLinkState }) 
               Còn {availableCount} phòng trống
             </p>
             <NavLink
-              to={`/user/rooms/${room.id}`}
+              to={`/user/room-types/${roomType.roomTypeId}`}
               state={detailLinkState}
               className="mt-4 inline-flex h-12 min-w-[132px] items-center justify-center rounded-2xl border border-blue-500 px-6 text-sm font-bold text-blue-600 transition hover:bg-blue-50"
             >

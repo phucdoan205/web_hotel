@@ -38,30 +38,6 @@ const calculateStayDays = (checkIn, checkOut) => {
   return Math.max(1, Math.ceil(diffInMs / (1000 * 60 * 60 * 24)));
 };
 
-const buildQueryParams = (filters) => ({
-  checkIn: toApiDate(filters.checkIn),
-  checkOut: toApiDate(filters.checkOut),
-  adults: filters.adults,
-  children: filters.children,
-  page: 1,
-  pageSize: 50,
-});
-
-const sortRooms = (rooms, sortBy, numberOfNights) => {
-  const nextRooms = [...rooms];
-
-  nextRooms.sort((left, right) => {
-    const leftTotal = (left.basePrice || 0) * Math.max(1, numberOfNights);
-    const rightTotal = (right.basePrice || 0) * Math.max(1, numberOfNights);
-
-    if (sortBy === "price-asc") return leftTotal - rightTotal;
-    if (sortBy === "price-desc") return rightTotal - leftTotal;
-    return (left.roomNumber || "").localeCompare(right.roomNumber || "", "vi");
-  });
-
-  return nextRooms;
-};
-
 const createDefaultFilters = () => ({
   checkIn: toDateTimeInputValue(createDefaultDateTime(0, DEFAULT_CHECK_IN_HOUR)),
   checkOut: toDateTimeInputValue(createDefaultDateTime(1, DEFAULT_CHECK_OUT_HOUR)),
@@ -69,9 +45,76 @@ const createDefaultFilters = () => ({
   children: 0,
 });
 
+const buildQueryParams = (filters) => ({
+  checkIn: toApiDate(filters.checkIn),
+  checkOut: toApiDate(filters.checkOut),
+  adults: filters.adults,
+  children: filters.children,
+  page: 1,
+  pageSize: 100,
+});
+
+const groupRoomsByType = (rooms) => {
+  const map = new Map();
+
+  rooms.forEach((room) => {
+    if (room.status !== "Available") {
+      return;
+    }
+
+    const key = room.roomTypeId || room.roomTypeName || room.id;
+    const current = map.get(key);
+
+    if (current) {
+      current.availableRooms.push({
+        id: room.id,
+        roomNumber: room.roomNumber,
+        status: room.status,
+      });
+      return;
+    }
+
+    map.set(key, {
+      roomTypeId: room.roomTypeId || room.id,
+      roomTypeName: room.roomTypeName,
+      basePrice: room.basePrice,
+      capacityAdults: room.capacityAdults,
+      capacityChildren: room.capacityChildren,
+      bedType: room.bedType,
+      size: room.size,
+      amenities: room.amenities ?? [],
+      imageUrls: room.imageUrls ?? [],
+      availableRooms: [
+        {
+          id: room.id,
+          roomNumber: room.roomNumber,
+          status: room.status,
+        },
+      ],
+    });
+  });
+
+  return Array.from(map.values());
+};
+
+const sortRoomTypes = (roomTypes, sortBy, numberOfNights) => {
+  const nextRoomTypes = [...roomTypes];
+
+  nextRoomTypes.sort((left, right) => {
+    const leftTotal = (left.basePrice || 0) * Math.max(1, numberOfNights);
+    const rightTotal = (right.basePrice || 0) * Math.max(1, numberOfNights);
+
+    if (sortBy === "price-asc") return leftTotal - rightTotal;
+    if (sortBy === "price-desc") return rightTotal - leftTotal;
+    return (left.roomTypeName || "").localeCompare(right.roomTypeName || "", "vi");
+  });
+
+  return nextRoomTypes;
+};
+
 const UserBookingsPage = () => {
   const [filters, setFilters] = useState(createDefaultFilters);
-  const [appliedFilters, setAppliedFilters] = useState(filters);
+  const [appliedFilters, setAppliedFilters] = useState(createDefaultFilters);
   const [sortBy, setSortBy] = useState("price-asc");
 
   const stayDays = useMemo(
@@ -80,26 +123,18 @@ const UserBookingsPage = () => {
   );
 
   const availableRoomsQuery = useQuery({
-    queryKey: ["user-available-rooms", appliedFilters],
+    queryKey: ["user-available-room-types", appliedFilters],
     queryFn: () => roomsApi.getAvailableRooms(buildQueryParams(appliedFilters)),
   });
 
-  const rooms = availableRoomsQuery.data?.items ?? [];
+  const roomTypes = useMemo(
+    () => groupRoomsByType(availableRoomsQuery.data?.items ?? []),
+    [availableRoomsQuery.data?.items],
+  );
 
-  const availableCountByType = useMemo(() => {
-    const map = new Map();
-
-    rooms.forEach((room) => {
-      const key = room.roomTypeName || room.roomTypeId || room.id;
-      map.set(key, (map.get(key) || 0) + 1);
-    });
-
-    return map;
-  }, [rooms]);
-
-  const sortedRooms = useMemo(
-    () => sortRooms(rooms, sortBy, stayDays),
-    [rooms, sortBy, stayDays],
+  const sortedRoomTypes = useMemo(
+    () => sortRoomTypes(roomTypes, sortBy, stayDays),
+    [roomTypes, sortBy, stayDays],
   );
 
   const handleFilterChange = (field, value) => {
@@ -127,9 +162,7 @@ const UserBookingsPage = () => {
           <div className="mb-5 flex items-center justify-end rounded-[28px] border border-slate-200 bg-white px-5 py-4 shadow-sm">
             <div className="flex items-center gap-3">
               <ArrowDownWideNarrow size={16} className="text-slate-400" />
-              <label className="text-sm font-semibold text-slate-500">
-                Giá theo:
-              </label>
+              <label className="text-sm font-semibold text-slate-500">Giá theo:</label>
               <select
                 value={sortBy}
                 onChange={(event) => setSortBy(event.target.value)}
@@ -137,7 +170,7 @@ const UserBookingsPage = () => {
               >
                 <option value="price-asc">Tổng giá tiền tăng dần</option>
                 <option value="price-desc">Tổng giá tiền giảm dần</option>
-                <option value="room-number">Số phòng</option>
+                <option value="room-number">Tên loại phòng</option>
               </select>
             </div>
           </div>
@@ -145,42 +178,38 @@ const UserBookingsPage = () => {
           <div className="space-y-4">
             {availableRoomsQuery.isLoading ? (
               <div className="rounded-[28px] border border-dashed border-slate-300 bg-white px-6 py-12 text-center text-sm font-semibold text-slate-500">
-                Đang tải danh sách phòng trống...
+                Đang tải danh sách loại phòng...
               </div>
             ) : null}
 
             {availableRoomsQuery.isError ? (
               <div className="rounded-[28px] border border-rose-200 bg-rose-50 px-6 py-8 text-sm font-semibold text-rose-600">
-                Không tải được danh sách phòng. Vui lòng thử lại.
+                Không tải được danh sách loại phòng. Vui lòng thử lại.
               </div>
             ) : null}
 
-            {!availableRoomsQuery.isLoading && !availableRoomsQuery.isError && sortedRooms.length === 0 ? (
+            {!availableRoomsQuery.isLoading && !availableRoomsQuery.isError && sortedRoomTypes.length === 0 ? (
               <div className="rounded-[28px] border border-dashed border-slate-300 bg-white px-6 py-12 text-center">
-                <h3 className="text-xl font-bold text-slate-900">Không tìm thấy phòng phù hợp</h3>
+                <h3 className="text-xl font-bold text-slate-900">Không tìm thấy loại phòng phù hợp</h3>
                 <p className="mt-2 text-sm font-medium text-slate-500">
-                  Thử đổi ngày nhận, ngày trả hoặc số lượng khách để xem thêm phòng trống.
+                  Thử đổi số lượng người lớn hoặc trẻ em để xem thêm loại phòng trống.
                 </p>
               </div>
             ) : null}
 
-            {sortedRooms.map((room) => {
-              const roomTypeKey = room.roomTypeName || room.roomTypeId || room.id;
-
-              return (
-                <BookingCard
-                  key={room.id}
-                  room={room}
-                  numberOfNights={stayDays}
-                  availableCount={availableCountByType.get(roomTypeKey) || 1}
-                  detailLinkState={{
-                    room,
-                    filters: appliedFilters,
-                    numberOfNights: stayDays,
-                  }}
-                />
-              );
-            })}
+            {sortedRoomTypes.map((roomType) => (
+              <BookingCard
+                key={roomType.roomTypeId}
+                roomType={roomType}
+                availableCount={roomType.availableRooms.length}
+                numberOfNights={stayDays}
+                detailLinkState={{
+                  roomType,
+                  filters: appliedFilters,
+                  numberOfNights: stayDays,
+                }}
+              />
+            ))}
           </div>
         </section>
 
@@ -192,7 +221,7 @@ const UserBookingsPage = () => {
               onSubmit={handleSearch}
               onClear={handleClearFilters}
               isSearching={availableRoomsQuery.isFetching}
-              numberOfNights={calculateStayDays(filters.checkIn, filters.checkOut)}
+              showDateFields={false}
             />
           </div>
         </aside>
