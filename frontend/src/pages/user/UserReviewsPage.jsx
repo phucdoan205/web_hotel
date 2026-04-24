@@ -16,7 +16,7 @@ const UserReviewsPage = () => {
     <div className="min-h-screen bg-[#F8FAFC] p-10">
       <div className="mb-10">
         <nav className="mb-3 text-[10px] font-black uppercase tracking-widest text-gray-400">
-          Home / Account Settings / <span className="text-gray-900">Review</span>
+          User / <span className="text-gray-900">Review</span>
         </nav>
         <h1 className="mb-2 text-3xl font-black text-gray-900">Review của tôi</h1>
         <p className="text-[13px] font-bold text-gray-400">
