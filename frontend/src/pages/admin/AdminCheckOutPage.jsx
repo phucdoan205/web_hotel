@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, CheckCircle2, FileText, X } from "lucide-react";
-import GuestFlowStats from "../../components/receptionist/checkinout/GuestFlowStats";
 import GuestTable from "../../components/receptionist/checkinout/GuestTable";
 import { bookingsApi } from "../../api/admin/bookingsApi";
 import { buildBookingRoomEntries } from "../../utils/bookingRoomEntries";
@@ -11,6 +10,17 @@ import {
   subscribeBookingRoomFlowState,
 } from "../../utils/bookingRoomFlowState";
 import { formatVietnamDate, getVietnamDateKey } from "../../utils/vietnamTime";
+
+const getCheckoutSortTime = (entry) =>
+  new Date(
+    entry.checkedOutAt ||
+      entry.detail?.updatedAt ||
+      entry.booking?.updatedAt ||
+      entry.detail?.createdAt ||
+      entry.booking?.createdAt ||
+      entry.checkOutDate ||
+      0,
+  ).getTime();
 
 const AdminCheckOutPage = () => {
   const canViewBookings = hasPermission("VIEW_BOOKINGS");
@@ -32,22 +42,6 @@ const AdminCheckOutPage = () => {
 
   useEffect(() => subscribeBookingRoomFlowState(() => setRoomFlowVersion((value) => value + 1)), []);
 
-  const confirmedBookingsQuery = useQuery({
-    queryKey: ["confirmed-check-ins"],
-    queryFn: () =>
-      bookingsApi.getBookings({
-        page: 1,
-        pageSize: 500,
-      }),
-    staleTime: 1000 * 60 * 5,
-  });
-
-  const arrivalsQuery = useQuery({
-    queryKey: ["arrivals"],
-    queryFn: () => bookingsApi.getArrivals({ date: getVietnamDateKey() }),
-    staleTime: 1000 * 60 * 5,
-  });
-
   const checkoutBookingsQuery = useQuery({
     queryKey: ["checkout-bookings"],
     queryFn: () =>
@@ -58,23 +52,8 @@ const AdminCheckOutPage = () => {
     staleTime: 1000 * 60 * 5,
   });
 
-  const departuresQuery = useQuery({
-    queryKey: ["departures"],
-    queryFn: () => bookingsApi.getDepartures({ date: getVietnamDateKey() }),
-    staleTime: 1000 * 60 * 5,
-  });
-
-  const arrivals = (arrivalsQuery.data?.items || []).filter((booking) =>
-    (booking.bookingDetails || []).some((detail) => detail?.status === "Confirmed"),
-  );
-  const confirmedBookings = (confirmedBookingsQuery.data?.items || []).filter((booking) =>
-    (booking.bookingDetails || []).some((detail) => detail?.status === "Confirmed"),
-  );
   const checkoutBookings = (checkoutBookingsQuery.data?.items || []).filter((booking) =>
     (booking.bookingDetails || []).some((detail) => detail?.status === "CheckedOut"),
-  );
-  const departures = (departuresQuery.data?.items || []).filter(
-    (booking) => !["Completed", "Cancelled"].includes(booking.status),
   );
 
   const checkoutRooms = useMemo(() => {
@@ -85,7 +64,9 @@ const AdminCheckOutPage = () => {
       return map;
     }, new Map());
 
-    return Array.from(merged.values()).filter((entry) => entry.checkedOut);
+    return Array.from(merged.values())
+      .filter((entry) => entry.checkedOut)
+      .sort((left, right) => getCheckoutSortTime(right) - getCheckoutSortTime(left));
   }, [checkoutBookings, todayKey]);
 
   const checkedOutRooms = useMemo(
@@ -136,12 +117,6 @@ const AdminCheckOutPage = () => {
             Các phòng đến hạn trả hôm nay sẽ hiện ở đây, kể cả booking nhiều phòng.
           </p>
         </div>
-
-        <GuestFlowStats
-          scheduleCount={arrivals.length + departures.length}
-          checkInCount={confirmedBookings.length}
-          checkOutCount={checkedOutRooms.length}
-        />
       </div>
 
       <div className="rounded-[2rem] border border-orange-100 bg-orange-50 px-5 py-4">

@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { AlertTriangle, CheckCircle2, X } from "lucide-react";
-import GuestFlowStats from "../../components/receptionist/checkinout/GuestFlowStats";
 import GuestTable from "../../components/receptionist/checkinout/GuestTable";
 import { bookingsApi } from "../../api/admin/bookingsApi";
 import { buildBookingRoomEntries } from "../../utils/bookingRoomEntries";
@@ -33,45 +32,13 @@ const AdminStayPage = () => {
 
   useEffect(() => subscribeBookingRoomFlowState(() => setRoomFlowVersion((value) => value + 1)), []);
 
-  const confirmedBookingsQuery = useQuery({
-    queryKey: ["confirmed-check-ins"],
-    queryFn: () =>
-      bookingsApi.getBookings({
-        page: 1,
-        pageSize: 500,
-      }),
-    staleTime: 1000 * 60 * 5,
-  });
-
-  const arrivalsQuery = useQuery({
-    queryKey: ["arrivals"],
-    queryFn: () => bookingsApi.getArrivals({ date: getVietnamDateKey() }),
-    staleTime: 1000 * 60 * 5,
-  });
-
   const inHouseQuery = useQuery({
     queryKey: ["in-house"],
     queryFn: () => bookingsApi.getInHouse(),
     staleTime: 1000 * 60 * 5,
   });
-
-  const departuresQuery = useQuery({
-    queryKey: ["departures"],
-    queryFn: () => bookingsApi.getDepartures({ date: getVietnamDateKey() }),
-    staleTime: 1000 * 60 * 5,
-  });
-
-  const arrivals = (arrivalsQuery.data?.items || []).filter((booking) =>
-    (booking.bookingDetails || []).some((detail) => detail?.status === "Confirmed"),
-  );
-  const confirmedBookings = (confirmedBookingsQuery.data?.items || []).filter((booking) =>
-    (booking.bookingDetails || []).some((detail) => detail?.status === "Confirmed"),
-  );
   const inHouse = (inHouseQuery.data?.items || []).filter((booking) =>
     (booking.bookingDetails || []).some((detail) => detail?.status === "CheckedIn"),
-  );
-  const departures = (departuresQuery.data?.items || []).filter(
-    (booking) => !["Completed", "Cancelled"].includes(booking.status),
   );
 
   const stayRooms = useMemo(() => {
@@ -128,12 +95,6 @@ const AdminStayPage = () => {
             Danh sách phòng đang lưu trú. Đến ngày trả phòng sẽ tự chuyển sang mục Trả phòng.
           </p>
         </div>
-
-        <GuestFlowStats
-          scheduleCount={arrivals.length + departures.length}
-          checkInCount={confirmedBookings.length}
-          checkOutCount={inHouse.length}
-        />
       </div>
 
       {!canViewBookings ? (

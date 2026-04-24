@@ -51,6 +51,10 @@ const normalizeText = (value) =>
     .toLowerCase()
     .trim();
 
+const HIDDEN_ROLE_NAMES = new Set(["user"]);
+
+const isVisibleAuditActorRole = (roleName) => !HIDDEN_ROLE_NAMES.has(normalizeText(roleName));
+
 const toActionLabel = (actionType) =>
   ACTION_LABELS[actionType] ?? actionType ?? "UNKNOWN";
 
@@ -883,6 +887,10 @@ export const groupAuditLogs = (logs, formatDate) => {
 
 export const filterAuditLogs = (logs, filters) =>
   logs.filter((log) => {
+    if (!isVisibleAuditActorRole(log.roleName)) {
+      return false;
+    }
+
     const nameMatch =
       !filters.employeeName ||
       normalizeText(log.userName).includes(normalizeText(filters.employeeName));

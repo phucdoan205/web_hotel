@@ -234,6 +234,7 @@ const GuestTable = ({
       await bookingsApi.checkOutBookingDetail(roomEntry.bookingId, roomEntry.detailId);
       saveBookingDetailCheckedOutSnapshot(roomEntry.bookingId, roomEntry.detailId, {
         ...roomEntry,
+        checkedOutAt: new Date().toISOString(),
         checkedIn: false,
         checkedOut: true,
         roomStatus: "CheckedOut",

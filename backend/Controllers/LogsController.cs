@@ -13,6 +13,7 @@ namespace backend.Controllers
     [Route("api/Logs")]
     public class LogsController : ControllerBase
     {
+        private const string HiddenUserRoleName = "User";
         private readonly AppDbContext _context;
         private readonly AuditLogViewService _auditLogViewService;
 
@@ -153,6 +154,8 @@ namespace backend.Controllers
                 .Include(a => a.User)
                     .ThenInclude(u => u!.Role)
                 .AsQueryable();
+
+            query = query.Where(a => a.User == null || a.User.Role == null || a.User.Role.Name != HiddenUserRoleName);
 
             if (!string.IsNullOrWhiteSpace(employeeName))
             {
