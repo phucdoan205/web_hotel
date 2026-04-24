@@ -1,144 +1,180 @@
 import React, { useState } from "react";
-import { ShieldCheck, Lock, Smartphone, RefreshCw } from "lucide-react";
+import { Lock, RefreshCw, ShieldCheck, Smartphone } from "lucide-react";
+import { changeMyPassword } from "../../../api/admin/profileApi";
 
 const SecuritySection = () => {
-  const [is2FAEnabled, setIs2FAEnabled] = useState(true);
+  const [formData, setFormData] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [message, setMessage] = useState({ type: "", text: "" });
+
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+    setFormData((current) => ({
+      ...current,
+      [name]: value,
+    }));
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setMessage({ type: "", text: "" });
+
+    if (!formData.newPassword || formData.newPassword.length < 6) {
+      setMessage({ type: "error", text: "Mat khau moi phai co it nhat 6 ky tu." });
+      return;
+    }
+
+    if (formData.newPassword !== formData.confirmPassword) {
+      setMessage({ type: "error", text: "Xac nhan mat khau khong khop." });
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      await changeMyPassword({
+        currentPassword: formData.currentPassword,
+        newPassword: formData.newPassword,
+      });
+      setFormData({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+      setMessage({ type: "success", text: "Doi mat khau thanh cong." });
+    } catch (error) {
+      const responseMessage = error.response?.data;
+      setMessage({
+        type: "error",
+        text:
+          typeof responseMessage === "string" && responseMessage.trim()
+            ? responseMessage
+            : "Khong the doi mat khau.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      {/* Đổi mật khẩu */}
-      <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm">
-        <div className="flex items-center gap-2 mb-8">
-          <div className="size-5 bg-orange-500 rounded text-white flex items-center justify-center text-[10px]">
-            <Lock size={12} />
+    <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+      <div className="rounded-[2.5rem] border border-gray-100 bg-white p-8 shadow-sm xl:col-span-2">
+        <div className="mb-8 flex items-center gap-3">
+          <div className="flex size-11 items-center justify-center rounded-2xl bg-blue-50 text-[#0085FF]">
+            <Lock size={18} />
           </div>
-          <h3 className="text-sm font-black text-gray-900 uppercase">
-            Thay đổi mật khẩu
-          </h3>
+          <div>
+            <h3 className="text-sm font-black uppercase text-gray-900">
+              Bao mat tai khoan
+            </h3>
+            <p className="mt-1 text-xs font-medium text-gray-400">
+              Doi mat khau cho tai khoan nguoi dung cua ban.
+            </p>
+          </div>
         </div>
 
-        <div className="max-w-md space-y-6">
-          <div className="space-y-2">
-            <label className="text-[10px] font-black text-gray-400 uppercase ml-1">
-              Mật khẩu hiện tại
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {message.text ? (
+            <div
+              className={`rounded-2xl px-5 py-4 text-sm font-semibold ${
+                message.type === "error"
+                  ? "border border-red-100 bg-red-50 text-red-600"
+                  : "border border-emerald-100 bg-emerald-50 text-emerald-700"
+              }`}
+            >
+              {message.text}
+            </div>
+          ) : null}
+
+          <div>
+            <label className="ml-1 mb-2 block text-[10px] font-black uppercase text-gray-400">
+              Mat khau hien tai
             </label>
             <input
               type="password"
-              placeholder="••••••••"
-              className="w-full bg-gray-50/50 border border-gray-100 rounded-xl px-4 py-3 text-xs font-bold focus:ring-2 focus:ring-orange-100 outline-none transition-all"
+              name="currentPassword"
+              value={formData.currentPassword}
+              onChange={handleChange}
+              placeholder="Nhap mat khau hien tai"
+              className="w-full rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-900 outline-none focus:ring-2 focus:ring-blue-100"
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-gray-400 uppercase ml-1">
-                Mật khẩu mới
-              </label>
-              <input
-                type="password"
-                placeholder="••••••••"
-                className="w-full bg-gray-50/50 border border-gray-100 rounded-xl px-4 py-3 text-xs font-bold focus:ring-2 focus:ring-blue-100 outline-none"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-gray-400 uppercase ml-1">
-                Xác nhận mật khẩu
-              </label>
-              <input
-                type="password"
-                placeholder="••••••••"
-                className="w-full bg-gray-50/50 border border-gray-100 rounded-xl px-4 py-3 text-xs font-bold focus:ring-2 focus:ring-blue-100 outline-none"
-              />
-            </div>
-          </div>
-
-          <button className="flex items-center gap-2 px-6 py-3 bg-gray-900 text-white text-[10px] font-black rounded-xl uppercase hover:bg-black transition-all shadow-md">
-            <RefreshCw size={14} /> Cập nhật mật khẩu
-          </button>
-        </div>
-      </div>
-
-      {/* Xác thực 2 lớp (2FA) */}
-      <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm">
-        <div className="flex items-center justify-between">
-          <div className="flex items-start gap-4">
-            <div className="size-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-500">
-              <Smartphone size={24} />
-            </div>
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
             <div>
-              <h3 className="text-sm font-black text-gray-900 uppercase">
-                Xác thực hai yếu tố (2FA)
-              </h3>
-              <p className="text-[10px] font-bold text-gray-400 max-w-sm mt-1 leading-relaxed">
-                Thêm một lớp bảo mật bổ sung cho tài khoản của bạn bằng cách yêu
-                cầu mã xác nhận từ điện thoại khi đăng nhập.
-              </p>
+              <label className="ml-1 mb-2 block text-[10px] font-black uppercase text-gray-400">
+                Mat khau moi
+              </label>
+              <input
+                type="password"
+                name="newPassword"
+                value={formData.newPassword}
+                onChange={handleChange}
+                placeholder="Toi thieu 6 ky tu"
+                className="w-full rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-900 outline-none focus:ring-2 focus:ring-blue-100"
+              />
+            </div>
+
+            <div>
+              <label className="ml-1 mb-2 block text-[10px] font-black uppercase text-gray-400">
+                Xac nhan mat khau
+              </label>
+              <input
+                type="password"
+                name="confirmPassword"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                placeholder="Nhap lai mat khau"
+                className="w-full rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-900 outline-none focus:ring-2 focus:ring-blue-100"
+              />
             </div>
           </div>
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input
-              type="checkbox"
-              checked={is2FAEnabled}
-              onChange={() => setIs2FAEnabled(!is2FAEnabled)}
-              className="sr-only peer"
-            />
-            <div className="w-14 h-7 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
-          </label>
-        </div>
+
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="rounded-2xl bg-[#0085FF] px-8 py-3 text-[11px] font-black uppercase text-white shadow-lg shadow-blue-100 transition-all hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isSubmitting ? "Dang cap nhat..." : "Doi mat khau"}
+          </button>
+        </form>
       </div>
 
-      {/* Lịch sử đăng nhập */}
-      <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm">
-        <div className="flex items-center gap-2 mb-6">
-          <div className="size-5 bg-emerald-500 rounded text-white flex items-center justify-center text-[10px]">
-            <ShieldCheck size={12} />
+      <div className="space-y-6">
+        <div className="rounded-[2.5rem] bg-gradient-to-br from-[#0085FF] to-cyan-400 p-8 text-white shadow-xl shadow-blue-100">
+          <div className="mb-6 flex size-14 items-center justify-center rounded-2xl bg-white/20">
+            <ShieldCheck size={28} />
           </div>
-          <h3 className="text-sm font-black text-gray-900 uppercase">
-            Thiết bị đang đăng nhập
-          </h3>
+          <h4 className="mb-2 text-lg font-black">Bao ve tai khoan</h4>
+          <p className="mb-6 text-xs font-medium leading-relaxed text-white/80">
+            Email duoc khoa khong cho chinh sua. Neu can thay doi email, admin can ho tro bang quy trinh rieng.
+          </p>
+          <div className="rounded-2xl bg-white/15 px-4 py-3 text-[11px] font-bold uppercase tracking-[0.2em]">
+            Ho so va avatar duoc quan ly tai tab Ho so
+          </div>
         </div>
 
-        <div className="space-y-4">
-          {[
-            {
-              device: "MacBook Pro - Chrome",
-              location: "Đà Nẵng, Việt Nam",
-              status: "Thiết bị hiện tại",
-              time: "Đang hoạt động",
-              isCurrent: true,
-            },
-            {
-              device: "iPhone 15 Pro",
-              location: "Đà Nẵng, Việt Nam",
-              status: "Mobile App",
-              time: "2 giờ trước",
-              isCurrent: false,
-            },
-          ].map((session, idx) => (
-            <div
-              key={idx}
-              className="flex items-center justify-between p-4 rounded-2xl border border-gray-50 bg-gray-50/30"
-            >
-              <div className="flex items-center gap-4">
-                <div
-                  className={`size-2 rounded-full ${session.isCurrent ? "bg-emerald-500 animate-pulse" : "bg-gray-300"}`}
-                />
-                <div>
-                  <p className="text-xs font-black text-gray-900">
-                    {session.device}
-                  </p>
-                  <p className="text-[9px] font-bold text-gray-400 uppercase tracking-tight">
-                    {session.location} • {session.time}
-                  </p>
+        <div className="rounded-[2.5rem] border border-gray-100 bg-white p-6 shadow-sm">
+          <h4 className="mb-4 text-[10px] font-black uppercase text-gray-400">
+            Goi y bao mat
+          </h4>
+          <div className="space-y-4">
+            {[
+              { title: "Doi mat khau dinh ky", icon: <RefreshCw size={16} /> },
+              { title: "Khong chia se ma xac thuc", icon: <Smartphone size={16} /> },
+            ].map((item) => (
+              <div key={item.title} className="flex items-center gap-3">
+                <div className="flex size-10 items-center justify-center rounded-xl bg-gray-100 text-gray-500">
+                  {item.icon}
                 </div>
+                <p className="text-sm font-semibold text-gray-700">{item.title}</p>
               </div>
-              {!session.isCurrent && (
-                <button className="text-[10px] font-black text-rose-500 hover:underline uppercase">
-                  Đăng xuất
-                </button>
-              )}
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
     </div>

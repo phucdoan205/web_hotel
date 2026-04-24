@@ -13,30 +13,27 @@ const UserSettingsPage = () => {
   ];
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6 pb-20">
-      <header className="flex justify-between items-end mb-8">
+    <div className="mx-auto max-w-5xl space-y-6 pb-20">
+      <header className="mb-8 flex items-end justify-between">
         <div>
-          <div className="flex items-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">
+          <div className="mb-1 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-gray-400">
             <span>Trang chủ</span>
             <span>/</span>
             <span className="text-[#0085FF]">Cài đặt</span>
           </div>
-          <h1 className="text-2xl font-black text-gray-900">
-            Cài đặt hệ thống
-          </h1>
-          <p className="text-[10px] font-bold text-gray-400 mt-1 uppercase">
-            Quản lý định danh và bảo mật tài khoản
+          <h1 className="text-2xl font-black text-gray-900">Cài đặt tài khoản</h1>
+          <p className="mt-1 text-[10px] font-bold uppercase text-gray-400">
+            Quản lý thông tin cá nhân và bảo mật tài khoản
           </p>
         </div>
       </header>
 
-      {/* Tabs Navigation */}
-      <div className="flex gap-8 border-b border-gray-100 mb-8">
+      <div className="mb-8 flex gap-8 border-b border-gray-100">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`pb-4 text-[11px] font-black uppercase tracking-tight transition-all relative ${
+            className={`relative pb-4 text-[11px] font-black uppercase tracking-tight transition-all ${
               activeTab === tab.id
                 ? "text-[#0085FF]"
                 : "text-gray-400 hover:text-gray-600"
@@ -44,27 +41,16 @@ const UserSettingsPage = () => {
           >
             {tab.label}
             {activeTab === tab.id && (
-              <div className="absolute bottom-0 left-0 w-full h-0.5 bg-[#0085FF] rounded-full animate-in slide-in-from-left duration-300" />
+              <div className="absolute bottom-0 left-0 h-0.5 w-full rounded-full bg-[#0085FF] duration-300 animate-in slide-in-from-left" />
             )}
           </button>
         ))}
       </div>
 
-      {/* Render nội dung dựa trên Tab */}
       <div className="transition-all duration-300">
         {activeTab === "profile" && <ProfileSection />}
         {activeTab === "notifications" && <NotificationConfig />}
         {activeTab === "security" && <SecuritySection />}
-      </div>
-
-      {/* Footer Actions */}
-      <div className="fixed bottom-8 right-8 flex gap-3">
-        <button className="px-8 py-3 bg-white border border-gray-200 rounded-2xl text-[11px] font-black text-gray-400 uppercase hover:bg-gray-50 shadow-xl transition-all">
-          Hủy bỏ
-        </button>
-        <button className="px-10 py-3 bg-[#0085FF] text-white rounded-2xl text-[11px] font-black uppercase shadow-lg shadow-blue-200 hover:scale-105 transition-all">
-          Lưu thay đổi
-        </button>
       </div>
     </div>
   );

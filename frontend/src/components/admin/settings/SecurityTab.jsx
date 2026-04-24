@@ -1,138 +1,213 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Lock,
   ShieldCheck,
   Smartphone,
   Monitor,
-  ChevronRight,
   X,
 } from "lucide-react";
+import { changeMyPassword } from "../../../api/admin/profileApi";
 
 const SecurityTab = () => {
+  const [formData, setFormData] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [message, setMessage] = useState({ type: "", text: "" });
+
   const loginSessions = [
     {
       id: 1,
       device: 'MacBook Pro 14"',
-      browser: "Chrome • San Francisco, US",
+      browser: "Chrome - San Francisco, US",
       status: "Active now",
       icon: <Monitor className="size-5" />,
     },
     {
       id: 2,
       device: "iPhone 15 Pro",
-      browser: "Safari • Jakarta, ID",
+      browser: "Safari - Jakarta, ID",
       status: "2 hours ago",
       icon: <Smartphone className="size-5" />,
     },
     {
       id: 3,
       device: "Windows PC",
-      browser: "Firefox • London, UK",
+      browser: "Firefox - London, UK",
       status: "Oct 12, 2023",
       icon: <Monitor className="size-5" />,
     },
   ];
 
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+    setFormData((current) => ({
+      ...current,
+      [name]: value,
+    }));
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setMessage({ type: "", text: "" });
+
+    if (!formData.newPassword || formData.newPassword.length < 6) {
+      setMessage({ type: "error", text: "Mat khau moi phai co it nhat 6 ky tu." });
+      return;
+    }
+
+    if (formData.newPassword !== formData.confirmPassword) {
+      setMessage({ type: "error", text: "Xac nhan mat khau moi khong khop." });
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      await changeMyPassword({
+        currentPassword: formData.currentPassword,
+        newPassword: formData.newPassword,
+      });
+      setFormData({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+      setMessage({ type: "success", text: "Doi mat khau thanh cong." });
+    } catch (error) {
+      const responseMessage = error.response?.data;
+      setMessage({
+        type: "error",
+        text:
+          typeof responseMessage === "string" && responseMessage.trim()
+            ? responseMessage
+            : "Khong the doi mat khau.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 animate-in fade-in duration-500">
-      {/* Cột trái: Password & 2FA (8/12) */}
-      <div className="xl:col-span-8 space-y-6">
-        {/* Change Password Section */}
-        <section className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm">
-          <div className="flex items-center gap-3 mb-8">
-            <div className="p-2 bg-blue-50 text-blue-600 rounded-xl">
+    <div className="grid grid-cols-1 gap-8 xl:grid-cols-12 animate-in fade-in duration-500">
+      <div className="space-y-6 xl:col-span-8">
+        <section className="rounded-[2rem] border border-gray-100 bg-white p-8 shadow-sm">
+          <div className="mb-8 flex items-center gap-3">
+            <div className="rounded-xl bg-blue-50 p-2 text-blue-600">
               <Lock className="size-4" />
             </div>
-            <h3 className="text-sm font-black text-gray-900 uppercase tracking-tight">
+            <h3 className="text-sm font-black uppercase tracking-tight text-gray-900">
               Change Password
             </h3>
           </div>
 
-          <div className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {message.text ? (
+              <div
+                className={`rounded-2xl px-4 py-3 text-sm font-semibold ${
+                  message.type === "error"
+                    ? "border border-red-100 bg-red-50 text-red-600"
+                    : "border border-emerald-100 bg-emerald-50 text-emerald-700"
+                }`}
+              >
+                {message.text}
+              </div>
+            ) : null}
+
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">
+              <label className="px-1 text-[10px] font-black uppercase tracking-widest text-gray-400">
                 Current Password
               </label>
               <input
                 type="password"
-                placeholder="••••••••"
-                className="w-full px-5 py-3.5 bg-gray-50 border border-transparent rounded-2xl text-sm outline-none focus:bg-white focus:border-blue-100 transition-all"
+                name="currentPassword"
+                value={formData.currentPassword}
+                onChange={handleChange}
+                placeholder="Nhap mat khau hien tai"
+                className="w-full rounded-2xl border border-transparent bg-gray-50 px-5 py-3.5 text-sm outline-none transition-all focus:border-blue-100 focus:bg-white"
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">
+                <label className="px-1 text-[10px] font-black uppercase tracking-widest text-gray-400">
                   New Password
                 </label>
                 <input
                   type="password"
-                  placeholder="Minimum 8 characters"
-                  className="w-full px-5 py-3.5 bg-gray-50 border border-transparent rounded-2xl text-sm outline-none focus:bg-white focus:border-blue-100 transition-all"
+                  name="newPassword"
+                  value={formData.newPassword}
+                  onChange={handleChange}
+                  placeholder="Nhap mat khau moi"
+                  className="w-full rounded-2xl border border-transparent bg-gray-50 px-5 py-3.5 text-sm outline-none transition-all focus:border-blue-100 focus:bg-white"
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">
+                <label className="px-1 text-[10px] font-black uppercase tracking-widest text-gray-400">
                   Confirm New Password
                 </label>
                 <input
                   type="password"
-                  placeholder="Repeat new password"
-                  className="w-full px-5 py-3.5 bg-gray-50 border border-transparent rounded-2xl text-sm outline-none focus:bg-white focus:border-blue-100 transition-all"
+                  name="confirmPassword"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  placeholder="Nhap lai mat khau moi"
+                  className="w-full rounded-2xl border border-transparent bg-gray-50 px-5 py-3.5 text-sm outline-none transition-all focus:border-blue-100 focus:bg-white"
                 />
               </div>
             </div>
 
             <div className="flex justify-end pt-2">
-              <button className="px-8 py-3.5 bg-blue-500 hover:bg-blue-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-blue-100">
-                Update Password
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="rounded-2xl bg-blue-500 px-8 py-3.5 text-xs font-black uppercase tracking-widest text-white shadow-lg shadow-blue-100 transition-all hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isSubmitting ? "Dang cap nhat..." : "Cap nhat mat khau"}
               </button>
             </div>
-          </div>
+          </form>
         </section>
 
-        {/* Two-Factor Authentication */}
-        <section className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm">
+        <section className="rounded-[2rem] border border-gray-100 bg-white p-8 shadow-sm">
           <div className="flex items-start justify-between">
             <div className="flex gap-4">
-              <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl h-fit">
+              <div className="h-fit rounded-2xl bg-blue-50 p-3 text-blue-600">
                 <ShieldCheck className="size-6" />
               </div>
               <div>
-                <h3 className="text-sm font-black text-gray-900 mb-1">
+                <h3 className="mb-1 text-sm font-black text-gray-900">
                   Two-Factor Authentication (2FA)
                 </h3>
-                <p className="text-xs font-bold text-gray-400 leading-relaxed max-w-md">
-                  Add an extra layer of security to your account by requiring a
-                  code from your mobile device.
+                <p className="max-w-md text-xs font-bold leading-relaxed text-gray-400">
+                  Giu nguyen khu vuc nang cao bao mat de sau nay co the mo rong them 2FA neu can.
                 </p>
-                <div className="mt-4 inline-flex items-center gap-2 px-3 py-1 bg-emerald-50 text-emerald-600 rounded-lg">
-                  <div className="size-1.5 bg-emerald-500 rounded-full animate-pulse" />
+                <div className="mt-4 inline-flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-1 text-emerald-600">
+                  <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
                   <span className="text-[10px] font-black uppercase tracking-wider">
-                    Status: Enabled
+                    Status: Planned
                   </span>
                 </div>
               </div>
             </div>
 
-            {/* Toggle Switch */}
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input type="checkbox" defaultChecked className="sr-only peer" />
-              <div className="w-12 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+            <label className="relative inline-flex cursor-pointer items-center">
+              <input type="checkbox" className="peer sr-only" disabled />
+              <div className="h-6 w-12 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-blue-500 peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
             </label>
           </div>
         </section>
       </div>
 
-      {/* Cột phải: Sessions & Score (4/12) */}
-      <div className="xl:col-span-4 space-y-6">
-        {/* Login Sessions */}
-        <section className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm">
-          <div className="flex items-center justify-between mb-6">
-            <h4 className="text-[11px] font-black text-gray-400 uppercase tracking-widest">
+      <div className="space-y-6 xl:col-span-4">
+        <section className="rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm">
+          <div className="mb-6 flex items-center justify-between">
+            <h4 className="text-[11px] font-black uppercase tracking-widest text-gray-400">
               Login Sessions
             </h4>
-            <button className="text-[10px] font-black text-blue-500 uppercase tracking-wider hover:underline">
+            <button className="text-[10px] font-black uppercase tracking-wider text-blue-500 hover:underline">
               Log out all
             </button>
           </div>
@@ -141,10 +216,10 @@ const SecurityTab = () => {
             {loginSessions.map((session) => (
               <div
                 key={session.id}
-                className="flex items-center justify-between group"
+                className="group flex items-center justify-between"
               >
                 <div className="flex items-center gap-4">
-                  <div className="p-2.5 bg-gray-50 text-gray-400 rounded-xl group-hover:bg-blue-50 group-hover:text-blue-500 transition-colors">
+                  <div className="rounded-xl bg-gray-50 p-2.5 text-gray-400 transition-colors group-hover:bg-blue-50 group-hover:text-blue-500">
                     {session.icon}
                   </div>
                   <div>
@@ -155,58 +230,52 @@ const SecurityTab = () => {
                       {session.browser}
                     </p>
                     {session.status === "Active now" ? (
-                      <span className="text-[9px] font-black text-blue-500 uppercase tracking-tighter">
+                      <span className="text-[9px] font-black uppercase tracking-tighter text-blue-500">
                         Active Now
                       </span>
                     ) : (
-                      <span className="text-[9px] font-bold text-gray-300 uppercase tracking-tighter">
+                      <span className="text-[9px] font-bold uppercase tracking-tighter text-gray-300">
                         {session.status}
                       </span>
                     )}
                   </div>
                 </div>
-                <button className="p-1 text-gray-300 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all">
+                <button className="p-1 text-gray-300 opacity-0 transition-all group-hover:opacity-100 hover:text-red-400">
                   <X className="size-4" />
                 </button>
               </div>
             ))}
           </div>
 
-          <button className="w-full mt-6 py-3 border border-gray-100 rounded-2xl text-[10px] font-black text-gray-400 uppercase tracking-widest hover:bg-gray-50 transition-all">
+          <button className="mt-6 w-full rounded-2xl border border-gray-100 py-3 text-[10px] font-black uppercase tracking-widest text-gray-400 transition-all hover:bg-gray-50">
             View Login History
           </button>
         </section>
 
-        {/* Security Score Widget */}
-        <div className="bg-blue-500 p-8 rounded-[2rem] text-white shadow-xl shadow-blue-100 relative overflow-hidden group">
+        <div className="group relative overflow-hidden rounded-[2rem] bg-blue-500 p-8 text-white shadow-xl shadow-blue-100">
           <div className="relative z-10">
-            <h4 className="text-[11px] font-black text-white/70 uppercase tracking-[0.2em] mb-4">
+            <h4 className="mb-4 text-[11px] font-black uppercase tracking-[0.2em] text-white/70">
               Security Score
             </h4>
-            <div className="flex items-end gap-2 mb-6">
+            <div className="mb-6 flex items-end gap-2">
               <span className="text-5xl font-black">85</span>
-              <span className="text-xl font-black text-white/50 mb-1">
-                / 100
-              </span>
+              <span className="mb-1 text-xl font-black text-white/50">/ 100</span>
             </div>
 
-            {/* Progress Bar */}
-            <div className="h-2 bg-white/20 rounded-full mb-6 overflow-hidden">
-              <div className="h-full bg-white rounded-full w-[85%] shadow-[0_0_12px_rgba(255,255,255,0.5)]" />
+            <div className="mb-6 h-2 overflow-hidden rounded-full bg-white/20">
+              <div className="h-full w-[85%] rounded-full bg-white shadow-[0_0_12px_rgba(255,255,255,0.5)]" />
             </div>
 
-            <p className="text-xs font-bold text-white/80 leading-relaxed mb-6">
-              Your account is well protected, but you can still improve by
-              linking a recovery email.
+            <p className="mb-6 text-xs font-bold leading-relaxed text-white/80">
+              Thong tin ho so va avatar da tach rieng, vi vay khu vuc nay tap trung vao mat khau.
             </p>
 
-            <button className="w-full py-3 bg-white text-blue-600 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-50 transition-all">
+            <button className="w-full rounded-2xl bg-white py-3 text-[10px] font-black uppercase tracking-widest text-blue-600 transition-all hover:bg-blue-50">
               Improve Security
             </button>
           </div>
 
-          {/* Decorative background icon */}
-          <ShieldCheck className="absolute -right-4 -bottom-4 size-32 text-white/10 -rotate-12 group-hover:rotate-0 transition-transform duration-700" />
+          <ShieldCheck className="absolute -bottom-4 -right-4 size-32 -rotate-12 text-white/10 transition-transform duration-700 group-hover:rotate-0" />
         </div>
       </div>
     </div>

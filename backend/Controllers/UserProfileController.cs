@@ -80,6 +80,7 @@ namespace backend.Controllers
                 Email = user.Email,
                 Phone = user.Phone,
                 AvatarUrl = user.AvatarUrl,
+                DateOfBirth = user.DateOfBirth,
                 RoleName = user.Role?.Name,
                 Status = user.Status
             };
@@ -93,8 +94,8 @@ namespace backend.Controllers
             if (user == null) return NotFound();
 
             if (!string.IsNullOrWhiteSpace(request.FullName)) user.FullName = request.FullName;
-            if (!string.IsNullOrWhiteSpace(request.Email)) user.Email = request.Email;
             if (request.Phone != null) user.Phone = request.Phone;
+            user.DateOfBirth = request.DateOfBirth;
 
             await _context.SaveChangesAsync();
 
@@ -115,12 +116,12 @@ namespace backend.Controllers
             if (user == null) return NotFound();
 
             if (!string.IsNullOrEmpty(request.CurrentPassword) &&
-                user.PasswordHash != request.CurrentPassword)
+                !BCrypt.Net.BCrypt.Verify(request.CurrentPassword, user.PasswordHash))
             {
                 return BadRequest("CurrentPassword is incorrect.");
             }
 
-            user.PasswordHash = request.NewPassword;
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
             await _context.SaveChangesAsync();
             return NoContent();
         }

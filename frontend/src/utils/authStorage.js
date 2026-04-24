@@ -27,6 +27,24 @@ export const saveAuth = (authData) => {
   emitAuthChanged();
 };
 
+export const updateStoredAuth = (updater) => {
+  const currentAuth = getStoredAuth();
+
+  if (!currentAuth) {
+    return null;
+  }
+
+  const nextAuth =
+    typeof updater === "function" ? updater(currentAuth) : updater;
+
+  if (!nextAuth) {
+    return null;
+  }
+
+  saveAuth(nextAuth);
+  return nextAuth;
+};
+
 export const clearAuth = () => {
   localStorage.removeItem(AUTH_STORAGE_KEY);
   emitAuthChanged();
