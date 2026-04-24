@@ -7,7 +7,10 @@ using AutoMapper;
 using backend.Common;
 using backend.Data;
 using backend.DTOs;
+using backend.DTOs.Invoice;
 using backend.DTOs.Payment;
+using backend.DTOs.Review;
+using backend.DTOs.UserBooking;
 using backend.Models;
 using backend.Security;
 using Microsoft.AspNetCore.Mvc;
@@ -176,6 +179,143 @@ namespace backend.Controllers
             return value.TimeOfDay == TimeSpan.Zero
                 ? value.Date.AddHours(12)
                 : value;
+        }
+
+        private static DateTime GetVietnamTime(DateTime utcNow)
+        {
+            try
+            {
+                var vietnamTimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+                return TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utcNow, DateTimeKind.Utc), vietnamTimeZone);
+            }
+            catch (TimeZoneNotFoundException)
+            {
+                var vietnamTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+                return TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utcNow, DateTimeKind.Utc), vietnamTimeZone);
+            }
+        }
+
+        private static string GenerateInvoiceCode(string? roomNumber, DateTime createdAtUtc)
+        {
+            var normalizedRoomNumber = string.IsNullOrWhiteSpace(roomNumber)
+                ? "ROOM"
+                : roomNumber.Trim().Replace(" ", string.Empty).ToUpperInvariant();
+            var vietnamNow = GetVietnamTime(createdAtUtc);
+
+            return $"HD-{vietnamNow:yyyyMMdd}-{normalizedRoomNumber}-{vietnamNow:HHmm}";
+        }
+
+        private static int CalculateStayedDays(BookingDetail detail)
+        {
+            var stayedDays = (detail.CheckOutDate.Date - detail.CheckInDate.Date).Days;
+            return stayedDays <= 0 ? 1 : stayedDays;
+        }
+
+        private static UserBookingPaymentSummaryDTO BuildPaymentSummary(Booking booking, IEnumerable<Invoice> invoices)
+        {
+            var invoiceItems = invoices
+                .OrderBy(item => item.Id)
+                .Select(item => new UserBookingPaymentInvoiceItemDTO
+                {
+                    InvoiceId = item.Id,
+                    BookingDetailId = item.BookingDetailId,
+                    InvoiceCode = item.Code,
+                    RoomName = item.RoomName ?? "Phong",
+                    RoomNumber = item.RoomNumber ?? "--",
+                    TotalAmount = item.FinalTotal ?? 0,
+                    Status = item.Status ?? "Paying"
+                })
+                .ToList();
+
+            return new UserBookingPaymentSummaryDTO
+            {
+                BookingId = booking.Id,
+                BookingCode = booking.BookingCode,
+                Status = booking.Status ?? "Pending",
+                TotalAmount = invoiceItems.Sum(item => item.TotalAmount),
+                Items = invoiceItems
+            };
+        }
+
+        private async Task<List<Invoice>> EnsureCheckoutInvoicesAsync(Booking booking)
+        {
+            var checkedOutDetailIds = booking.BookingDetails
+                .Where(detail => string.Equals(detail.Status, "CheckedOut", StringComparison.OrdinalIgnoreCase) ||
+                                 string.Equals(detail.Status, "Paying", StringComparison.OrdinalIgnoreCase))
+                .Select(detail => detail.Id)
+                .ToList();
+
+            if (!checkedOutDetailIds.Any())
+            {
+                return new List<Invoice>();
+            }
+
+            var existingInvoices = await _context.Invoices
+                .Where(invoice =>
+                    invoice.BookingId == booking.Id &&
+                    invoice.BookingDetailId.HasValue &&
+                    checkedOutDetailIds.Contains(invoice.BookingDetailId.Value) &&
+                    invoice.Status != "Completed")
+                .ToListAsync();
+
+            var existingByDetailId = existingInvoices
+                .Where(invoice => invoice.BookingDetailId.HasValue)
+                .ToDictionary(invoice => invoice.BookingDetailId!.Value, invoice => invoice);
+
+            var createdAt = DateTime.UtcNow;
+
+            foreach (var detail in booking.BookingDetails.Where(detail =>
+                         string.Equals(detail.Status, "CheckedOut", StringComparison.OrdinalIgnoreCase) ||
+                         string.Equals(detail.Status, "Paying", StringComparison.OrdinalIgnoreCase)))
+            {
+                if (existingByDetailId.ContainsKey(detail.Id))
+                {
+                    detail.Status = "Paying";
+                    continue;
+                }
+
+                var stayedDays = CalculateStayedDays(detail);
+                var totalRoomAmount = detail.PricePerNight * stayedDays;
+                var totalServiceAmount = await _context.OrderServiceDetails
+                    .AsNoTracking()
+                    .Where(item =>
+                        item.OrderService != null &&
+                        item.OrderService.BookingDetailId == detail.Id &&
+                        item.OrderService.Status != "Paid")
+                    .SumAsync(item => (decimal?)(item.Quantity * item.UnitPrice)) ?? 0;
+
+                var invoice = new Invoice
+                {
+                    BookingId = booking.Id,
+                    BookingDetailId = detail.Id,
+                    Code = GenerateInvoiceCode(detail.Room?.RoomNumber, createdAt),
+                    BookingCode = booking.BookingCode,
+                    GuestName = booking.Guest?.Name,
+                    RoomNumber = detail.Room?.RoomNumber ?? "--",
+                    RoomName = detail.RoomType?.Name ?? "Phong",
+                    RoomRate = detail.PricePerNight,
+                    CheckInDate = detail.CheckInDate,
+                    CheckOutDate = detail.CheckOutDate,
+                    StayedDays = stayedDays,
+                    TotalRoomAmount = totalRoomAmount,
+                    TotalServiceAmount = totalServiceAmount,
+                    DiscountAmount = 0,
+                    TaxAmount = 0,
+                    FinalTotal = Math.Max(0, totalRoomAmount + totalServiceAmount),
+                    Status = "Paying",
+                    CreatedAt = createdAt,
+                    UpdatedAt = createdAt
+                };
+
+                _context.Invoices.Add(invoice);
+                existingInvoices.Add(invoice);
+                existingByDetailId[detail.Id] = invoice;
+                detail.Status = "Paying";
+            }
+
+            booking.Status = "Paying";
+
+            return existingInvoices;
         }
 
         [HttpGet]
@@ -386,6 +526,102 @@ namespace backend.Controllers
             });
         }
 
+        [HttpPatch("{id:int}/check-out")]
+        public async Task<ActionResult<UserBookingCheckOutResponseDTO>> CheckOutMyBooking(int id)
+        {
+            var currentUser = await ResolveCurrentUserAsync();
+            if (currentUser == null)
+            {
+                return Unauthorized(new { message = "Khong xac dinh duoc nguoi dung hien tai." });
+            }
+
+            var booking = await BuildOwnedBookingsQuery(currentUser.Id)
+                .Include(item => item.BookingDetails)
+                    .ThenInclude(detail => detail.OrderServices)
+                .FirstOrDefaultAsync(item => item.Id == id);
+
+            if (booking == null)
+            {
+                return NotFound(new { message = "Khong tim thay booking cua ban." });
+            }
+
+            var checkedInDetails = booking.BookingDetails
+                .Where(detail => string.Equals(detail.Status, "CheckedIn", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            if (!checkedInDetails.Any())
+            {
+                return BadRequest(new { message = "Chi co the tra phong cho booking dang o trang thai CheckedIn." });
+            }
+
+            foreach (var detail in checkedInDetails)
+            {
+                if (detail.RoomId.HasValue)
+                {
+                    var room = await _context.Rooms.FirstOrDefaultAsync(item => item.Id == detail.RoomId.Value);
+                    if (room != null)
+                    {
+                        room.Status = RoomStatuses.Available;
+                        room.CleaningStatus = RoomCleaningStatuses.Dirty;
+                    }
+                }
+
+                detail.Status = "CheckedOut";
+            }
+
+            var invoices = await EnsureCheckoutInvoicesAsync(booking);
+            await _context.SaveChangesAsync();
+
+            return Ok(new UserBookingCheckOutResponseDTO
+            {
+                Message = "Da xac nhan tra phong. Booking da chuyen sang Paying.",
+                BookingId = booking.Id,
+                BookingStatus = booking.Status ?? "Paying",
+                InvoiceIds = invoices.Select(item => item.Id).ToList()
+            });
+        }
+
+        [HttpGet("{id:int}/payment-summary")]
+        public async Task<ActionResult<UserBookingPaymentSummaryDTO>> GetMyBookingPaymentSummary(
+            int id,
+            [FromQuery] int? bookingDetailId = null)
+        {
+            var currentUser = await ResolveCurrentUserAsync();
+            if (currentUser == null)
+            {
+                return Unauthorized(new { message = "Khong xac dinh duoc nguoi dung hien tai." });
+            }
+
+            var booking = await BuildOwnedBookingsQuery(currentUser.Id)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(item => item.Id == id);
+
+            if (booking == null)
+            {
+                return NotFound(new { message = "Khong tim thay booking cua ban." });
+            }
+
+            var query = _context.Invoices
+                .AsNoTracking()
+                .Where(invoice => invoice.BookingId == id);
+
+            if (bookingDetailId.HasValue)
+            {
+                query = query.Where(invoice => invoice.BookingDetailId == bookingDetailId.Value);
+            }
+            else
+            {
+                query = query.Where(invoice => invoice.Status == "Paying" || invoice.Status == "Completed");
+            }
+
+            var invoices = await query
+                .OrderByDescending(invoice => invoice.CreatedAt ?? DateTime.MinValue)
+                .ThenByDescending(invoice => invoice.Id)
+                .ToListAsync();
+
+            return Ok(BuildPaymentSummary(booking, invoices));
+        }
+
         [HttpPatch("{id:int}/confirm-payment")]
         public async Task<IActionResult> ConfirmMyBookingPayment(int id, [FromBody] UserBookingPaymentConfirmRequestDTO request)
         {
@@ -455,6 +691,99 @@ namespace backend.Controllers
                 bookingStatus = booking.Status,
                 detailStatus = detail.Status
             });
+        }
+
+        [HttpPatch("{id:int}/complete-payment")]
+        public async Task<ActionResult<UserBookingPaymentSummaryDTO>> CompleteMyBookingPayment(
+            int id,
+            [FromBody] UserBookingPaymentCompleteRequestDTO? request)
+        {
+            var currentUser = await ResolveCurrentUserAsync();
+            if (currentUser == null)
+            {
+                return Unauthorized(new { message = "Khong xac dinh duoc nguoi dung hien tai." });
+            }
+
+            var booking = await BuildOwnedBookingsQuery(currentUser.Id)
+                .FirstOrDefaultAsync(item => item.Id == id);
+
+            if (booking == null)
+            {
+                return NotFound(new { message = "Khong tim thay booking cua ban." });
+            }
+
+            var targetDetailId = request?.BookingDetailId;
+
+            var invoices = await _context.Invoices
+                .Where(invoice =>
+                    invoice.BookingId == id &&
+                    (!targetDetailId.HasValue || invoice.BookingDetailId == targetDetailId.Value) &&
+                    invoice.Status != "Completed")
+                .ToListAsync();
+
+            if (!invoices.Any())
+            {
+                var existingInvoices = await _context.Invoices
+                    .AsNoTracking()
+                    .Where(invoice =>
+                        invoice.BookingId == id &&
+                        (!targetDetailId.HasValue || invoice.BookingDetailId == targetDetailId.Value))
+                    .ToListAsync();
+
+                return Ok(BuildPaymentSummary(booking, existingInvoices));
+            }
+
+            var paidAt = DateTime.UtcNow;
+
+            foreach (var invoice in invoices)
+            {
+                invoice.Status = "Completed";
+                invoice.PaidAt = paidAt;
+                invoice.UpdatedAt = paidAt;
+
+                _context.Payments.Add(new Payment
+                {
+                    InvoiceId = invoice.Id,
+                    AmountPaid = invoice.FinalTotal ?? 0,
+                    TransactionCode = string.IsNullOrWhiteSpace(request?.TransactionCode)
+                        ? $"PAY-{invoice.Id}-{paidAt:yyyyMMddHHmmss}"
+                        : request.TransactionCode,
+                    PaymentDate = paidAt,
+                    Status = "Completed"
+                });
+
+                if (invoice.BookingDetailId.HasValue)
+                {
+                    var detail = booking.BookingDetails.FirstOrDefault(item => item.Id == invoice.BookingDetailId.Value);
+                    if (detail != null)
+                    {
+                        detail.Status = "Completed";
+                    }
+
+                    var unpaidOrderServices = await _context.OrderServices
+                        .Where(orderService =>
+                            orderService.BookingDetailId == invoice.BookingDetailId.Value &&
+                            orderService.Status != "Paid")
+                        .ToListAsync();
+
+                    foreach (var orderService in unpaidOrderServices)
+                    {
+                        orderService.Status = "Paid";
+                    }
+                }
+            }
+
+            booking.Status = ResolveBookingStatusFromDetails(booking.BookingDetails);
+            await _context.SaveChangesAsync();
+
+            var completedInvoices = await _context.Invoices
+                .AsNoTracking()
+                .Where(invoice =>
+                    invoice.BookingId == id &&
+                    (!targetDetailId.HasValue || invoice.BookingDetailId == targetDetailId.Value))
+                .ToListAsync();
+
+            return Ok(BuildPaymentSummary(booking, completedInvoices));
         }
 
         [HttpPost("{bookingId:int}/payments/momo")]
@@ -587,6 +916,135 @@ namespace backend.Controllers
             return Ok(momoResponse);
         }
 
+        [HttpPost("{bookingId:int}/checkout-payments/momo")]
+        public async Task<ActionResult<MomoCreatePaymentResponseDTO>> CreateMyCheckoutMomoPayment(
+            int bookingId,
+            [FromBody] UserBookingCheckoutMomoPaymentRequestDTO? request,
+            CancellationToken cancellationToken)
+        {
+            var currentUser = await ResolveCurrentUserAsync();
+            if (currentUser == null)
+            {
+                return Unauthorized(new { message = "Khong xac dinh duoc nguoi dung hien tai." });
+            }
+
+            var booking = await BuildOwnedBookingsQuery(currentUser.Id)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(item => item.Id == bookingId, cancellationToken);
+
+            if (booking == null)
+            {
+                return NotFound(new { message = "Khong tim thay booking cua ban." });
+            }
+
+            var invoiceQuery = _context.Invoices
+                .AsNoTracking()
+                .Where(invoice =>
+                    invoice.BookingId == bookingId &&
+                    invoice.Status != "Completed");
+
+            if (request?.BookingDetailId.HasValue == true)
+            {
+                invoiceQuery = invoiceQuery.Where(invoice => invoice.BookingDetailId == request.BookingDetailId.Value);
+            }
+
+            var invoices = await invoiceQuery.ToListAsync(cancellationToken);
+            var totalAmount = Convert.ToInt64(Math.Round(invoices.Sum(item => item.FinalTotal ?? 0), MidpointRounding.AwayFromZero));
+
+            if (totalAmount < 1000)
+            {
+                return BadRequest(new { message = "So tien thanh toan MoMo toi thieu la 1.000 VND." });
+            }
+
+            var partnerCode = _configuration["MoMo:PartnerCode"];
+            var accessKey = _configuration["MoMo:AccessKey"];
+            var secretKey = _configuration["MoMo:SecretKey"];
+            var endpoint = _configuration["MoMo:Endpoint"] ?? "https://test-payment.momo.vn/v2/gateway/api/create";
+            var storeName = _configuration["MoMo:StoreName"] ?? "Hotel";
+            var lang = _configuration["MoMo:Lang"] ?? "vi";
+
+            if (string.IsNullOrWhiteSpace(partnerCode) ||
+                string.IsNullOrWhiteSpace(accessKey) ||
+                string.IsNullOrWhiteSpace(secretKey))
+            {
+                return BadRequest(new
+                {
+                    message = "Chua cau hinh MoMo. Vui long dien PartnerCode, AccessKey va SecretKey trong appsettings."
+                });
+            }
+
+            var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            var orderId = BuildOrderId($"{booking.BookingCode}-CHECKOUT", request?.BookingDetailId, now);
+            var requestId = $"REQ-{orderId}";
+            var redirectUrl = $"{Request.Scheme}://localhost:5173/user/booking-history/{bookingId}/payment{BuildDetailQuery(request?.BookingDetailId)}";
+            var ipnUrl = $"{Request.Scheme}://{Request.Host}/api/momo/ipn";
+            var orderInfo = $"Thanh toan checkout booking {booking.BookingCode}";
+            var extraData = BuildExtraData(bookingId, request?.BookingDetailId);
+            const string requestType = "captureWallet";
+
+            var rawSignature =
+                $"accessKey={accessKey}&amount={totalAmount.ToString(CultureInfo.InvariantCulture)}&extraData={extraData}" +
+                $"&ipnUrl={ipnUrl}&orderId={orderId}&orderInfo={orderInfo}" +
+                $"&partnerCode={partnerCode}&redirectUrl={redirectUrl}" +
+                $"&requestId={requestId}&requestType={requestType}";
+
+            var signature = Sign(rawSignature, secretKey);
+
+            var payload = new MomoCreateRequestPayload
+            {
+                PartnerCode = partnerCode,
+                AccessKey = accessKey,
+                RequestType = requestType,
+                IpnUrl = ipnUrl,
+                RedirectUrl = redirectUrl,
+                OrderId = orderId,
+                Amount = totalAmount,
+                OrderInfo = orderInfo,
+                RequestId = requestId,
+                ExtraData = extraData,
+                Signature = signature,
+                Lang = lang,
+                AutoCapture = true,
+                StoreName = storeName,
+                StoreId = $"USER-CHECKOUT-{bookingId}"
+            };
+
+            var client = _httpClientFactory.CreateClient();
+            using var content = new StringContent(JsonSerializer.Serialize(payload, JsonOptions), Encoding.UTF8, "application/json");
+
+            HttpResponseMessage response;
+            string rawResponse;
+
+            try
+            {
+                response = await client.PostAsync(endpoint, content, cancellationToken);
+                rawResponse = await response.Content.ReadAsStringAsync(cancellationToken);
+            }
+            catch (HttpRequestException ex)
+            {
+                _logger.LogError(ex, "MoMo checkout payment request failed for user booking {BookingId}.", bookingId);
+                return StatusCode(502, new { message = "Khong the ket noi den cong thanh toan MoMo." });
+            }
+
+            var momoResponse = JsonSerializer.Deserialize<MomoCreatePaymentResponseDTO>(rawResponse, JsonOptions);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                return StatusCode((int)response.StatusCode, new
+                {
+                    message = momoResponse?.Message ?? "Khong the tao thanh toan MoMo.",
+                    resultCode = momoResponse?.ResultCode
+                });
+            }
+
+            if (momoResponse == null)
+            {
+                return StatusCode(502, new { message = "Phan hoi MoMo khong hop le." });
+            }
+
+            return Ok(momoResponse);
+        }
+
         private static string BuildOrderId(string bookingCode, int? detailId, long timestamp)
         {
             var normalizedBookingCode = new string((bookingCode ?? "BOOKING")
@@ -686,6 +1144,17 @@ namespace backend.Controllers
     }
 
     public class UserBookingPaymentConfirmRequestDTO
+    {
+        public int? BookingDetailId { get; set; }
+    }
+
+    public class UserBookingPaymentCompleteRequestDTO
+    {
+        public int? BookingDetailId { get; set; }
+        public string? TransactionCode { get; set; }
+    }
+
+    public class UserBookingCheckoutMomoPaymentRequestDTO
     {
         public int? BookingDetailId { get; set; }
     }

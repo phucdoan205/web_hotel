@@ -1,23 +1,17 @@
 import React from "react";
+import { useQuery } from "@tanstack/react-query";
 import { ChevronDown } from "lucide-react";
 import ReviewCard from "../../components/user/reviews/ReviewCard";
-
-const reviewsData = [
-  {
-    id: 1,
-    hotelName: "The Grand Hyatt Singapore",
-    image: "https://ik.imagekit.io/tvlk/blog/2021/06/alma-oasis-long-hai-cvdes.jpg",
-    rating: 4.5,
-    stayDate: "Oct 12, 2023",
-    isVerified: true,
-    content:
-      "Exceptional service and the breakfast buffet was outstanding. The pool area is very relaxing, though it can get a bit crowded in the afternoons.",
-    reply:
-      "Dear Alex, thank you for your kind words. We are delighted to hear you enjoyed the breakfast and our hospitality.",
-  },
-];
+import { userReviewsApi } from "../../api/user/reviewsApi";
 
 const UserReviewsPage = () => {
+  const reviewsQuery = useQuery({
+    queryKey: ["user-reviews"],
+    queryFn: () => userReviewsApi.getMyReviews(),
+  });
+
+  const reviews = reviewsQuery.data || [];
+
   return (
     <div className="min-h-screen bg-[#F8FAFC] p-10">
       <div className="mb-10">
@@ -31,14 +25,29 @@ const UserReviewsPage = () => {
       </div>
 
       <div className="max-w-4xl">
-        {reviewsData.map((item) => (
-          <ReviewCard key={item.id} review={item} />
-        ))}
+        {reviewsQuery.isLoading ? (
+          <div className="rounded-[2rem] bg-white px-6 py-10 text-center text-sm font-semibold text-slate-500 shadow-sm">
+            Đang tải review...
+          </div>
+        ) : reviewsQuery.isError ? (
+          <div className="rounded-[2rem] border border-rose-200 bg-rose-50 px-6 py-10 text-center text-sm font-semibold text-rose-600">
+            Không tải được danh sách review.
+          </div>
+        ) : reviews.length ? (
+          reviews.map((item) => <ReviewCard key={item.id} review={item} />)
+        ) : (
+          <div className="rounded-[2rem] bg-white px-6 py-10 text-center text-sm font-semibold text-slate-500 shadow-sm">
+            Bạn chưa có review nào.
+          </div>
+        )}
       </div>
 
       <div className="mt-10 flex justify-center">
-        <button className="flex items-center gap-2 rounded-2xl border border-gray-100 bg-white px-8 py-3 text-[11px] font-black text-[#0085FF] shadow-sm transition-all hover:shadow-md">
-          Load More Reviews
+        <button
+          type="button"
+          className="flex items-center gap-2 rounded-2xl border border-gray-100 bg-white px-8 py-3 text-[11px] font-black text-[#0085FF] shadow-sm transition-all hover:shadow-md"
+        >
+          Reviews của bạn
           <ChevronDown size={14} />
         </button>
       </div>

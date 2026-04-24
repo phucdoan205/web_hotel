@@ -8,11 +8,13 @@ import {
   QrCode,
   RefreshCw,
   Smartphone,
+  Star,
   WalletCards,
   XCircle,
 } from "lucide-react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { userBookingsApi } from "../../api/user/bookingsApi";
+import { userReviewsApi } from "../../api/user/reviewsApi";
 import { getBookingDetailDeposit } from "../../utils/bookingPricing";
 import { resolveUserBookingStatus } from "../../utils/userBookingStatus";
 
@@ -38,6 +40,9 @@ const UserBookingPaymentPage = () => {
   const [paymentMethod, setPaymentMethod] = useState("qrpay");
   const [momoView, setMomoView] = useState("hosted");
   const [copied, setCopied] = useState(false);
+  const [showReviewOverlay, setShowReviewOverlay] = useState(false);
+  const [rating, setRating] = useState(5);
+  const [comment, setComment] = useState("");
   const completedRef = useRef(false);
 
   const resultCode = searchParams.get("resultCode");
@@ -53,32 +58,55 @@ const UserBookingPaymentPage = () => {
   });
 
   const booking = bookingQuery.data;
+  const bookingStatus = resolveUserBookingStatus(booking);
+  const isCheckoutPayment = bookingStatus === "Paying";
+
   const selectedDetail = useMemo(() => {
     if (!booking?.bookingDetails?.length) return null;
     if (detailId) {
       return booking.bookingDetails.find((detail) => detail.id === detailId) || null;
     }
-    return booking.bookingDetails[0];
-  }, [booking, detailId]);
 
-  const amount = getBookingDetailDeposit(selectedDetail);
-  const bookingStatus = resolveUserBookingStatus(booking);
-  const transferContent = `HOTEL BOOKING ${booking?.bookingCode || id} ${formatCurrency(amount)}`;
+    if (isCheckoutPayment) {
+      return (
+        booking.bookingDetails.find((detail) => ["Paying", "CheckedOut"].includes(detail.status)) ||
+        booking.bookingDetails[0]
+      );
+    }
+
+    return booking.bookingDetails.find((detail) => detail.status === "Pending") || booking.bookingDetails[0];
+  }, [booking, detailId, isCheckoutPayment]);
+
+  const paymentSummaryQuery = useQuery({
+    queryKey: ["user-booking-payment-summary", id, detailId || "all"],
+    queryFn: () => userBookingsApi.getPaymentSummary(id, detailId ? { bookingDetailId: detailId } : {}),
+    enabled: Boolean(id) && isCheckoutPayment,
+  });
+
+  const paymentSummary = paymentSummaryQuery.data;
+  const amount = isCheckoutPayment
+    ? Number(paymentSummary?.totalAmount || 0)
+    : getBookingDetailDeposit(selectedDetail);
+  const transferContent = isCheckoutPayment
+    ? `HOTEL CHECKOUT ${booking?.bookingCode || id} ${formatCurrency(amount)}`
+    : `HOTEL BOOKING ${booking?.bookingCode || id} ${formatCurrency(amount)}`;
 
   const momoPaymentQuery = useQuery({
-    queryKey: ["user-booking-momo-payment", id, selectedDetail?.id, amount],
+    queryKey: ["user-booking-momo-payment", id, selectedDetail?.id || "all", amount, isCheckoutPayment],
     queryFn: () =>
-      userBookingsApi.createMomoPayment(id, {
-        bookingDetailId: selectedDetail?.id || null,
-        amount,
-      }),
+      isCheckoutPayment
+        ? userBookingsApi.createCheckoutMomoPayment(id, detailId ? { bookingDetailId: detailId } : {})
+        : userBookingsApi.createMomoPayment(id, {
+            bookingDetailId: selectedDetail?.id || null,
+            amount,
+          }),
     enabled:
       paymentMethod === "momo" &&
       Boolean(id) &&
-      Boolean(selectedDetail?.id) &&
       amount >= 1000 &&
-      bookingStatus === "Pending" &&
-      !isReturnedFromMomo,
+      (!isCheckoutPayment ? Boolean(selectedDetail?.id) : true) &&
+      !isReturnedFromMomo &&
+      (isCheckoutPayment || bookingStatus === "Pending"),
     retry: false,
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
@@ -86,13 +114,25 @@ const UserBookingPaymentPage = () => {
 
   const confirmPaymentMutation = useMutation({
     mutationFn: () =>
-      userBookingsApi.confirmPayment(id, {
-        bookingDetailId: selectedDetail?.id || null,
-        transactionCode: momoOrderId || undefined,
-      }),
+      isCheckoutPayment
+        ? userBookingsApi.completePayment(id, {
+            bookingDetailId: detailId || null,
+            transactionCode: momoOrderId || undefined,
+          })
+        : userBookingsApi.confirmPayment(id, {
+            bookingDetailId: selectedDetail?.id || null,
+            transactionCode: momoOrderId || undefined,
+          }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["user-bookings"] });
       queryClient.invalidateQueries({ queryKey: ["user-booking", id] });
+      queryClient.invalidateQueries({ queryKey: ["user-booking-payment-summary", id] });
+
+      if (isCheckoutPayment) {
+        setShowReviewOverlay(true);
+        return;
+      }
+
       navigate("/user/booking-history", {
         replace: true,
         state: {
@@ -105,14 +145,29 @@ const UserBookingPaymentPage = () => {
     },
   });
 
+  const createReviewMutation = useMutation({
+    mutationFn: () =>
+      userReviewsApi.createReview({
+        roomTypeId: selectedDetail?.roomTypeId || null,
+        rating,
+        comment,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["user-reviews"] });
+      navigate("/user/reviews", { replace: true });
+    },
+  });
+
   useEffect(() => {
-    if (!isReturnedFromMomo || !paymentSucceeded || !selectedDetail?.id) return;
+    if (!isReturnedFromMomo || !paymentSucceeded) return;
+    if (!selectedDetail && !isCheckoutPayment) return;
     if (completedRef.current) return;
-    if (selectedDetail.status === "Confirmed") return;
+    if (!isCheckoutPayment && selectedDetail?.status === "Confirmed") return;
+    if (isCheckoutPayment && bookingStatus === "Completed") return;
 
     completedRef.current = true;
     confirmPaymentMutation.mutate();
-  }, [confirmPaymentMutation, isReturnedFromMomo, paymentSucceeded, selectedDetail]);
+  }, [bookingStatus, confirmPaymentMutation, isCheckoutPayment, isReturnedFromMomo, paymentSucceeded, selectedDetail]);
 
   const momoPayment = momoPaymentQuery.data;
   const momoQrImageUrl = useMemo(
@@ -124,6 +179,8 @@ const UserBookingPaymentPage = () => {
     if (!isReturnedFromMomo || paymentSucceeded) return null;
     return momoMessage || "Thanh toán MoMo chưa thành công.";
   }, [isReturnedFromMomo, momoMessage, paymentSucceeded]);
+
+  const isAlreadyPaid = isCheckoutPayment ? bookingStatus === "Completed" : selectedDetail?.status === "Confirmed";
 
   const handleCopy = async () => {
     try {
@@ -160,31 +217,33 @@ const UserBookingPaymentPage = () => {
   return (
     <div className="space-y-6">
       <div>
-        <div>
-          <button
-            type="button"
-            onClick={() => navigate(`/user/booking/${id}`)}
-            className="inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm ring-1 ring-slate-200 transition hover:bg-slate-50"
-          >
-            <ArrowLeft size={16} />
-            Quay lại booking
-          </button>
-          <h1 className="mt-4 text-3xl font-black text-slate-900">Thanh toán booking</h1>
-          <p className="mt-2 text-sm font-medium text-slate-500">
-            Chọn MoMo hoặc QR Pay. Sau khi thanh toán xong, booking sẽ chuyển sang Confirmed.
-          </p>
-        </div>
-
-
+        <button
+          type="button"
+          onClick={() => navigate(`/user/booking/${id}`)}
+          className="inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm ring-1 ring-slate-200 transition hover:bg-slate-50"
+        >
+          <ArrowLeft size={16} />
+          Quay lại booking
+        </button>
+        <h1 className="mt-4 text-3xl font-black text-slate-900">Thanh toán booking</h1>
+        <p className="mt-2 text-sm font-medium text-slate-500">
+          {isCheckoutPayment
+            ? "Chọn MoMo hoặc QR Pay để hoàn tất thanh toán sau khi trả phòng."
+            : "Chọn MoMo hoặc QR Pay. Sau khi thanh toán xong, booking sẽ chuyển sang Confirmed."}
+        </p>
       </div>
 
-      {selectedDetail.status === "Confirmed" ? (
+      {isAlreadyPaid ? (
         <div className="rounded-[1.75rem] border border-emerald-200 bg-emerald-50 p-6 text-emerald-900">
           <div className="flex items-start gap-3">
             <CheckCircle2 className="mt-0.5 text-emerald-600" size={22} />
             <div>
-              <p className="font-black">Đã đặt phòng thành công</p>
-              <p className="mt-2 text-sm">Phòng này đã được thanh toán thành công.</p>
+              <p className="font-black">{isCheckoutPayment ? "Đã thanh toán hoàn tất" : "Đã đặt phòng thành công"}</p>
+              <p className="mt-2 text-sm">
+                {isCheckoutPayment
+                  ? "Booking này đã chuyển sang Completed."
+                  : "Phòng này đã được thanh toán thành công."}
+              </p>
             </div>
           </div>
         </div>
@@ -192,7 +251,7 @@ const UserBookingPaymentPage = () => {
 
       {confirmPaymentMutation.isPending ? (
         <div className="rounded-[1.75rem] border border-sky-200 bg-sky-50 p-6 text-sky-900">
-          Đang cập nhật trạng thái booking sau thanh toán...
+          Đang cập nhật trạng thái sau thanh toán...
         </div>
       ) : null}
 
@@ -222,6 +281,21 @@ const UserBookingPaymentPage = () => {
               {new Date(selectedDetail.checkInDate).toLocaleDateString("vi-VN")} -{" "}
               {new Date(selectedDetail.checkOutDate).toLocaleDateString("vi-VN")}
             </p>
+            {isCheckoutPayment && paymentSummary?.items?.length ? (
+              <div className="mt-4 border-t border-slate-200 pt-4">
+                <p className="text-slate-500">Khoản cần thanh toán</p>
+                <div className="mt-2 space-y-2">
+                  {paymentSummary.items.map((item) => (
+                    <div key={item.invoiceId} className="rounded-2xl bg-white px-3 py-2">
+                      <p className="font-bold text-slate-900">
+                        {item.roomName} - Phòng {item.roomNumber}
+                      </p>
+                      <p className="mt-1 text-xs font-semibold text-slate-500">{formatCurrency(item.totalAmount)}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
           </div>
 
           <p className="mt-6 text-xs font-bold uppercase tracking-[0.25em] text-slate-400">Hình thức thanh toán</p>
@@ -274,7 +348,9 @@ const UserBookingPaymentPage = () => {
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <p className="text-xs font-bold uppercase tracking-[0.25em] text-pink-400">MoMo</p>
-                  <p className="mt-2 text-2xl font-black text-slate-900">Thanh toán qua MoMo</p>
+                  <p className="mt-2 text-2xl font-black text-slate-900">
+                    {isCheckoutPayment ? "Thanh toán checkout qua MoMo" : "Thanh toán qua MoMo"}
+                  </p>
                 </div>
                 <div className="rounded-2xl bg-pink-100 p-3 text-pink-600">
                   <Smartphone size={24} />
@@ -302,20 +378,25 @@ const UserBookingPaymentPage = () => {
                 </button>
               </div>
 
-              {momoPaymentQuery.isLoading ? (
+              {momoPaymentQuery.isLoading || (isCheckoutPayment && paymentSummaryQuery.isLoading) ? (
                 <div className="mt-6 rounded-[1.75rem] border border-pink-100 bg-pink-50 p-6 text-pink-700">
                   Đang tạo giao dịch MoMo...
                 </div>
-              ) : momoPaymentQuery.isError ? (
+              ) : momoPaymentQuery.isError || paymentSummaryQuery.isError ? (
                 <div className="mt-6 space-y-4 rounded-[1.75rem] border border-rose-200 bg-rose-50 p-6 text-rose-900">
                   <p className="font-black">
                     {momoPaymentQuery.error?.response?.data?.message ||
+                      paymentSummaryQuery.error?.response?.data?.message ||
                       momoPaymentQuery.error?.message ||
+                      paymentSummaryQuery.error?.message ||
                       "Không thể tạo thanh toán MoMo cho booking."}
                   </p>
                   <button
                     type="button"
-                    onClick={() => momoPaymentQuery.refetch()}
+                    onClick={() => {
+                      if (isCheckoutPayment) paymentSummaryQuery.refetch();
+                      momoPaymentQuery.refetch();
+                    }}
                     className="inline-flex items-center gap-2 rounded-2xl bg-rose-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-rose-700"
                   >
                     <RefreshCw size={16} />
@@ -417,10 +498,10 @@ const UserBookingPaymentPage = () => {
                 <button
                   type="button"
                   onClick={() => confirmPaymentMutation.mutate()}
-                  disabled={selectedDetail.status === "Confirmed" || confirmPaymentMutation.isPending}
+                  disabled={isAlreadyPaid || confirmPaymentMutation.isPending}
                   className="rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-black text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300"
                 >
-                  {selectedDetail.status === "Confirmed"
+                  {isAlreadyPaid
                     ? "Đã thanh toán"
                     : confirmPaymentMutation.isPending
                       ? "Đang xác nhận..."
@@ -431,6 +512,62 @@ const UserBookingPaymentPage = () => {
           )}
         </div>
       </div>
+
+      {showReviewOverlay ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4">
+          <div className="w-full max-w-xl rounded-[2rem] bg-white p-6 shadow-2xl">
+            <h2 className="text-2xl font-black text-slate-900">Đánh giá kỳ nghỉ của bạn</h2>
+            <p className="mt-2 text-sm text-slate-500">
+              Cho chúng tôi biết cảm nhận về {selectedDetail.roomTypeName} - Phòng {selectedDetail.roomNumber}.
+            </p>
+
+            <div className="mt-6 flex items-center gap-2">
+              {[1, 2, 3, 4, 5].map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setRating(value)}
+                  className="rounded-2xl p-2 transition hover:bg-amber-50"
+                >
+                  <Star
+                    size={28}
+                    className={value <= rating ? "fill-amber-400 text-amber-400" : "text-slate-300"}
+                  />
+                </button>
+              ))}
+            </div>
+
+            <textarea
+              value={comment}
+              onChange={(event) => setComment(event.target.value)}
+              rows={5}
+              placeholder="Chia sẻ cảm nhận của bạn..."
+              className="mt-5 w-full rounded-[1.5rem] border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-sky-400 focus:bg-white"
+            />
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowReviewOverlay(false);
+                  navigate(`/user/booking/${id}`, { replace: true });
+                }}
+                className="rounded-2xl bg-slate-100 px-4 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-200"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={() => createReviewMutation.mutate()}
+                disabled={createReviewMutation.isPending}
+                className="rounded-2xl bg-blue-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
+              >
+                {createReviewMutation.isPending ? "Đang gửi..." : "Gửi đánh giá"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 };

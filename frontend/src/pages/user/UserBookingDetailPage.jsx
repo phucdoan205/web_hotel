@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, CalendarRange, CreditCard, Hotel, ReceiptText, XCircle } from "lucide-react";
+import { ArrowLeft, CalendarRange, CreditCard, Hotel, LogOut, ReceiptText, XCircle } from "lucide-react";
 import { userBookingsApi } from "../../api/user/bookingsApi";
 import { userServicesApi } from "../../api/user/servicesApi";
 import { getBookingDetailNights, getBookingDetailTotal, getBookingTotalAmount } from "../../utils/bookingPricing";
@@ -36,6 +36,8 @@ const UserBookingDetailPage = () => {
   const { id } = useParams();
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [showCancelSuccess, setShowCancelSuccess] = useState(false);
+  const [showCheckoutConfirm, setShowCheckoutConfirm] = useState(false);
+  const [showCheckoutSuccess, setShowCheckoutSuccess] = useState(false);
 
   const bookingQuery = useQuery({
     queryKey: ["user-booking", id],
@@ -59,6 +61,16 @@ const UserBookingDetailPage = () => {
     },
   });
 
+  const checkOutMutation = useMutation({
+    mutationFn: () => userBookingsApi.checkOutBooking(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["user-bookings"] });
+      queryClient.invalidateQueries({ queryKey: ["user-booking", id] });
+      setShowCheckoutConfirm(false);
+      setShowCheckoutSuccess(true);
+    },
+  });
+
   const booking = bookingQuery.data;
   const bookingStatus = resolveUserBookingStatus(booking);
   const roomTotalAmount = useMemo(() => getBookingTotalAmount(booking?.bookingDetails || []), [booking]);
@@ -72,6 +84,10 @@ const UserBookingDetailPage = () => {
   );
   const totalAmount = roomTotalAmount + serviceTotalAmount;
   const firstImage = booking?.bookingDetails?.[0]?.room?.imageUrls?.[0] || fallbackImage;
+  const canCheckOut = useMemo(
+    () => (booking?.bookingDetails || []).some((detail) => detail?.status === "CheckedIn"),
+    [booking?.bookingDetails],
+  );
 
   const handleCloseSuccess = () => {
     setShowCancelSuccess(false);
@@ -276,6 +292,18 @@ const UserBookingDetailPage = () => {
               <h2 className="text-xl font-black text-slate-900">Tóm tắt booking</h2>
             </div>
 
+            {canCheckOut ? (
+              <button
+                type="button"
+                onClick={() => setShowCheckoutConfirm(true)}
+                disabled={checkOutMutation.isPending}
+                className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300"
+              >
+                <LogOut size={16} />
+                {checkOutMutation.isPending ? "Đang trả phòng..." : "Trả phòng"}
+              </button>
+            ) : null}
+
             <div className="mt-6 space-y-4 rounded-[1.5rem] bg-slate-50 p-5 text-sm">
               <div>
                 <p className="text-slate-500">Khách đặt</p>
@@ -316,6 +344,17 @@ const UserBookingDetailPage = () => {
                 <p className="mt-2 text-3xl font-black text-blue-900">{formatCurrency(totalAmount)}</p>
               </div>
             </div>
+
+            {canUserPayBooking(booking) ? (
+              <button
+                type="button"
+                onClick={() => navigate(`/user/booking-history/${booking.id}/payment`)}
+                className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-blue-700"
+              >
+                <CreditCard size={16} />
+                Thanh toán ngay
+              </button>
+            ) : null}
           </div>
         </aside>
       </div>
@@ -355,6 +394,53 @@ const UserBookingDetailPage = () => {
             <button
               type="button"
               onClick={handleCloseSuccess}
+              className="mt-6 rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-emerald-700"
+            >
+              Đóng
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {showCheckoutConfirm ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 px-4">
+          <div className="w-full max-w-md rounded-[2rem] bg-white p-6 shadow-2xl">
+            <h2 className="text-2xl font-black text-slate-900">Xác nhận trả phòng</h2>
+            <p className="mt-3 text-sm text-slate-600">
+              Bạn có muốn xác nhận trả phòng cho booking <span className="font-bold">{booking.bookingCode}</span> không?
+            </p>
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setShowCheckoutConfirm(false)}
+                disabled={checkOutMutation.isPending}
+                className="rounded-2xl bg-slate-100 px-4 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Không
+              </button>
+              <button
+                type="button"
+                onClick={() => checkOutMutation.mutate()}
+                disabled={checkOutMutation.isPending}
+                className="rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {checkOutMutation.isPending ? "Đang xử lý..." : "Có"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {showCheckoutSuccess ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 px-4">
+          <div className="w-full max-w-sm rounded-[2rem] bg-white p-6 text-center shadow-2xl">
+            <h2 className="text-2xl font-black text-emerald-700">Đã xác nhận trả phòng</h2>
+            <p className="mt-3 text-sm text-slate-600">
+              Booking đã chuyển sang chờ thanh toán. Bạn có thể thanh toán ngay.
+            </p>
+            <button
+              type="button"
+              onClick={() => setShowCheckoutSuccess(false)}
               className="mt-6 rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-emerald-700"
             >
               Đóng

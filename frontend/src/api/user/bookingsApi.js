@@ -34,8 +34,28 @@ export const userBookingsApi = {
     return response.data;
   },
 
+  checkOutBooking: async (bookingId) => {
+    const response = await apiClient.patch(`/user-bookings/${bookingId}/check-out`);
+    return response.data;
+  },
+
+  getPaymentSummary: async (bookingId, params = {}) => {
+    const response = await apiClient.get(`/user-bookings/${bookingId}/payment-summary`, { params });
+    return response.data;
+  },
+
+  completePayment: async (bookingId, payload = {}) => {
+    const response = await apiClient.patch(`/user-bookings/${bookingId}/complete-payment`, payload);
+    return response.data;
+  },
+
   createMomoPayment: async (bookingId, payload) => {
     const response = await apiClient.post(`/user-bookings/${bookingId}/payments/momo`, payload);
+    return response.data;
+  },
+
+  createCheckoutMomoPayment: async (bookingId, payload = {}) => {
+    const response = await apiClient.post(`/user-bookings/${bookingId}/checkout-payments/momo`, payload);
     return response.data;
   },
 };

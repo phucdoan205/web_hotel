@@ -20,7 +20,7 @@ const STATUS_CLASSES = {
 
 export const resolveUserBookingStatus = (booking) => {
   if (!booking) return "Pending";
-  if (booking.status === "Cancelled" || booking.status === "Completed") {
+  if (["Cancelled", "Completed", "Paying"].includes(booking.status)) {
     return booking.status;
   }
 
@@ -47,6 +47,7 @@ export const canUserCancelBooking = (booking) => {
 
 export const canUserPayBooking = (booking) => {
   const status = resolveUserBookingStatus(booking);
+  if (status === "Paying") return true;
   return !["Cancelled", "Completed", "CheckedIn", "CheckedOut"].includes(status) &&
     (booking?.bookingDetails || []).some((detail) => detail?.status === "Pending");
 };
