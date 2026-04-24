@@ -180,9 +180,12 @@ namespace backend.Controllers
 
         [HttpGet]
         public async Task<ActionResult<PagedResponse<BookingResponseDTO>>> GetMyBookings(
+            [FromQuery] string? search = null,
             [FromQuery] string? status = null,
+            [FromQuery] DateTime? fromDate = null,
+            [FromQuery] DateTime? toDate = null,
             [FromQuery] int page = 1,
-            [FromQuery] int pageSize = 20)
+            [FromQuery] int pageSize = 10)
         {
             var currentUser = await ResolveCurrentUserAsync();
             if (currentUser == null)
@@ -190,11 +193,43 @@ namespace backend.Controllers
                 return Unauthorized(new { message = "Khong xac dinh duoc nguoi dung hien tai." });
             }
 
+            page = page < 1 ? 1 : page;
+            pageSize = pageSize switch
+            {
+                < 1 => 10,
+                > 100 => 100,
+                _ => pageSize
+            };
+
             var query = BuildOwnedBookingsQuery(currentUser.Id).AsNoTracking();
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var normalizedSearch = search.Trim().ToLower();
+                query = query.Where(item =>
+                    item.BookingCode.ToLower().Contains(normalizedSearch) ||
+                    item.BookingDetails.Any(detail =>
+                        (detail.RoomType != null && detail.RoomType.Name.ToLower().Contains(normalizedSearch)) ||
+                        (detail.Room != null && detail.Room.RoomNumber.ToLower().Contains(normalizedSearch))));
+            }
 
             if (!string.IsNullOrWhiteSpace(status))
             {
                 query = query.Where(item => item.Status == status);
+            }
+
+            if (fromDate.HasValue)
+            {
+                var normalizedFromDate = fromDate.Value.Date;
+                query = query.Where(item =>
+                    item.BookingDetails.Any(detail => detail.CheckInDate.Date >= normalizedFromDate));
+            }
+
+            if (toDate.HasValue)
+            {
+                var normalizedToDate = toDate.Value.Date;
+                query = query.Where(item =>
+                    item.BookingDetails.Any(detail => detail.CheckInDate.Date <= normalizedToDate));
             }
 
             var totalCount = await query.CountAsync();

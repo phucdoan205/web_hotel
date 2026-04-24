@@ -1,8 +1,9 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, CalendarRange, CreditCard, Hotel, ReceiptText, XCircle } from "lucide-react";
 import { userBookingsApi } from "../../api/user/bookingsApi";
+import { userServicesApi } from "../../api/user/servicesApi";
 import { getBookingDetailNights, getBookingDetailTotal, getBookingTotalAmount } from "../../utils/bookingPricing";
 import {
   canUserCancelBooking,
@@ -33,10 +34,18 @@ const UserBookingDetailPage = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { id } = useParams();
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [showCancelSuccess, setShowCancelSuccess] = useState(false);
 
   const bookingQuery = useQuery({
     queryKey: ["user-booking", id],
     queryFn: () => userBookingsApi.getMyBookingById(id),
+    enabled: Boolean(id),
+  });
+
+  const servicesQuery = useQuery({
+    queryKey: ["user-booking-services", id],
+    queryFn: () => userServicesApi.getUsageHistory(),
     enabled: Boolean(id),
   });
 
@@ -45,22 +54,37 @@ const UserBookingDetailPage = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["user-bookings"] });
       queryClient.invalidateQueries({ queryKey: ["user-booking", id] });
-      navigate("/user/booking-history", {
-        replace: true,
-        state: {
-          notice: {
-            type: "success",
-            message: "Booking đã được hủy thành công.",
-          },
-        },
-      });
+      setShowCancelConfirm(false);
+      setShowCancelSuccess(true);
     },
   });
 
   const booking = bookingQuery.data;
   const bookingStatus = resolveUserBookingStatus(booking);
-  const totalAmount = useMemo(() => getBookingTotalAmount(booking?.bookingDetails || []), [booking]);
+  const roomTotalAmount = useMemo(() => getBookingTotalAmount(booking?.bookingDetails || []), [booking]);
+  const serviceItems = useMemo(() => {
+    const currentBookingId = Number(booking?.id || id || 0);
+    return (servicesQuery.data || []).filter((item) => item.bookingId === currentBookingId);
+  }, [booking?.id, id, servicesQuery.data]);
+  const serviceTotalAmount = useMemo(
+    () => serviceItems.reduce((sum, item) => sum + Number(item.lineTotal || item.quantity * item.unitPrice || 0), 0),
+    [serviceItems],
+  );
+  const totalAmount = roomTotalAmount + serviceTotalAmount;
   const firstImage = booking?.bookingDetails?.[0]?.room?.imageUrls?.[0] || fallbackImage;
+
+  const handleCloseSuccess = () => {
+    setShowCancelSuccess(false);
+    navigate("/user/booking-history", {
+      replace: true,
+      state: {
+        notice: {
+          type: "success",
+          message: "Đã hủy thành công.",
+        },
+      },
+    });
+  };
 
   if (bookingQuery.isLoading) {
     return <div className="rounded-[2rem] bg-white p-8 text-center text-slate-500">Đang tải booking...</div>;
@@ -113,7 +137,7 @@ const UserBookingDetailPage = () => {
           {canUserCancelBooking(booking) ? (
             <button
               type="button"
-              onClick={() => cancelMutation.mutate()}
+              onClick={() => setShowCancelConfirm(true)}
               disabled={cancelMutation.isPending}
               className="inline-flex items-center gap-2 rounded-2xl bg-rose-50 px-4 py-3 text-sm font-bold text-rose-600 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
             >
@@ -175,6 +199,74 @@ const UserBookingDetailPage = () => {
               ))}
             </div>
           </div>
+
+          <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="flex items-center gap-3">
+              <ReceiptText className="text-blue-600" size={20} />
+              <h2 className="text-xl font-black text-slate-900">Chi tiết hóa đơn</h2>
+            </div>
+
+            <div className="mt-6 overflow-hidden rounded-[1.5rem] border border-slate-200">
+              <div className="grid grid-cols-[1.8fr_1fr_1fr_1fr] gap-4 bg-slate-50 px-5 py-4 text-xs font-black uppercase tracking-[0.2em] text-slate-500">
+                <div>Hạng mục</div>
+                <div>Đơn giá</div>
+                <div>Số lượng</div>
+                <div className="text-right">Thành tiền</div>
+              </div>
+
+              {(booking.bookingDetails || []).map((detail) => (
+                <div
+                  key={`room-${detail.id}`}
+                  className="grid grid-cols-[1.8fr_1fr_1fr_1fr] gap-4 border-t border-slate-100 px-5 py-4 text-sm font-semibold text-slate-700"
+                >
+                  <div>
+                    Tiền phòng {detail.roomTypeName || "Phòng"} - Phòng {detail.roomNumber || "--"}
+                  </div>
+                  <div>{formatCurrency(detail.pricePerNight)}</div>
+                  <div>{getBookingDetailNights(detail)} đêm</div>
+                  <div className="text-right font-black text-slate-900">{formatCurrency(getBookingDetailTotal(detail))}</div>
+                </div>
+              ))}
+
+              {servicesQuery.isLoading ? (
+                <div className="border-t border-slate-100 px-5 py-4 text-sm text-slate-500">Đang tải dịch vụ...</div>
+              ) : serviceItems.length ? (
+                serviceItems.map((item) => (
+                  <div
+                    key={`service-${item.id}`}
+                    className="grid grid-cols-[1.8fr_1fr_1fr_1fr] gap-4 border-t border-slate-100 px-5 py-4 text-sm font-semibold text-slate-700"
+                  >
+                    <div>{item.serviceName}</div>
+                    <div>{formatCurrency(item.unitPrice)}</div>
+                    <div>{item.quantity}</div>
+                    <div className="text-right font-black text-slate-900">
+                      {formatCurrency(item.lineTotal || item.quantity * item.unitPrice)}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="border-t border-slate-100 px-5 py-4 text-sm text-slate-500">
+                  Chưa có dịch vụ nào trong booking này.
+                </div>
+              )}
+            </div>
+
+            <div className="mt-6 ml-auto max-w-md space-y-3 rounded-[1.5rem] bg-slate-50 p-5">
+              <div className="flex items-center justify-between text-sm font-semibold text-slate-600">
+                <span>Tổng tiền phòng</span>
+                <span className="font-black text-slate-900">{formatCurrency(roomTotalAmount)}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm font-semibold text-slate-600">
+                <span>Tổng tiền dịch vụ</span>
+                <span className="font-black text-slate-900">{formatCurrency(serviceTotalAmount)}</span>
+              </div>
+              <div className="h-px bg-slate-200" />
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-semibold text-slate-600">Tổng thành tiền</span>
+                <span className="text-3xl font-black text-blue-700">{formatCurrency(totalAmount)}</span>
+              </div>
+            </div>
+          </div>
         </section>
 
         <aside className="space-y-6">
@@ -209,13 +301,67 @@ const UserBookingDetailPage = () => {
               </div>
             </div>
 
-            <div className="mt-6 rounded-[1.5rem] bg-blue-50 px-5 py-4">
-              <p className="text-sm font-semibold text-blue-700">Tổng thanh toán</p>
-              <p className="mt-2 text-3xl font-black text-blue-900">{formatCurrency(totalAmount)}</p>
+            <div className="mt-6 space-y-3 rounded-[1.5rem] bg-blue-50 px-5 py-4">
+              <div className="flex items-center justify-between text-sm text-blue-700">
+                <span>Tiền phòng</span>
+                <span className="font-bold">{formatCurrency(roomTotalAmount)}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm text-blue-700">
+                <span>Dịch vụ</span>
+                <span className="font-bold">{formatCurrency(serviceTotalAmount)}</span>
+              </div>
+              <div className="h-px bg-blue-100" />
+              <div>
+                <p className="text-sm font-semibold text-blue-700">Tổng thanh toán</p>
+                <p className="mt-2 text-3xl font-black text-blue-900">{formatCurrency(totalAmount)}</p>
+              </div>
             </div>
           </div>
         </aside>
       </div>
+
+      {showCancelConfirm ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 px-4">
+          <div className="w-full max-w-md rounded-[2rem] bg-white p-6 shadow-2xl">
+            <h2 className="text-2xl font-black text-slate-900">Xác nhận hủy booking</h2>
+            <p className="mt-3 text-sm text-slate-600">Bạn có muốn hủy booking này không?</p>
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setShowCancelConfirm(false)}
+                disabled={cancelMutation.isPending}
+                className="rounded-2xl bg-slate-100 px-4 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Không
+              </button>
+              <button
+                type="button"
+                onClick={() => cancelMutation.mutate()}
+                disabled={cancelMutation.isPending}
+                className="rounded-2xl bg-rose-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {cancelMutation.isPending ? "Đang hủy..." : "Có, hủy"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {showCancelSuccess ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 px-4">
+          <div className="w-full max-w-sm rounded-[2rem] bg-white p-6 text-center shadow-2xl">
+            <h2 className="text-2xl font-black text-emerald-700">Đã hủy thành công</h2>
+            <p className="mt-3 text-sm text-slate-600">Booking của bạn đã được hủy.</p>
+            <button
+              type="button"
+              onClick={handleCloseSuccess}
+              className="mt-6 rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-emerald-700"
+            >
+              Đóng
+            </button>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 };

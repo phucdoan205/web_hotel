@@ -1,14 +1,16 @@
 const STATUS_LABELS = {
-  Pending: "Pending",
+  Pending: "Chờ trả",
+  Paying: "Chờ thanh toán",
   Confirmed: "Đã đặt thành công",
   CheckedIn: "Đã nhận phòng",
   CheckedOut: "Đã trả phòng",
   Completed: "Đã thanh toán",
-  Cancelled: "Cancelled",
+  Cancelled: "Đã hủy",
 };
 
 const STATUS_CLASSES = {
   Pending: "bg-amber-50 text-amber-700 ring-1 ring-amber-200",
+  Paying: "bg-blue-50 text-blue-700 ring-1 ring-blue-200",
   Confirmed: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200",
   CheckedIn: "bg-sky-50 text-sky-700 ring-1 ring-sky-200",
   CheckedOut: "bg-violet-50 text-violet-700 ring-1 ring-violet-200",
