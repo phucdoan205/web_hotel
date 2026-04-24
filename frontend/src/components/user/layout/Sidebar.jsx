@@ -9,7 +9,6 @@ import {
   LayoutDashboard,
   LifeBuoy,
   MessageSquareText,
-  ReceiptText,
   Settings,
   ShoppingBag,
 } from "lucide-react";
@@ -19,7 +18,6 @@ const bookingChildren = [
   { icon: CalendarDays, label: "Booking", path: "/user/bookings" },
   { icon: Heart, label: "Yêu thích", path: "/user/favorites" },
   { icon: ClipboardList, label: "Lịch sử đặt phòng", path: "/user/booking-history" },
-  { icon: ReceiptText, label: "Hóa đơn", path: "/user/invoices" },
 ];
 
 const menuItems = [

@@ -63,9 +63,9 @@ export const useLogin = () => {
       const message =
         error.response?.data?.message ||
         error.response?.data ||
-        "Cannot login with email and password.";
+        "Không thể đăng nhập bằng email và mật khẩu.";
 
-      setErrorMessage(typeof message === "string" ? message : "Cannot login with email and password.");
+      setErrorMessage(typeof message === "string" ? message : "Không thể đăng nhập bằng email và mật khẩu.");
     } finally {
       setIsLoading(false);
     }
@@ -85,9 +85,9 @@ export const useLogin = () => {
       const message =
         error.response?.data?.message ||
         error.response?.data ||
-        "Cannot login with Google account.";
+        "Không thể đăng nhập bằng tài khoản Google.";
 
-      setErrorMessage(typeof message === "string" ? message : "Cannot login with Google account.");
+      setErrorMessage(typeof message === "string" ? message : "Không thể đăng nhập bằng tài khoản Google.");
     } finally {
       setIsGoogleLoading(false);
     }

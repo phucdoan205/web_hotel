@@ -54,7 +54,6 @@ import UserBookingPaymentPage from "../pages/user/UserBookingPaymentPage";
 import UserRoomDetailPage from "../pages/user/UserRoomDetailPage";
 import UserFavoritesPage from "../pages/user/UserFavoritesPage";
 import UserCustomerSupportPage from "../pages/user/UserCustomerSupportPage";
-import UserInvoicesPage from "../pages/user/UserInvoicesPage";
 import UserBookingHistoryPage from "../pages/user/UserBookingHistoryPage";
 import RequirePermission from "../components/auth/RequirePermission";
 import UserServicesPage from "../pages/user/UserServicesPage";
@@ -350,7 +349,6 @@ const AppRoutes = () => {
         <Route path="booking-history/:id/payment" element={<UserBookingPaymentPage />} />
         <Route path="room-types/:id" element={<UserRoomDetailPage />} />
         <Route path="favorites" element={<UserFavoritesPage />} />
-        <Route path="invoices" element={<UserInvoicesPage />} />
         <Route path="booking-history" element={<UserBookingHistoryPage />} />
         <Route path="services" element={<UserServicesPage />} />
         <Route path="articles" element={<BlogPage />} />

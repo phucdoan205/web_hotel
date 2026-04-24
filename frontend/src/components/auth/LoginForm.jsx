@@ -76,10 +76,10 @@ const LoginForm = () => {
     <div className="w-full lg:w-1/2 flex flex-col justify-center items-center p-8 bg-slate-50">
       <div className="w-full max-w-md">
         <h2 className="text-3xl font-bold text-slate-800 mb-2">
-          Login - TravelEase
+          Đăng nhập - TravelEase
         </h2>
         <p className="text-slate-500 mb-8">
-          Login with email and password, or continue with your Google account.
+          Đăng nhập bằng email và mật khẩu, hoặc tiếp tục bằng tài khoản Google.
         </p>
 
         {errorMessage ? (
@@ -101,14 +101,14 @@ const LoginForm = () => {
                 onChange={handleChange}
                 type="email"
                 className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:border-blue-400"
-                placeholder="Enter your email"
+                placeholder="Nhập email của bạn"
               />
             </div>
           </div>
 
           <div className="relative">
             <label className="block text-xs font-bold text-slate-700 mb-2 uppercase">
-              Password
+              Mật khẩu
             </label>
             <input
               name="password"
@@ -137,7 +137,7 @@ const LoginForm = () => {
               className="w-4 h-4 rounded border-slate-300"
             />
             <label htmlFor="remember" className="text-sm text-slate-600">
-              Remember me
+              Ghi nhớ đăng nhập
             </label>
           </div>
 
@@ -146,7 +146,7 @@ const LoginForm = () => {
             disabled={isLoading}
             className="w-full py-4 bg-blue-500 text-white font-bold rounded-xl shadow-lg shadow-blue-100 hover:bg-blue-600 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            {isLoading ? "Logging in..." : "Login with Email"}
+            {isLoading ? "Đang đăng nhập..." : "Đăng nhập bằng Email"}
           </button>
         </form>
 
@@ -156,7 +156,7 @@ const LoginForm = () => {
           </div>
           <div className="relative flex justify-center text-xs uppercase">
             <span className="bg-slate-50 px-2 text-slate-500">
-              Or continue with Google
+              Hoặc tiếp tục với Google
             </span>
           </div>
         </div>
@@ -167,24 +167,24 @@ const LoginForm = () => {
               <div ref={googleButtonRef} className="min-h-11" />
               {isGoogleLoading ? (
                 <p className="text-sm font-medium text-slate-500">
-                  Logging in with Google...
+                  Đang đăng nhập bằng Google...
                 </p>
               ) : null}
             </div>
           ) : (
             <div className="rounded-xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-700">
-              Google login is not configured yet. Set `VITE_GOOGLE_CLIENT_ID` in frontend env first.
+              Đăng nhập Google chưa được cấu hình. Vui lòng đặt `VITE_GOOGLE_CLIENT_ID` trong biến môi trường frontend trước.
             </div>
           )}
         </div>
 
         <p className="mt-8 text-center text-sm text-slate-600">
-          Don&apos;t have an account?{" "}
+          Bạn chưa có tài khoản? {" "}
           <a
             href="/register"
             className="text-blue-600 font-semibold hover:underline"
           >
-            Sign Up
+            Đăng ký
           </a>
         </p>
       </div>

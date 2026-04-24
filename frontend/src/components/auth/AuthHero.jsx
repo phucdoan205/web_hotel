@@ -16,11 +16,11 @@ const AuthHero = () => {
 
       <div className="relative z-10 text-white">
         <h1 className="text-4xl font-bold leading-tight mb-4">
-          Discover your next luxury stay
+          Khám phá chỗ nghỉ sang trọng tiếp theo của bạn
         </h1>
         <p className="text-lg opacity-90 max-w-md">
-          Join thousands of travelers finding the best deals on hotels and
-          flights every day.
+          Hàng nghìn du khách tìm thấy ưu đãi tốt nhất cho khách sạn và
+          chuyến bay mỗi ngày.
         </p>
       </div>
     </div>
