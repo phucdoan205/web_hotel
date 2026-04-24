@@ -3,11 +3,12 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Printer, Receipt } from "lucide-react";
 import { invoicesApi } from "../../api/admin/invoicesApi";
+import { bookingsApi } from "../../api/admin/bookingsApi";
 import { servicesApi } from "../../api/admin/servicesApi";
 import { formatVietnamDate, formatVietnamDateTime } from "../../utils/vietnamTime";
+import { openInvoicePrintWindow } from "../../utils/invoicePrint";
 
 const currencyFormatter = new Intl.NumberFormat("vi-VN");
-
 const formatCurrency = (value) => `${currencyFormatter.format(Number(value || 0))} đ`;
 
 const AdminInvoiceDetailPage = () => {
@@ -21,6 +22,14 @@ const AdminInvoiceDetailPage = () => {
   });
 
   const invoice = invoiceQuery.data;
+
+  const bookingQuery = useQuery({
+    queryKey: ["booking", invoice?.bookingId],
+    queryFn: () => bookingsApi.getBookingById(invoice.bookingId),
+    enabled: Boolean(invoice?.bookingId),
+  });
+
+  const booking = bookingQuery.data;
 
   const serviceUsagesQuery = useQuery({
     queryKey: ["invoice-service-items", invoice?.detailId, invoice?.status, invoice?.createdAt],
@@ -55,9 +64,20 @@ const AdminInvoiceDetailPage = () => {
     );
   }
 
+  const handlePrintInvoice = () => {
+    openInvoicePrintWindow({
+      invoice,
+      booking,
+      serviceItems,
+      receiptDateText: invoice?.paidAt || invoice?.createdAt || invoice?.updatedAt
+        ? formatVietnamDateTime(invoice.paidAt || invoice.createdAt || invoice.updatedAt)
+        : "--",
+    });
+  };
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4 print:hidden">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <button
             type="button"
@@ -73,7 +93,7 @@ const AdminInvoiceDetailPage = () => {
 
         <button
           type="button"
-          onClick={() => window.print()}
+          onClick={handlePrintInvoice}
           className="inline-flex items-center gap-2 rounded-2xl bg-sky-600 px-5 py-3 text-sm font-black text-white transition hover:bg-sky-700"
         >
           <Printer size={18} />
@@ -148,7 +168,7 @@ const AdminInvoiceDetailPage = () => {
                 <div>{formatCurrency(item.unitPrice)}</div>
                 <div>{item.quantity}</div>
                 <div className="text-right font-black text-slate-900">
-                  {formatCurrency(item.quantity * item.unitPrice)}
+                  {formatCurrency(item.lineTotal || item.quantity * item.unitPrice)}
                 </div>
               </div>
             ))
