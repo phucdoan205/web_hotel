@@ -71,13 +71,6 @@ const AdminInvoiceListPage = () => {
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={() => navigate("/admin/check-out")}
-          className="rounded-2xl bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm ring-1 ring-slate-200 transition hover:bg-slate-50"
-        >
-          Quay lại trả phòng
-        </button>
       </div>
 
       <div className="rounded-[2rem] bg-white p-6 shadow-sm ring-1 ring-slate-200">

@@ -55,16 +55,28 @@ namespace backend.Controllers
             return "Pending";
         }
 
-        private static string GenerateInvoiceCode(string? bookingCode, string? roomNumber, int detailId)
+        private static DateTime GetVietnamTime(DateTime utcNow)
         {
-            var normalizedBookingCode = string.IsNullOrWhiteSpace(bookingCode)
-                ? "BK"
-                : bookingCode.Trim().Replace(" ", string.Empty).ToUpperInvariant();
+            try
+            {
+                var vietnamTimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+                return TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utcNow, DateTimeKind.Utc), vietnamTimeZone);
+            }
+            catch (TimeZoneNotFoundException)
+            {
+                var vietnamTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+                return TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utcNow, DateTimeKind.Utc), vietnamTimeZone);
+            }
+        }
+
+        private static string GenerateInvoiceCode(string? roomNumber, DateTime createdAtUtc)
+        {
             var normalizedRoomNumber = string.IsNullOrWhiteSpace(roomNumber)
                 ? "ROOM"
                 : roomNumber.Trim().Replace(" ", string.Empty).ToUpperInvariant();
+            var vietnamNow = GetVietnamTime(createdAtUtc);
 
-            return $"INV-{normalizedBookingCode}-{normalizedRoomNumber}-{detailId:D4}";
+            return $"HD-{vietnamNow:yyyyMMdd}-{normalizedRoomNumber}-{vietnamNow:HHmm}";
         }
 
         private static InvoiceResponseDTO MapInvoice(Invoice invoice) => new()
@@ -215,7 +227,7 @@ namespace backend.Controllers
                 BookingId = booking.Id,
                 BookingDetailId = bookingDetail.Id,
                 VoucherId = dto.VoucherId,
-                Code = GenerateInvoiceCode(booking.BookingCode, roomNumber, bookingDetail.Id),
+                Code = GenerateInvoiceCode(roomNumber, now),
                 BookingCode = booking.BookingCode,
                 GuestName = booking.Guest?.Name,
                 RoomNumber = roomNumber,
