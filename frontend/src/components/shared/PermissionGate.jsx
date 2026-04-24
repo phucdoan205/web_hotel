@@ -1,9 +1,9 @@
 import React from "react";
-import { getStoredAuth } from "../../utils/authStorage";
+import useStoredAuth from "../../hooks/useStoredAuth";
 import { hasPermission } from "../../utils/permissions";
 
 const PermissionGate = ({ permission, fallback = null, children }) => {
-  const auth = getStoredAuth();
+  const auth = useStoredAuth();
 
   if (!hasPermission(permission, auth)) {
     return fallback;

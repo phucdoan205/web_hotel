@@ -20,7 +20,7 @@ import {
   Users,
   Wrench,
 } from "lucide-react";
-import { getStoredAuth } from "../../../utils/authStorage";
+import useStoredAuth from "../../../hooks/useStoredAuth";
 import { hasPermission } from "../../../utils/permissions";
 
 const bookingChildren = [
@@ -117,7 +117,7 @@ function SidebarLink({ item, pathname, className = "" }) {
 
 export default function Sidebar() {
   const location = useLocation();
-  const auth = getStoredAuth();
+  const auth = useStoredAuth();
   const bookingMenuActive = isPathMatched(location.pathname, [
     "/admin/bookings",
     "/admin/check-in",

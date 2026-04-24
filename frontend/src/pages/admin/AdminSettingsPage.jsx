@@ -5,6 +5,7 @@ import ProfileTab from "../../components/admin/settings/ProfileTab";
 import HotelInfoTab from "../../components/admin/settings/HotelInfoTab";
 import TeamManagementTab from "../../components/admin/settings/TeamManagementTab";
 import SecurityTab from "../../components/admin/settings/SecurityTab";
+import useStoredAuth from "../../hooks/useStoredAuth";
 import { hasPermission } from "../../utils/permissions";
 
 const tabs = [
@@ -20,8 +21,9 @@ const tabs = [
 ];
 
 const AdminSettingsPage = () => {
+  const auth = useStoredAuth();
   const [searchParams, setSearchParams] = useSearchParams();
-  const availableTabs = tabs.filter((tab) => hasPermission(tab.permission));
+  const availableTabs = tabs.filter((tab) => hasPermission(tab.permission, auth));
   const requestedTab = searchParams.get("settingsTab") ?? "profile";
   const activeTab = availableTabs.some((tab) => tab.id === requestedTab)
     ? requestedTab

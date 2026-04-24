@@ -11,6 +11,7 @@ import {
   deleteRole,
   updateRole,
 } from "../../../api/admin/roleApi";
+import { updateStoredAuth } from "../../../utils/authStorage";
 import { createDefaultRole } from "../../../utils/roleHelpers";
 import { buildPermissionSidebar } from "../../../utils/permissionCatalog";
 import { hasPermission } from "../../../utils/permissions";
@@ -24,6 +25,8 @@ const readMessage = (error, fallbackMessage) => {
 
   return fallbackMessage;
 };
+
+const normalizeRoleName = (value) => String(value ?? "").trim().toLowerCase();
 
 const RolePermissionEditor = () => {
   const navigate = useNavigate();
@@ -264,6 +267,32 @@ const RolePermissionEditor = () => {
           permissionIds: [...selectedPermissionIds],
         }),
       ]);
+
+      const nextPermissionNames = permissions
+        .filter((permission) => selectedPermissionIds.has(permission.id))
+        .map((permission) => permission.name);
+
+      updateStoredAuth((current) => {
+        if (!current) {
+          return current;
+        }
+
+        const sameRoleById =
+          current.roleId != null && String(current.roleId) === String(roleId);
+        const sameRoleByName =
+          normalizeRoleName(current.role ?? current.roleName) === normalizeRoleName(normalizedName);
+
+        if (!sameRoleById && !sameRoleByName) {
+          return current;
+        }
+
+        return {
+          ...current,
+          role: normalizedName,
+          roleName: normalizedName,
+          permissions: nextPermissionNames,
+        };
+      });
 
       setMessage("Đã lưu thay đổi vai trò.");
     } catch (error) {
