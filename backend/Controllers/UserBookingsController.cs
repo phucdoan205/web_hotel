@@ -108,6 +108,20 @@ namespace backend.Controllers
             return $"BK-{timestamp:yyyyMMddHHmm}{phoneSuffix}";
         }
 
+        private static DateTime NormalizeCheckInDate(DateTime value)
+        {
+            return value.TimeOfDay == TimeSpan.Zero
+                ? value.Date.AddHours(14)
+                : value;
+        }
+
+        private static DateTime NormalizeCheckOutDate(DateTime value)
+        {
+            return value.TimeOfDay == TimeSpan.Zero
+                ? value.Date.AddHours(12)
+                : value;
+        }
+
         [HttpGet]
         public async Task<ActionResult<PagedResponse<BookingResponseDTO>>> GetMyBookings(
             [FromQuery] string? status = null,
@@ -211,8 +225,8 @@ namespace backend.Controllers
                 {
                     RoomId = detailDto.RoomId,
                     RoomTypeId = detailDto.RoomTypeId,
-                    CheckInDate = detailDto.CheckInDate.AddHours(14),
-                    CheckOutDate = detailDto.CheckOutDate.AddHours(12),
+                    CheckInDate = NormalizeCheckInDate(detailDto.CheckInDate),
+                    CheckOutDate = NormalizeCheckOutDate(detailDto.CheckOutDate),
                     PricePerNight = roomType.BasePrice,
                     Status = "Pending"
                 };

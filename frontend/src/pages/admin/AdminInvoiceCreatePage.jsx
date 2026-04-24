@@ -110,6 +110,7 @@ const AdminInvoiceCreatePage = () => {
     (total, item) => total + Number(item.lineTotal || 0),
     0,
   );
+  const unpaidServiceItems = useMemo(() => unpaidServicesQuery.data || [], [unpaidServicesQuery.data]);
   const availableVouchers = useMemo(
     () => vouchers.filter((voucher) => isVoucherApplicable(voucher, subtotal, currentTime)),
     [currentTime, subtotal, vouchers],
@@ -288,6 +289,67 @@ const AdminInvoiceCreatePage = () => {
               <p className="mt-2 text-sm font-semibold text-sky-800">
                 Dịch vụ chưa thanh toán: {formatCurrency(serviceSubtotal)}
               </p>
+            </div>
+
+            <div className="space-y-5">
+              <div className="rounded-[1.75rem] border border-slate-200">
+                <div className="border-b border-slate-200 px-5 py-4">
+                  <h3 className="text-lg font-black text-slate-900">Chi tiết tiền phòng</h3>
+                  <p className="mt-1 text-sm font-medium text-slate-500">
+                    Hiển thị tên phòng, giá 1 đêm, số ngày và thành tiền.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-[1.7fr_1fr_1fr_1fr] gap-4 bg-sky-50 px-5 py-4 text-xs font-black uppercase tracking-[0.2em] text-slate-500">
+                  <div>Phòng</div>
+                  <div>Giá 1 đêm</div>
+                  <div>Số ngày</div>
+                  <div className="text-right">Thành tiền</div>
+                </div>
+
+                <div className="grid grid-cols-[1.7fr_1fr_1fr_1fr] gap-4 px-5 py-5 text-sm font-semibold text-slate-700">
+                  <div>
+                    Phòng {roomNumber} - {roomName}
+                  </div>
+                  <div>{formatCurrency(roomRate)}</div>
+                  <div>{stayedDays} ngày</div>
+                  <div className="text-right font-black text-slate-900">{formatCurrency(subtotal)}</div>
+                </div>
+              </div>
+
+              <div className="rounded-[1.75rem] border border-slate-200">
+                <div className="border-b border-slate-200 px-5 py-4">
+                  <h3 className="text-lg font-black text-slate-900">Chi tiết dịch vụ</h3>
+                  <p className="mt-1 text-sm font-medium text-slate-500">
+                    Hiển thị tên dịch vụ, đơn giá, số lượng và thành tiền.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-[1.7fr_1fr_1fr_1fr] gap-4 bg-sky-50 px-5 py-4 text-xs font-black uppercase tracking-[0.2em] text-slate-500">
+                  <div>Dịch vụ</div>
+                  <div>Đơn giá</div>
+                  <div>Số lượng</div>
+                  <div className="text-right">Thành tiền</div>
+                </div>
+
+                {unpaidServicesQuery.isLoading ? (
+                  <div className="px-5 py-5 text-sm text-slate-500">Đang tải chi tiết dịch vụ...</div>
+                ) : unpaidServiceItems.length > 0 ? (
+                  unpaidServiceItems.map((item) => (
+                    <div
+                      key={item.id}
+                      className="grid grid-cols-[1.7fr_1fr_1fr_1fr] gap-4 border-t border-slate-100 px-5 py-5 text-sm font-semibold text-slate-700"
+                    >
+                      <div>{item.serviceName}</div>
+                      <div>{formatCurrency(item.unitPrice)}</div>
+                      <div>{item.quantity}</div>
+                      <div className="text-right font-black text-slate-900">{formatCurrency(item.lineTotal)}</div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="px-5 py-5 text-sm text-slate-500">Không có dịch vụ chưa thanh toán.</div>
+                )}
+              </div>
             </div>
 
             <div className="rounded-[1.75rem] border border-slate-200 p-5">

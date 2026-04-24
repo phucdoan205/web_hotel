@@ -52,6 +52,20 @@ namespace backend.Controllers
             return $"BK-{timestamp:yyyyMMddHHmm}{phoneSuffix}";
         }
 
+        private static DateTime NormalizeCheckInDate(DateTime value)
+        {
+            return value.TimeOfDay == TimeSpan.Zero
+                ? value.Date.AddHours(14)
+                : value;
+        }
+
+        private static DateTime NormalizeCheckOutDate(DateTime value)
+        {
+            return value.TimeOfDay == TimeSpan.Zero
+                ? value.Date.AddHours(12)
+                : value;
+        }
+
         // GET: api/Bookings
         [HttpGet]
         [Permission("VIEW_BOOKINGS", "VIEW_DASHBOARD")]
@@ -215,8 +229,8 @@ namespace backend.Controllers
                 {
                     RoomId = detailDto.RoomId,
                     RoomTypeId = detailDto.RoomTypeId,
-                    CheckInDate = detailDto.CheckInDate.AddHours(14),   // Mặc định giờ check-in là 14:00
-                    CheckOutDate = detailDto.CheckOutDate.AddHours(12), // Mặc định giờ check-out là 12:00
+                    CheckInDate = NormalizeCheckInDate(detailDto.CheckInDate),
+                    CheckOutDate = NormalizeCheckOutDate(detailDto.CheckOutDate),
                     PricePerNight = roomType.BasePrice,
                     Status = "Pending"
                 };

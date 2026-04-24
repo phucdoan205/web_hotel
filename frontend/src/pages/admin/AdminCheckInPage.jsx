@@ -70,6 +70,15 @@ const getRangeDayCount = (startKey, endKey) => {
   return Math.max(1, Math.round((end - start) / DAY_MS) + 1);
 };
 
+const isArrivalEligibleDetail = (booking, detail, selectedDate) => {
+  const checkInKey = toDateKey(detail?.checkInDate);
+  if (checkInKey !== selectedDate) return false;
+
+  if (detail?.status === "Confirmed") return true;
+
+  return detail?.status === "Pending" && !booking?.userId;
+};
+
 const AdminCheckInPage = () => {
   const canViewBookings = hasPermission("VIEW_BOOKINGS");
   const canCheckInBooking = hasPermission("CHECKIN_BOOKING");
@@ -214,20 +223,16 @@ const AdminCheckInPage = () => {
   const arrivals = useMemo(
     () =>
       weeklyBookings.filter((booking) =>
-        (booking.bookingDetails || []).some((detail) => {
-          const checkInKey = toDateKey(detail?.checkInDate);
-          return checkInKey === selectedDate && detail?.status === "Confirmed";
-        }),
+        (booking.bookingDetails || []).some((detail) => isArrivalEligibleDetail(booking, detail, selectedDate)),
       ),
     [selectedDate, weeklyBookings],
   );
 
   const arrivalRooms = useMemo(
     () =>
-      buildBookingRoomEntries(arrivals, selectedDate, {
-        dateKey: selectedDate,
-        detailStatuses: ["Confirmed"],
-      }).filter((entry) => !entry.checkedIn),
+      buildBookingRoomEntries(arrivals, selectedDate)
+        .filter((entry) => isArrivalEligibleDetail(entry.booking, entry.detail, selectedDate))
+        .filter((entry) => !entry.checkedIn),
     [arrivals, selectedDate],
   );
 

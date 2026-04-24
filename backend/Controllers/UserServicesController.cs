@@ -84,7 +84,9 @@ namespace backend.Controllers
                     detail.Booking != null &&
                     detail.Booking.UserId == currentUserId.Value &&
                     detail.Booking.Status != "Cancelled" &&
-                    detail.Status != "Cancelled")
+                    detail.Status != "Cancelled" &&
+                    detail.Status != "CheckedOut" &&
+                    detail.Status != "Completed")
                 .OrderByDescending(detail => detail.Id)
                 .Select(detail => new InHouseRoomResponseDTO
                 {

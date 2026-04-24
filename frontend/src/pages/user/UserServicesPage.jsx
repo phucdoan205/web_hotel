@@ -88,7 +88,13 @@ const UserServicesPage = () => {
     },
   });
 
-  const bookedRooms = useMemo(() => bookedRoomsQuery.data || [], [bookedRoomsQuery.data]);
+  const bookedRooms = useMemo(
+    () =>
+      (bookedRoomsQuery.data || []).filter(
+        (room) => !["Cancelled", "CheckedOut", "Completed"].includes(room.detailStatus),
+      ),
+    [bookedRoomsQuery.data],
+  );
   const services = useMemo(() => servicesQuery.data || [], [servicesQuery.data]);
   const historyItems = useMemo(() => historyQuery.data || [], [historyQuery.data]);
 
