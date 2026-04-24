@@ -1,11 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { Trash2 } from "lucide-react";
 import FavoriteCard from "../../components/user/favorites/FavoriteCard";
-import {
-  clearFavoriteRoomTypes,
-  getFavoriteRoomTypes,
-  saveFavoriteRoomTypes,
-} from "../../utils/userFavorites";
+import { getFavoriteRoomTypes, saveFavoriteRoomTypes } from "../../utils/userFavorites";
 
 const UserFavoritesPage = () => {
   const [favorites, setFavorites] = useState([]);
@@ -13,11 +8,6 @@ const UserFavoritesPage = () => {
   useEffect(() => {
     setFavorites(getFavoriteRoomTypes());
   }, []);
-
-  const handleClearAll = () => {
-    clearFavoriteRoomTypes();
-    setFavorites([]);
-  };
 
   const handleRemove = (roomTypeId) => {
     const nextItems = getFavoriteRoomTypes().filter(
@@ -36,14 +26,6 @@ const UserFavoritesPage = () => {
             Bạn đang lưu <span className="text-[#0085FF]">{favorites.length}</span> loại phòng yêu thích
           </p>
         </div>
-        <button
-          type="button"
-          onClick={handleClearAll}
-          className="flex items-center gap-2 px-4 py-2 text-[11px] font-black uppercase tracking-widest text-gray-400 transition-colors hover:text-rose-500"
-        >
-          <Trash2 size={14} />
-          Clear All
-        </button>
       </div>
 
       {favorites.length ? (

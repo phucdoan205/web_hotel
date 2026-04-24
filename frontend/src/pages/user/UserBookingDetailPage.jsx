@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, CalendarRange, CreditCard, Hotel, MapPin, ReceiptText, XCircle } from "lucide-react";
+import { ArrowLeft, CalendarRange, CreditCard, Hotel, ReceiptText, XCircle } from "lucide-react";
 import { userBookingsApi } from "../../api/user/bookingsApi";
 import { getBookingDetailNights, getBookingDetailTotal, getBookingTotalAmount } from "../../utils/bookingPricing";
 import {
@@ -204,15 +204,6 @@ const UserBookingDetailPage = () => {
                   <p className="mt-1 text-slate-500">
                     {formatDateTime(booking.bookingDetails?.[0]?.checkInDate)} -{" "}
                     {formatDateTime(booking.bookingDetails?.[0]?.checkOutDate)}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <MapPin size={16} className="mt-0.5 text-orange-600" />
-                <div>
-                  <p className="font-bold text-slate-900">Nhận phòng admin</p>
-                  <p className="mt-1 text-slate-500">
-                    Booking chỉ xuất hiện để check-in khi thanh toán xong và phòng chuyển sang Confirmed.
                   </p>
                 </div>
               </div>

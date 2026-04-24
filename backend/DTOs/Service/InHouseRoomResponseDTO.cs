@@ -10,5 +10,7 @@ namespace backend.DTOs.Service
         public string GuestName { get; set; } = string.Empty;
         public DateTime CheckInDate { get; set; }
         public DateTime CheckOutDate { get; set; }
+        public string BookingStatus { get; set; } = string.Empty;
+        public string DetailStatus { get; set; } = string.Empty;
     }
 }

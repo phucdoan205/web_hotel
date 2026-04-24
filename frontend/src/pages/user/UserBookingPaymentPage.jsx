@@ -98,7 +98,7 @@ const UserBookingPaymentPage = () => {
         state: {
           notice: {
             type: "success",
-            message: "Thanh toán thành công. Booking của bạn đã chuyển sang Confirmed.",
+            message: "Đã đặt phòng thành công.",
           },
         },
       });
@@ -186,8 +186,8 @@ const UserBookingPaymentPage = () => {
           <div className="flex items-start gap-3">
             <CheckCircle2 className="mt-0.5 text-emerald-600" size={22} />
             <div>
-              <p className="font-black">Booking đã xác nhận</p>
-              <p className="mt-2 text-sm">Phòng này đã được thanh toán và đang ở trạng thái Confirmed.</p>
+              <p className="font-black">Đã đặt phòng thành công</p>
+              <p className="mt-2 text-sm">Phòng này đã được thanh toán thành công.</p>
             </div>
           </div>
         </div>

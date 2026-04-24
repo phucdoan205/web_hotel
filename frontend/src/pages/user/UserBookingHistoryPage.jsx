@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { BedDouble, CreditCard, Eye, FileText, XCircle } from "lucide-react";
+import { CreditCard, Eye, FileText, XCircle } from "lucide-react";
 import { userBookingsApi } from "../../api/user/bookingsApi";
 import { getBookingDetailNights, getBookingTotalAmount } from "../../utils/bookingPricing";
 import {
@@ -91,16 +91,6 @@ const UserBookingHistoryPage = () => {
       ) : null}
 
       <div className="rounded-[2rem] bg-white p-6 shadow-sm ring-1 ring-gray-100">
-        <div className="mb-6 flex items-center gap-3">
-          <div className="flex size-12 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
-            <BedDouble size={22} />
-          </div>
-          <div>
-            <h2 className="text-xl font-black text-slate-900">Danh sách booking</h2>
-            <p className="text-sm font-medium text-slate-500">{bookings.length} booking của bạn</p>
-          </div>
-        </div>
-
         {bookingsQuery.isLoading ? (
           <div className="py-16 text-center text-sm font-semibold text-slate-500">
             Đang tải lịch sử booking...

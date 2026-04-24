@@ -1,9 +1,9 @@
 const STATUS_LABELS = {
   Pending: "Pending",
-  Confirmed: "Confirmed",
-  CheckedIn: "Checked In",
-  CheckedOut: "Checked Out",
-  Completed: "Completed",
+  Confirmed: "Đã đặt thành công",
+  CheckedIn: "Đã nhận phòng",
+  CheckedOut: "Đã trả phòng",
+  Completed: "Đã thanh toán",
   Cancelled: "Cancelled",
 };
 
