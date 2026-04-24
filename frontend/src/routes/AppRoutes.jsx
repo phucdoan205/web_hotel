@@ -50,6 +50,7 @@ import UserDashboardPage from "../pages/user/UserDashboardPage";
 import UserBookingsPage from "../pages/user/UserBookingsPage";
 import UserReviewsPage from "../pages/user/UserReviewsPage";
 import UserBookingDetailPage from "../pages/user/UserBookingDetailPage";
+import UserBookingPaymentPage from "../pages/user/UserBookingPaymentPage";
 import UserRoomDetailPage from "../pages/user/UserRoomDetailPage";
 import UserFavoritesPage from "../pages/user/UserFavoritesPage";
 import UserCustomerSupportPage from "../pages/user/UserCustomerSupportPage";
@@ -346,6 +347,7 @@ const AppRoutes = () => {
         <Route path="dashboard" element={<UserDashboardPage />} />
         <Route path="bookings" element={<UserBookingsPage />} />
         <Route path="booking/:id" element={<UserBookingDetailPage />} />
+        <Route path="booking-history/:id/payment" element={<UserBookingPaymentPage />} />
         <Route path="room-types/:id" element={<UserRoomDetailPage />} />
         <Route path="favorites" element={<UserFavoritesPage />} />
         <Route path="invoices" element={<UserInvoicesPage />} />

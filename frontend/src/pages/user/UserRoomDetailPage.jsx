@@ -1,8 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams, useLocation } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { ArrowLeft, BedDouble, CalendarRange, Check, DoorClosed, Heart, Users } from "lucide-react";
 import { roomsApi } from "../../api/admin/roomsApi";
+import { userBookingsApi } from "../../api/user/bookingsApi";
+import { getStoredAuth } from "../../utils/authStorage";
 import { isFavoriteRoomType, toggleFavoriteRoomType } from "../../utils/userFavorites";
 
 const fallbackImage =
@@ -60,10 +62,8 @@ const normalizeImageUrls = (imageUrls) => [...new Set((imageUrls ?? []).filter(B
 
 const formatDateTime = (value) => {
   if (!value) return "Chưa chọn";
-
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return "Chưa chọn";
-
   return parsed.toLocaleString("vi-VN");
 };
 
@@ -87,12 +87,12 @@ const UserRoomDetailPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { id } = useParams();
-
   const roomTypeFromState = location.state?.roomType ?? null;
   const [filters, setFilters] = useState(() => createInitialFilters(location.state?.filters));
   const [appliedFilters, setAppliedFilters] = useState(() => createInitialFilters(location.state?.filters));
   const [selectedRoomId, setSelectedRoomId] = useState(null);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [submitMessage, setSubmitMessage] = useState(null);
 
   const availableRoomsQuery = useQuery({
     queryKey: ["user-room-type-detail", id, appliedFilters],
@@ -107,6 +107,26 @@ const UserRoomDetailPage = () => {
         pageSize: 100,
       }),
     enabled: Boolean(id),
+  });
+
+  const createBookingMutation = useMutation({
+    mutationFn: (payload) => userBookingsApi.createBooking(payload),
+    onSuccess: (createdBooking) => {
+      navigate("/user/booking-history", {
+        state: {
+          notice: {
+            type: "success",
+            message: `Đã tạo booking ${createdBooking.bookingCode} ở trạng thái Pending.`,
+          },
+        },
+      });
+    },
+    onError: (error) => {
+      setSubmitMessage({
+        type: "error",
+        text: error.response?.data?.message || error.message || "Không thể tạo booking.",
+      });
+    },
   });
 
   const availableRooms = useMemo(
@@ -169,6 +189,39 @@ const UserRoomDetailPage = () => {
       imageUrls,
     });
     setIsFavorite(result.isFavorite);
+  };
+
+  const handleCreateBooking = () => {
+    const auth = getStoredAuth();
+    if (!auth?.token) {
+      navigate("/login");
+      return;
+    }
+
+    if (!selectedRoom) {
+      setSubmitMessage({ type: "error", text: "Hiện chưa có phòng khả dụng để đặt." });
+      return;
+    }
+
+    const checkInDate = toApiDate(appliedFilters.checkIn);
+    const checkOutDate = toApiDate(appliedFilters.checkOut);
+
+    if (!checkInDate || !checkOutDate || new Date(checkOutDate) <= new Date(checkInDate)) {
+      setSubmitMessage({ type: "error", text: "Vui lòng chọn thời gian nhận và trả phòng hợp lệ." });
+      return;
+    }
+
+    setSubmitMessage(null);
+    createBookingMutation.mutate({
+      bookingDetails: [
+        {
+          roomId: selectedRoom.id,
+          roomTypeId: roomType.roomTypeId,
+          checkInDate,
+          checkOutDate,
+        },
+      ],
+    });
   };
 
   if (availableRoomsQuery.isLoading && !roomTypeFromState) {
@@ -409,12 +462,29 @@ const UserRoomDetailPage = () => {
             </div>
 
             <div className="mt-6 space-y-3">
+              {submitMessage ? (
+                <div
+                  className={`rounded-2xl px-4 py-3 text-sm font-bold ${
+                    submitMessage.type === "error"
+                      ? "bg-rose-50 text-rose-600"
+                      : "bg-emerald-50 text-emerald-600"
+                  }`}
+                >
+                  {submitMessage.text}
+                </div>
+              ) : null}
+
               <button
                 type="button"
-                disabled={!selectedRoom}
+                disabled={!selectedRoom || createBookingMutation.isPending}
+                onClick={handleCreateBooking}
                 className="flex h-12 w-full items-center justify-center rounded-2xl bg-blue-600 text-sm font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
               >
-                {selectedRoom ? `Chọn ${selectedRoom.roomNumber} để đặt` : "Chưa có phòng để chọn"}
+                {selectedRoom
+                  ? createBookingMutation.isPending
+                    ? "Đang tạo booking..."
+                    : `Đặt phòng ${selectedRoom.roomNumber}`
+                  : "Chưa có phòng để chọn"}
               </button>
               <button
                 type="button"

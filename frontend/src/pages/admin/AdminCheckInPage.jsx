@@ -216,19 +216,17 @@ const AdminCheckInPage = () => {
       weeklyBookings.filter((booking) =>
         (booking.bookingDetails || []).some((detail) => {
           const checkInKey = toDateKey(detail?.checkInDate);
-          return checkInKey === selectedDate && ["Pending", "Confirmed"].includes(detail?.status);
+          return checkInKey === selectedDate && detail?.status === "Confirmed";
         }),
       ),
     [selectedDate, weeklyBookings],
   );
 
-  // Show all arrival room entries for the date (both paid and unpaid) so receptionist
-  // can see and pay per-room; filter only out rooms already checked-in.
   const arrivalRooms = useMemo(
     () =>
       buildBookingRoomEntries(arrivals, selectedDate, {
         dateKey: selectedDate,
-        detailStatuses: ["Pending", "Confirmed"],
+        detailStatuses: ["Confirmed"],
       }).filter((entry) => !entry.checkedIn),
     [arrivals, selectedDate],
   );
