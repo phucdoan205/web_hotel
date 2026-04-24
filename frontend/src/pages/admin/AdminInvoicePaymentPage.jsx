@@ -154,7 +154,7 @@ const AdminInvoicePaymentPage = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
+      <div className="flex flex-wrap items-start gap-4">
         <div>
           <button
             type="button"
@@ -170,10 +170,6 @@ const AdminInvoicePaymentPage = () => {
           </p>
         </div>
 
-        <div className="rounded-[1.75rem] bg-pink-50 px-5 py-4 text-right">
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-pink-400">Tổng thanh toán</p>
-          <p className="mt-2 text-3xl font-black text-pink-600">{formatCurrency(invoice.totalAmount)}</p>
-        </div>
       </div>
 
       {invoice.status === "Completed" ? (
@@ -414,7 +410,7 @@ const AdminInvoicePaymentPage = () => {
                     </>
                   )}
 
-                  <div className="mt-4 rounded-3xl bg-slate-50 p-4 text-sm text-slate-600">
+                  <div className="hidden">
                     <p>
                       Kết quả MoMo: <span className="font-bold text-slate-900">{momoPayment.message}</span>
                     </p>

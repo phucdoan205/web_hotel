@@ -241,7 +241,7 @@ namespace backend.Controllers
                 DiscountAmount = discountAmount,
                 TaxAmount = 0,
                 FinalTotal = finalTotal,
-                Status = "Pending",
+                Status = "Paying",
                 Notes = dto.Notes,
                 VoucherCode = dto.VoucherCode,
                 VoucherDiscountType = dto.VoucherDiscountType,

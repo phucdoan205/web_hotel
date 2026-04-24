@@ -155,7 +155,7 @@ const AdminInvoiceCreatePage = () => {
           notice: {
             type: "success",
             title: "Đã lưu hóa đơn",
-            message: `Hóa đơn ${invoice.code} đã được tạo và đang ở trạng thái Pending.`,
+            message: `Hóa đơn ${invoice.code} đã được tạo và đang ở trạng thái Paying.`,
           },
         },
       });
@@ -411,7 +411,7 @@ const AdminInvoiceCreatePage = () => {
             <div className="rounded-[1.5rem] bg-white p-4 text-sky-900">
               <p className="text-sm font-semibold text-sky-700">Tổng thanh toán</p>
               <p className="mt-2 text-4xl font-black">{formatCurrency(totalAmount)}</p>
-              <p className="mt-3 text-sm font-semibold text-sky-700">Trạng thái sau khi lưu: Pending</p>
+              <p className="mt-3 text-sm font-semibold text-sky-700">Trạng thái sau khi lưu: Paying</p>
             </div>
           </aside>
         </div>
@@ -431,7 +431,7 @@ const AdminInvoiceCreatePage = () => {
       {confirmAction === "save" ? (
         <ConfirmDialog
           title="Xác nhận lưu hóa đơn"
-          description="Hóa đơn sẽ được lưu với trạng thái Pending và đã bao gồm toàn bộ dịch vụ chưa thanh toán."
+          description="Hóa đơn sẽ được lưu với trạng thái Paying và đã bao gồm toàn bộ dịch vụ chưa thanh toán."
           confirmLabel="Có, lưu hóa đơn"
           onCancel={() => setConfirmAction("")}
           onConfirm={handleSaveConfirmed}

@@ -19,7 +19,7 @@ const normalizeInvoice = (invoice = {}) => ({
   discountAmount: Number(invoice.discountAmount || 0),
   taxAmount: Number(invoice.taxAmount || 0),
   totalAmount: Number(invoice.finalTotal || 0),
-  status: invoice.status || "Pending",
+  status: invoice.status || "Paying",
   notes: invoice.notes || "",
   createdAt: invoice.createdAt || null,
   updatedAt: invoice.updatedAt || null,

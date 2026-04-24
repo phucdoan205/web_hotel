@@ -11,7 +11,7 @@ const currencyFormatter = new Intl.NumberFormat("vi-VN");
 const formatCurrency = (value) => `${currencyFormatter.format(Number(value || 0))} đ`;
 
 const statusClasses = {
-  Pending: "bg-amber-50 text-amber-700 ring-1 ring-amber-200",
+  Paying: "bg-amber-50 text-amber-700 ring-1 ring-amber-200",
   Completed: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200",
 };
 
@@ -67,7 +67,7 @@ const AdminInvoiceListPage = () => {
         <div>
           <h1 className="text-3xl font-black text-slate-900">Danh sách hóa đơn</h1>
           <p className="mt-2 text-sm font-medium text-slate-500">
-            Hóa đơn mới lưu sẽ ở trạng thái Pending cho tới khi được thanh toán.
+            Hóa đơn mới lưu sẽ ở trạng thái Paying cho tới khi được thanh toán.
           </p>
         </div>
 
@@ -129,7 +129,7 @@ const AdminInvoiceListPage = () => {
                     <td className="px-5 py-4">
                       <span
                         className={`inline-flex rounded-full px-3 py-1 text-xs font-black ${
-                          statusClasses[invoice.status] || statusClasses.Pending
+                          statusClasses[invoice.status] || statusClasses.Paying
                         }`}
                       >
                         {invoice.status}

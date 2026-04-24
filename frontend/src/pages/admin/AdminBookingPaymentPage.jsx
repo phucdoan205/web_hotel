@@ -43,6 +43,7 @@ const AdminBookingPaymentPage = () => {
   const [momoView, setMomoView] = useState("hosted");
   const [copied, setCopied] = useState(false);
   const [confirmMessage, setConfirmMessage] = useState("");
+  const checkInReturnPath = "/admin/check-in?tab=in";
 
   const { data: booking, isLoading } = useQuery({
     queryKey: ["booking", id],
@@ -229,15 +230,15 @@ const AdminBookingPaymentPage = () => {
 
   return (
     <div className="space-y-6 px-4 py-4">
-      <div className="flex flex-wrap items-center justify-between gap-4">
+      <div className="flex flex-wrap items-center gap-4">
         <div>
           <button
             type="button"
-            onClick={() => navigate("/admin/bookings")}
+            onClick={() => navigate(checkInReturnPath)}
             className="mb-3 inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-2 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-100"
           >
             <ArrowLeft size={16} />
-            Quay lại bookings
+            Quay lại nhận phòng
           </button>
           <h1 className="text-3xl font-black text-slate-900">
             {isSingleRoomPayment ? "Mã QR thanh toán phòng" : "Mã QR thanh toán"}
@@ -251,12 +252,6 @@ const AdminBookingPaymentPage = () => {
           </p>
         </div>
 
-        <div className="rounded-3xl bg-gradient-to-r from-sky-600 to-cyan-500 px-5 py-4 text-white shadow-lg">
-          <p className="text-xs font-bold uppercase tracking-[0.25em] text-white/75">
-            {isSingleRoomPayment ? "Tiền thanh toán phòng này" : "Số tiền cần thanh toán"}
-          </p>
-          <p className="mt-2 text-3xl font-black">{formatCurrency(totalDepositAmount)}</p>
-        </div>
       </div>
 
       {confirmMessage ? (
@@ -519,25 +514,6 @@ const AdminBookingPaymentPage = () => {
                     </>
                   )}
 
-                  <div className="mt-4 rounded-3xl bg-slate-50 p-4 text-sm text-slate-600">
-                    <p>
-                      Kết quả MoMo: <span className="font-bold text-slate-900">{momoPayment.message}</span>
-                    </p>
-                    {momoPayment.deeplink ? (
-                      <button
-                        type="button"
-                        onClick={() => openExternalLink(momoPayment.deeplink)}
-                        className="mt-3 inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-3 font-bold text-slate-700 shadow-sm transition hover:bg-slate-100"
-                      >
-                        <Smartphone size={16} />
-                        Mở deeplink MoMo
-                      </button>
-                    ) : null}
-                    {momoPayment.payUrl ? (
-                      <p className="mt-3 break-all text-xs text-slate-500">{momoPayment.payUrl}</p>
-                    ) : null}
-                  </div>
-
                   <div className="mt-4 flex flex-wrap gap-3">
                     {renderConfirmButton()}
                     <button
@@ -549,7 +525,7 @@ const AdminBookingPaymentPage = () => {
                     </button>
                     <button
                       type="button"
-                      onClick={() => navigate("/admin/bookings")}
+                      onClick={() => navigate(checkInReturnPath)}
                       className="rounded-2xl bg-sky-100 px-4 py-3 text-sm font-bold text-sky-700 transition hover:bg-sky-200"
                     >
                       Hoàn tất
@@ -614,7 +590,7 @@ const AdminBookingPaymentPage = () => {
                 {renderConfirmButton()}
                 <button
                   type="button"
-                  onClick={() => navigate("/admin/bookings")}
+                  onClick={() => navigate(checkInReturnPath)}
                   className="rounded-2xl bg-sky-100 px-4 py-3 text-sm font-bold text-sky-700 transition hover:bg-sky-200"
                 >
                   Hoàn tất
