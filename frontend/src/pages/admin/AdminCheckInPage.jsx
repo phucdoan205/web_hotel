@@ -73,6 +73,7 @@ const getRangeDayCount = (startKey, endKey) => {
 const isArrivalEligibleDetail = (booking, detail, selectedDate) => {
   const checkInKey = toDateKey(detail?.checkInDate);
   if (checkInKey !== selectedDate) return false;
+  if (booking?.status === "Paying" || detail?.status === "Paying") return false;
 
   if (detail?.status === "Confirmed") return true;
 

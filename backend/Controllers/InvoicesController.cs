@@ -52,6 +52,11 @@ namespace backend.Controllers
                 return "Cancelled";
             }
 
+            if (detailList.Any(detail => detail.Status == "Paying"))
+            {
+                return "Paying";
+            }
+
             return "Pending";
         }
 
@@ -255,7 +260,7 @@ namespace backend.Controllers
             var trackedBookingDetail = await _context.BookingDetails.FirstOrDefaultAsync(item => item.Id == bookingDetail.Id);
             if (trackedBookingDetail != null)
             {
-                trackedBookingDetail.Status = "Pending";
+                trackedBookingDetail.Status = "Paying";
             }
 
             var trackedBooking = await _context.Bookings

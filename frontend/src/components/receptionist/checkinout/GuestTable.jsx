@@ -49,6 +49,7 @@ const roomStatusStyles = {
   Cleaning: "bg-amber-50 text-amber-700 ring-1 ring-amber-200",
   OutOfOrder: "bg-slate-100 text-slate-700 ring-1 ring-slate-200",
   Pending: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200",
+  Paying: "bg-sky-50 text-sky-700 ring-1 ring-sky-200",
   Confirmed: "bg-sky-50 text-sky-700 ring-1 ring-sky-200",
   CheckedOut: "bg-orange-50 text-orange-700 ring-1 ring-orange-200",
 };

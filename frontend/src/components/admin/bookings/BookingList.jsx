@@ -60,6 +60,8 @@ const BookingList = ({ filters, onPageChange }) => {
 
   const getStatusStyle = (status) => {
     switch (status?.toLowerCase()) {
+      case "paying":
+        return "bg-sky-100 text-sky-700";
       case "pending":
         return "bg-amber-100 text-amber-700";
       case "completed":
@@ -73,6 +75,8 @@ const BookingList = ({ filters, onPageChange }) => {
 
   const getStatusLabel = (status) => {
     switch (status?.toLowerCase()) {
+      case "paying":
+        return "Paying";
       case "completed":
         return "Completed";
       case "cancelled":

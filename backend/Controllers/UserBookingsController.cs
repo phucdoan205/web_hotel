@@ -95,7 +95,63 @@ namespace backend.Controllers
                 return "Cancelled";
             }
 
+            if (detailList.Any(detail => detail.Status == "Paying"))
+            {
+                return "Paying";
+            }
+
             return "Pending";
+        }
+
+        private async Task ApplyInvoicePaymentStatusesAsync(IEnumerable<Booking> bookings)
+        {
+            var bookingList = bookings.Where(booking => booking != null).ToList();
+            if (!bookingList.Any())
+            {
+                return;
+            }
+
+            var detailIds = bookingList
+                .SelectMany(booking => booking.BookingDetails ?? Enumerable.Empty<BookingDetail>())
+                .Select(detail => detail.Id)
+                .Where(id => id > 0)
+                .Distinct()
+                .ToList();
+
+            if (!detailIds.Any())
+            {
+                return;
+            }
+
+            var payingDetailIds = await _context.Invoices
+                .AsNoTracking()
+                .Where(invoice =>
+                    invoice.BookingDetailId.HasValue &&
+                    detailIds.Contains(invoice.BookingDetailId.Value) &&
+                    invoice.Status == "Paying")
+                .Select(invoice => invoice.BookingDetailId!.Value)
+                .Distinct()
+                .ToListAsync();
+
+            if (!payingDetailIds.Any())
+            {
+                return;
+            }
+
+            var payingDetailIdSet = payingDetailIds.ToHashSet();
+
+            foreach (var booking in bookingList)
+            {
+                foreach (var detail in booking.BookingDetails.Where(detail => payingDetailIdSet.Contains(detail.Id)))
+                {
+                    if (!string.Equals(detail.Status, "Completed", StringComparison.OrdinalIgnoreCase))
+                    {
+                        detail.Status = "Paying";
+                    }
+                }
+
+                booking.Status = ResolveBookingStatusFromDetails(booking.BookingDetails);
+            }
         }
 
         private static string GenerateBookingCode(string? guestPhone, DateTime timestamp)
@@ -148,6 +204,8 @@ namespace backend.Controllers
                 .Take(pageSize)
                 .ToListAsync();
 
+            await ApplyInvoicePaymentStatusesAsync(bookings);
+
             var dtos = _mapper.Map<List<BookingResponseDTO>>(bookings);
             return Ok(new PagedResponse<BookingResponseDTO>(dtos, totalCount, page, pageSize));
         }
@@ -169,6 +227,8 @@ namespace backend.Controllers
             {
                 return NotFound(new { message = "Khong tim thay booking cua ban." });
             }
+
+            await ApplyInvoicePaymentStatusesAsync(new[] { booking });
 
             return Ok(_mapper.Map<BookingResponseDTO>(booking));
         }
