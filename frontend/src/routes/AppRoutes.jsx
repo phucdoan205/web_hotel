@@ -50,6 +50,7 @@ import BookingPaymentPage from "../pages/public/BookingPaymentPage";
 import RoomDetailPage from "../pages/public/RoomDetailPage";
 import BookingHistoryPage from "../pages/public/BookingHistoryPage";
 import AccountPlaceholderPage from "../pages/public/AccountPlaceholderPage";
+import AccountProfilePage from "../pages/public/AccountProfilePage";
 import RequirePermission from "../components/auth/RequirePermission";
 
 const AppRoutes = () => {
@@ -80,7 +81,7 @@ const AppRoutes = () => {
         <Route path="booking-history" element={<BookingHistoryPage />} />
         <Route path="booking-history/:id/payment" element={<BookingPaymentPage />} />
         <Route path="room-types/:id" element={<RoomDetailPage />} />
-        <Route path="profile" element={<AccountPlaceholderPage type="profile" />} />
+        <Route path="profile" element={<AccountProfilePage />} />
         <Route path="favorites" element={<AccountPlaceholderPage type="favorites" />} />
         <Route path="reviews" element={<AccountPlaceholderPage type="reviews" />} />
         <Route path="vouchers" element={<AccountPlaceholderPage type="vouchers" />} />
