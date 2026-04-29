@@ -4,7 +4,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { ArrowLeft, BedDouble, CalendarRange, Check, DoorClosed, Heart, Users, Star } from "lucide-react";
 import { roomsApi } from "../../api/admin/roomsApi";
 import { userBookingsApi } from "../../api/user/bookingsApi";
-import userReviewsApi from "../../api/user/reviewsApi";
+import { userReviewsApi } from "../../api/user/reviewsApi";
 import { getStoredAuth } from "../../utils/authStorage";
 import { isFavoriteRoomType, toggleFavoriteRoomType } from "../../utils/userFavorites";
 
@@ -408,60 +408,91 @@ const RoomDetailPage = () => {
           {/* AVAILABILITY SECTION */}
           <div id="availability" className="scroll-mt-40 space-y-6">
             <h2 className="text-2xl font-bold text-slate-900">Tình trạng phòng trống</h2>
-            <div className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <h3 className="text-lg font-bold text-slate-900">Chọn phòng cụ thể</h3>
-                  <p className="mt-1 text-sm text-slate-500">
-                    Chỉ hiển thị các phòng đang ở trạng thái Available trong khoảng ngày bạn chọn.
-                  </p>
-                </div>
-                <span className="rounded-full bg-emerald-50 px-4 py-2 text-sm font-bold text-emerald-600">
-                  Còn {availableRooms.length} phòng Available
-                </span>
+
+            {availableRooms.length ? (
+              <div className="rounded-t-xl rounded-b border border-slate-300 shadow-sm overflow-hidden">
+                <table className="w-full text-left text-sm text-slate-700">
+                  <thead className="bg-[#003b95] text-white">
+                    <tr>
+                      <th className="px-4 py-3 font-bold border-r border-[#00224f] w-[35%]">Số phòng cụ thể</th>
+                      <th className="px-3 py-3 font-bold border-r border-[#00224f] text-center w-[15%]">Số lượng</th>
+                      <th className="px-4 py-3 font-bold border-r border-[#00224f] bg-[#00224f] w-[25%]">Giá cho {stayDays} đêm</th>
+                      <th className="px-4 py-3 font-bold w-[25%]">Tùy chọn cho bạn</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-300 bg-white">
+                    {availableRooms.map((room) => {
+                      const isSelected = room.id === selectedRoom?.id;
+
+                      return (
+                        <tr key={room.id} className={isSelected ? "bg-blue-50/50" : "hover:bg-slate-50"}>
+                          <td className="px-4 py-4 border-r border-slate-300 align-top">
+                            <div className="text-lg font-bold text-blue-700 hover:underline cursor-pointer">
+                              Phòng {room.roomNumber}
+                            </div>
+                            <div className="mt-2 text-xs text-slate-700 space-y-1">
+                              <div>Giường: <span className="font-semibold">{roomType.bedType || "1 giường đôi lớn"}</span></div>
+                              <div>Diện tích: <span className="font-semibold">{roomType.size || 25} m²</span></div>
+                            </div>
+                            <div className="mt-4 flex flex-wrap gap-1.5">
+                              {(roomType.amenities.length ? roomType.amenities : ["Điều hòa không khí", "Phòng tắm riêng", "TV màn hình phẳng", "WiFi miễn phí"]).slice(0, 6).map(amenity => (
+                                <span key={amenity} className="inline-flex items-center gap-1 rounded border border-slate-300 px-2 py-1 text-[11px] font-medium text-slate-700 bg-white">
+                                  <Check size={10} className="text-emerald-600" />
+                                  {amenity}
+                                </span>
+                              ))}
+                            </div>
+                          </td>
+                          <td className="px-4 py-4 border-r border-slate-300 align-top text-center">
+                            <div className="flex justify-center items-center text-slate-700 mt-1">
+                              <Users size={20} className="text-slate-700" />
+                              <span className="ml-1.5 font-bold text-base">x {roomType.capacityAdults}</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-4 border-r border-slate-300 align-middle">
+                            <div className="text-xl font-bold text-slate-900">{formatCurrency(totalPrice)}</div>
+                          </td>
+                          <td className="px-4 py-4 align-middle">
+                            {isSelected ? (
+                              <button 
+                                type="button"
+                                className="w-full rounded bg-emerald-600 py-2.5 font-bold text-white shadow-sm flex justify-center items-center gap-2 ring-2 ring-emerald-600 ring-offset-2 transition"
+                              >
+                                <Check size={18} /> Đang chọn
+                              </button>
+                            ) : (
+                              <button 
+                                type="button"
+                                onClick={() => setSelectedRoomId(room.id)}
+                                className="w-full rounded border border-blue-600 bg-white py-2.5 font-bold text-blue-600 shadow-sm hover:bg-blue-50 transition"
+                              >
+                                Chọn phòng này
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
-
-              {availableRooms.length ? (
-                <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {availableRooms.map((room) => {
-                    const isSelected = room.id === selectedRoom?.id;
-
-                    return (
-                      <button
-                        key={room.id}
-                        type="button"
-                        onClick={() => setSelectedRoomId(room.id)}
-                        className={`rounded-2xl border px-5 py-4 text-left transition ${
-                          isSelected
-                            ? "border-blue-600 bg-blue-50 shadow-sm ring-1 ring-blue-600"
-                            : "border-slate-200 bg-white hover:border-blue-300 hover:bg-slate-50"
-                        }`}
-                      >
-                        <p className="text-sm font-semibold text-slate-500">Phòng</p>
-                        <p className="mt-1 text-2xl font-black text-slate-900">{room.roomNumber}</p>
-                        <div className="mt-3 flex items-center justify-between">
-                          <p className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md">Available</p>
-                          {isSelected && <Check size={18} className="text-blue-600" />}
-                        </div>
-                      </button>
-                    );
-                  })}
+            ) : (
+              <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-5 py-12 text-center">
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-200 mb-4">
+                  <DoorClosed size={24} className="text-slate-400" />
                 </div>
-              ) : (
-                <div className="mt-6 rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-5 py-10 text-center">
-                  <p className="text-base font-bold text-slate-900">Hết phòng trống</p>
-                  <p className="mt-1 text-sm font-medium text-slate-500">
-                    Không có phòng Available trong khoảng ngày đã chọn. Vui lòng thử ngày khác.
-                  </p>
-                </div>
-              )}
-            </div>
+                <p className="text-base font-bold text-slate-900">Không còn phòng khả dụng</p>
+                <p className="mt-1 text-sm font-medium text-slate-500 max-w-md mx-auto">
+                  Hiện tại tất cả các phòng của loại này đã được đặt trong khoảng ngày bạn chọn. Vui lòng thử ngày khác hoặc loại phòng khác.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* AMENITIES SECTION */}
           <div id="amenities" className="scroll-mt-40 space-y-6">
             <h2 className="text-2xl font-bold text-slate-900">Tiện nghi</h2>
-            <div className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
+            <div>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {(roomType.amenities.length ? roomType.amenities : ["Phòng sạch sẽ", "Không gian riêng tư", "Wifi miễn phí", "Điều hòa nhiệt độ"]).map(
                   (amenity) => (
@@ -483,8 +514,8 @@ const RoomDetailPage = () => {
           {/* REVIEWS SECTION */}
           <div id="reviews" className="scroll-mt-40 space-y-6">
             <h2 className="text-2xl font-bold text-slate-900">Đánh giá của khách</h2>
-            <div className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
-              <div className="flex items-center gap-5 pb-8 border-b border-slate-100">
+            <div>
+              <div className="flex items-center gap-5 pb-6">
                 <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-blue-600 text-3xl font-black text-white shadow-lg shadow-blue-200">
                   {avgRating.toFixed(1)}
                 </div>
@@ -494,25 +525,40 @@ const RoomDetailPage = () => {
                 </div>
               </div>
 
-              <div className="mt-8 grid gap-6 sm:grid-cols-2">
+              <div className="mt-6 grid gap-6 sm:grid-cols-2">
                 {reviews.map((review) => (
-                  <div key={review.id} className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm hover:shadow-md transition">
-                    <div className="flex items-start justify-between">
+                  <div key={review.id} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition">
+                    <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-lg font-bold text-slate-600">
-                          {review.user.charAt(0)}
-                        </div>
+                        {review.avatarUrl ? (
+                          <img 
+                            src={review.avatarUrl.startsWith('http') ? review.avatarUrl : `http://localhost:5000${review.avatarUrl}`} 
+                            alt={review.user} 
+                            className="h-12 w-12 rounded-full object-cover border border-slate-200" 
+                          />
+                        ) : (
+                          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-lg font-bold text-slate-600">
+                            {review.user.charAt(0)}
+                          </div>
+                        )}
                         <div>
                           <p className="text-base font-bold text-slate-900">{review.user}</p>
                           <p className="text-xs font-medium text-slate-500">{review.date}</p>
                         </div>
                       </div>
-                      <div className="flex items-center justify-center rounded-lg bg-blue-600 px-3 py-1 text-sm font-bold text-white shadow-sm">
-                        {review.rating}.0
+                      <div className="flex gap-1">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star 
+                            key={star} 
+                            size={16} 
+                            fill={star <= review.rating ? "#fbbf24" : "none"} 
+                            className={star <= review.rating ? "text-amber-400" : "text-slate-200"} 
+                          />
+                        ))}
                       </div>
                     </div>
                     {review.comment && (
-                      <p className="mt-4 text-sm text-slate-700 leading-relaxed">"{review.comment}"</p>
+                      <p className="text-sm text-slate-700 leading-relaxed">"{review.comment}"</p>
                     )}
                   </div>
                 ))}

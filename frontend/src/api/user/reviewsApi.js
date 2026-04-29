@@ -31,6 +31,7 @@ export const userReviewsApi = {
       id: item.id,
       roomTypeId: item.roomTypeId,
       user: item.userName || "Khách",
+      avatarUrl: item.avatarUrl || null,
       rating: Number(item.rating || 0),
       comment: item.comment || "",
       date: item.createdAt ? new Date(item.createdAt).toLocaleDateString("vi-VN") : "Gần đây",

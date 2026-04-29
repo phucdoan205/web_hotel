@@ -43,7 +43,7 @@ const createDefaultFilters = () => ({
   destination: "",
   checkIn: toDateTimeInputValue(createDefaultDateTime(0, DEFAULT_CHECK_IN_HOUR)),
   checkOut: toDateTimeInputValue(createDefaultDateTime(1, DEFAULT_CHECK_OUT_HOUR)),
-  adults: 2,
+  adults: 1,
   children: 0,
 });
 

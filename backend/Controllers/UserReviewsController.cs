@@ -150,7 +150,8 @@ namespace backend.Controllers
             {
                 Id = review.Id,
                 RoomTypeId = review.RoomTypeId,
-                UserName = review.User?.FullName ?? review.User?.Username ?? "Khách ẩn danh",
+                UserName = review.User?.FullName ?? "Khách ẩn danh",
+                AvatarUrl = review.User?.AvatarUrl,
                 Rating = review.Rating ?? 0,
                 Comment = review.Comment ?? string.Empty,
                 CreatedAt = review.CreatedAt
