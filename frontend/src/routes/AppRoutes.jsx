@@ -3,7 +3,6 @@ import { Routes, Route, Navigate, useLocation, useParams } from "react-router-do
 
 import MainLayout from "../layouts/MainLayout";
 import AdminLayout from "../layouts/AdminLayout";
-import UserLayout from "../layouts/UserLayout";
 
 import HomePage from "../pages/public/HomePage";
 import BlogPage from "../pages/public/BlogPage";
@@ -45,19 +44,13 @@ import AdminArticleEditorPage from "../pages/admin/AdminArticleEditorPage";
 import AdminAttractionsPage from "../pages/admin/AdminAttractionsPage";
 import AdminVoucherPage from "../pages/admin/AdminVoucherPage";
 
-import UserSettingsPage from "../pages/user/UserSettingsPage";
-import UserDashboardPage from "../pages/user/UserDashboardPage";
-import UserBookingsPage from "../pages/user/UserBookingsPage";
-import UserReviewsPage from "../pages/user/UserReviewsPage";
-import UserBookingDetailPage from "../pages/user/UserBookingDetailPage";
-import UserBookingPaymentPage from "../pages/user/UserBookingPaymentPage";
-import UserRoomDetailPage from "../pages/user/UserRoomDetailPage";
-import UserFavoritesPage from "../pages/user/UserFavoritesPage";
-import UserCustomerSupportPage from "../pages/user/UserCustomerSupportPage";
-import UserBookingHistoryPage from "../pages/user/UserBookingHistoryPage";
+import BookingPage from "../pages/public/BookingPage";
+import BookingDetailPage from "../pages/public/BookingDetailPage";
+import BookingPaymentPage from "../pages/public/BookingPaymentPage";
+import RoomDetailPage from "../pages/public/RoomDetailPage";
+import BookingHistoryPage from "../pages/public/BookingHistoryPage";
+import AccountPlaceholderPage from "../pages/public/AccountPlaceholderPage";
 import RequirePermission from "../components/auth/RequirePermission";
-import UserServicesPage from "../pages/user/UserServicesPage";
-import UserVouchersPage from "../pages/user/UserVouchersPage";
 
 const AppRoutes = () => {
   function RedirectReceptionistBookingPayment() {
@@ -82,6 +75,15 @@ const AppRoutes = () => {
         <Route index element={<HomePage />} />
         <Route path="hotels" element={<HomePage />} />
         <Route path="hotels/:id" element={<HotelListPage />} />
+        <Route path="booking" element={<BookingPage />} />
+        <Route path="booking/:id" element={<BookingDetailPage />} />
+        <Route path="booking-history" element={<BookingHistoryPage />} />
+        <Route path="booking-history/:id/payment" element={<BookingPaymentPage />} />
+        <Route path="room-types/:id" element={<RoomDetailPage />} />
+        <Route path="profile" element={<AccountPlaceholderPage type="profile" />} />
+        <Route path="favorites" element={<AccountPlaceholderPage type="favorites" />} />
+        <Route path="reviews" element={<AccountPlaceholderPage type="reviews" />} />
+        <Route path="vouchers" element={<AccountPlaceholderPage type="vouchers" />} />
         <Route path="articles" element={<BlogPage />} />
         <Route path="articles/:id" element={<PostDetailPage />} />
         <Route path="articles/search" element={<BlogSearchPage />} />
@@ -341,22 +343,6 @@ const AppRoutes = () => {
       <Route path="/housekeeping/tasks" element={<RedirectLegacyHousekeepingTask />} />
       <Route path="/housekeeping/*" element={<Navigate to="/admin/dashboard" replace />} />
 
-      <Route path="/user" element={<UserLayout />}>
-        <Route index element={<UserDashboardPage />} />
-        <Route path="dashboard" element={<UserDashboardPage />} />
-        <Route path="bookings" element={<UserBookingsPage />} />
-        <Route path="booking/:id" element={<UserBookingDetailPage />} />
-        <Route path="booking-history/:id/payment" element={<UserBookingPaymentPage />} />
-        <Route path="room-types/:id" element={<UserRoomDetailPage />} />
-        <Route path="favorites" element={<UserFavoritesPage />} />
-        <Route path="booking-history" element={<UserBookingHistoryPage />} />
-        <Route path="services" element={<UserServicesPage />} />
-        <Route path="articles" element={<BlogPage />} />
-        <Route path="reviews" element={<UserReviewsPage />} />
-        <Route path="vouchers" element={<UserVouchersPage />} />
-        <Route path="support" element={<UserCustomerSupportPage />} />
-        <Route path="settings" element={<UserSettingsPage />} />
-      </Route>
       <Route
         path="*"
         element={

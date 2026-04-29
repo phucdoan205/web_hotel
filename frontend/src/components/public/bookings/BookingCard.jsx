@@ -63,7 +63,7 @@ const BookingCard = ({ roomType, availableCount = 0, numberOfNights, detailLinkS
 
           <div className="mt-6 flex items-center gap-4">
             <NavLink
-              to={`/user/room-types/${roomType.roomTypeId}`}
+              to={`/room-types/${roomType.roomTypeId}`}
               state={detailLinkState}
               className="text-sm font-semibold text-blue-600 transition hover:text-blue-700"
             >
@@ -127,7 +127,7 @@ const BookingCard = ({ roomType, availableCount = 0, numberOfNights, detailLinkS
               Còn {availableCount} phòng trống
             </p>
             <NavLink
-              to={`/user/room-types/${roomType.roomTypeId}`}
+              to={`/room-types/${roomType.roomTypeId}`}
               state={detailLinkState}
               className="mt-4 inline-flex h-12 min-w-[132px] items-center justify-center rounded-2xl border border-blue-500 px-6 text-sm font-bold text-blue-600 transition hover:bg-blue-50"
             >

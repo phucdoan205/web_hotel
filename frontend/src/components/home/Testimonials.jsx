@@ -1,79 +1,63 @@
 import React from "react";
-import { Star, Quote } from "lucide-react";
+import { Quote, Star } from "lucide-react";
 
 const reviews = [
   {
-    name: "Sarah Jenkins",
-    role: "Traveler from USA",
-    content:
-      "The booking process was so seamless, and the hotel exceeded our expectations! Traveloka made our trip stress-free.",
-    avatar: "https://i.pravatar.cc/150?u=sarah",
-    rating: 5,
+    name: "Minh Anh",
+    trip: "Kỳ nghỉ gia đình tại Đà Nẵng",
+    content: "Giao diện tìm khách sạn rõ ràng, xem giá và vị trí rất nhanh. Mình chọn được phòng sát biển chỉ trong vài phút.",
+    avatar: "https://i.pravatar.cc/150?u=minhanh",
   },
   {
-    name: "Akira Tanaka",
-    role: "Family trip from Japan",
-    content:
-      "Excellent customer support when I needed to change my dates. They made everything so easy and friendly.",
-    avatar: "https://i.pravatar.cc/150?u=akira",
-    rating: 5,
+    name: "Quốc Huy",
+    trip: "Công tác tại TP. Hồ Chí Minh",
+    content: "Các gợi ý chỗ nghỉ nổi bật giúp mình lọc nhanh khu vực trung tâm và xem đánh giá trước khi đặt.",
+    avatar: "https://i.pravatar.cc/150?u=quochuy",
   },
   {
-    name: "Samy Chen",
-    role: "Soloist from Singapore",
-    content:
-      'Found the best deals on this platform. The "Exclusive Offers" section is truly a game changer for budget travelers!',
-    avatar: "https://i.pravatar.cc/150?u=samy",
-    rating: 5,
+    name: "Linh Chi",
+    trip: "Du lịch cuối tuần tại Đà Lạt",
+    content: "Mục điểm đến thịnh hành và loại chỗ nghỉ rất dễ dùng, nhìn giống một trang khách sạn chuyên nghiệp hơn.",
+    avatar: "https://i.pravatar.cc/150?u=linhchi",
   },
 ];
 
 const Testimonials = () => {
   return (
-    <section className="py-20 bg-slate-50/50">
-      <div className="max-w-7xl mx-auto px-10">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl font-bold text-slate-800 mb-2">
-            Trusted by Millions of Travelers
-          </h2>
-          <div className="w-20 h-1 bg-blue-500 mx-auto rounded-full"></div>
+    <section className="bg-slate-50 py-12">
+      <div className="mx-auto max-w-7xl px-5 lg:px-8">
+        <div className="mb-6">
+          <h2 className="text-2xl font-black text-slate-950">Khách hàng nói gì</h2>
+          <p className="mt-1 text-sm font-medium text-slate-500">
+            Một vài cảm nhận từ những chuyến đi đã được lên kế hoạch trên hệ thống.
+          </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {reviews.map((rev, i) => (
-            <div
-              key={i}
-              className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 relative hover:shadow-xl transition-shadow duration-300"
-            >
-              <Quote className="absolute top-6 right-6 text-blue-100 w-12 h-12" />
-
-              <div className="flex items-center gap-4 mb-6">
-                <img
-                  src={rev.avatar}
-                  alt={rev.name}
-                  className="w-14 h-14 rounded-full border-2 border-blue-100"
-                />
-                <div>
-                  <h4 className="font-bold text-slate-800">{rev.name}</h4>
-                  <p className="text-slate-400 text-xs">{rev.role}</p>
+        <div className="grid gap-5 md:grid-cols-3">
+          {reviews.map((review) => (
+            <article key={review.name} className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <img
+                    src={review.avatar}
+                    alt={review.name}
+                    className="h-12 w-12 rounded-full object-cover"
+                  />
+                  <div>
+                    <h3 className="font-black text-slate-950">{review.name}</h3>
+                    <p className="text-xs font-semibold text-slate-500">{review.trip}</p>
+                  </div>
                 </div>
+                <Quote size={28} className="text-blue-100" />
               </div>
 
-              <p className="text-slate-600 italic leading-relaxed mb-6">
-                "{rev.content}"
-              </p>
-
-              <div className="flex gap-1">
-                {[...Array(rev.rating)].map((_, i) => (
-                  <Star
-                    key={i}
-                    size={16}
-                    fill="#fbbf24"
-                    className="text-amber-400"
-                  />
+              <p className="mt-5 text-sm leading-6 text-slate-600">{review.content}</p>
+              <div className="mt-5 flex text-[#febb02]">
+                {[1, 2, 3, 4, 5].map((item) => (
+                  <Star key={item} size={15} fill="currentColor" />
                 ))}
               </div>
-            </div>
+            </article>
           ))}
         </div>
       </div>

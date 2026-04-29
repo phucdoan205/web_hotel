@@ -1,87 +1,92 @@
 import React from "react";
-import { MapPin, Calendar, Users, Search } from "lucide-react";
+import { BedDouble, CalendarDays, MapPin, Search, UsersRound } from "lucide-react";
 import { useSearchNavigation } from "../../hooks/useSearchNavigation";
-import { Link } from "react-router-dom";
+
+const bannerImage =
+  "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=2200&q=85";
 
 const Hero = () => {
-  // Gọi các giá trị từ custom hook
   const { searchParams, updateField, handleSearch } = useSearchNavigation();
 
   return (
-    <div className="relative h-125 w-full flex items-center justify-center">
-      {/* Background Image */}
+    <section className="relative overflow-hidden text-white">
       <img
-        src="https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&q=80&w=2000"
-        className="absolute inset-0 w-full h-full object-cover"
-        alt="Hero Background"
+        src={bannerImage}
+        alt="Khách sạn nghỉ dưỡng"
+        className="absolute inset-0 h-full w-full object-cover"
       />
-      <div className="absolute inset-0 bg-black/40"></div>
-      {/* Overlay cho text dễ đọc */}
-      <div className="absolute top-1/4 left-0 w-full flex flex-col items-center z-10">
-        <h1 className="text-5xl font-bold mb-2 text-white drop-shadow-lg">
-          Find Your Next Adventure
-        </h1>
-        <p className="text-lg text-white opacity-90 mb-10 drop-shadow">
-          Book the best hotels at the lowest prices, guaranteed.
-        </p>
-      </div>
-      {/* Search Bar */}
-      <div className="absolute left-1/2 -bottom-12 -translate-x-1/2 w-full max-w-5xl px-4 z-20">
-        <div className="flex flex-row bg-white rounded-2xl shadow-lg py-4 px-6 gap-4 items-center">
-          {/* Destination Input */}
-          <div className="flex flex-col flex-1 min-w-45">
-            {/* Hidden label for accessibility */}
-            <label className="sr-only">Destination</label>
-            <div className="flex items-center gap-2 p-2 border rounded-lg bg-slate-50">
-              <MapPin className="text-slate-400" size={18} />
-              <input
-                type="text"
-                placeholder="Where are you going?"
-                className="bg-transparent outline-none text-sm w-full"
-                value={searchParams.destination}
-                onChange={(e) => updateField("destination", e.target.value)}
-              />
-            </div>
-          </div>
-          {/* Dates Input */}
-          <div className="flex flex-col flex-1 min-w-45">
-            <label className="sr-only">Dates</label>
-            <div className="flex items-center gap-2 p-2 border rounded-lg bg-slate-50">
-              <Calendar className="text-slate-400" size={18} />
-              <input
-                type="text"
-                placeholder="Check-in – Check-out"
-                className="bg-transparent outline-none text-sm w-full"
-                value={searchParams.dates}
-                onChange={(e) => updateField("dates", e.target.value)}
-              />
-            </div>
-          </div>
-          {/* Guests Input */}
-          <div className="flex flex-col flex-1 min-w-45">
-            <label className="sr-only">Guests & Rooms</label>
-            <div className="flex items-center gap-2 p-2 border rounded-lg bg-slate-50">
-              <Users className="text-slate-400" size={18} />
-              <input
-                type="text"
-                placeholder="2 Guests, 1 Room"
-                className="bg-transparent outline-none text-sm w-full"
-                value={searchParams.guests}
-                onChange={(e) => updateField("guests", e.target.value)}
-              />
-            </div>
-          </div>
-          {/* Nút Search */}
-          <Link to="/hotels/:id"
-            onClick={handleSearch}
-            className="bg-blue-500 hover:bg-blue-600 text-white font-bold h-12 px-8 rounded-lg flex items-center justify-center gap-2 transition-all active:scale-95 shadow"
+      <div className="absolute inset-0 bg-gradient-to-r from-slate-950/80 via-slate-950/45 to-slate-950/15" />
+
+      <div className="relative mx-auto max-w-7xl px-5 pb-16 pt-16 lg:px-8 lg:pb-24 lg:pt-20">
+        <div className="max-w-3xl">
+          <h1 className="text-4xl font-black tracking-tight md:text-5xl">
+            Tìm chỗ nghỉ tiếp theo của bạn
+          </h1>
+          <p className="mt-4 text-lg font-semibold text-white/90">
+            Tìm ưu đãi khách sạn, căn hộ và resort với trải nghiệm tìm kiếm nhanh gọn.
+          </p>
+        </div>
+
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            handleSearch();
+          }}
+          className="mt-10 grid gap-1 rounded-lg bg-[#febb02] p-1 shadow-2xl md:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)_150px]"
+        >
+          <label className="flex min-h-14 items-center gap-3 rounded-md bg-white px-4 text-slate-900">
+            <MapPin size={20} className="shrink-0 text-slate-500" />
+            <input
+              type="text"
+              placeholder="Bạn muốn đến đâu?"
+              className="w-full bg-transparent text-sm font-semibold outline-none placeholder:text-slate-500"
+              value={searchParams.destination}
+              onChange={(event) => updateField("destination", event.target.value)}
+            />
+          </label>
+
+          <label className="flex min-h-14 items-center gap-3 rounded-md bg-white px-4 text-slate-900">
+            <CalendarDays size={20} className="shrink-0 text-slate-500" />
+            <input
+              type="text"
+              placeholder="Ngày nhận - trả phòng"
+              className="w-full bg-transparent text-sm font-semibold outline-none placeholder:text-slate-500"
+              value={searchParams.dates}
+              onChange={(event) => updateField("dates", event.target.value)}
+            />
+          </label>
+
+          <label className="flex min-h-14 items-center gap-3 rounded-md bg-white px-4 text-slate-900">
+            <UsersRound size={20} className="shrink-0 text-slate-500" />
+            <input
+              type="text"
+              placeholder="2 khách, 1 phòng"
+              className="w-full bg-transparent text-sm font-semibold outline-none placeholder:text-slate-500"
+              value={searchParams.guests}
+              onChange={(event) => updateField("guests", event.target.value)}
+            />
+          </label>
+
+          <button
+            type="submit"
+            className="inline-flex min-h-14 items-center justify-center gap-2 rounded-md bg-[#0071c2] px-5 text-base font-bold text-white transition hover:bg-[#005fa3]"
           >
             <Search size={20} />
-            Search
-          </Link>
+            Tìm
+          </button>
+        </form>
+
+        <div className="mt-6 flex flex-wrap gap-3 text-sm font-semibold text-white">
+          <span className="inline-flex items-center gap-2 rounded-full border border-white/45 bg-white/10 px-4 py-2 backdrop-blur">
+            <BedDouble size={16} />
+            Khách sạn
+          </span>
+          <span className="rounded-full border border-white/45 bg-white/10 px-4 py-2 backdrop-blur">Căn hộ</span>
+          <span className="rounded-full border border-white/45 bg-white/10 px-4 py-2 backdrop-blur">Resort</span>
+          <span className="rounded-full border border-white/45 bg-white/10 px-4 py-2 backdrop-blur">Villa</span>
         </div>
       </div>
-    </div>
+    </section>
   );
 };
 

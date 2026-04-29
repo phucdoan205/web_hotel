@@ -19,7 +19,7 @@ const resolveRedirectPath = (role) => {
     return "/admin/dashboard";
   }
 
-  return "/user/dashboard";
+  return "/";
 };
 
 export const useLogin = () => {

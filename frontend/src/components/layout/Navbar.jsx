@@ -9,7 +9,7 @@ const Navbar = () => {
   const auth = getStoredAuth();
 
   return (
-    <nav className="sticky top-0 z-50 flex h-16 items-center justify-between bg-white px-10 py-4 shadow-sm">
+    <nav className="sticky top-0 z-50 flex h-16 items-center justify-between bg-white px-6 py-4 shadow-sm lg:px-10">
       <Link to="/" className="flex cursor-pointer items-center gap-2">
         <div className="rounded-lg bg-[#0194f3] p-1.5">
           <Rocket className="h-5 w-5 rotate-45 text-white" />
@@ -19,8 +19,9 @@ const Navbar = () => {
         </span>
       </Link>
 
-      <div className="hidden items-center gap-1 md:flex">
+      <div className="hidden items-center gap-1 xl:flex">
         <NavItem label="Khách sạn" to="/hotels" />
+        <NavItem label="Đặt phòng" to="/booking" />
         <NavItem label="Ẩm thực" to="/food" />
         <NavItem label="Hoạt động" to="/activities" />
         <NavItem label="Bài viết" to="/articles" />

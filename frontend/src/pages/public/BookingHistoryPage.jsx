@@ -28,7 +28,7 @@ const formatCurrency = (value) =>
     maximumFractionDigits: 0,
   }).format(Number(value || 0));
 
-const UserBookingHistoryPage = () => {
+const BookingHistoryPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const queryClient = useQueryClient();
@@ -242,7 +242,7 @@ const UserBookingHistoryPage = () => {
                       <div className="flex flex-wrap items-center gap-3 xl:justify-end">
                         <button
                           type="button"
-                          onClick={() => navigate(`/user/booking/${booking.id}`)}
+                          onClick={() => navigate(`/booking/${booking.id}`)}
                           className="inline-flex h-11 min-w-[96px] items-center justify-center gap-2 rounded-2xl bg-white px-4 text-sm font-bold text-slate-700 shadow-sm ring-1 ring-slate-200 transition hover:bg-slate-100"
                         >
                           <Eye size={16} />
@@ -252,7 +252,7 @@ const UserBookingHistoryPage = () => {
                         {canUserPayBooking(booking) ? (
                           <button
                             type="button"
-                            onClick={() => navigate(`/user/booking-history/${booking.id}/payment`)}
+                            onClick={() => navigate(`/booking-history/${booking.id}/payment`)}
                             className="inline-flex h-11 min-w-[132px] items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 text-sm font-bold text-white transition hover:bg-blue-700"
                           >
                             <CreditCard size={16} />
@@ -365,4 +365,4 @@ const UserBookingHistoryPage = () => {
   );
 };
 
-export default UserBookingHistoryPage;
+export default BookingHistoryPage;

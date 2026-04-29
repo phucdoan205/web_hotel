@@ -1,5 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, LogOut } from "lucide-react";
+import {
+  CalendarCheck,
+  ChevronDown,
+  Heart,
+  LogOut,
+  Star,
+  Ticket,
+  UserCircle,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import {
   AUTH_CHANGED_EVENT,
@@ -7,6 +15,23 @@ import {
   getStoredAuth,
 } from "../../utils/authStorage";
 import { getAvatarPreview } from "../../utils/avatar";
+
+const ADMIN_ROLE_NAMES = new Set([
+  "admin",
+  "receptionist",
+  "front desk",
+  "frontdesk",
+  "le tan",
+  "housekeeping",
+]);
+
+const customerMenuItems = [
+  { label: "Hồ sơ cá nhân", path: "/profile", icon: UserCircle },
+  { label: "Đặt chỗ", path: "/booking-history", icon: CalendarCheck },
+  { label: "Yêu thích", path: "/favorites", icon: Heart },
+  { label: "Đánh giá", path: "/reviews", icon: Star },
+  { label: "Voucher", path: "/vouchers", icon: Ticket },
+];
 
 const UserMenu = ({
   logoutRedirect = "/",
@@ -60,6 +85,14 @@ const UserMenu = ({
     setIsOpen(false);
     navigate(logoutRedirect);
   };
+
+  const handleNavigate = (path) => {
+    setIsOpen(false);
+    navigate(path);
+  };
+
+  const normalizedRole = auth?.role?.trim().toLowerCase();
+  const showCustomerLinks = !ADMIN_ROLE_NAMES.has(normalizedRole);
 
   const buttonClassName =
     variant === "dark"
@@ -116,7 +149,7 @@ const UserMenu = ({
       </button>
 
       {isOpen ? (
-        <div className="absolute right-0 top-[calc(100%+0.75rem)] z-50 w-56 rounded-2xl border border-gray-100 bg-white p-2 shadow-xl shadow-gray-200/60">
+        <div className="absolute right-0 top-[calc(100%+0.75rem)] z-50 w-64 rounded-2xl border border-gray-100 bg-white p-2 shadow-xl shadow-gray-200/60">
           <div className="px-3 py-2">
             <p className="text-sm font-semibold text-gray-950">{user.name}</p>
             <p className="text-xs text-gray-400">
@@ -124,10 +157,26 @@ const UserMenu = ({
             </p>
           </div>
 
+          {showCustomerLinks ? (
+            <div className="mt-1 border-t border-gray-100 pt-2">
+              {customerMenuItems.map((item) => (
+                <button
+                  key={item.path}
+                  type="button"
+                  onClick={() => handleNavigate(item.path)}
+                  className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-[#0071c2]"
+                >
+                  <item.icon className="size-4" />
+                  <span>{item.label}</span>
+                </button>
+              ))}
+            </div>
+          ) : null}
+
           <button
             type="button"
             onClick={handleLogout}
-            className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-red-500 transition-colors hover:bg-red-50"
+            className="mt-2 flex w-full items-center gap-3 border-t border-gray-100 px-3 py-2.5 pt-4 text-sm font-semibold text-red-500 transition-colors hover:bg-red-50"
           >
             <LogOut className="size-4" />
             <span>Log out</span>

@@ -30,7 +30,7 @@ const formatCurrency = (value) =>
     maximumFractionDigits: 0,
   }).format(Number(value || 0));
 
-const UserBookingDetailPage = () => {
+const BookingDetailPage = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { id } = useParams();
@@ -91,7 +91,7 @@ const UserBookingDetailPage = () => {
 
   const handleCloseSuccess = () => {
     setShowCancelSuccess(false);
-    navigate("/user/booking-history", {
+    navigate("/booking-history", {
       replace: true,
       state: {
         notice: {
@@ -120,7 +120,7 @@ const UserBookingDetailPage = () => {
         <div>
           <button
             type="button"
-            onClick={() => navigate("/user/booking-history")}
+            onClick={() => navigate("/booking-history")}
             className="inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm ring-1 ring-slate-200 transition hover:bg-slate-50"
           >
             <ArrowLeft size={16} />
@@ -143,7 +143,7 @@ const UserBookingDetailPage = () => {
           {canUserPayBooking(booking) ? (
             <button
               type="button"
-              onClick={() => navigate(`/user/booking-history/${booking.id}/payment`)}
+              onClick={() => navigate(`/booking-history/${booking.id}/payment`)}
               className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-blue-700"
             >
               <CreditCard size={16} />
@@ -348,7 +348,7 @@ const UserBookingDetailPage = () => {
             {canUserPayBooking(booking) ? (
               <button
                 type="button"
-                onClick={() => navigate(`/user/booking-history/${booking.id}/payment`)}
+                onClick={() => navigate(`/booking-history/${booking.id}/payment`)}
                 className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-blue-700"
               >
                 <CreditCard size={16} />
@@ -452,4 +452,4 @@ const UserBookingDetailPage = () => {
   );
 };
 
-export default UserBookingDetailPage;
+export default BookingDetailPage;

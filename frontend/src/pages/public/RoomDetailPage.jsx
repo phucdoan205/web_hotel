@@ -83,7 +83,7 @@ const buildRoomTypeFromRooms = (rooms, fallbackRoomType, id) => {
   };
 };
 
-const UserRoomDetailPage = () => {
+const RoomDetailPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { id } = useParams();
@@ -112,7 +112,7 @@ const UserRoomDetailPage = () => {
   const createBookingMutation = useMutation({
     mutationFn: (payload) => userBookingsApi.createBooking(payload),
     onSuccess: (createdBooking) => {
-      navigate("/user/booking-history", {
+      navigate("/booking-history", {
         state: {
           notice: {
             type: "success",
@@ -241,7 +241,7 @@ const UserRoomDetailPage = () => {
         </p>
         <button
           type="button"
-          onClick={() => navigate("/user/bookings")}
+          onClick={() => navigate("/booking")}
           className="mt-6 inline-flex h-11 items-center justify-center rounded-2xl bg-blue-600 px-5 text-sm font-bold text-white transition hover:bg-blue-700"
         >
           Quay lại danh sách
@@ -255,7 +255,7 @@ const UserRoomDetailPage = () => {
       <div className="flex flex-wrap items-center gap-3">
         <button
           type="button"
-          onClick={() => navigate("/user/bookings")}
+          onClick={() => navigate("/booking")}
           className="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50"
         >
           <ArrowLeft size={20} />
@@ -488,7 +488,7 @@ const UserRoomDetailPage = () => {
               </button>
               <button
                 type="button"
-                onClick={() => navigate("/user/bookings")}
+                onClick={() => navigate("/booking")}
                 className="flex h-12 w-full items-center justify-center rounded-2xl border border-slate-200 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
               >
                 Quay lại danh sách
@@ -501,4 +501,4 @@ const UserRoomDetailPage = () => {
   );
 };
 
-export default UserRoomDetailPage;
+export default RoomDetailPage;

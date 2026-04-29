@@ -30,7 +30,7 @@ const buildQuickChartQrUrl = (value) => {
   return `https://quickchart.io/qr?size=320&margin=2&text=${encodeURIComponent(value)}`;
 };
 
-const UserBookingPaymentPage = () => {
+const BookingPaymentPage = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { id } = useParams();
@@ -133,7 +133,7 @@ const UserBookingPaymentPage = () => {
         return;
       }
 
-      navigate("/user/booking-history", {
+      navigate("/booking-history", {
         replace: true,
         state: {
           notice: {
@@ -154,7 +154,7 @@ const UserBookingPaymentPage = () => {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["user-reviews"] });
-      navigate("/user/reviews", { replace: true });
+      navigate("/", { replace: true });
     },
   });
 
@@ -219,7 +219,7 @@ const UserBookingPaymentPage = () => {
       <div>
         <button
           type="button"
-          onClick={() => navigate(`/user/booking/${id}`)}
+          onClick={() => navigate(`/booking/${id}`)}
           className="inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm ring-1 ring-slate-200 transition hover:bg-slate-50"
         >
           <ArrowLeft size={16} />
@@ -550,7 +550,7 @@ const UserBookingPaymentPage = () => {
                 type="button"
                 onClick={() => {
                   setShowReviewOverlay(false);
-                  navigate(`/user/booking/${id}`, { replace: true });
+                  navigate(`/booking/${id}`, { replace: true });
                 }}
                 className="rounded-2xl bg-slate-100 px-4 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-200"
               >
@@ -572,4 +572,4 @@ const UserBookingPaymentPage = () => {
   );
 };
 
-export default UserBookingPaymentPage;
+export default BookingPaymentPage;

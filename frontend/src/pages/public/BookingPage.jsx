@@ -1,8 +1,8 @@
 import React, { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowDownWideNarrow } from "lucide-react";
-import BookingFilter from "../../components/user/bookings/BookingFilter";
-import BookingCard from "../../components/user/bookings/BookingCard";
+import BookingFilter from "../../components/public/bookings/BookingFilter";
+import BookingCard from "../../components/public/bookings/BookingCard";
 import { roomsApi } from "../../api/admin/roomsApi";
 
 const DEFAULT_CHECK_IN_HOUR = 14;
@@ -112,7 +112,7 @@ const sortRoomTypes = (roomTypes, sortBy, numberOfNights) => {
   return nextRoomTypes;
 };
 
-const UserBookingsPage = () => {
+const BookingPage = () => {
   const [filters, setFilters] = useState(createDefaultFilters);
   const [appliedFilters, setAppliedFilters] = useState(createDefaultFilters);
   const [sortBy, setSortBy] = useState("price-asc");
@@ -230,4 +230,4 @@ const UserBookingsPage = () => {
   );
 };
 
-export default UserBookingsPage;
+export default BookingPage;
