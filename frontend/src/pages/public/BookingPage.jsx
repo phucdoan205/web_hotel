@@ -1,7 +1,8 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowDownWideNarrow } from "lucide-react";
-import BookingFilter from "../../components/public/bookings/BookingFilter";
+import { ArrowDownWideNarrow, MapPin } from "lucide-react";
+import { useLocation } from "react-router-dom";
+import HorizontalSearchFilter from "../../components/public/bookings/HorizontalSearchFilter";
 import BookingCard from "../../components/public/bookings/BookingCard";
 import { roomsApi } from "../../api/admin/roomsApi";
 
@@ -39,9 +40,10 @@ const calculateStayDays = (checkIn, checkOut) => {
 };
 
 const createDefaultFilters = () => ({
+  destination: "",
   checkIn: toDateTimeInputValue(createDefaultDateTime(0, DEFAULT_CHECK_IN_HOUR)),
   checkOut: toDateTimeInputValue(createDefaultDateTime(1, DEFAULT_CHECK_OUT_HOUR)),
-  adults: 1,
+  adults: 2,
   children: 0,
 });
 
@@ -113,9 +115,25 @@ const sortRoomTypes = (roomTypes, sortBy, numberOfNights) => {
 };
 
 const BookingPage = () => {
-  const [filters, setFilters] = useState(createDefaultFilters);
-  const [appliedFilters, setAppliedFilters] = useState(createDefaultFilters);
+  const location = useLocation();
+
+  const [filters, setFilters] = useState(() => {
+    if (location.state) {
+      return { ...createDefaultFilters(), ...location.state };
+    }
+    return createDefaultFilters();
+  });
+
+  const [appliedFilters, setAppliedFilters] = useState(filters);
   const [sortBy, setSortBy] = useState("price-asc");
+
+  useEffect(() => {
+    if (location.state) {
+      const newState = { ...createDefaultFilters(), ...location.state };
+      setFilters(newState);
+      setAppliedFilters(newState);
+    }
+  }, [location.state]);
 
   const stayDays = useMemo(
     () => calculateStayDays(appliedFilters.checkIn, appliedFilters.checkOut),
@@ -145,86 +163,107 @@ const BookingPage = () => {
   };
 
   const handleSearch = (event) => {
-    event.preventDefault();
+    if (event) event.preventDefault();
     setAppliedFilters(filters);
   };
 
-  const handleClearFilters = () => {
-    const defaultFilters = createDefaultFilters();
-    setFilters(defaultFilters);
-    setAppliedFilters(defaultFilters);
-  };
-
   return (
-    <div className="-mx-2 min-h-screen rounded-[36px] bg-[#eef3f9] p-5 lg:-mx-4 lg:p-8 2xl:-mx-6">
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_350px]">
-        <section className="order-2 xl:order-1">
-          <div className="mb-5 flex items-center justify-end rounded-[28px] border border-slate-200 bg-white px-5 py-4 shadow-sm">
-            <div className="flex items-center gap-3">
-              <ArrowDownWideNarrow size={16} className="text-slate-400" />
-              <label className="text-sm font-semibold text-slate-500">Giá theo:</label>
-              <select
-                value={sortBy}
-                onChange={(event) => setSortBy(event.target.value)}
-                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-              >
-                <option value="price-asc">Tổng giá tiền tăng dần</option>
-                <option value="price-desc">Tổng giá tiền giảm dần</option>
-                <option value="room-number">Tên loại phòng</option>
-              </select>
+    <div className="min-h-screen bg-slate-50">
+      <div className="bg-[#01539d] pb-24 pt-10 text-white relative">
+        <div className="mx-auto max-w-7xl px-5 lg:px-8">
+          <h1 className="text-3xl font-black md:text-4xl">Tìm phòng trống</h1>
+          <p className="mt-2 text-lg font-medium text-white/80">
+            Xem phòng trống ngay hôm nay và lên lịch cho chuyến đi của bạn.
+          </p>
+        </div>
+      </div>
+
+      <div className="mx-auto -mt-12 max-w-7xl px-5 lg:px-8 relative z-10 mb-10">
+        <HorizontalSearchFilter
+          filters={filters}
+          onChange={handleFilterChange}
+          onSubmit={handleSearch}
+          isSearching={availableRoomsQuery.isFetching}
+        />
+      </div>
+
+      <div className="mx-auto max-w-7xl px-5 pb-16 lg:px-8">
+        <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h2 className="text-xl font-bold text-slate-900">
+              Kết quả tìm kiếm
+            </h2>
+            <p className="text-sm font-medium text-slate-500">
+              Tìm thấy <span className="font-bold text-slate-900">{sortedRoomTypes.length}</span> loại phòng phù hợp
+              {appliedFilters.destination && (
+                <>
+                  {" "}tại <span className="font-bold text-[#0194f3]">{appliedFilters.destination}</span>
+                </>
+              )}
+            </p>
+          </div>
+          
+          <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+            <ArrowDownWideNarrow size={16} className="text-slate-400" />
+            <label className="text-sm font-semibold text-slate-500">Giá theo:</label>
+            <select
+              value={sortBy}
+              onChange={(event) => setSortBy(event.target.value)}
+              className="bg-transparent text-sm font-bold text-slate-700 outline-none"
+            >
+              <option value="price-asc">Giá tăng dần</option>
+              <option value="price-desc">Giá giảm dần</option>
+              <option value="room-number">Tên phòng</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="space-y-5">
+          {availableRoomsQuery.isLoading ? (
+            <div className="rounded-[28px] border border-dashed border-slate-300 bg-white px-6 py-16 text-center text-sm font-semibold text-slate-500">
+              <div className="mx-auto mb-4 size-8 animate-spin rounded-full border-4 border-slate-200 border-t-[#0194f3]"></div>
+              Đang tìm phòng trống tốt nhất cho bạn...
             </div>
-          </div>
+          ) : null}
 
-          <div className="space-y-4">
-            {availableRoomsQuery.isLoading ? (
-              <div className="rounded-[28px] border border-dashed border-slate-300 bg-white px-6 py-12 text-center text-sm font-semibold text-slate-500">
-                Đang tải danh sách loại phòng...
-              </div>
-            ) : null}
+          {availableRoomsQuery.isError ? (
+            <div className="rounded-[28px] border border-rose-200 bg-rose-50 px-6 py-10 text-center text-sm font-semibold text-rose-600">
+              Đã xảy ra lỗi khi tải danh sách phòng. Vui lòng thử lại sau.
+            </div>
+          ) : null}
 
-            {availableRoomsQuery.isError ? (
-              <div className="rounded-[28px] border border-rose-200 bg-rose-50 px-6 py-8 text-sm font-semibold text-rose-600">
-                Không tải được danh sách loại phòng. Vui lòng thử lại.
-              </div>
-            ) : null}
-
-            {!availableRoomsQuery.isLoading && !availableRoomsQuery.isError && sortedRoomTypes.length === 0 ? (
-              <div className="rounded-[28px] border border-dashed border-slate-300 bg-white px-6 py-12 text-center">
-                <h3 className="text-xl font-bold text-slate-900">Không tìm thấy loại phòng phù hợp</h3>
-                <p className="mt-2 text-sm font-medium text-slate-500">
-                  Thử đổi số lượng người lớn hoặc trẻ em để xem thêm loại phòng trống.
-                </p>
-              </div>
-            ) : null}
-
-            {sortedRoomTypes.map((roomType) => (
-              <BookingCard
-                key={roomType.roomTypeId}
-                roomType={roomType}
-                availableCount={roomType.availableRooms.length}
-                numberOfNights={stayDays}
-                detailLinkState={{
-                  roomType,
-                  filters: appliedFilters,
-                  numberOfNights: stayDays,
+          {!availableRoomsQuery.isLoading && !availableRoomsQuery.isError && sortedRoomTypes.length === 0 ? (
+            <div className="rounded-[28px] border border-dashed border-slate-300 bg-white px-6 py-16 text-center shadow-sm">
+              <h3 className="text-xl font-bold text-slate-900">Không tìm thấy phòng phù hợp</h3>
+              <p className="mt-2 text-sm font-medium text-slate-500">
+                Thử thay đổi ngày, hoặc số lượng khách để xem thêm các lựa chọn khác.
+              </p>
+              <button 
+                onClick={() => {
+                  setFilters(createDefaultFilters());
+                  setAppliedFilters(createDefaultFilters());
                 }}
-              />
-            ))}
-          </div>
-        </section>
+                className="mt-6 inline-flex items-center justify-center rounded-xl bg-[#0194f3] px-6 py-3 text-sm font-bold text-white shadow-md transition hover:bg-[#017bc0]"
+              >
+                Xóa bộ lọc
+              </button>
+            </div>
+          ) : null}
 
-        <aside className="order-1 xl:order-2">
-          <div className="sticky top-24">
-            <BookingFilter
-              filters={filters}
-              onChange={handleFilterChange}
-              onSubmit={handleSearch}
-              onClear={handleClearFilters}
-              isSearching={availableRoomsQuery.isFetching}
-              showDateFields={false}
+          {sortedRoomTypes.map((roomType) => (
+            <BookingCard
+              key={roomType.roomTypeId}
+              roomType={roomType}
+              availableCount={roomType.availableRooms.length}
+              numberOfNights={stayDays}
+              detailLinkState={{
+                roomType,
+                filters: appliedFilters,
+                numberOfNights: stayDays,
+              }}
             />
-          </div>
-        </aside>
+          ))}
+        </div>
       </div>
     </div>
   );

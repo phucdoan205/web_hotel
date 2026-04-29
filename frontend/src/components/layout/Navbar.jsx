@@ -21,7 +21,7 @@ const Navbar = () => {
 
       <div className="hidden items-center gap-1 xl:flex">
         <NavItem label="Khách sạn" to="/hotels" />
-        <NavItem label="Đặt phòng" to="/booking" />
+        <NavItem label="Tìm phòng" to="/booking" />
         <NavItem label="Ẩm thực" to="/food" />
         <NavItem label="Hoạt động" to="/activities" />
         <NavItem label="Bài viết" to="/articles" />
