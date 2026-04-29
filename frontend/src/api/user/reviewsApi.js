@@ -23,6 +23,19 @@ export const userReviewsApi = {
     const response = await apiClient.post("/user-reviews", payload);
     return normalizeReview(response.data);
   },
+
+  async getRoomTypeReviews(roomTypeId) {
+    const response = await apiClient.get(`/user-reviews/room-type/${roomTypeId}`);
+    const items = Array.isArray(response.data) ? response.data : [];
+    return items.map(item => ({
+      id: item.id,
+      roomTypeId: item.roomTypeId,
+      user: item.userName || "Khách",
+      rating: Number(item.rating || 0),
+      comment: item.comment || "",
+      date: item.createdAt ? new Date(item.createdAt).toLocaleDateString("vi-VN") : "Gần đây",
+    }));
+  },
 };
 
 export default userReviewsApi;

@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { ArrowLeft, BedDouble, CalendarRange, Check, DoorClosed, Heart, Users } from "lucide-react";
+import { ArrowLeft, BedDouble, CalendarRange, Check, DoorClosed, Heart, Users, Star } from "lucide-react";
 import { roomsApi } from "../../api/admin/roomsApi";
 import { userBookingsApi } from "../../api/user/bookingsApi";
+import userReviewsApi from "../../api/user/reviewsApi";
 import { getStoredAuth } from "../../utils/authStorage";
 import { isFavoriteRoomType, toggleFavoriteRoomType } from "../../utils/userFavorites";
 
@@ -80,6 +81,7 @@ const buildRoomTypeFromRooms = (rooms, fallbackRoomType, id) => {
     size: firstRoom?.size ?? fallbackRoomType?.size ?? null,
     amenities: firstRoom?.amenities ?? fallbackRoomType?.amenities ?? [],
     imageUrls: normalizeImageUrls(firstRoom?.imageUrls ?? fallbackRoomType?.imageUrls ?? []),
+    description: firstRoom?.description ?? fallbackRoomType?.description ?? "Chưa có mô tả cho loại phòng này.",
   };
 };
 
@@ -93,6 +95,7 @@ const RoomDetailPage = () => {
   const [selectedRoomId, setSelectedRoomId] = useState(null);
   const [isFavorite, setIsFavorite] = useState(false);
   const [submitMessage, setSubmitMessage] = useState(null);
+  const [activeTab, setActiveTab] = useState("overview");
 
   const availableRoomsQuery = useQuery({
     queryKey: ["user-room-type-detail", id, appliedFilters],
@@ -106,6 +109,12 @@ const RoomDetailPage = () => {
         page: 1,
         pageSize: 100,
       }),
+    enabled: Boolean(id),
+  });
+
+  const reviewsQuery = useQuery({
+    queryKey: ["user-room-type-reviews", id],
+    queryFn: () => userReviewsApi.getRoomTypeReviews(Number(id)),
     enabled: Boolean(id),
   });
 
@@ -224,6 +233,21 @@ const RoomDetailPage = () => {
     });
   };
 
+  const scrollToSection = (sectionId) => {
+    setActiveTab(sectionId);
+    const element = document.getElementById(sectionId);
+    if (element) {
+      const headerOffset = 140; // account for fixed header + some padding
+      const elementPosition = element.getBoundingClientRect().top;
+      const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: "smooth"
+      });
+    }
+  };
+
   if (availableRoomsQuery.isLoading && !roomTypeFromState) {
     return (
       <div className="rounded-[32px] bg-white p-10 text-center text-sm font-semibold text-slate-500 shadow-sm">
@@ -250,104 +274,202 @@ const RoomDetailPage = () => {
     );
   }
 
+  const reviews = reviewsQuery.data || [];
+  const avgRating = reviews.length > 0 
+    ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length 
+    : 0;
+
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center gap-3">
-        <button
-          type="button"
-          onClick={() => navigate("/booking")}
-          className="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50"
-        >
-          <ArrowLeft size={20} />
-        </button>
-        <div>
-          <p className="text-sm font-semibold text-slate-500">Chi tiết loại phòng</p>
-          <h1 className="text-3xl font-black tracking-tight text-slate-900">
-            {roomType.roomTypeName || "Loại phòng"}
-          </h1>
+    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-6 pb-20 relative pt-4">
+      {/* Sticky Tabs */}
+      <div className="sticky top-[80px] z-30 bg-white/90 backdrop-blur-xl shadow-sm border border-slate-200 rounded-2xl px-4 sm:px-6 pt-4 mb-8">
+        <div className="flex items-center gap-4 pb-4">
+           <button
+            type="button"
+            onClick={() => navigate("/booking")}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50"
+          >
+            <ArrowLeft size={18} />
+          </button>
+          <div className="flex gap-8 overflow-x-auto no-scrollbar flex-1">
+            {[
+              { id: "overview", label: "Tổng quan" },
+              { id: "availability", label: "Tình trạng phòng trống" },
+              { id: "amenities", label: "Tiện nghi" },
+              { id: "reviews", label: "Đánh giá" },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => scrollToSection(tab.id)}
+                className={`whitespace-nowrap pb-4 text-sm font-bold transition-all border-b-2 -mb-[1px] ${
+                  activeTab === tab.id
+                    ? "border-blue-600 text-blue-600"
+                    : "border-transparent text-slate-500 hover:text-slate-900"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
-        <section className="space-y-6">
-          <div className="relative overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-sm">
-            <button
-              type="button"
-              onClick={handleToggleFavorite}
-              className={`absolute right-6 top-6 z-10 flex h-12 w-12 items-center justify-center rounded-full border transition ${
-                isFavorite
-                  ? "border-rose-500 bg-rose-500 text-white shadow-lg shadow-rose-200"
-                  : "border-white/70 bg-white/80 text-slate-900 backdrop-blur-md hover:bg-white"
-              }`}
-              aria-label={isFavorite ? "Bỏ khỏi yêu thích" : "Thêm vào yêu thích"}
-            >
-              <Heart size={22} fill={isFavorite ? "currentColor" : "none"} />
-            </button>
-            <img src={imageUrls[0]} alt={roomType.roomTypeName} className="h-[380px] w-full object-cover" />
+      <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_380px]">
+        <section className="space-y-12">
+          
+          {/* OVERVIEW SECTION */}
+          <div id="overview" className="scroll-mt-40 space-y-8">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="rounded bg-blue-600 px-2 py-1 text-xs font-bold text-white">Genius</span>
+                  <div className="flex gap-1">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Star key={star} size={16} fill={star <= Math.round(avgRating) ? "#fbbf24" : "none"} className={star <= Math.round(avgRating) ? "text-amber-400" : "text-slate-300"} />
+                    ))}
+                  </div>
+                </div>
+                <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-slate-900">
+                  {roomType.roomTypeName || "Loại phòng"}
+                </h1>
+                <p className="mt-2 text-sm font-medium text-blue-600 hover:underline cursor-pointer">
+                  Vị trí xuất sắc - hiển thị bản đồ
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleToggleFavorite}
+                className={`flex h-12 w-12 items-center justify-center rounded-full border transition ${
+                  isFavorite
+                    ? "border-rose-500 bg-rose-50 text-rose-500"
+                    : "border-slate-200 bg-white text-slate-400 hover:text-rose-500 hover:border-rose-200"
+                }`}
+                aria-label={isFavorite ? "Bỏ khỏi yêu thích" : "Thêm vào yêu thích"}
+              >
+                <Heart size={22} fill={isFavorite ? "currentColor" : "none"} />
+              </button>
+            </div>
+
+            <div className="relative">
+              {imageUrls.length >= 3 ? (
+                <div className="grid h-[460px] grid-cols-3 gap-2 overflow-hidden rounded-[32px]">
+                  <div className="col-span-2 h-full">
+                    <img src={imageUrls[0]} alt="Phòng chính" className="h-full w-full object-cover" />
+                  </div>
+                  <div className="flex flex-col gap-2 h-full">
+                    <img src={imageUrls[1]} alt="Góc khác" className="h-1/2 w-full object-cover" />
+                    <img src={imageUrls[2]} alt="Tiện ích" className="h-1/2 w-full object-cover" />
+                  </div>
+                </div>
+              ) : imageUrls.length === 2 ? (
+                <div className="grid h-[460px] grid-cols-2 gap-2 overflow-hidden rounded-[32px]">
+                  <img src={imageUrls[0]} alt="Phòng" className="h-full w-full object-cover" />
+                  <img src={imageUrls[1]} alt="Góc khác" className="h-full w-full object-cover" />
+                </div>
+              ) : (
+                <div className="h-[460px] overflow-hidden rounded-[32px]">
+                  <img src={imageUrls[0]} alt="Phòng" className="h-full w-full object-cover" />
+                </div>
+              )}
+            </div>
+
+            <div className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
+              <h2 className="text-xl font-bold text-slate-900 mb-4">Mô tả phòng</h2>
+              <p className="text-slate-600 leading-relaxed whitespace-pre-wrap">
+                {roomType.description}
+              </p>
+              
+              <div className="mt-8 grid gap-4 sm:grid-cols-3 pt-6 border-t border-slate-100">
+                <div className="rounded-3xl bg-slate-50 p-5">
+                  <Users size={20} className="text-blue-600" />
+                  <p className="mt-3 text-sm font-semibold text-slate-500">Sức chứa</p>
+                  <p className="mt-1 text-base font-bold text-slate-900">
+                    {roomType.capacityAdults} người lớn, {roomType.capacityChildren} trẻ em
+                  </p>
+                </div>
+                <div className="rounded-3xl bg-slate-50 p-5">
+                  <BedDouble size={20} className="text-blue-600" />
+                  <p className="mt-3 text-sm font-semibold text-slate-500">Loại giường</p>
+                  <p className="mt-1 text-base font-bold text-slate-900">
+                    {roomType.bedType || "Đang cập nhật"}
+                  </p>
+                </div>
+                <div className="rounded-3xl bg-slate-50 p-5">
+                  <DoorClosed size={20} className="text-blue-600" />
+                  <p className="mt-3 text-sm font-semibold text-slate-500">Diện tích</p>
+                  <p className="mt-1 text-base font-bold text-slate-900">
+                    {roomType.size ? `${roomType.size} m2` : "Đang cập nhật"}
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
 
-          {imageUrls.length > 1 ? (
-            <div className="grid gap-4 sm:grid-cols-3">
-              {imageUrls.slice(1, 4).map((imageUrl) => (
-                <div
-                  key={imageUrl}
-                  className="overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-sm"
-                >
-                  <img src={imageUrl} alt={roomType.roomTypeName} className="h-40 w-full object-cover" />
+          {/* AVAILABILITY SECTION */}
+          <div id="availability" className="scroll-mt-40 space-y-6">
+            <h2 className="text-2xl font-bold text-slate-900">Tình trạng phòng trống</h2>
+            <div className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900">Chọn phòng cụ thể</h3>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Chỉ hiển thị các phòng đang ở trạng thái Available trong khoảng ngày bạn chọn.
+                  </p>
                 </div>
-              ))}
-            </div>
-          ) : null}
+                <span className="rounded-full bg-emerald-50 px-4 py-2 text-sm font-bold text-emerald-600">
+                  Còn {availableRooms.length} phòng Available
+                </span>
+              </div>
 
-          <div className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.24em] text-slate-400">
-                  Loại phòng
-                </p>
-                <h2 className="mt-2 text-2xl font-black text-slate-900">
-                  {roomType.roomTypeName || "Loại phòng"}
-                </h2>
-              </div>
-              <span className="rounded-full bg-emerald-50 px-4 py-2 text-sm font-bold text-emerald-600">
-                Còn {availableRooms.length} phòng Available
-              </span>
-            </div>
+              {availableRooms.length ? (
+                <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {availableRooms.map((room) => {
+                    const isSelected = room.id === selectedRoom?.id;
 
-            <div className="mt-6 grid gap-4 sm:grid-cols-3">
-              <div className="rounded-3xl bg-slate-50 p-5">
-                <Users size={18} className="text-blue-600" />
-                <p className="mt-3 text-sm font-semibold text-slate-500">Sức chứa</p>
-                <p className="mt-1 text-base font-bold text-slate-900">
-                  {roomType.capacityAdults} người lớn, {roomType.capacityChildren} trẻ em
-                </p>
-              </div>
-              <div className="rounded-3xl bg-slate-50 p-5">
-                <BedDouble size={18} className="text-blue-600" />
-                <p className="mt-3 text-sm font-semibold text-slate-500">Loại giường</p>
-                <p className="mt-1 text-base font-bold text-slate-900">
-                  {roomType.bedType || "Đang cập nhật"}
-                </p>
-              </div>
-              <div className="rounded-3xl bg-slate-50 p-5">
-                <DoorClosed size={18} className="text-blue-600" />
-                <p className="mt-3 text-sm font-semibold text-slate-500">Diện tích</p>
-                <p className="mt-1 text-base font-bold text-slate-900">
-                  {roomType.size ? `${roomType.size} m2` : "Đang cập nhật"}
-                </p>
-              </div>
+                    return (
+                      <button
+                        key={room.id}
+                        type="button"
+                        onClick={() => setSelectedRoomId(room.id)}
+                        className={`rounded-2xl border px-5 py-4 text-left transition ${
+                          isSelected
+                            ? "border-blue-600 bg-blue-50 shadow-sm ring-1 ring-blue-600"
+                            : "border-slate-200 bg-white hover:border-blue-300 hover:bg-slate-50"
+                        }`}
+                      >
+                        <p className="text-sm font-semibold text-slate-500">Phòng</p>
+                        <p className="mt-1 text-2xl font-black text-slate-900">{room.roomNumber}</p>
+                        <div className="mt-3 flex items-center justify-between">
+                          <p className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md">Available</p>
+                          {isSelected && <Check size={18} className="text-blue-600" />}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="mt-6 rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-5 py-10 text-center">
+                  <p className="text-base font-bold text-slate-900">Hết phòng trống</p>
+                  <p className="mt-1 text-sm font-medium text-slate-500">
+                    Không có phòng Available trong khoảng ngày đã chọn. Vui lòng thử ngày khác.
+                  </p>
+                </div>
+              )}
             </div>
+          </div>
 
-            <div className="mt-8">
-              <h3 className="text-lg font-bold text-slate-900">Tiện ích loại phòng</h3>
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                {(roomType.amenities.length ? roomType.amenities : ["Phòng sạch sẽ", "Không gian riêng tư"]).map(
+          {/* AMENITIES SECTION */}
+          <div id="amenities" className="scroll-mt-40 space-y-6">
+            <h2 className="text-2xl font-bold text-slate-900">Tiện nghi</h2>
+            <div className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {(roomType.amenities.length ? roomType.amenities : ["Phòng sạch sẽ", "Không gian riêng tư", "Wifi miễn phí", "Điều hòa nhiệt độ"]).map(
                   (amenity) => (
                     <div
                       key={amenity}
-                      className="flex items-center gap-3 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700"
+                      className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700"
                     >
-                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
+                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 shrink-0">
                         <Check size={16} />
                       </span>
                       <span>{amenity}</span>
@@ -358,116 +480,119 @@ const RoomDetailPage = () => {
             </div>
           </div>
 
-          <div className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h3 className="text-lg font-bold text-slate-900">Chọn phòng cụ thể</h3>
-                <p className="mt-1 text-sm text-slate-500">
-                  Chỉ hiển thị các phòng đang ở trạng thái Available trong khoảng ngày bạn chọn.
-                </p>
+          {/* REVIEWS SECTION */}
+          <div id="reviews" className="scroll-mt-40 space-y-6">
+            <h2 className="text-2xl font-bold text-slate-900">Đánh giá của khách</h2>
+            <div className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
+              <div className="flex items-center gap-5 pb-8 border-b border-slate-100">
+                <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-blue-600 text-3xl font-black text-white shadow-lg shadow-blue-200">
+                  {avgRating.toFixed(1)}
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-slate-900">{avgRating >= 4.5 ? "Tuyệt hảo" : avgRating >= 4 ? "Rất tốt" : avgRating > 0 ? "Tốt" : "Chưa có đánh giá"}</p>
+                  <p className="mt-1 text-base font-medium text-slate-500">{reviews.length} đánh giá đã được xác thực</p>
+                </div>
               </div>
-              <span className="rounded-full bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700">
-                {availableRooms.length} phòng Available
-              </span>
+
+              <div className="mt-8 grid gap-6 sm:grid-cols-2">
+                {reviews.map((review) => (
+                  <div key={review.id} className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm hover:shadow-md transition">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-lg font-bold text-slate-600">
+                          {review.user.charAt(0)}
+                        </div>
+                        <div>
+                          <p className="text-base font-bold text-slate-900">{review.user}</p>
+                          <p className="text-xs font-medium text-slate-500">{review.date}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-center rounded-lg bg-blue-600 px-3 py-1 text-sm font-bold text-white shadow-sm">
+                        {review.rating}.0
+                      </div>
+                    </div>
+                    {review.comment && (
+                      <p className="mt-4 text-sm text-slate-700 leading-relaxed">"{review.comment}"</p>
+                    )}
+                  </div>
+                ))}
+                {reviews.length === 0 && (
+                  <div className="col-span-full rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center text-sm font-medium text-slate-500">
+                    Chưa có đánh giá nào cho loại phòng này.
+                  </div>
+                )}
+              </div>
             </div>
-
-            {availableRooms.length ? (
-              <div className="mt-6 grid gap-3 sm:grid-cols-3 lg:grid-cols-4">
-                {availableRooms.map((room) => {
-                  const isSelected = room.id === selectedRoom?.id;
-
-                  return (
-                    <button
-                      key={room.id}
-                      type="button"
-                      onClick={() => setSelectedRoomId(room.id)}
-                      className={`rounded-2xl border px-4 py-4 text-left transition ${
-                        isSelected
-                          ? "border-blue-500 bg-blue-50 shadow-sm"
-                          : "border-slate-200 bg-white hover:border-blue-300 hover:bg-slate-50"
-                      }`}
-                    >
-                      <p className="text-sm font-semibold text-slate-500">Phòng</p>
-                      <p className="mt-1 text-xl font-black text-slate-900">{room.roomNumber}</p>
-                      <p className="mt-2 text-xs font-semibold text-emerald-600">Available</p>
-                    </button>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="mt-6 rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-5 py-8 text-center text-sm font-semibold text-slate-500">
-                Không có phòng Available trong khoảng ngày đã chọn.
-              </div>
-            )}
           </div>
+
         </section>
 
-        <aside className="space-y-6">
-          <div className="rounded-[32px] border border-slate-200 bg-white p-7 shadow-sm">
-            <p className="text-sm font-semibold text-slate-500">Tổng giá lưu trú</p>
-            <p className="mt-3 text-4xl font-black tracking-tight text-slate-900">
+        {/* RIGHT SIDEBAR (Booking Form) */}
+        <aside className="relative">
+          <div className="sticky top-[160px] rounded-[32px] border border-slate-200 bg-white p-7 shadow-lg shadow-slate-100/50">
+            <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Tổng giá lưu trú</p>
+            <p className="mt-2 text-4xl font-black tracking-tight text-blue-600">
               {formatCurrency(totalPrice)}
             </p>
-            <p className="mt-2 text-sm font-medium text-slate-500">
+            <p className="mt-1 text-sm font-medium text-slate-500">
               {formatCurrency(roomType.basePrice)} / đêm
             </p>
 
-            <div className="mt-6 space-y-4 rounded-3xl bg-slate-50 p-5">
-              <div className="flex items-start gap-3">
-                <CalendarRange size={18} className="mt-0.5 text-blue-600" />
+            <div className="mt-8 space-y-5 rounded-3xl bg-slate-50 p-6 border border-slate-100">
+              <div className="flex items-start gap-3 pb-4 border-b border-slate-200">
+                <CalendarRange size={20} className="mt-0.5 text-blue-600" />
                 <div>
-                  <p className="text-sm font-semibold text-slate-900">Thời gian lưu trú</p>
-                  <p className="mt-1 text-xs text-slate-500">
+                  <p className="text-base font-bold text-slate-900">Chi tiết lưu trú</p>
+                  <p className="mt-1 text-sm font-medium text-slate-500">
                     Người lớn: {appliedFilters.adults} | Trẻ em: {appliedFilters.children}
                   </p>
                 </div>
               </div>
 
               <label className="block">
-                <span className="mb-2 block text-sm font-semibold text-slate-700">Nhận phòng</span>
+                <span className="mb-2 block text-sm font-bold text-slate-700">Nhận phòng</span>
                 <input
                   type="datetime-local"
                   value={filters.checkIn}
                   onChange={(event) => handleFilterChange("checkIn", event.target.value)}
-                  className="h-12 w-full rounded-2xl border border-slate-200 px-4 text-sm font-medium text-slate-800 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                  className="h-12 w-full rounded-2xl border border-slate-200 px-4 text-sm font-medium text-slate-800 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100 bg-white"
                 />
               </label>
 
               <label className="block">
-                <span className="mb-2 block text-sm font-semibold text-slate-700">Trả phòng</span>
+                <span className="mb-2 block text-sm font-bold text-slate-700">Trả phòng</span>
                 <input
                   type="datetime-local"
                   value={filters.checkOut}
                   onChange={(event) => handleFilterChange("checkOut", event.target.value)}
-                  className="h-12 w-full rounded-2xl border border-slate-200 px-4 text-sm font-medium text-slate-800 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                  className="h-12 w-full rounded-2xl border border-slate-200 px-4 text-sm font-medium text-slate-800 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100 bg-white"
                 />
               </label>
 
-              <div className="rounded-2xl bg-blue-50 px-4 py-3 text-center text-sm font-bold text-blue-700">
-                {stayDays} ngày
+              <div className="rounded-2xl bg-blue-100 px-4 py-3 text-center text-sm font-bold text-blue-800">
+                Thời gian: {stayDays} ngày
               </div>
             </div>
 
-            <div className="mt-6 rounded-3xl bg-slate-50 p-5">
-              <p className="text-sm font-semibold text-slate-500">Phòng đang chọn</p>
-              <p className="mt-2 text-2xl font-black text-slate-900">
-                {selectedRoom ? `Phòng ${selectedRoom.roomNumber}` : "Chưa có phòng Available"}
+            <div className="mt-6 rounded-3xl border border-blue-100 bg-blue-50/50 p-6">
+              <p className="text-sm font-bold text-slate-500">Phòng bạn chọn</p>
+              <p className="mt-1 text-2xl font-black text-slate-900">
+                {selectedRoom ? `Phòng ${selectedRoom.roomNumber}` : "Chưa chọn"}
               </p>
-              <p className="mt-2 text-sm text-slate-500">
-                {formatDateTime(appliedFilters.checkIn)} - {formatDateTime(appliedFilters.checkOut)}
-              </p>
-              <p className="mt-3 text-sm font-semibold text-rose-500">
-                Còn {availableRooms.length} phòng Available để chọn
-              </p>
+              {selectedRoom && (
+                <div className="mt-3 flex items-center gap-2 text-sm font-medium text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg w-max">
+                  <Check size={16} /> Đã sẵn sàng
+                </div>
+              )}
             </div>
 
-            <div className="mt-6 space-y-3">
+            <div className="mt-8 space-y-4">
               {submitMessage ? (
                 <div
-                  className={`rounded-2xl px-4 py-3 text-sm font-bold ${
+                  className={`rounded-2xl px-5 py-4 text-sm font-bold ${
                     submitMessage.type === "error"
-                      ? "bg-rose-50 text-rose-600"
-                      : "bg-emerald-50 text-emerald-600"
+                      ? "bg-rose-50 text-rose-600 border border-rose-100"
+                      : "bg-emerald-50 text-emerald-600 border border-emerald-100"
                   }`}
                 >
                   {submitMessage.text}
@@ -478,20 +603,13 @@ const RoomDetailPage = () => {
                 type="button"
                 disabled={!selectedRoom || createBookingMutation.isPending}
                 onClick={handleCreateBooking}
-                className="flex h-12 w-full items-center justify-center rounded-2xl bg-blue-600 text-sm font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
+                className="flex h-14 w-full items-center justify-center rounded-2xl bg-blue-600 text-base font-bold text-white shadow-lg shadow-blue-200 transition hover:bg-blue-700 hover:shadow-blue-300 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
               >
                 {selectedRoom
                   ? createBookingMutation.isPending
-                    ? "Đang tạo booking..."
-                    : `Đặt phòng ${selectedRoom.roomNumber}`
+                    ? "Đang xử lý..."
+                    : `Đặt ngay`
                   : "Chưa có phòng để chọn"}
-              </button>
-              <button
-                type="button"
-                onClick={() => navigate("/booking")}
-                className="flex h-12 w-full items-center justify-center rounded-2xl border border-slate-200 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
-              >
-                Quay lại danh sách
               </button>
             </div>
           </div>

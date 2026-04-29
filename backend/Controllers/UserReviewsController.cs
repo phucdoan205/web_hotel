@@ -10,7 +10,6 @@ namespace backend.Controllers
     [ApiController]
     [Route("api/user-reviews")]
     [Tags("User Reviews")]
-    [Permission]
     public class UserReviewsController : ControllerBase
     {
         private readonly AppDbContext _context;
@@ -36,6 +35,7 @@ namespace backend.Controllers
         }
 
         [HttpGet]
+        [Permission]
         public async Task<ActionResult<IEnumerable<UserReviewResponseDTO>>> GetMyReviews()
         {
             var userId = ResolveCurrentUserId();
@@ -70,6 +70,7 @@ namespace backend.Controllers
         }
 
         [HttpPost]
+        [Permission]
         public async Task<ActionResult<UserReviewResponseDTO>> CreateMyReview([FromBody] UserReviewCreateDTO dto)
         {
             var userId = ResolveCurrentUserId();
@@ -131,6 +132,31 @@ namespace backend.Controllers
                 CreatedAt = review.CreatedAt,
                 Status = review.Status
             });
+        }
+
+        [HttpGet("room-type/{roomTypeId:int}")]
+        public async Task<ActionResult<IEnumerable<object>>> GetRoomTypeReviews(int roomTypeId)
+        {
+            var reviews = await _context.Reviews
+                .AsNoTracking()
+                .Where(item => item.RoomTypeId == roomTypeId && item.Status)
+                .Include(item => item.User)
+                .OrderByDescending(item => item.CreatedAt ?? DateTime.MinValue)
+                .ThenByDescending(item => item.Id)
+                .Take(6)
+                .ToListAsync();
+
+            var result = reviews.Select(review => new 
+            {
+                Id = review.Id,
+                RoomTypeId = review.RoomTypeId,
+                UserName = review.User?.FullName ?? review.User?.Username ?? "Khách ẩn danh",
+                Rating = review.Rating ?? 0,
+                Comment = review.Comment ?? string.Empty,
+                CreatedAt = review.CreatedAt
+            });
+
+            return Ok(result);
         }
     }
 }
