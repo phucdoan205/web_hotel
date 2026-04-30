@@ -1,19 +1,20 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
 
-const NavItem = ({ label, to }) => {
+const NavItem = ({ label, to, icon: Icon }) => {
   return (
     <NavLink
       to={to}
       className={({ isActive }) =>
-        `px-4 py-2 text-sm font-medium transition-all duration-200 ${
+        `flex items-center gap-2 px-4 py-2 text-sm font-medium transition-all duration-200 ${
           isActive
-            ? "text-[#0194f3] font-bold border-b-2 border-[#0194f3]" // Khi active: Chữ xanh, gạch chân xanh, đậm
-            : "text-slate-900 hover:text-[#0194f3]" // Mặc định: Chữ đen, hover chữ xanh
+            ? "text-white font-bold border-b-2 border-white" // Active: White text and border
+            : "text-blue-50 hover:text-white" // Default: Light blue-ish white, hover pure white
         }`
       }
     >
-      {label}
+      {Icon && <Icon size={16} />}
+      <span>{label}</span>
     </NavLink>
   );
 };

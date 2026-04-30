@@ -202,7 +202,7 @@ const BookingPage = () => {
               )}
             </p>
           </div>
-          
+
           <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
             <ArrowDownWideNarrow size={16} className="text-slate-400" />
             <label className="text-sm font-semibold text-slate-500">Giá theo:</label>
@@ -238,7 +238,7 @@ const BookingPage = () => {
               <p className="mt-2 text-sm font-medium text-slate-500">
                 Thử thay đổi ngày, hoặc số lượng khách để xem thêm các lựa chọn khác.
               </p>
-              <button 
+              <button
                 onClick={() => {
                   setFilters(createDefaultFilters());
                   setAppliedFilters(createDefaultFilters());

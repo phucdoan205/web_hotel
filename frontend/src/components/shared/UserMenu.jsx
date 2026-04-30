@@ -83,7 +83,7 @@ const UserMenu = ({
   const handleLogout = () => {
     clearAuth();
     setIsOpen(false);
-    navigate(logoutRedirect);
+    window.location.href = logoutRedirect;
   };
 
   const handleNavigate = (path) => {
@@ -93,26 +93,25 @@ const UserMenu = ({
 
   const normalizedRole = auth?.role?.trim().toLowerCase();
   const showCustomerLinks = !ADMIN_ROLE_NAMES.has(normalizedRole);
-
+  
   const buttonClassName =
     variant === "dark"
-      ? "flex items-center gap-x-4 rounded-xl p-2 pl-1 transition-colors hover:bg-slate-100"
-      : "flex items-center gap-x-4 rounded-xl p-2 pl-1 transition-colors hover:bg-gray-50";
+      ? "flex items-center gap-x-4 rounded-xl px-4 py-2 transition-colors hover:bg-white/10"
+      : "flex items-center gap-x-4 rounded-xl px-4 py-2 transition-colors hover:bg-gray-50";
 
   const nameClassName =
     variant === "dark"
-      ? "text-sm font-semibold leading-tight text-slate-900"
+      ? "text-sm font-semibold leading-tight text-white"
       : "text-sm font-semibold leading-tight text-gray-950";
 
   const secondaryClassName =
     variant === "dark"
-      ? "text-xs font-medium text-slate-500"
+      ? "text-xs font-medium text-blue-100"
       : "text-xs font-medium text-gray-400";
 
   if (!auth) {
     return null;
   }
-
   return (
     <div className="relative" ref={menuRef}>
       <button

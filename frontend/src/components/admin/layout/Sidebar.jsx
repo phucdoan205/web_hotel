@@ -104,8 +104,8 @@ function SidebarLink({ item, pathname, className = "" }) {
     excludePaths: item.excludePaths,
   });
   const stateClasses = isActive
-    ? "bg-sky-100 text-sky-600 font-medium"
-    : "text-gray-600 hover:bg-sky-50 hover:text-sky-700";
+    ? "bg-white/10 text-white font-bold"
+    : "text-blue-50 hover:bg-white/5 hover:text-white";
 
   return (
     <NavLink to={item.path} className={`${baseClasses} ${stateClasses} ${className}`}>
@@ -157,14 +157,14 @@ export default function Sidebar() {
   );
 
   return (
-    <aside className="fixed left-0 top-0 z-[9999] flex h-screen w-64 flex-col border-r border-gray-100 bg-white p-6">
+    <aside className="fixed left-0 top-0 z-[9999] flex h-screen w-64 flex-col border-r border-white/10 bg-[#1F649C] p-6">
       <div className="mb-8 flex items-center gap-3">
-        <div className="rounded-xl bg-sky-500 p-2.5 text-white shadow-inner">
+        <div className="rounded-xl bg-white p-2.5 text-[#1F649C] shadow-inner">
           <Hotel className="size-6" />
         </div>
         <div className="flex flex-col">
-          <span className="text-xl font-extrabold leading-tight text-gray-900">Traveloka</span>
-          <span className="text-xs font-medium text-gray-400">PREMIUM ERP</span>
+          <span className="text-xl font-extrabold leading-tight tracking-tight text-white">HPT</span>
+          <span className="text-[10px] font-bold uppercase tracking-widest text-blue-200">Premium ERP</span>
         </div>
       </div>
 
@@ -184,8 +184,8 @@ export default function Sidebar() {
                     onClick={() => setIsBookingOpen((value) => !value)}
                     className={`flex w-full items-center gap-x-3 rounded-xl px-4 py-2.5 text-sm transition-all duration-200 ${
                       groupActive
-                        ? "bg-sky-100 font-medium text-sky-600"
-                        : "text-gray-600 hover:bg-sky-50 hover:text-sky-700"
+                        ? "bg-white/10 font-bold text-white"
+                        : "text-blue-50 hover:bg-white/5 hover:text-white"
                     }`}
                   >
                     <item.icon className="size-5 shrink-0" />
@@ -217,7 +217,7 @@ export default function Sidebar() {
           })}
         </div>
 
-        <div className="mt-auto border-t border-gray-100 pt-6">
+        <div className="mt-auto border-t border-white/10 pt-6">
           <SidebarLink
             item={{
               name: "Settings",
