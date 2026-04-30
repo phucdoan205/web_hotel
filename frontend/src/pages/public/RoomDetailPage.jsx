@@ -250,7 +250,7 @@ const RoomDetailPage = () => {
 
   if (availableRoomsQuery.isLoading && !roomTypeFromState) {
     return (
-      <div className="rounded-[32px] bg-white p-10 text-center text-sm font-semibold text-slate-500 shadow-sm">
+      <div className="rounded-2xl bg-white p-10 text-center text-sm font-semibold text-slate-500 shadow-sm">
         Đang tải chi tiết loại phòng...
       </div>
     );
@@ -258,7 +258,7 @@ const RoomDetailPage = () => {
 
   if (!roomType.roomTypeId) {
     return (
-      <div className="rounded-[32px] bg-white p-10 text-center shadow-sm">
+      <div className="rounded-2xl bg-white p-10 text-center shadow-sm">
         <h1 className="text-2xl font-bold text-slate-900">Không tìm thấy loại phòng</h1>
         <p className="mt-2 text-sm font-medium text-slate-500">
           Loại phòng này hiện không còn dữ liệu để hiển thị.
@@ -266,7 +266,7 @@ const RoomDetailPage = () => {
         <button
           type="button"
           onClick={() => navigate("/booking")}
-          className="mt-6 inline-flex h-11 items-center justify-center rounded-2xl bg-blue-600 px-5 text-sm font-bold text-white transition hover:bg-blue-700"
+          className="mt-6 inline-flex h-11 items-center justify-center rounded-xl bg-blue-600 px-5 text-sm font-bold text-white transition hover:bg-blue-700"
         >
           Quay lại danh sách
         </button>
@@ -352,7 +352,7 @@ const RoomDetailPage = () => {
 
             <div className="relative">
               {imageUrls.length >= 3 ? (
-                <div className="grid h-[460px] grid-cols-3 gap-2 overflow-hidden rounded-[32px]">
+                <div className="grid h-[460px] grid-cols-3 gap-2 overflow-hidden rounded-2xl">
                   <div className="col-span-2 h-full">
                     <img src={imageUrls[0]} alt="Phòng chính" className="h-full w-full object-cover" />
                   </div>
@@ -362,39 +362,39 @@ const RoomDetailPage = () => {
                   </div>
                 </div>
               ) : imageUrls.length === 2 ? (
-                <div className="grid h-[460px] grid-cols-2 gap-2 overflow-hidden rounded-[32px]">
+                <div className="grid h-[460px] grid-cols-2 gap-2 overflow-hidden rounded-2xl">
                   <img src={imageUrls[0]} alt="Phòng" className="h-full w-full object-cover" />
                   <img src={imageUrls[1]} alt="Góc khác" className="h-full w-full object-cover" />
                 </div>
               ) : (
-                <div className="h-[460px] overflow-hidden rounded-[32px]">
+                <div className="h-[460px] overflow-hidden rounded-2xl">
                   <img src={imageUrls[0]} alt="Phòng" className="h-full w-full object-cover" />
                 </div>
               )}
             </div>
 
-            <div className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
+            <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
               <h2 className="text-xl font-bold text-slate-900 mb-4">Mô tả phòng</h2>
               <p className="text-slate-600 leading-relaxed whitespace-pre-wrap">
                 {roomType.description}
               </p>
               
               <div className="mt-8 grid gap-4 sm:grid-cols-3 pt-6 border-t border-slate-100">
-                <div className="rounded-3xl bg-slate-50 p-5">
+                <div className="rounded-2xl bg-slate-50 p-5">
                   <Users size={20} className="text-blue-600" />
                   <p className="mt-3 text-sm font-semibold text-slate-500">Sức chứa</p>
                   <p className="mt-1 text-base font-bold text-slate-900">
                     {roomType.capacityAdults} người lớn, {roomType.capacityChildren} trẻ em
                   </p>
                 </div>
-                <div className="rounded-3xl bg-slate-50 p-5">
+                <div className="rounded-2xl bg-slate-50 p-5">
                   <BedDouble size={20} className="text-blue-600" />
                   <p className="mt-3 text-sm font-semibold text-slate-500">Loại giường</p>
                   <p className="mt-1 text-base font-bold text-slate-900">
                     {roomType.bedType || "Đang cập nhật"}
                   </p>
                 </div>
-                <div className="rounded-3xl bg-slate-50 p-5">
+                <div className="rounded-2xl bg-slate-50 p-5">
                   <DoorClosed size={20} className="text-blue-600" />
                   <p className="mt-3 text-sm font-semibold text-slate-500">Diện tích</p>
                   <p className="mt-1 text-base font-bold text-slate-900">
@@ -477,7 +477,7 @@ const RoomDetailPage = () => {
                 </table>
               </div>
             ) : (
-              <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-5 py-12 text-center">
+              <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-12 text-center">
                 <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-200 mb-4">
                   <DoorClosed size={24} className="text-slate-400" />
                 </div>
@@ -498,7 +498,7 @@ const RoomDetailPage = () => {
                   (amenity) => (
                     <div
                       key={amenity}
-                      className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700"
+                      className="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700"
                     >
                       <span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 shrink-0">
                         <Check size={16} />
@@ -516,7 +516,7 @@ const RoomDetailPage = () => {
             <h2 className="text-2xl font-bold text-slate-900">Đánh giá của khách</h2>
             <div>
               <div className="flex items-center gap-5 pb-6">
-                <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-blue-600 text-3xl font-black text-white shadow-lg shadow-blue-200">
+                <div className="flex h-20 w-20 items-center justify-center rounded-xl bg-blue-600 text-3xl font-black text-white shadow-lg shadow-blue-200">>
                   {avgRating.toFixed(1)}
                 </div>
                 <div>
@@ -527,7 +527,7 @@ const RoomDetailPage = () => {
 
               <div className="mt-6 grid gap-6 sm:grid-cols-2">
                 {reviews.map((review) => (
-                  <div key={review.id} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition">
+                  <div key={review.id} className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition">>
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center gap-3">
                         {review.avatarUrl ? (
@@ -563,7 +563,7 @@ const RoomDetailPage = () => {
                   </div>
                 ))}
                 {reviews.length === 0 && (
-                  <div className="col-span-full rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center text-sm font-medium text-slate-500">
+                  <div className="col-span-full rounded-xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center text-sm font-medium text-slate-500">>
                     Chưa có đánh giá nào cho loại phòng này.
                   </div>
                 )}
@@ -575,7 +575,7 @@ const RoomDetailPage = () => {
 
         {/* RIGHT SIDEBAR (Booking Form) */}
         <aside className="relative">
-          <div className="sticky top-[160px] rounded-[32px] border border-slate-200 bg-white p-7 shadow-lg shadow-slate-100/50">
+          <div className="sticky top-[160px] rounded-2xl border border-slate-200 bg-white p-7 shadow-lg shadow-slate-100/50">
             <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Tổng giá lưu trú</p>
             <p className="mt-2 text-4xl font-black tracking-tight text-blue-600">
               {formatCurrency(totalPrice)}
@@ -584,7 +584,7 @@ const RoomDetailPage = () => {
               {formatCurrency(roomType.basePrice)} / đêm
             </p>
 
-            <div className="mt-8 space-y-5 rounded-3xl bg-slate-50 p-6 border border-slate-100">
+            <div className="mt-8 space-y-5 rounded-2xl bg-slate-50 p-6 border border-slate-100">
               <div className="flex items-start gap-3 pb-4 border-b border-slate-200">
                 <CalendarRange size={20} className="mt-0.5 text-blue-600" />
                 <div>
@@ -601,7 +601,7 @@ const RoomDetailPage = () => {
                   type="datetime-local"
                   value={filters.checkIn}
                   onChange={(event) => handleFilterChange("checkIn", event.target.value)}
-                  className="h-12 w-full rounded-2xl border border-slate-200 px-4 text-sm font-medium text-slate-800 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100 bg-white"
+                  className="h-12 w-full rounded-xl border border-slate-200 px-4 text-sm font-medium text-slate-800 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100 bg-white"
                 />
               </label>
 
@@ -611,16 +611,16 @@ const RoomDetailPage = () => {
                   type="datetime-local"
                   value={filters.checkOut}
                   onChange={(event) => handleFilterChange("checkOut", event.target.value)}
-                  className="h-12 w-full rounded-2xl border border-slate-200 px-4 text-sm font-medium text-slate-800 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100 bg-white"
+                  className="h-12 w-full rounded-xl border border-slate-200 px-4 text-sm font-medium text-slate-800 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100 bg-white"
                 />
               </label>
 
-              <div className="rounded-2xl bg-blue-100 px-4 py-3 text-center text-sm font-bold text-blue-800">
+              <div className="rounded-xl bg-blue-100 px-4 py-3 text-center text-sm font-bold text-blue-800">>
                 Thời gian: {stayDays} ngày
               </div>
             </div>
 
-            <div className="mt-6 rounded-3xl border border-blue-100 bg-blue-50/50 p-6">
+            <div className="mt-6 rounded-2xl border border-blue-100 bg-blue-50/50 p-6">
               <p className="text-sm font-bold text-slate-500">Phòng bạn chọn</p>
               <p className="mt-1 text-2xl font-black text-slate-900">
                 {selectedRoom ? `Phòng ${selectedRoom.roomNumber}` : "Chưa chọn"}
@@ -635,7 +635,7 @@ const RoomDetailPage = () => {
             <div className="mt-8 space-y-4">
               {submitMessage ? (
                 <div
-                  className={`rounded-2xl px-5 py-4 text-sm font-bold ${
+                  className={`rounded-xl px-5 py-4 text-sm font-bold ${
                     submitMessage.type === "error"
                       ? "bg-rose-50 text-rose-600 border border-rose-100"
                       : "bg-emerald-50 text-emerald-600 border border-emerald-100"
@@ -649,7 +649,7 @@ const RoomDetailPage = () => {
                 type="button"
                 disabled={!selectedRoom || createBookingMutation.isPending}
                 onClick={handleCreateBooking}
-                className="flex h-14 w-full items-center justify-center rounded-2xl bg-blue-600 text-base font-bold text-white shadow-lg shadow-blue-200 transition hover:bg-blue-700 hover:shadow-blue-300 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
+                className="flex h-14 w-full items-center justify-center rounded-xl bg-blue-600 text-base font-bold text-white shadow-lg shadow-blue-200 transition hover:bg-blue-700 hover:shadow-blue-300 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
               >
                 {selectedRoom
                   ? createBookingMutation.isPending

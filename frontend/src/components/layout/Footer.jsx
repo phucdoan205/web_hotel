@@ -18,7 +18,7 @@ const FooterColumn = ({ title, links }) => (
 
 const Footer = () => {
   return (
-    <footer className="bg-white pt-16 pb-8 border-t border-slate-100 mt-20">
+    <footer className="footer-container bg-white pt-16 pb-8 border-t border-slate-100 mt-20">
       <div className="max-w-7xl mx-auto px-10 grid grid-cols-1 md:grid-cols-4 gap-12">
         {/* Brand Section */}
         <div className="flex flex-col gap-6">

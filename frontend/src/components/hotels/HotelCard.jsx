@@ -3,14 +3,14 @@ import { Star, MapPin, Coffee, Wifi, Car } from "lucide-react";
 
 const HotelCard = ({ hotel }) => {
   return (
-    <div className="bg-white rounded-xl border shadow-sm overflow-hidden flex flex-col md:flex-row mb-4 hover:shadow-md transition-shadow">
+    <div className="bg-white rounded-2xl border shadow-sm overflow-hidden flex flex-col md:flex-row mb-4 hover:shadow-md transition-shadow">
       <div className="relative w-full md:w-80 h-52 md:h-auto shrink-0">
         <img
           src={hotel.image}
           alt={hotel.name}
           className="w-full h-full object-cover"
         />
-        <span className="absolute top-3 left-3 bg-blue-500 text-white text-[10px] font-bold px-2 py-1 rounded">
+        <span className="absolute top-3 left-3 bg-blue-500 text-white text-[10px] font-bold px-2 py-1 rounded-xl">
           PHỔ BIẾN NHẤT
         </span>
       </div>
@@ -34,7 +34,7 @@ const HotelCard = ({ hotel }) => {
                 <span className="text-blue-600 font-bold text-sm">
                   {hotel.reviewStatus}
                 </span>
-                <span className="bg-blue-600 text-white font-bold px-2 py-1 rounded-lg text-sm">
+                <span className="bg-blue-600 text-white font-bold px-2 py-1 rounded-xl text-sm">
                   {hotel.rating}
                 </span>
               </div>
@@ -49,10 +49,10 @@ const HotelCard = ({ hotel }) => {
           </p>
 
           <div className="flex gap-4 mt-4 text-xs text-slate-600">
-            <span className="flex items-center gap-1 bg-green-50 text-green-700 px-2 py-1 rounded">
+            <span className="flex items-center gap-1 bg-green-50 text-green-700 px-2 py-1 rounded-xl">
               <Coffee size={14} /> Bao gồm bữa sáng
             </span>
-            <span className="flex items-center gap-1 bg-blue-50 text-blue-700 px-2 py-1 rounded">
+            <span className="flex items-center gap-1 bg-blue-50 text-blue-700 px-2 py-1 rounded-xl">
               <Wifi size={14} /> Wi-Fi miễn phí
             </span>
           </div>
@@ -70,7 +70,7 @@ const HotelCard = ({ hotel }) => {
               {hotel.price.toLocaleString()} VND
               <span className="text-slate-400 text-xs font-normal">/đêm</span>
             </p>
-            <button className="mt-2 px-6 py-2 bg-blue-500 text-white font-bold rounded-lg hover:bg-blue-600 transition-all">
+            <button className="mt-2 px-6 py-2 bg-blue-500 text-white font-bold rounded-xl hover:bg-blue-600 transition-all">
               Chọn phòng
             </button>
           </div>

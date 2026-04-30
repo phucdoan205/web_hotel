@@ -8,9 +8,9 @@ import { format } from "date-fns";
 registerLocale("vi", vi);
 
 const CustomDateInput = React.forwardRef(({ value, onClick, startDate, endDate }, ref) => (
-  <div 
-    className="flex w-full cursor-pointer items-center bg-transparent text-sm font-semibold text-slate-900 outline-none" 
-    onClick={onClick} 
+  <div
+    className="flex w-full cursor-pointer items-center bg-transparent text-sm font-semibold text-slate-900 outline-none"
+    onClick={onClick}
     ref={ref}
   >
     <span className="truncate">

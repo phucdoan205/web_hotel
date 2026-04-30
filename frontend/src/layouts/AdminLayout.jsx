@@ -5,7 +5,7 @@ import Navbar from "../components/admin/layout/Navbar";
 
 const AdminLayout = () => {
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-950 font-sans">
+    <div className="admin-layout min-h-screen bg-gray-50 text-gray-950 font-sans">
       {/* 1. Sidebar cố định bên trái */}
       <Sidebar />
 

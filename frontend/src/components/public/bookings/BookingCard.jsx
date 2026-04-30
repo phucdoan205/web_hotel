@@ -33,9 +33,9 @@ const BookingCard = ({ roomType, availableCount = 0, numberOfNights, detailLinkS
   const capacityText = `${roomType.capacityAdults || 0} người lớn, ${roomType.capacityChildren || 0} trẻ em`;
 
   return (
-    <article className="relative rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)_180px]">
-        <div className="overflow-hidden rounded-3xl bg-slate-100">
+    <article className="relative rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)_240px]">
+        <div className="overflow-hidden rounded-xl bg-slate-100">
           <img src={imageUrl} alt={roomType.roomTypeName} className="h-52 w-full object-cover" />
         </div>
 
@@ -86,7 +86,7 @@ const BookingCard = ({ roomType, availableCount = 0, numberOfNights, detailLinkS
             </div>
 
             <div className="mt-6 flex items-center justify-end gap-2">
-              <p className="text-4xl font-black tracking-tight text-slate-900">
+              <p className="whitespace-nowrap text-3xl font-black tracking-tight text-slate-900">
                 {formatCurrency(totalPrice)}
               </p>
               <button
@@ -129,7 +129,7 @@ const BookingCard = ({ roomType, availableCount = 0, numberOfNights, detailLinkS
             <NavLink
               to={`/room-types/${roomType.roomTypeId}`}
               state={detailLinkState}
-              className="mt-4 inline-flex h-12 min-w-[132px] items-center justify-center rounded-2xl border border-blue-500 px-6 text-sm font-bold text-blue-600 transition hover:bg-blue-50"
+              className="mt-4 inline-flex h-12 min-w-[132px] items-center justify-center rounded-xl border border-blue-500 px-6 text-sm font-bold text-blue-600 transition hover:bg-blue-50"
             >
               Chọn
             </NavLink>

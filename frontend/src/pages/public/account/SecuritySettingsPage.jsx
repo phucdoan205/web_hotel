@@ -68,6 +68,7 @@ const SecuritySettingsPage = () => {
   const sidebarItems = [
     { label: "Thông tin cá nhân", icon: User, active: false, path: "/profile/personal-info" },
     { label: "Cài đặt bảo mật", icon: Lock, active: true, path: "/profile/security" },
+    { label: "Cài đặt chung", icon: Pencil, active: false, path: "/profile/settings" },
     { label: "Phương thức thanh toán", icon: CreditCard, active: false, path: "#" },
   ];
 
@@ -85,7 +86,7 @@ const SecuritySettingsPage = () => {
         <div className="flex flex-col lg:flex-row gap-12">
           {/* Sidebar */}
           <div className="w-full lg:w-72 shrink-0">
-            <div className="border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+            <div className="border border-slate-200 rounded-lg overflow-hidden shadow-sm">
               {sidebarItems.map((item, idx) => (
                 <Link
                   key={idx}

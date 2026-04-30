@@ -15,7 +15,10 @@ import {
   Pencil,
   Wallet,
   CreditCard,
-  History
+  History,
+  Globe,
+  Moon,
+  Sun
 } from "lucide-react";
 import {
   getMyProfile,
@@ -140,6 +143,7 @@ const PersonalDetailsPage = () => {
   const sidebarItems = [
     { label: "Thông tin cá nhân", icon: User, active: true, path: "/profile/personal-info" },
     { label: "Cài đặt bảo mật", icon: Lock, active: false, path: "/profile/security" },
+    { label: "Cài đặt chung", icon: Pencil, active: false, path: "/profile/settings" },
     { label: "Phương thức thanh toán", icon: CreditCard, active: false, path: "#" },
   ];
 
@@ -158,7 +162,7 @@ const PersonalDetailsPage = () => {
         <div className="flex flex-col lg:flex-row gap-12">
           {/* Sidebar */}
           <div className="w-full lg:w-72 shrink-0">
-            <div className="border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+            <div className="border border-slate-200 rounded-lg overflow-hidden shadow-sm bg-white">
               {sidebarItems.map((item, idx) => (
                 <Link
                   key={idx}
@@ -208,7 +212,7 @@ const PersonalDetailsPage = () => {
                             type="text" 
                             value={formData.firstName}
                             onChange={(e) => setFormData({...formData, firstName: e.target.value})}
-                            className="w-full p-3 border border-slate-300 rounded-md focus:border-[#006ce4] outline-none" 
+                            className="w-full p-3 border border-slate-300 rounded-md focus:border-[#006ce4] outline-none text-slate-900" 
                           />
                         </div>
                         <div className="flex-1">
@@ -217,7 +221,7 @@ const PersonalDetailsPage = () => {
                             type="text" 
                             value={formData.lastName}
                             onChange={(e) => setFormData({...formData, lastName: e.target.value})}
-                            className="w-full p-3 border border-slate-300 rounded-md focus:border-[#006ce4] outline-none" 
+                            className="w-full p-3 border border-slate-300 rounded-md focus:border-[#006ce4] outline-none text-slate-900" 
                           />
                         </div>
                       </div>
@@ -244,7 +248,7 @@ const PersonalDetailsPage = () => {
                 )}
               </div>
 
-              {/* Display Name Row (Placeholder as requested in image) */}
+              {/* Display Name Row */}
               <div className="py-8 border-b border-slate-100 flex justify-between items-center">
                 <p className="text-sm font-bold text-slate-900 w-1/3">Tên hiển thị</p>
                 <p className="flex-1 text-sm text-slate-400 italic">Chọn tên hiển thị</p>
@@ -274,13 +278,13 @@ const PersonalDetailsPage = () => {
                         type="text" 
                         value={formData.phone}
                         onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                        className="w-full max-w-sm p-3 border border-slate-300 rounded-md focus:border-[#006ce4] outline-none" 
+                        className="w-full max-w-sm p-3 border border-slate-300 rounded-md focus:border-[#006ce4] outline-none text-slate-900" 
                         placeholder="Số điện thoại của bạn"
                       />
                     ) : (
                       <p className="text-sm text-slate-600">{profile.phone || "Thêm số điện thoại của bạn"}</p>
                     )}
-                    <p className="text-xs text-slate-400 mt-2">Chỗ nghỉ hoặc địa điểm tham quan bạn đặt sẽ liên lạc với bạn qua số này nếu cần.</p>
+                    <p className="text-xs text-slate-400 mt-2">Chỗ nghỉ hoặc địa điểm tham quan bạn đặt sẽ liên lạc with bạn qua số này nếu cần.</p>
                   </div>
                   {editingField !== 'phone' ? (
                     <button onClick={() => setEditingField('phone')} className="text-sm font-bold text-[#006ce4] hover:underline">Chỉnh sửa</button>
@@ -305,7 +309,7 @@ const PersonalDetailsPage = () => {
                         type="date" 
                         value={formData.dateOfBirth}
                         onChange={(e) => setFormData({...formData, dateOfBirth: e.target.value})}
-                        className="w-full max-w-sm p-3 border border-slate-300 rounded-md focus:border-[#006ce4] outline-none" 
+                        className="w-full max-w-sm p-3 border border-slate-300 rounded-md focus:border-[#006ce4] outline-none text-slate-900" 
                       />
                     ) : (
                       <p className="text-sm text-slate-600">{formatDateForDisplay(profile.dateOfBirth)}</p>

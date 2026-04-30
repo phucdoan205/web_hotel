@@ -100,6 +100,12 @@ const AccountProfilePage = () => {
       ]
     },
     {
+      title: "Cài đặt",
+      items: [
+        { label: "Cài đặt chung", icon: Pencil, path: "/profile/settings" },
+      ]
+    },
+    {
       title: "Hoạt động du lịch",
       items: [
         { label: "Chuyến đi và đơn đặt", icon: Briefcase, path: "/booking-history" },
@@ -116,12 +122,12 @@ const AccountProfilePage = () => {
         <div className="flex flex-col gap-12 lg:flex-row mb-16">
           {/* Left Column: Sidebar Profile */}
           <div className="w-full lg:w-[320px] shrink-0">
-            <div className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-xl shadow-slate-200/40">
+            <div className="rounded-lg border border-slate-200 bg-white p-8 shadow-xl shadow-slate-200/40">
               <div className="relative group mx-auto mb-6 aspect-square w-full max-w-[200px]">
                 <img
                   src={avatarLoadFailed ? "/default-avatar.png" : displayProfile.avatarUrl || "/default-avatar.png"}
                   alt="Avatar"
-                  className="size-full rounded-2xl object-cover shadow-md border-4 border-slate-50"
+                  className="size-full rounded-lg object-cover shadow-md border-4 border-slate-50"
                   onError={() => setAvatarLoadFailed(true)}
                 />
               </div>
@@ -158,9 +164,9 @@ const AccountProfilePage = () => {
 
           {/* Right Column: Account Summary */}
           <div className="flex-1">
-             <div className="rounded-[2.5rem] border border-slate-200 bg-white p-8 shadow-xl shadow-slate-200/50 md:p-10">
+             <div className="rounded-lg border border-slate-200 bg-white p-8 shadow-xl shadow-slate-200/50 md:p-10">
                 <div className="mb-8 flex items-center gap-4">
-                  <div className="size-12 rounded-2xl bg-sky-50 flex items-center justify-center text-[#1F649C] border border-sky-100">
+                  <div className="size-12 rounded-lg bg-sky-50 flex items-center justify-center text-[#1F649C] border border-sky-100">
                     <User className="size-6" />
                   </div>
                   <div>
@@ -173,10 +179,10 @@ const AccountProfilePage = () => {
                   {infoItems.map((item) => (
                     <div
                       key={item.label}
-                      className="group flex flex-col sm:flex-row sm:items-center justify-between rounded-3xl border border-slate-100 bg-slate-50/50 p-6 transition-all hover:bg-white hover:border-sky-200 hover:shadow-md"
+                      className="group flex flex-col sm:flex-row sm:items-center justify-between rounded-lg border border-slate-100 bg-slate-50/50 p-6 transition-all hover:bg-white hover:border-sky-200 hover:shadow-md"
                     >
                       <div className="flex items-center gap-4">
-                        <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-white text-slate-500 group-hover:text-[#1F649C] group-hover:shadow-sm transition-all border border-slate-100">
+                        <div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-white text-slate-500 group-hover:text-[#1F649C] group-hover:shadow-sm transition-all border border-slate-100">
                           <item.icon className="size-5" />
                         </div>
                         <div>
@@ -194,17 +200,17 @@ const AccountProfilePage = () => {
         {/* Bottom Section: Dashboard Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {dashboardCards.map((card) => (
-            <div key={card.title} className="w-full rounded-[2rem] border border-slate-200 bg-white p-8 shadow-lg shadow-slate-200/30">
+            <div key={card.title} className="w-full rounded-lg border border-slate-200 bg-white p-8 shadow-lg shadow-slate-200/30">
                <h3 className="text-xl font-black text-slate-900 mb-8">{card.title}</h3>
                <div className="space-y-2">
                  {card.items.map((item) => (
                    <Link 
                      key={item.label}
                      to={item.path}
-                     className="w-full flex items-center justify-between p-5 rounded-2xl hover:bg-slate-50 transition-all group border border-transparent hover:border-slate-200"
+                     className="w-full flex items-center justify-between p-5 rounded-md hover:bg-slate-50 transition-all group border border-transparent hover:border-slate-200"
                    >
                      <div className="flex items-center gap-4">
-                        <div className="size-12 rounded-xl bg-white shadow-sm flex items-center justify-center text-slate-500 group-hover:text-[#1F649C] transition-colors border border-slate-100">
+                        <div className="size-12 rounded-md bg-white shadow-sm flex items-center justify-center text-slate-500 group-hover:text-[#1F649C] transition-colors border border-slate-100">
                           <item.icon className="size-6" />
                         </div>
                         <span className="text-base font-bold text-slate-800">{item.label}</span>

@@ -47,10 +47,10 @@ const HomePage = () => {
 
       <section className="mx-auto max-w-7xl px-5 py-10 lg:px-8">
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
-          <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div className="flex items-start gap-4">
-                <div className="rounded-lg bg-blue-50 p-3 text-[#0071c2]">
+                <div className="rounded-xl bg-blue-50 p-3 text-[#0071c2]">
                   <BadgePercent size={24} />
                 </div>
                 <div>
@@ -60,14 +60,14 @@ const HomePage = () => {
                   </p>
                 </div>
               </div>
-              <button className="inline-flex h-11 items-center justify-center gap-2 rounded-md border border-[#0071c2] px-4 text-sm font-bold text-[#0071c2] transition hover:bg-blue-50">
+              <button className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-[#0071c2] px-4 text-sm font-bold text-[#0071c2] transition hover:bg-blue-50">
                 Xem ưu đãi
                 <ArrowRight size={16} />
               </button>
             </div>
           </div>
 
-          <div className="rounded-lg bg-[#003b95] p-5 text-white shadow-sm">
+          <div className="rounded-2xl bg-[#003b95] p-5 text-white shadow-sm">
             <p className="text-sm font-semibold text-blue-100">Tài khoản của bạn</p>
             <h3 className="mt-2 text-xl font-black">Đăng nhập để xem giá riêng</h3>
             <p className="mt-2 text-sm text-blue-100">
@@ -86,7 +86,7 @@ const HomePage = () => {
         </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {propertyTypes.map((item) => (
-            <article key={item.name} className="group overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+            <article key={item.name} className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
               <div className="h-40 overflow-hidden">
                 <img
                   src={item.image}
@@ -95,7 +95,7 @@ const HomePage = () => {
                 />
               </div>
               <div className="flex items-center gap-3 p-4">
-                <div className="rounded-lg bg-blue-50 p-2 text-[#0071c2]">
+                <div className="rounded-xl bg-blue-50 p-2 text-[#0071c2]">
                   <item.icon size={20} />
                 </div>
                 <div>

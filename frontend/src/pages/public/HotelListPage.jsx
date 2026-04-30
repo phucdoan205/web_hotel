@@ -64,7 +64,7 @@ const HotelListPage = () => {
             {[1, 2, 3, "...", 15].map((page, i) => (
               <button
                 key={i}
-                className={`w-10 h-10 rounded-lg border ${page === 1 ? "bg-blue-500 text-white border-blue-500" : "bg-white hover:bg-slate-50"}`}
+                className={`w-10 h-10 rounded-xl border ${page === 1 ? "bg-blue-500 text-white border-blue-500" : "bg-white hover:bg-slate-50"}`}
               >
                 {page}
               </button>

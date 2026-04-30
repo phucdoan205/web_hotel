@@ -9,7 +9,7 @@ const FilterSection = ({ title, children }) => (
 
 const FilterSidebar = () => {
   return (
-    <div className="bg-white p-5 rounded-xl border shadow-sm h-fit sticky top-24">
+    <div className="bg-white p-5 rounded-2xl border shadow-sm h-fit sticky top-24">
       <div className="flex justify-between items-center mb-6">
         <h2 className="font-bold text-lg">Bộ lọc</h2>
         <button className="text-blue-500 text-sm font-bold">ĐẶT LẠI</button>
