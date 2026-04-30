@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, useLocation, useParams } from "react-router-do
 
 import MainLayout from "../layouts/MainLayout";
 import AdminLayout from "../layouts/AdminLayout";
+import AccountLayout from "../layouts/AccountLayout";
 
 import HomePage from "../pages/public/HomePage";
 import BlogPage from "../pages/public/BlogPage";
@@ -87,9 +88,11 @@ const AppRoutes = () => {
         <Route path="booking-history/:id/payment" element={<BookingPaymentPage />} />
         <Route path="room-types/:id" element={<RoomDetailPage />} />
         <Route path="profile" element={<AccountProfilePage />} />
-        <Route path="profile/personal-info" element={<PersonalDetailsPage />} />
-        <Route path="profile/security" element={<SecuritySettingsPage />} />
-        <Route path="profile/settings" element={<GeneralSettingsPage />} />
+        <Route element={<AccountLayout />}>
+          <Route path="profile/personal-info" element={<PersonalDetailsPage />} />
+          <Route path="profile/security" element={<SecuritySettingsPage />} />
+          <Route path="profile/settings" element={<GeneralSettingsPage />} />
+        </Route>
         <Route path="favorites" element={<AccountFavoritesPage />} />
         <Route path="reviews" element={<AccountReviewsPage />} />
         <Route path="vouchers" element={<AccountPlaceholderPage type="vouchers" />} />

@@ -141,35 +141,6 @@ const UserMenu = ({
         </div>
 
         <ChevronDown
-  return (
-    <div className="relative" ref={menuRef}>
-      <button
-        type="button"
-        onClick={() => setIsOpen((current) => !current)}
-        className={buttonClassName}
-      >
-        <div className="flex flex-col text-right">
-          <span className={nameClassName}>{user.name}</span>
-          {showRole ? (
-            <span className={secondaryClassName}>{user.role}</span>
-          ) : user.email ? (
-            <span className={secondaryClassName}>{user.email}</span>
-          ) : null}
-        </div>
-
-        <div className="relative">
-          <img
-            src={getAvatarPreview({
-              fullName: user.name,
-              avatarUrl: user.avatarUrl,
-            })}
-            alt={user.name}
-            className="size-11 rounded-full border-4 border-sky-100 object-cover shadow-sm"
-          />
-          <span className="absolute bottom-0 right-0 size-3 rounded-full border-2 border-white bg-emerald-500"></span>
-        </div>
-
-        <ChevronDown
           className={`size-4 text-gray-400 transition-transform ${
             isOpen ? "rotate-180" : ""
           }`}
