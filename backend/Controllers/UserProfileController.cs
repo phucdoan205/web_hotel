@@ -71,6 +71,10 @@ namespace backend.Controllers
                 .FirstOrDefaultAsync(u => u.Id == id);
             if (user == null) return NotFound();
 
+            var memberships = await _context.Memberships.OrderBy(m => m.MinPoints).ToListAsync();
+            var currentMembership = memberships.FirstOrDefault(m => m.Id == user.MembershipId);
+            var nextMembership = memberships.FirstOrDefault(m => (m.MinPoints ?? 0) > user.Points);
+
             return new UserProfileResponseDTO
             {
                 Id = user.Id,
@@ -82,6 +86,10 @@ namespace backend.Controllers
                 AvatarUrl = user.AvatarUrl,
                 DateOfBirth = user.DateOfBirth,
                 RoleName = user.Role?.Name,
+                Points = user.Points,
+                MembershipName = currentMembership?.TierName ?? "Bronze",
+                NextMembershipName = nextMembership?.TierName,
+                NextMembershipMinPoints = nextMembership?.MinPoints,
                 Status = user.Status
             };
         }

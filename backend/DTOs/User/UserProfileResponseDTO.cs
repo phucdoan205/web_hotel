@@ -11,6 +11,10 @@ namespace backend.DTOs.User
         public string? AvatarUrl { get; set; }
         public DateTime? DateOfBirth { get; set; }
         public string? RoleName { get; set; }
+        public int Points { get; set; }
+        public string? MembershipName { get; set; }
+        public string? NextMembershipName { get; set; }
+        public int? NextMembershipMinPoints { get; set; }
         public bool? Status { get; set; }
     }
 }

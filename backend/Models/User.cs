@@ -15,6 +15,7 @@ namespace backend.Models
         public string? AvatarUrl { get; set; }
         public DateTime? DateOfBirth { get; set; }
         public string PasswordHash { get; set; } = null!;
+        public int Points { get; set; } = 0;
         public bool? Status { get; set; }
         public Role? Role { get; set; }
         public Membership? Membership { get; set; }

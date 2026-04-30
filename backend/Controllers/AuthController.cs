@@ -41,7 +41,7 @@ namespace backend.Controllers
         {
             if (string.IsNullOrWhiteSpace(loginDto.Email) || string.IsNullOrWhiteSpace(loginDto.Password))
             {
-                return BadRequest(new { message = "Email and password are required." });
+                return BadRequest(new { message = "Vui lòng nhập Email và mật khẩu." });
             }
 
             var normalizedEmail = loginDto.Email.Trim();
@@ -54,7 +54,7 @@ namespace backend.Controllers
 
             if (user == null || user.Status != true || !BCrypt.Net.BCrypt.Verify(loginDto.Password, user.PasswordHash))
             {
-                return Unauthorized(new { message = "Email or password is incorrect." });
+                return Unauthorized(new { message = "Email hoặc mật khẩu không chính xác." });
             }
 
             return Ok(BuildAuthResponse(user));
@@ -65,13 +65,13 @@ namespace backend.Controllers
         {
             if (string.IsNullOrWhiteSpace(loginDto.GoogleCredential))
             {
-                return BadRequest(new { message = "Google credential is required." });
+                return BadRequest(new { message = "Thiếu thông tin xác thực Google." });
             }
 
             var googlePayload = await VerifyGoogleCredentialAsync(loginDto.GoogleCredential);
             if (googlePayload == null || string.IsNullOrWhiteSpace(googlePayload.Sub) || string.IsNullOrWhiteSpace(googlePayload.Email))
             {
-                return Unauthorized(new { message = "Google login is invalid." });
+                return Unauthorized(new { message = "Đăng nhập Google không hợp lệ." });
             }
 
             var normalizedEmail = googlePayload.Email.Trim();
@@ -121,7 +121,7 @@ namespace backend.Controllers
 
             if (user.Status != true)
             {
-                return Unauthorized(new { message = "This account is inactive." });
+                return Unauthorized(new { message = "Tài khoản này hiện đang bị tạm khóa." });
             }
 
             var hasChanges = false;

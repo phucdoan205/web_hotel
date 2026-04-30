@@ -37,6 +37,7 @@ const LoginForm = () => {
             handleGoogleCredential(response.credential);
           }
         },
+        locale: "vi",
       });
 
       window.google.accounts.id.renderButton(googleButtonRef.current, {
@@ -45,6 +46,7 @@ const LoginForm = () => {
         shape: "pill",
         width: 380,
         text: "signin_with",
+        locale: "vi",
       });
     };
 
@@ -54,7 +56,7 @@ const LoginForm = () => {
     }
 
     const existingScript = document.querySelector(
-      'script[src="https://accounts.google.com/gsi/client"]',
+      'script[src^="https://accounts.google.com/gsi/client"]',
     );
 
     if (existingScript) {
@@ -63,7 +65,7 @@ const LoginForm = () => {
     }
 
     const script = document.createElement("script");
-    script.src = "https://accounts.google.com/gsi/client";
+    script.src = "https://accounts.google.com/gsi/client?hl=vi";
     script.async = true;
     script.defer = true;
     script.addEventListener("load", initializeGoogleButton);

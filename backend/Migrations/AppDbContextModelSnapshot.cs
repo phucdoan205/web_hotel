@@ -1090,6 +1090,9 @@ namespace backend.Migrations
                     b.Property<string>("Phone")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int>("Points")
+                        .HasColumnType("int");
+
                     b.Property<int?>("RoleId")
                         .HasColumnType("int");
 

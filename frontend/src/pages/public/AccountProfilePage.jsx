@@ -148,7 +148,7 @@ const AccountProfilePage = () => {
         ...current,
         avatarUrl: uploadedUrl,
       }));
-      setFeedback({ type: "success", text: "Cập nhật ảnh đại diện thành công." });
+      window.alert("Đã thay đổi giao diện thành công.");
     } catch {
       setFeedback({
         type: "error",
@@ -259,233 +259,170 @@ const AccountProfilePage = () => {
   const displayProfile = profile ?? {};
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-16">
-      {/* Header Section */}
-      <div className="bg-[#01539d] pt-12 pb-[14rem] text-white">
-        <div className="mx-auto max-w-5xl px-5 lg:px-8">
-          <div className="flex flex-col items-center gap-5">
-            <div className="relative">
-              <img
-                src={
-                  avatarLoadFailed
-                    ? getAvatarPreview({
-                        fullName: displayProfile.fullName,
-                        avatarUrl: "",
-                      })
-                    : getAvatarPreview({
-                        fullName: displayProfile.fullName,
-                        avatarUrl: displayProfile.avatarUrl,
-                      })
-                }
-                alt="Ảnh đại diện"
-                className="size-24 rounded-full border-4 border-[#ffb700] object-cover shadow-lg md:size-28"
-                onError={() => setAvatarLoadFailed(true)}
-              />
-              <div className="absolute -bottom-2 -right-2 flex size-8 items-center justify-center rounded-full bg-[#ffb700] text-[#01539d] shadow-md">
-                <Star className="size-4 fill-current" />
+    <div className="min-h-screen bg-slate-50 py-12">
+      <div className="mx-auto max-w-6xl px-5 lg:px-8 relative z-10">
+        <div className="flex flex-col gap-8 lg:flex-row">
+          
+          {/* Left Column: Sidebar Profile */}
+          <div className="w-full lg:w-[350px] shrink-0">
+            <div className="rounded-[2.5rem] border border-slate-100 bg-white p-8 shadow-xl shadow-slate-200/50">
+              {/* Square Avatar */}
+              <div className="relative group mx-auto mb-6 aspect-square w-full max-w-[240px]">
+                <img
+                  src={
+                    avatarLoadFailed
+                      ? getAvatarPreview({
+                          fullName: displayProfile.fullName,
+                          avatarUrl: "",
+                        })
+                      : getAvatarPreview({
+                          fullName: displayProfile.fullName,
+                          avatarUrl: displayProfile.avatarUrl,
+                        })
+                  }
+                  alt="Ảnh đại diện"
+                  className="size-full rounded-3xl object-cover shadow-md border-4 border-slate-50"
+                  onError={() => setAvatarLoadFailed(true)}
+                />
+                <label className="absolute bottom-3 right-3 flex size-10 cursor-pointer items-center justify-center rounded-xl bg-white text-[#1F649C] shadow-lg transition-all hover:scale-110 hover:bg-[#1F649C] hover:text-white border border-slate-100">
+                  <Camera className="size-5" />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarUpload}
+                    className="hidden"
+                    disabled={isUploading}
+                  />
+                </label>
               </div>
-            </div>
-            <div className="text-center">
-              <h1 className="text-3xl font-black tracking-tight">
-                Chào {displayProfile.fullName || "bạn"}
-              </h1>
-              <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-[#ffb700] px-4 py-1.5 text-xs font-black uppercase tracking-wider text-[#01539d] shadow-sm">
-                Genius Cấp 1
+
+              {/* Name Only */}
+              <div className="text-center mb-8">
+                <h2 className="text-2xl font-black text-slate-900 leading-tight">
+                  {displayProfile.fullName || "Người dùng"}
+                </h2>
               </div>
-            </div>
-          </div>
-        </div>
-      </div>
 
-      <div className="mx-auto -mt-[11rem] max-w-5xl px-5 lg:px-8 relative z-10">
-        {feedback.text && (
-          <div
-            className={`mb-6 flex items-center gap-3 rounded-2xl px-5 py-4 text-sm font-semibold shadow-sm ${
-              feedback.type === "error"
-                ? "border border-red-100 bg-red-50 text-red-600"
-                : "border border-emerald-100 bg-emerald-50 text-emerald-700"
-            }`}
-          >
-            {feedback.type === "error" ? (
-              <AlertCircle className="size-5" />
-            ) : (
-              <CheckCircle2 className="size-5" />
-            )}
-            {feedback.text}
-          </div>
-        )}
-
-        {/* Navigation Tabs */}
-        <div className="mb-6 flex justify-center">
-          <div className="flex w-full max-w-2xl overflow-hidden rounded-full bg-white p-1.5 shadow-md">
-            <button
-              onClick={() => setActiveTab("profile")}
-              className={`flex flex-1 items-center justify-center gap-2 rounded-full px-6 py-3.5 text-sm font-bold transition-all ${
-                activeTab === "profile"
-                  ? "bg-[#0194f3] text-white shadow-sm"
-                  : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
-              }`}
-            >
-              <User className="size-4.5" />
-              Thông tin cá nhân
-            </button>
-            <button
-              onClick={() => setActiveTab("security")}
-              className={`flex flex-1 items-center justify-center gap-2 rounded-full px-6 py-3.5 text-sm font-bold transition-all ${
-                activeTab === "security"
-                  ? "bg-[#0194f3] text-white shadow-sm"
-                  : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
-              }`}
-            >
-              <Lock className="size-4.5" />
-              Cài đặt bảo mật
-            </button>
-          </div>
-        </div>
-
-        {/* Tab Content */}
-        <div className="rounded-[2rem] border border-slate-100 bg-white p-6 shadow-xl md:p-10">
-          {activeTab === "profile" && (
-            <div className="animate-in fade-in duration-500">
-              <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between border-b border-slate-100 pb-6">
-                <div>
-                  <h2 className="text-2xl font-black text-slate-950">Thông tin cá nhân</h2>
-                  <p className="mt-1 text-sm font-medium text-slate-500">
-                    Cập nhật thông tin của bạn và tìm hiểu các thông tin này được sử dụng ra sao.
-                  </p>
+              {/* Membership Progress (Dynamic from SQL) */}
+              <div className="space-y-4 border-t border-slate-100 pt-8">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-black text-slate-900">Hạng thẻ hiện tại</span>
+                  <div className="flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-[11px] font-black uppercase text-amber-600 border border-amber-100">
+                    <Star className="size-3 fill-current" />
+                    {displayProfile.membershipName || "Bronze"}
+                  </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={openEditModal}
-                  className="inline-flex items-center justify-center gap-2 rounded-full bg-[#0194f3] px-6 py-3 text-sm font-bold text-white shadow-md transition hover:bg-[#017bc0]"
-                >
-                  <Pencil className="size-4" />
-                  Chỉnh sửa hồ sơ
-                </button>
-              </div>
 
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                {[
-                  {
-                    label: "Họ tên",
-                    value: displayProfile.fullName || "Chưa cập nhật",
-                    icon: User,
-                  },
-                  {
-                    label: "Địa chỉ email",
-                    value: displayProfile.email || "Chưa cập nhật",
-                    icon: Mail,
-                    note: "Địa chỉ email này dùng để đăng nhập.",
-                  },
-                  {
-                    label: "Số điện thoại",
-                    value: displayProfile.phone || "Chưa cập nhật",
-                    icon: Phone,
-                  },
-                  {
-                    label: "Ngày sinh",
-                    value: formatDateForDisplay(displayProfile.dateOfBirth),
-                    icon: CalendarDays,
-                  },
-                ].map((item) => {
-                  const Icon = item.icon;
-                  return (
+                <div className="space-y-2">
+                  <div className="flex justify-between text-[11px] font-bold uppercase tracking-wider">
+                    <span className="text-slate-400">{displayProfile.membershipName || "Bronze"}</span>
+                    <span className="text-[#1F649C]">{displayProfile.nextMembershipName || "Max Level"}</span>
+                  </div>
+                  <div className="h-3 w-full overflow-hidden rounded-full bg-slate-100">
+                    {displayProfile.nextMembershipMinPoints ? (
+                      <div 
+                        className="h-full rounded-full bg-gradient-to-r from-[#1F649C] to-[#3a8bd0] transition-all duration-1000 shadow-sm"
+                        style={{ width: `${Math.min(100, (displayProfile.points / displayProfile.nextMembershipMinPoints) * 100)}%` }}
+                      ></div>
+                    ) : (
+                      <div className="h-full w-full rounded-full bg-[#1F649C]"></div>
+                    )}
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="font-bold text-slate-500">Tiến trình nâng cấp</span>
+                    <span className="font-black text-[#1F649C]">
+                      {displayProfile.points} / {displayProfile.nextMembershipMinPoints || displayProfile.points} điểm
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column: Information Details */}
+          <div className="flex-1 space-y-6">
+            {/* Feedback Message */}
+            {feedback.text && (
+              <div
+                className={`flex items-center gap-3 rounded-2xl px-6 py-4 text-sm font-semibold shadow-sm ${
+                  feedback.type === "error"
+                    ? "border border-red-100 bg-red-50 text-red-600"
+                    : "border border-emerald-100 bg-emerald-50 text-emerald-700"
+                }`}
+              >
+                {feedback.type === "error" ? (
+                  <AlertCircle className="size-5" />
+                ) : (
+                  <CheckCircle2 className="size-5" />
+                )}
+                {feedback.text}
+              </div>
+            )}
+
+            {/* Content Area - No Tabs, Combined View */}
+            <div className="rounded-[2.5rem] border border-slate-100 bg-white p-8 shadow-xl shadow-slate-200/50 md:p-10">
+              <div className="animate-in slide-in-from-right-4 duration-500">
+                <div className="mb-8 flex items-center gap-4">
+                  <div className="size-12 rounded-2xl bg-sky-50 flex items-center justify-center text-[#1F649C]">
+                    <User className="size-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black text-slate-900">Chi tiết tài khoản</h3>
+                    <p className="text-sm font-medium text-slate-500">Thông tin cá nhân và định danh của bạn.</p>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  {[
+                    {
+                      label: "Họ và tên",
+                      value: displayProfile.fullName || "Chưa cập nhật",
+                      icon: User,
+                    },
+                    {
+                      label: "Địa chỉ Email",
+                      value: displayProfile.email || "Chưa cập nhật",
+                      icon: Mail,
+                    },
+                    {
+                      label: "Số điện thoại",
+                      value: displayProfile.phone || "Chưa cập nhật",
+                      icon: Phone,
+                    },
+                    {
+                      label: "Ngày sinh",
+                      value: formatDateForDisplay(displayProfile.dateOfBirth),
+                      icon: CalendarDays,
+                    },
+                  ].map((item) => (
                     <div
                       key={item.label}
-                      className="rounded-[1.5rem] border border-slate-100 bg-slate-50 p-6 transition-all hover:border-[#0194f3]/30 hover:shadow-sm"
+                      className="group flex flex-col sm:flex-row sm:items-center justify-between rounded-3xl border border-slate-50 bg-slate-50/50 p-6 transition-all hover:bg-white hover:border-sky-100 hover:shadow-md"
                     >
-                      <div className="flex items-start gap-4">
-                        <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-white text-[#0194f3] shadow-sm">
-                          <Icon className="size-5" />
+                      <div className="flex items-center gap-4">
+                        <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-white text-slate-400 group-hover:text-[#1F649C] group-hover:shadow-sm transition-all">
+                          <item.icon className="size-5" />
                         </div>
                         <div>
-                          <p className="text-[11px] font-black uppercase tracking-[0.15em] text-slate-400">
+                          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
                             {item.label}
                           </p>
-                          <p className="mt-1 text-base font-bold text-slate-900">
+                          <p className="mt-0.5 text-base font-bold text-slate-800">
                             {item.value}
                           </p>
                           {item.note && (
-                            <p className="mt-2 text-xs font-medium text-slate-500">
+                            <p className="mt-1 text-[10px] font-medium text-slate-400">
                               {item.note}
                             </p>
                           )}
                         </div>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {activeTab === "security" && (
-            <div className="animate-in fade-in mx-auto max-w-3xl duration-500">
-              <div className="mb-8 text-center border-b border-slate-100 pb-8">
-                <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-[#0194f3]/10 text-[#0194f3]">
-                  <ShieldCheck className="size-8" />
+                  ))}
                 </div>
-                <h2 className="text-2xl font-black text-slate-950">Bảo mật tài khoản</h2>
-                <p className="mt-2 text-sm font-medium text-slate-500">
-                  Điều chỉnh cài đặt bảo mật và thay đổi mật khẩu của bạn để giữ tài khoản luôn an toàn.
-                </p>
-              </div>
-
-              <div className="rounded-[2rem] border border-slate-100 bg-slate-50 p-6 md:p-8">
-                <form onSubmit={handleSavePassword} className="space-y-6">
-                  <div className="space-y-2">
-                    <label className="px-1 text-[11px] font-black uppercase tracking-[0.15em] text-slate-500">
-                      Mật khẩu hiện tại
-                    </label>
-                    <input
-                      type="password"
-                      name="currentPassword"
-                      value={passwordData.currentPassword}
-                      onChange={handlePasswordChange}
-                      placeholder="Nhập mật khẩu hiện tại"
-                      className="w-full rounded-2xl border border-transparent bg-white px-5 py-4 text-sm font-semibold outline-none transition-all focus:border-[#0071c2] focus:ring-4 focus:ring-[#0071c2]/10"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="px-1 text-[11px] font-black uppercase tracking-[0.15em] text-slate-500">
-                      Mật khẩu mới
-                    </label>
-                    <input
-                      type="password"
-                      name="newPassword"
-                      value={passwordData.newPassword}
-                      onChange={handlePasswordChange}
-                      placeholder="Nhập mật khẩu mới"
-                      className="w-full rounded-2xl border border-transparent bg-white px-5 py-4 text-sm font-semibold outline-none transition-all focus:border-[#0071c2] focus:ring-4 focus:ring-[#0071c2]/10"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="px-1 text-[11px] font-black uppercase tracking-[0.15em] text-slate-500">
-                      Xác nhận mật khẩu mới
-                    </label>
-                    <input
-                      type="password"
-                      name="confirmPassword"
-                      value={passwordData.confirmPassword}
-                      onChange={handlePasswordChange}
-                      placeholder="Nhập lại mật khẩu mới"
-                      className="w-full rounded-2xl border border-transparent bg-white px-5 py-4 text-sm font-semibold outline-none transition-all focus:border-[#0071c2] focus:ring-4 focus:ring-[#0071c2]/10"
-                    />
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={isSaving}
-                    className="w-full rounded-full bg-[#0194f3] py-4 text-sm font-black uppercase tracking-wider text-white shadow-lg shadow-[#0194f3]/30 transition-all hover:bg-[#017bc0] disabled:cursor-not-allowed disabled:opacity-70"
-                  >
-                    {isSaving ? "Đang xử lý..." : "Cập nhật mật khẩu"}
-                  </button>
-                </form>
               </div>
             </div>
-          )}
+          </div>
         </div>
       </div>
 
@@ -518,9 +455,9 @@ const AccountProfilePage = () => {
                       avatarUrl: formData.avatarUrl,
                     })}
                     alt="Ảnh đại diện"
-                    className="size-28 rounded-full border-4 border-white object-cover shadow-lg"
+                    className="size-28 rounded-2xl border-4 border-white object-cover shadow-lg"
                   />
-                  <label className="absolute bottom-0 right-0 flex size-9 cursor-pointer items-center justify-center rounded-full border-2 border-white bg-[#0071c2] text-white shadow-md transition hover:bg-[#005fa3]">
+                  <label className="absolute -bottom-2 -right-2 flex size-10 cursor-pointer items-center justify-center rounded-xl border-2 border-white bg-[#1F649C] text-white shadow-md transition hover:bg-[#164e7a]">
                     <Camera className="size-4" />
                     <input
                       type="file"
