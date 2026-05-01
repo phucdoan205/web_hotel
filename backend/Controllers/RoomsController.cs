@@ -44,9 +44,12 @@ namespace backend.Controllers
             .ThenInclude(rta => rta.Amenity)
             .Include(r => r.RoomType)
             .ThenInclude(rt => rt!.RoomImages)
+            .Include(r => r.RoomType)
+            .ThenInclude(rt => rt!.Reviews)
             .Include(r => r.RoomInventory)
             .ThenInclude(ri => ri.Equipment)
             .AsNoTracking();
+
 
             // Áp dụng filter
             if (!string.IsNullOrWhiteSpace(search))
@@ -294,7 +297,10 @@ namespace backend.Controllers
                         .ThenInclude(rta => rta.Amenity)
                 .Include(r => r.RoomType)
                     .ThenInclude(rt => rt!.RoomImages)
+                .Include(r => r.RoomType)
+                    .ThenInclude(rt => rt!.Reviews)
                 .Where(r => !r.IsDeleted && r.Status == RoomStatuses.Available);
+
 
             // Lọc theo ngày chỉ khi CẢ HAI tham số đều có
             if (query.CheckIn.HasValue && query.CheckOut.HasValue)

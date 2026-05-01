@@ -1,4 +1,4 @@
-﻿using backend.DTOs.RoomInventory;
+using backend.DTOs.RoomInventory;
 
 namespace backend.DTOs.Room
 {
@@ -24,5 +24,8 @@ namespace backend.DTOs.Room
         public List<string> Amenities { get; set; } = new();
         public List<string> ImageUrls { get; set; } = new();
         public List<RoomInventoryDTO> Inventory { get; set; } = new();
+        public double Rating { get; set; }
+        public int ReviewCount { get; set; }
     }
 }
+

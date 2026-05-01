@@ -49,9 +49,13 @@ namespace backend.Controllers
                     .OrderByDescending(ri => ri.IsPrimary ?? false)
                     .Select(ri => ri.ImageUrl)
                     .FirstOrDefault(),
-                RoomCount = roomType.Rooms.Count(r => !r.IsDeleted)
+                RoomCount = roomType.Rooms.Count(r => !r.IsDeleted),
+                Rating = roomType.Reviews.Average(r => r.Rating) ?? 0,
+
+                ReviewCount = roomType.Reviews.Count
             };
         }
+
 
         private static RoomTypeDetailDTO MapRoomTypeDetail(RoomType roomType)
         {
@@ -75,9 +79,13 @@ namespace backend.Controllers
                     .ToList(),
                 RoomCount = roomType.Rooms.Count(r => !r.IsDeleted),
                 IsDeleted = roomType.IsDeleted,
-                DeletedAt = roomType.DeletedAt
+                DeletedAt = roomType.DeletedAt,
+                Rating = roomType.Reviews.Average(r => r.Rating) ?? 0,
+
+                ReviewCount = roomType.Reviews.Count
             };
         }
+
 
         [HttpGet]
         [Permission("VIEW_ROOMS")]
@@ -106,8 +114,10 @@ namespace backend.Controllers
             var query = _context.RoomTypes
                 .Include(rt => rt.Rooms)
                 .Include(rt => rt.RoomImages)
+                .Include(rt => rt.Reviews)
                 .AsNoTracking()
                 .AsQueryable();
+
 
             if (!string.IsNullOrWhiteSpace(search))
             {
@@ -134,8 +144,10 @@ namespace backend.Controllers
                     .ThenInclude(rta => rta.Amenity)
                 .Include(rt => rt.RoomImages)
                 .Include(rt => rt.Rooms)
+                .Include(rt => rt.Reviews)
                 .AsNoTracking()
                 .FirstOrDefaultAsync(rt => rt.Id == id);
+
 
             if (roomType == null)
             {

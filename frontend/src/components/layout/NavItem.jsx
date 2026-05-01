@@ -6,6 +6,8 @@ const NavItem = ({ label, to, icon: Icon }) => {
   return (
     <NavLink
       to={to}
+      end={to === "/"}
+
       className={({ isActive }) =>
         `relative flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors duration-300 ${
           isActive

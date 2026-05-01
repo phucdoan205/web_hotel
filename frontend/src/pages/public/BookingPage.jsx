@@ -86,6 +86,9 @@ const groupRoomsByType = (rooms) => {
       size: room.size,
       amenities: room.amenities ?? [],
       imageUrls: room.imageUrls ?? [],
+      rating: room.rating ? Number(room.rating).toFixed(1) : "0.0",
+      reviewCount: room.reviewCount || 0,
+
       availableRooms: [
         {
           id: room.id,
@@ -94,6 +97,7 @@ const groupRoomsByType = (rooms) => {
         },
       ],
     });
+
   });
 
   return Array.from(map.values());

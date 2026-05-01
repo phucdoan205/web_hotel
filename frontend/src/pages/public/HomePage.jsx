@@ -1,5 +1,8 @@
-import React from "react";
-import { ArrowRight, BadgePercent, BedDouble, Building2, Home, Landmark, Palmtree, Search } from "lucide-react";
+import React, { useRef, useState, useEffect } from "react";
+import { ArrowRight, BadgePercent, BedDouble, Building2, ChevronLeft, ChevronRight, Home, Landmark, Palmtree, Search, Star } from "lucide-react";
+
+
+
 import Hero from "../../components/home/Hero";
 import FeaturedHotels from "../../components/home/FeaturedHotels";
 import Destinations from "../../components/home/Destinations";
@@ -10,23 +13,55 @@ import { roomTypesApi } from "../../api/admin/roomTypesApi";
 import { getPublicAttractions } from "../../api/admin/attractionsApi";
 
 const HomePage = () => {
+  const carouselRef = useRef(null);
+  const [showLeftBtn, setShowLeftBtn] = useState(false);
+  const [showRightBtn, setShowRightBtn] = useState(true);
+
   const { data: roomTypesData, isLoading: isLoadingRooms } = useQuery({
     queryKey: ["home-room-types"],
-    queryFn: () => roomTypesApi.getPublicRoomTypes({ page: 1, pageSize: 4 }),
+    queryFn: () => roomTypesApi.getPublicRoomTypes({ page: 1, pageSize: 100 }),
   });
+
+  const checkScroll = () => {
+    if (!carouselRef.current) return;
+    const { scrollLeft, scrollWidth, clientWidth } = carouselRef.current;
+    setShowLeftBtn(scrollLeft > 10);
+    setShowRightBtn(scrollLeft < scrollWidth - clientWidth - 10);
+  };
+
+  useEffect(() => {
+    const el = carouselRef.current;
+    if (el) {
+      el.addEventListener("scroll", checkScroll);
+      checkScroll();
+      window.addEventListener("resize", checkScroll);
+    }
+    return () => {
+      if (el) el.removeEventListener("scroll", checkScroll);
+      window.removeEventListener("resize", checkScroll);
+    };
+  }, [roomTypesData]);
+
+  const handleScroll = (direction) => {
+    if (!carouselRef.current) return;
+    const card = carouselRef.current.querySelector("article");
+    if (!card) return;
+    const scrollAmount = card.clientWidth + 16; // 16 là gap-4
+    carouselRef.current.scrollBy({
+      left: direction === "left" ? -scrollAmount : scrollAmount,
+      behavior: "smooth",
+    });
+  };
+
+
+
 
   const { data: attractionsData, isLoading: isLoadingAttractions } = useQuery({
     queryKey: ["home-attractions"],
     queryFn: () => getPublicAttractions({ page: 1, pageSize: 4 }),
   });
 
-  const propertyTypes = roomTypesData?.items?.map(rt => ({
-    name: rt.name,
-    count: `${rt.roomCount || 0} phòng trống`,
-    icon: Building2,
-    image: rt.primaryImageUrl || "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=800&q=80",
-    id: rt.id
-  })) || [];
+
 
   const quickDeals = [
     "Đà Nẵng Luxury",
@@ -84,44 +119,97 @@ const HomePage = () => {
 
       {/* Section: Property Types */}
       <section className="mx-auto max-w-7xl px-5 pb-16 lg:px-8">
-        <div className="mb-8 flex items-end justify-between">
-          <div>
-            <h2 className="text-3xl font-black tracking-tight text-slate-900">Khám phá theo phong cách</h2>
-            <p className="mt-2 font-medium text-slate-500">
-              Từ căn hộ hiện đại đến resort biệt lập, hãy chọn không gian cho riêng mình.
-            </p>
-          </div>
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold text-slate-900">Lưu trú tại các chỗ nghỉ độc đáo hàng đầu</h2>
+          <p className="mt-1 text-slate-500">
+            Từ biệt thự, lâu đài cho đến nhà thuyền, igloo, chúng tôi đều có hết
+          </p>
         </div>
         
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {propertyTypes.map((item) => (
-            <article 
-              key={item.name} 
-              className="group cursor-pointer overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition-all hover:-translate-y-1 hover:shadow-xl"
+        <div className="relative group/carousel">
+          {/* Side Buttons */}
+          {showLeftBtn && (
+            <button 
+              onClick={() => handleScroll("left")}
+              className="absolute left-0 top-[calc(50%-8px)] z-20 flex h-10 w-10 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-slate-200 bg-white shadow-[0_4px_12px_rgba(0,0,0,0.15)] transition hover:bg-slate-50 active:scale-95"
+              aria-label="Previous"
             >
-              <div className="relative h-56 overflow-hidden">
-                <img
-                  src={item.image}
-                  alt={item.name}
-                  className="h-full w-full object-cover transition duration-700 group-hover:scale-110"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                <div className="absolute bottom-4 left-4 flex items-center gap-2 text-white opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100 -translate-x-2">
-                  <span className="text-xs font-bold uppercase tracking-widest">Khám phá</span>
-                  <ArrowRight size={14} />
+              <ChevronLeft size={24} className="text-slate-800" />
+            </button>
+          )}
+
+          {showRightBtn && (
+            <button 
+              onClick={() => handleScroll("right")}
+              className="absolute right-0 top-[calc(50%-8px)] z-20 flex h-10 w-10 translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-slate-200 bg-white shadow-[0_4px_12px_rgba(0,0,0,0.15)] transition hover:bg-slate-50 active:scale-95"
+              aria-label="Next"
+            >
+              <ChevronRight size={24} className="text-slate-800" />
+            </button>
+          )}
+
+
+
+
+          <div 
+            ref={carouselRef}
+            id="property-carousel"
+            className="no-scrollbar flex gap-4 overflow-x-auto pb-4 scroll-smooth"
+          >
+            {roomTypesData?.items?.map((rt) => (
+              <article 
+                key={rt.id} 
+                onClick={() => (window.location.href = `/room-types/${rt.id}`)}
+                className="min-w-[calc((100%-48px)/1)] sm:min-w-[calc((100%-48px)/2)] lg:min-w-[calc((100%-48px)/4)] cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white transition-all hover:shadow-md"
+              >
+
+                <div className="relative h-64 overflow-hidden">
+                  <img
+                    src={rt.primaryImageUrl || "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=800&q=80"}
+                    alt={rt.name}
+                    className="h-full w-full object-cover"
+                  />
+                  <div className="absolute right-3 top-3">
+                    <button className="flex h-10 w-10 items-center justify-center rounded-full bg-white/80 text-slate-700 shadow-sm backdrop-blur-sm transition hover:bg-white">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+                    </button>
+                  </div>
                 </div>
-              </div>
-              <div className="p-5">
-                <div className="mb-4 inline-flex rounded-xl bg-slate-50 p-2.5 text-[#1F649C]">
-                  <item.icon size={22} />
+                <div className="p-3">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <span className="text-xs font-medium text-slate-500">Khách sạn</span>
+                    <div className="flex gap-0.5">
+                      {[...Array(5)].map((_, i) => (
+                        <Star key={i} size={12} fill={i < Math.round(rt.rating || 0) ? "#fbbf24" : "none"} className={i < Math.round(rt.rating || 0) ? "text-amber-400" : "text-slate-300"} />
+                      ))}
+                    </div>
+                  </div>
+                  <h3 className="text-base font-bold text-slate-900 line-clamp-1">{rt.name}</h3>
+                  <p className="mt-0.5 text-xs font-medium text-slate-500">Hệ thống HPT Hotel</p>
+                  
+                  <div className="mt-3 flex items-center gap-2">
+                    <div className="flex h-8 w-8 items-center justify-center rounded bg-[#003b95] text-sm font-bold text-white">
+                      {rt.rating ? Number(rt.rating).toFixed(1) : "0.0"}
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-slate-900">
+                        {rt.rating >= 4.5 ? "Tuyệt hảo" : rt.rating >= 4 ? "Rất tốt" : rt.rating > 0 ? "Tốt" : "Chưa có đánh giá"}
+                      </p>
+                      <p className="text-[10px] text-slate-500">{rt.reviewCount || 0} đánh giá</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 flex items-end justify-between">
+                    <p className="text-[10px] text-slate-500">Bắt đầu từ</p>
+                    <p className="text-lg font-bold text-slate-900">VND {new Intl.NumberFormat("vi-VN").format(rt.basePrice || 0)}</p>
+                  </div>
                 </div>
-                <h3 className="text-xl font-black text-slate-900">{item.name}</h3>
-                <p className="mt-1 text-sm font-semibold text-slate-400 uppercase tracking-wide">{item.count}</p>
-              </div>
-            </article>
-          ))}
+              </article>
+            ))}
+          </div>
         </div>
       </section>
+
 
       {/* Section: Popular Keywords */}
       <section className="mx-auto max-w-7xl px-5 pb-20 lg:px-8">

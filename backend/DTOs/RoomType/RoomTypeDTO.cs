@@ -1,4 +1,4 @@
-﻿namespace backend.DTOs.RoomType
+namespace backend.DTOs.RoomType
 {
     public class RoomTypeDTO
     {
@@ -12,5 +12,8 @@
         public string? Description { get; set; }
         public string? PrimaryImageUrl { get; set; }
         public int RoomCount { get; set; }
+        public double Rating { get; set; }
+        public int ReviewCount { get; set; }
     }
 }
+

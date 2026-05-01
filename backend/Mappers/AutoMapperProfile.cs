@@ -83,7 +83,13 @@ namespace backend.Mappers
                             .Where(ri => !string.IsNullOrWhiteSpace(ri.ImageUrl))
                             .Select(ri => ri.ImageUrl)
                         : Enumerable.Empty<string>()))
-                .ForMember(dest => dest.Inventory, opt => opt.MapFrom(src => src.RoomInventory));
+                .ForMember(dest => dest.Inventory, opt => opt.MapFrom(src => src.RoomInventory))
+                .ForMember(dest => dest.Rating, opt => opt.MapFrom(src =>
+                    src.RoomType != null ? src.RoomType.Reviews.Average(r => r.Rating) ?? 0 : 0))
+
+                .ForMember(dest => dest.ReviewCount, opt => opt.MapFrom(src =>
+                    src.RoomType != null ? src.RoomType.Reviews.Count : 0));
+
             CreateMap<CreateRoomDTO, Room>()
                 .ForMember(dest => dest.RoomInventory, opt => opt.Ignore())
                 .ForMember(dest => dest.BookingDetails, opt => opt.Ignore())

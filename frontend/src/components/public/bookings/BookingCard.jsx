@@ -36,14 +36,38 @@ const BookingCard = ({ roomType, availableCount = 0, numberOfNights, detailLinkS
     <article className="relative rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
       <div className="grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)_240px]">
         <div className="overflow-hidden rounded-xl bg-slate-100">
-          <img src={imageUrl} alt={roomType.roomTypeName} className="h-52 w-full object-cover" />
+          <img src={imageUrl} alt={roomType.roomTypeName} className="h-full min-h-[208px] w-full object-cover" />
         </div>
+
 
         <div className="flex min-w-0 flex-col justify-between border-slate-200 lg:border-r lg:pr-5">
           <div>
             <h3 className="text-2xl font-bold text-slate-900">
               {roomType.roomTypeName || "Loại phòng"}
             </h3>
+
+            <div className="mt-1.5 flex items-center gap-1">
+              {[...Array(5)].map((_, i) => (
+                <svg
+                  key={i}
+                  className={`size-3.5 ${
+                    i < Math.round(Number(roomType.rating || 0)) ? "text-amber-400 fill-amber-400" : "text-slate-200 fill-slate-200"
+                  }`}
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+                </svg>
+              ))}
+              <span className="ml-1.5 text-xs font-bold text-amber-600">
+                {roomType.rating && Number(roomType.rating) > 0 ? Number(roomType.rating).toFixed(1) : "0.0"}
+              </span>
+              <span className="text-xs font-medium text-slate-400">
+                ({roomType.reviewCount || 0} đánh giá)
+              </span>
+            </div>
+
+
 
             <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-slate-600">
               <span className="flex items-center gap-1.5">

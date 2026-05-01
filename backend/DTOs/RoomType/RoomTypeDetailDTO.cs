@@ -1,4 +1,4 @@
-﻿namespace backend.DTOs.RoomType
+namespace backend.DTOs.RoomType
 {
     public class RoomTypeDetailDTO
     {
@@ -16,5 +16,8 @@
         public int RoomCount { get; set; }
         public bool IsDeleted { get; set; }
         public DateTime? DeletedAt { get; set; }
+        public double Rating { get; set; }
+        public int ReviewCount { get; set; }
     }
 }
+

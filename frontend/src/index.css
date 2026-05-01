@@ -21,14 +21,14 @@ body {
 /* Xóa bỏ hoàn toàn các đoạn CSS ghi đè lên thẻ button ở đây */
 
 /* Ẩn scrollbar cho sidebar nhưng vẫn cho phép scroll nếu cần */
-.sidebar-hide-scrollbar {
+.sidebar-hide-scrollbar, .no-scrollbar {
   -ms-overflow-style: none;
   /* IE và Edge */
   scrollbar-width: none;
   /* Firefox */
 }
 
-.sidebar-hide-scrollbar::-webkit-scrollbar {
+.sidebar-hide-scrollbar::-webkit-scrollbar, .no-scrollbar::-webkit-scrollbar {
   display: none;
   /* Chrome, Safari, Opera */
-}
+}
