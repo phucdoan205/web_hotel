@@ -1,14 +1,16 @@
 import React from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import Navbar from '../components/layout/Navbar';
 import Footer from '../components/layout/Footer';
 
 const MainLayout = () => {
+  const location = useLocation();
+  const isHomePage = location.pathname === "/" || location.pathname === "/hotels";
+
   return (
     <div className="main-layout-container flex flex-col min-h-screen">
       <Navbar />
-      {/* Căn lề trên (pt-20) để không bị Navbar che mất nội dung */}
-      <main className="grow pt-20">
+      <main className={`grow ${isHomePage ? "" : "pt-16"}`}>
         <Outlet />
       </main>
       <Footer />

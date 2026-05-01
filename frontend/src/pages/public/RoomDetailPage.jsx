@@ -516,7 +516,7 @@ const RoomDetailPage = () => {
             <h2 className="text-2xl font-bold text-slate-900">Đánh giá của khách</h2>
             <div>
               <div className="flex items-center gap-5 pb-6">
-                <div className="flex h-20 w-20 items-center justify-center rounded-xl bg-blue-600 text-3xl font-black text-white shadow-lg shadow-blue-200">>
+                <div className="flex h-20 w-20 items-center justify-center rounded-xl bg-blue-600 text-3xl font-black text-white shadow-lg shadow-blue-200">
                   {avgRating.toFixed(1)}
                 </div>
                 <div>
@@ -527,7 +527,7 @@ const RoomDetailPage = () => {
 
               <div className="mt-6 grid gap-6 sm:grid-cols-2">
                 {reviews.map((review) => (
-                  <div key={review.id} className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition">>
+                  <div key={review.id} className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition">
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center gap-3">
                         {review.avatarUrl ? (
@@ -563,7 +563,7 @@ const RoomDetailPage = () => {
                   </div>
                 ))}
                 {reviews.length === 0 && (
-                  <div className="col-span-full rounded-xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center text-sm font-medium text-slate-500">>
+                  <div className="col-span-full rounded-xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center text-sm font-medium text-slate-500">
                     Chưa có đánh giá nào cho loại phòng này.
                   </div>
                 )}
@@ -615,7 +615,7 @@ const RoomDetailPage = () => {
                 />
               </label>
 
-              <div className="rounded-xl bg-blue-100 px-4 py-3 text-center text-sm font-bold text-blue-800">>
+              <div className="rounded-xl bg-blue-100 px-4 py-3 text-center text-sm font-bold text-blue-800">
                 Thời gian: {stayDays} ngày
               </div>
             </div>

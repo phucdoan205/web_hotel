@@ -1,15 +1,35 @@
 import React from "react";
-import { Link } from "react-router-dom";
-import { Rocket, User, Search, Hotel, Calendar, Utensils, Ticket, FileText } from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
+import { Rocket, User, Hotel, Calendar, Utensils, Ticket, FileText } from "lucide-react";
 import NavItem from "./NavItem";
 import { getStoredAuth } from "../../utils/authStorage";
 import UserMenu from "../shared/UserMenu";
 
 const Navbar = () => {
   const auth = getStoredAuth();
+  const location = useLocation();
+  const [isScrolled, setIsScrolled] = React.useState(false);
+
+  const isHomePage = location.pathname === "/" || location.pathname === "/hotels";
+
+  React.useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const navBgClass = isHomePage
+    ? isScrolled
+      ? "bg-[#1F649C] shadow-md"
+      : "bg-transparent"
+    : "bg-[#1F649C] shadow-md";
 
   return (
-    <nav className="navbar-container sticky top-0 z-50 flex h-16 items-center justify-between bg-[#1F649C] px-6 py-4 shadow-sm lg:px-10">
+    <nav
+      className={`navbar-container fixed top-0 left-0 right-0 z-50 flex h-16 items-center justify-between px-6 py-4 transition-all duration-300 lg:px-10 ${navBgClass}`}
+    >
       <div className="flex flex-1 items-center gap-8">
         <Link to="/" className="flex cursor-pointer items-center gap-2">
           <div className="rounded-xl bg-white p-1.5">

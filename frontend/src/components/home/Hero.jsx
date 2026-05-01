@@ -4,7 +4,7 @@ import { useSearchNavigation } from "../../hooks/useSearchNavigation";
 import HorizontalSearchFilter from "../public/bookings/HorizontalSearchFilter";
 
 const bannerImage =
-  "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=2200&q=85";
+  "https://decoxdesign.com/upload/images/hotel-caitilin-1952m2-sanh-14-decox-design.jpg";
 
 const Hero = () => {
   const { searchParams, updateField, handleSearch } = useSearchNavigation();
@@ -16,9 +16,10 @@ const Hero = () => {
         alt="Khách sạn nghỉ dưỡng"
         className="absolute inset-0 h-full w-full object-cover"
       />
-      <div className="absolute inset-0 bg-gradient-to-r from-[#01539d]/90 via-[#01539d]/60 to-[#01539d]/20" />
+      <div className="absolute inset-0 bg-gradient-to-r from-[#01539d]/80 via-[#01539d]/50 to-[#01539d]/20" />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-transparent opacity-60" />
 
-      <div className="relative mx-auto max-w-7xl px-5 pb-16 pt-16 lg:px-8 lg:pb-24 lg:pt-20">
+      <div className="relative mx-auto max-w-7xl px-5 pb-16 pt-32 lg:px-8 lg:pb-24 lg:pt-40">
         <div className="max-w-3xl">
           <h1 className="text-4xl font-black tracking-tight md:text-5xl">
             Tìm chỗ nghỉ tiếp theo của bạn
