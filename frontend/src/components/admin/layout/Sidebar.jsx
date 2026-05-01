@@ -13,6 +13,7 @@ import {
   History,
   Hotel,
   LayoutDashboard,
+  LayoutGrid,
   MapPin,
   Receipt,
   Settings,
@@ -57,6 +58,13 @@ const bookingChildren = [
 
 const contentChildren = [
   {
+    name: "Danh mục",
+    icon: LayoutGrid,
+    path: "/admin/article-categories",
+    matchPaths: ["/admin/article-categories"],
+    permission: "VIEW_CONTENT",
+  },
+  {
     name: "Bài viết",
     icon: FileText,
     path: "/admin/articles",
@@ -80,7 +88,7 @@ const menuItems = [
     name: "Nội dung",
     icon: FileText,
     children: contentChildren,
-    matchPaths: ["/admin/articles", "/admin/attractions"],
+    matchPaths: ["/admin/article-categories", "/admin/articles", "/admin/attractions"],
     permission: "VIEW_CONTENT",
   },
   { name: "Quản lý phòng", icon: Building, path: "/admin/rooms", permission: "VIEW_ROOMS" },
