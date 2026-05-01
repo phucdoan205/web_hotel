@@ -55,11 +55,34 @@ const bookingChildren = [
   },
 ];
 
+const contentChildren = [
+  {
+    name: "Bài viết",
+    icon: FileText,
+    path: "/admin/articles",
+    matchPaths: ["/admin/articles"],
+    permission: "VIEW_CONTENT",
+  },
+  {
+    name: "Địa điểm",
+    icon: MapPin,
+    path: "/admin/attractions",
+    matchPaths: ["/admin/attractions"],
+    permission: "VIEW_ATTRACTIONS",
+  },
+];
+
 const menuItems = [
   { name: "Dashboard", icon: LayoutDashboard, path: "/admin/dashboard", permission: "VIEW_DASHBOARD" },
   { name: "Theo dõi phòng", icon: CalendarCheck2, path: "/admin/room-status", permission: "VIEW_ROOM_TRACKING" },
   { name: "Nhân viên", icon: Users, path: "/admin/staff", permission: "VIEW_USERS" },
-  { name: "Bài viết", icon: FileText, path: "/admin/articles", permission: "VIEW_CONTENT" },
+  {
+    name: "Nội dung",
+    icon: FileText,
+    children: contentChildren,
+    matchPaths: ["/admin/articles", "/admin/attractions"],
+    permission: "VIEW_CONTENT",
+  },
   { name: "Quản lý phòng", icon: Building, path: "/admin/rooms", permission: "VIEW_ROOMS" },
   { name: "Nhiệm vụ dọn phòng", icon: ClipboardList, path: "/admin/housekeeping/tasks", permission: "VIEW_HOUSEKEEPING" },
   { name: "Vật tư", icon: Boxes, path: "/admin/equipment", permission: "VIEW_INVENTORY" },
@@ -78,7 +101,6 @@ const menuItems = [
     matchPaths: ["/admin/invoices"],
     permission: "VIEW_INVOICES",
   },
-  { name: "Địa điểm", icon: MapPin, path: "/admin/attractions", permission: "VIEW_ATTRACTIONS" },
   { name: "Voucher", icon: Gift, path: "/admin/vouchers", permission: "VIEW_VOUCHERS" },
   { name: "Dịch vụ", icon: Wrench, path: "/admin/pos", permission: "VIEW_SERVICES" },
   { name: "Nhật ký hệ thống", icon: History, path: "/admin/audit-log", permission: "VIEW_LOG" },
@@ -118,14 +140,14 @@ function SidebarLink({ item, pathname, className = "" }) {
 export default function Sidebar() {
   const location = useLocation();
   const auth = useStoredAuth();
-  const bookingMenuActive = isPathMatched(location.pathname, [
-    "/admin/bookings",
-    "/admin/check-in",
-    "/admin/stay",
-    "/admin/check-out",
-  ]);
-  const [isBookingOpen, setIsBookingOpen] = useState(bookingMenuActive);
-  const isBookingExpanded = isBookingOpen || bookingMenuActive;
+  const [openGroups, setOpenGroups] = useState({});
+
+  const toggleGroup = (name) => {
+    setOpenGroups((prev) => ({
+      ...prev,
+      [name]: !prev[name],
+    }));
+  };
 
   const visibleMenuItems = useMemo(
     () =>
@@ -176,12 +198,13 @@ export default function Sidebar() {
                 exactMatch: item.exactMatch,
                 excludePaths: item.excludePaths,
               });
+              const isExpanded = !!openGroups[item.name] || groupActive;
 
               return (
                 <div key={item.name} className="rounded-2xl">
                   <button
                     type="button"
-                    onClick={() => setIsBookingOpen((value) => !value)}
+                    onClick={() => toggleGroup(item.name)}
                     className={`flex w-full items-center gap-x-3 rounded-xl px-4 py-2.5 text-sm transition-all duration-200 ${
                       groupActive
                         ? "bg-white/10 font-bold text-white"
@@ -192,12 +215,12 @@ export default function Sidebar() {
                     <span className="flex-1 text-left leading-none">{item.name}</span>
                     <ChevronDown
                       className={`size-4 shrink-0 transition-transform duration-200 ${
-                        isBookingExpanded ? "rotate-180" : ""
+                        isExpanded ? "rotate-180" : ""
                       }`}
                     />
                   </button>
 
-                  {isBookingExpanded ? (
+                  {isExpanded ? (
                     <div className="mt-1 flex flex-col gap-y-1 pl-4">
                       {item.children.map((child) => (
                         <SidebarLink
@@ -213,7 +236,7 @@ export default function Sidebar() {
               );
             }
 
-            return <SidebarLink key={item.path} item={item} pathname={location.pathname} />;
+            return <SidebarLink key={item.name} item={item} pathname={location.pathname} />;
           })}
         </div>
 
