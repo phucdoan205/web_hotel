@@ -19,6 +19,11 @@ export const getAttractions = async (params) => {
   return response.data;
 };
 
+export const getPublicAttractions = async (params) => {
+  const response = await apiClient.get("/Attractions/public", { params });
+  return response.data;
+};
+
 export const createAttraction = async (payload) => {
   const response = await apiClient.post("/Attractions", buildAttractionFormData(payload), {
     headers: {

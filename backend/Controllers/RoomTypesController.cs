@@ -86,6 +86,23 @@ namespace backend.Controllers
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 15)
         {
+            return await GetRoomTypesInternal(search, page, pageSize);
+        }
+
+        [HttpGet("public")]
+        public async Task<ActionResult<PagedResponse<RoomTypeDTO>>> GetPublicRoomTypes(
+            [FromQuery] string? search = null,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 15)
+        {
+            return await GetRoomTypesInternal(search, page, pageSize);
+        }
+
+        private async Task<ActionResult<PagedResponse<RoomTypeDTO>>> GetRoomTypesInternal(
+            string? search,
+            int page,
+            int pageSize)
+        {
             var query = _context.RoomTypes
                 .Include(rt => rt.Rooms)
                 .Include(rt => rt.RoomImages)

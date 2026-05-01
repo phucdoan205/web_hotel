@@ -38,6 +38,25 @@ namespace backend.Controllers
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 15)
         {
+            return await GetAttractionsInternal(activeOnly, search, page, pageSize);
+        }
+
+        [HttpGet("public")]
+        public async Task<ActionResult<PagedResponse<AttractionDTO>>> GetPublicAttractions(
+            [FromQuery] bool? activeOnly = true,
+            [FromQuery] string? search = null,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 15)
+        {
+            return await GetAttractionsInternal(activeOnly, search, page, pageSize);
+        }
+
+        private async Task<ActionResult<PagedResponse<AttractionDTO>>> GetAttractionsInternal(
+            bool? activeOnly,
+            string? search,
+            int page,
+            int pageSize)
+        {
             var query = _context.Attractions.AsNoTracking();
 
             if (activeOnly == true)
