@@ -65,11 +65,10 @@ const AdminBookingsPage = () => {
       {screenNotice ? (
         <div className="sticky top-20 z-30">
           <div
-            className={`mx-auto flex max-w-3xl items-start justify-between gap-4 rounded-3xl border px-5 py-4 shadow-lg ${
-              screenNotice.type === "success"
+            className={`mx-auto flex max-w-3xl items-start justify-between gap-4 rounded-3xl border px-5 py-4 shadow-lg ${screenNotice.type === "success"
                 ? "border-emerald-200 bg-emerald-50 text-emerald-900"
                 : "border-amber-200 bg-amber-50 text-amber-900"
-            }`}
+              }`}
           >
             <div className="flex items-start gap-3">
               {screenNotice.type === "success" ? (

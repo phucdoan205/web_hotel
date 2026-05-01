@@ -44,7 +44,7 @@ export const bookingsApi = {
     const response = await apiClient.put(`/Bookings/${bookingId}/change-room`, payload);
     return response.data;
   },
-  
+
   // Huỷ booking
   cancelBooking: async (bookingId) => {
     const response = await apiClient.patch(`/Bookings/${bookingId}/cancel`);

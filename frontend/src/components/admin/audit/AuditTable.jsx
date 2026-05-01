@@ -97,10 +97,7 @@ const AuditTable = ({
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
                   Nhân viên
                 </p>
-                <div className="mt-2 flex items-center gap-3">
-                  <div className="flex size-10 items-center justify-center rounded-full bg-slate-900 text-sm font-bold text-white">
-                    {group.userName.slice(0, 1).toUpperCase()}
-                  </div>
+                <div className="mt-2">
                   <div>
                     <p className="font-semibold text-slate-900">{group.userName}</p>
                     <span className="inline-flex rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">

@@ -80,6 +80,7 @@ const contentChildren = [
   },
 ];
 
+
 const menuItems = [
   { name: "Dashboard", icon: LayoutDashboard, path: "/admin/dashboard", permission: "VIEW_DASHBOARD" },
   { name: "Theo dõi phòng", icon: CalendarCheck2, path: "/admin/room-status", permission: "VIEW_ROOM_TRACKING" },
@@ -110,6 +111,7 @@ const menuItems = [
     permission: "VIEW_INVOICES",
   },
   { name: "Voucher", icon: Gift, path: "/admin/vouchers", permission: "VIEW_VOUCHERS" },
+  { name: "Thành viên", icon: Users, path: "/admin/memberships", permission: "VIEW_SERVICES" },
   { name: "Dịch vụ", icon: Wrench, path: "/admin/pos", permission: "VIEW_SERVICES" },
   { name: "Nhật ký hệ thống", icon: History, path: "/admin/audit-log", permission: "VIEW_LOG" },
 ];
@@ -198,7 +200,7 @@ export default function Sidebar() {
         </div>
       </div>
 
-      <nav className="flex flex-1 flex-col overflow-y-auto pr-1 sidebar-hide-scrollbar">
+      <nav className="flex-1 overflow-y-auto pr-1 sidebar-hide-scrollbar">
         <div className="flex flex-col gap-y-1.5">
           {visibleMenuItems.map((item) => {
             if (item.children) {
@@ -213,18 +215,16 @@ export default function Sidebar() {
                   <button
                     type="button"
                     onClick={() => toggleGroup(item.name)}
-                    className={`flex w-full items-center gap-x-3 rounded-xl px-4 py-2.5 text-sm transition-all duration-200 ${
-                      groupActive
-                        ? "bg-white/10 font-bold text-white"
-                        : "text-blue-50 hover:bg-white/5 hover:text-white"
-                    }`}
+                    className={`flex w-full items-center gap-x-3 rounded-xl px-4 py-2.5 text-sm transition-all duration-200 ${groupActive
+                      ? "bg-white/10 font-bold text-white"
+                      : "text-blue-50 hover:bg-white/5 hover:text-white"
+                      }`}
                   >
                     <item.icon className="size-5 shrink-0" />
                     <span className="flex-1 text-left leading-none">{item.name}</span>
                     <ChevronDown
-                      className={`size-4 shrink-0 transition-transform duration-200 ${
-                        isExpanded ? "rotate-180" : ""
-                      }`}
+                      className={`size-4 shrink-0 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""
+                        }`}
                     />
                   </button>
 
@@ -247,19 +247,19 @@ export default function Sidebar() {
             return <SidebarLink key={item.name} item={item} pathname={location.pathname} />;
           })}
         </div>
-
-        <div className="mt-auto border-t border-white/10 pt-6">
-          <SidebarLink
-            item={{
-              name: "Settings",
-              icon: Settings,
-              path: "/admin/settings",
-              matchPaths: ["/admin/settings", "/admin/settings/roles"],
-            }}
-            pathname={location.pathname}
-          />
-        </div>
       </nav>
+
+      <div className="mt-6 border-t border-white/10 pt-6">
+        <SidebarLink
+          item={{
+            name: "Settings",
+            icon: Settings,
+            path: "/admin/settings",
+            matchPaths: ["/admin/settings", "/admin/settings/roles"],
+          }}
+          pathname={location.pathname}
+        />
+      </div>
     </aside>
   );
 }

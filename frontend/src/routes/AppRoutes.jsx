@@ -45,6 +45,7 @@ import AdminArticleEditorPage from "../pages/admin/AdminArticleEditorPage";
 import AdminArticleCategoriesPage from "../pages/admin/AdminArticleCategoriesPage";
 import AdminAttractionsPage from "../pages/admin/AdminAttractionsPage";
 import AdminVoucherPage from "../pages/admin/AdminVoucherPage";
+import AdminMembershipPage from "../pages/admin/AdminMembershipPage";
 
 import BookingPage from "../pages/public/BookingPage";
 import BookingDetailPage from "../pages/public/BookingDetailPage";
@@ -334,6 +335,14 @@ const AppRoutes = () => {
           element={
             <RequirePermission permission="VIEW_VOUCHERS">
               <AdminVoucherPage />
+            </RequirePermission>
+          }
+        />
+        <Route
+          path="memberships"
+          element={
+            <RequirePermission permission="VIEW_SERVICES">
+              <AdminMembershipPage />
             </RequirePermission>
           }
         />
