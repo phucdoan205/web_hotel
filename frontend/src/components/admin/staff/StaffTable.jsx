@@ -143,11 +143,6 @@ const StaffTable = ({
         </table>
       </div>
 
-      <div className="border-t border-gray-50 bg-white px-8 py-5">
-        <p className="text-xs font-bold text-gray-400">
-          Hiển thị <span className="text-gray-900">{staff.length}</span> nhân sự
-        </p>
-      </div>
     </div>
   );
 };

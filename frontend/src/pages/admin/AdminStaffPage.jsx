@@ -63,6 +63,8 @@ const AdminStaffPage = () => {
   const [formData, setFormData] = useState(emptyForm);
   const [pendingAvatarFile, setPendingAvatarFile] = useState(null);
   const [pendingAvatarPreview, setPendingAvatarPreview] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
   const deferredSearchTerm = useDeferredValue(searchTerm);
   const isCreateMode = modalMode === "create";
   const isEditMode = modalMode === "edit";
@@ -82,7 +84,10 @@ const AdminStaffPage = () => {
 
       setStaff(staffList);
       setRoles(
-        allRoles.filter((role) => STAFF_ROLE_IDS.includes(Number(role.id))),
+        allRoles.filter((role) => {
+          const name = role.name?.toLowerCase() || "";
+          return name !== "guest" && name !== "user";
+        }),
       );
     } catch (fetchError) {
       const responseMessage =
@@ -103,6 +108,10 @@ const AdminStaffPage = () => {
   useEffect(() => {
     loadStaffPageData();
   }, []);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [deferredSearchTerm]);
 
   const filteredStaff = useMemo(() => {
     const normalizedKeyword = deferredSearchTerm.trim().toLowerCase();
@@ -446,7 +455,7 @@ const AdminStaffPage = () => {
         ) : null}
 
         <StaffTable
-          staff={filteredStaff}
+          staff={filteredStaff.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)}
           isLoading={isLoading}
           error={error && staff.length === 0 ? error : ""}
           statusUpdatingId={statusUpdatingId}
@@ -455,6 +464,44 @@ const AdminStaffPage = () => {
           canEdit={canEditStaff}
           canDelete={canDeleteStaff}
         />
+
+        {/* Pagination */}
+        {!isLoading && filteredStaff.length > itemsPerPage && (
+          <div className="flex items-center justify-between border-t border-gray-100 bg-white px-8 py-5 rounded-b-3xl -mt-6 relative z-10 border-x border-b border-gray-100">
+            <div className="text-xs font-bold text-gray-400">
+              Hiển thị {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, filteredStaff.length)} trong tổng số {filteredStaff.length} nhân sự
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(prev => prev - 1)}
+                className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-xs font-bold text-gray-600 transition hover:bg-gray-50 disabled:opacity-50"
+              >
+                Trước
+              </button>
+              {Array.from({ length: Math.ceil(filteredStaff.length / itemsPerPage) }, (_, i) => i + 1).map(page => (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  className={`rounded-xl px-4 py-2 text-xs font-bold transition ${
+                    currentPage === page
+                      ? "bg-orange-600 text-white shadow-lg shadow-orange-100"
+                      : "border border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+                  }`}
+                >
+                  {page}
+                </button>
+              ))}
+              <button
+                disabled={currentPage === Math.ceil(filteredStaff.length / itemsPerPage)}
+                onClick={() => setCurrentPage(prev => prev + 1)}
+                className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-xs font-bold text-gray-600 transition hover:bg-gray-50 disabled:opacity-50"
+              >
+                Sau
+              </button>
+            </div>
+          </div>
+        )}
 
         <StaffWidgets
           totalCount={staff.length}

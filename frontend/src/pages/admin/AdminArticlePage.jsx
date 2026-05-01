@@ -56,6 +56,8 @@ const AdminArticlePage = () => {
   const [error, setError] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 7;
   const [dialogState, setDialogState] = useState({ open: false, mode: "delete", article: null });
   const canCreateContent = hasPermission("CREATE_CONTENT");
   const canEditContent = hasPermission("EDIT_CONTENT");
@@ -82,6 +84,7 @@ const AdminArticlePage = () => {
   }, [filter, search]);
 
   useEffect(() => {
+    setCurrentPage(1);
     loadArticles();
   }, [loadArticles]);
 
@@ -246,109 +249,149 @@ const AdminArticlePage = () => {
                     </td>
                   </tr>
                 ) : (
-                  sortedArticles.map((article) => (
-                    <tr key={article.id}>
-                      <td className="px-4 py-4 align-top">
-                        <div className="flex items-start gap-3">
-                          <img
-                            src={article.thumbnailUrl || "https://placehold.co/120x120/e2e8f0/64748b?text=News"}
-                            alt={article.title}
-                            className="size-14 shrink-0 rounded-2xl object-cover ring-1 ring-gray-100"
-                          />
-                          <div className="min-w-0">
-                            <p className="break-words text-sm font-black text-slate-900">{article.title}</p>
-                            <p className="mt-1 line-clamp-2 break-words text-xs font-medium text-slate-500">
-                              {article.summary || "Chưa có mô tả ngắn."}
-                            </p>
+                  sortedArticles
+                    .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+                    .map((article) => (
+                      <tr key={article.id}>
+                        <td className="px-4 py-4 align-top">
+                          <div className="flex items-start gap-3">
+                            <img
+                              src={article.thumbnailUrl || "https://placehold.co/120x120/e2e8f0/64748b?text=News"}
+                              alt={article.title}
+                              className="size-14 shrink-0 rounded-2xl object-cover ring-1 ring-gray-100"
+                            />
+                            <div className="min-w-0">
+                              <p className="break-words text-sm font-black text-slate-900">{article.title}</p>
+                              <p className="mt-1 line-clamp-2 break-words text-xs font-medium text-slate-500">
+                                {article.summary || "Chưa có mô tả ngắn."}
+                              </p>
+                            </div>
                           </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-4 align-top text-sm font-semibold text-slate-600">{article.authorName || "-"}</td>
-                      <td className="px-4 py-4 align-top text-sm font-semibold text-slate-600">{article.categoryName || "-"}</td>
-                      <td className="px-4 py-4 align-top">
-                        <span className={`rounded-full px-3 py-1 text-xs font-black uppercase tracking-wide ${getStatusBadgeClass(article)}`}>
-                          {getStatusLabel(article)}
-                        </span>
-                      </td>
-                      <td className="px-4 py-4 align-top text-sm font-semibold text-slate-600">
-                        {getDisplayTime(article) ? formatPreservedApiDateTime(getDisplayTime(article)) : "Chưa hiển thị"}
-                      </td>
-                      <td className="px-4 py-4 align-top">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => navigate(`/articles/${article.slug || article.id}`)}
-                            className="inline-flex items-center gap-2 rounded-xl bg-sky-50 px-3 py-2 text-sm font-bold text-sky-700"
-                          >
-                            <Eye className="size-4" />
-                            Xem
-                          </button>
-
-                          {canEditContent ? (
+                        </td>
+                        <td className="px-4 py-4 align-top text-sm font-semibold text-slate-600">{article.authorName || "-"}</td>
+                        <td className="px-4 py-4 align-top text-sm font-semibold text-slate-600">{article.categoryName || "-"}</td>
+                        <td className="px-4 py-4 align-top">
+                          <span className={`rounded-full px-3 py-1 text-xs font-black uppercase tracking-wide ${getStatusBadgeClass(article)}`}>
+                            {getStatusLabel(article)}
+                          </span>
+                        </td>
+                        <td className="px-4 py-4 align-top text-sm font-semibold text-slate-600">
+                          {getDisplayTime(article) ? formatPreservedApiDateTime(getDisplayTime(article)) : "Chưa hiển thị"}
+                        </td>
+                        <td className="px-4 py-4 align-top">
+                          <div className="flex flex-wrap items-center gap-2">
                             <button
                               type="button"
-                              onClick={() => navigate(`/admin/articles/${article.id}/edit`)}
-                              className="inline-flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-bold text-gray-700 ring-1 ring-gray-200"
+                              onClick={() => navigate(`/articles/${article.slug || article.id}`)}
+                              className="inline-flex items-center gap-2 rounded-xl bg-sky-50 px-3 py-2 text-sm font-bold text-sky-700"
                             >
-                              <Edit className="size-4" />
-                              Chỉnh sửa
+                              <Eye className="size-4" />
+                              Xem
                             </button>
-                          ) : null}
 
-                          {article.isDeleted ? (
-                            canDeleteContent ? (
+                            {canEditContent ? (
                               <button
                                 type="button"
-                                onClick={() => openActionDialog("restore", article)}
-                                className="inline-flex items-center gap-2 rounded-xl bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-600"
+                                onClick={() => navigate(`/admin/articles/${article.id}/edit`)}
+                                className="inline-flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-bold text-gray-700 ring-1 ring-gray-200"
                               >
-                                <RotateCcw className="size-4" />
-                                Khôi phục
+                                <Edit className="size-4" />
+                                Chỉnh sửa
                               </button>
-                            ) : null
-                          ) : !article.isApproved ? (
-                            <>
-                              {canPublishContent ? (
+                            ) : null}
+
+                            {article.isDeleted ? (
+                              canDeleteContent ? (
                                 <button
                                   type="button"
-                                  onClick={() => handleApprove(article.id)}
+                                  onClick={() => openActionDialog("restore", article)}
                                   className="inline-flex items-center gap-2 rounded-xl bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-600"
                                 >
-                                  <CheckCircle2 className="size-4" />
-                                  Duyệt
+                                  <RotateCcw className="size-4" />
+                                  Khôi phục
                                 </button>
-                              ) : null}
-                              {canDeleteContent ? (
+                              ) : null
+                            ) : !article.isApproved ? (
+                              <>
+                                {canPublishContent ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleApprove(article.id)}
+                                    className="inline-flex items-center gap-2 rounded-xl bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-600"
+                                  >
+                                    <CheckCircle2 className="size-4" />
+                                    Duyệt
+                                  </button>
+                                ) : null}
+                                {canDeleteContent ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => openActionDialog("hardDelete", article)}
+                                    className="inline-flex items-center gap-2 rounded-xl bg-rose-50 px-3 py-2 text-sm font-bold text-rose-600"
+                                  >
+                                    <Trash2 className="size-4" />
+                                    Không duyệt
+                                  </button>
+                                ) : null}
+                              </>
+                            ) : (
+                              canDeleteContent ? (
                                 <button
                                   type="button"
-                                  onClick={() => openActionDialog("hardDelete", article)}
+                                  onClick={() => openActionDialog("delete", article)}
                                   className="inline-flex items-center gap-2 rounded-xl bg-rose-50 px-3 py-2 text-sm font-bold text-rose-600"
                                 >
                                   <Trash2 className="size-4" />
-                                  Không duyệt
+                                  Chuyển vào thùng rác
                                 </button>
-                              ) : null}
-                            </>
-                          ) : (
-                            canDeleteContent ? (
-                              <button
-                                type="button"
-                                onClick={() => openActionDialog("delete", article)}
-                                className="inline-flex items-center gap-2 rounded-xl bg-rose-50 px-3 py-2 text-sm font-bold text-rose-600"
-                              >
-                                <Trash2 className="size-4" />
-                                Chuyển vào thùng rác
-                              </button>
-                            ) : null
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))
+                              ) : null
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))
                 )}
               </tbody>
             </table>
           </div>
+
+          {/* Pagination */}
+          {!loading && sortedArticles.length > itemsPerPage && (
+            <div className="flex items-center justify-between border-t border-gray-100 bg-slate-50/50 px-6 py-4">
+              <div className="text-xs font-bold text-slate-500">
+                Hiển thị {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, sortedArticles.length)} trong tổng số {sortedArticles.length} bài viết
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(prev => prev - 1)}
+                  className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-bold text-gray-600 transition hover:bg-gray-50 disabled:opacity-50"
+                >
+                  Trước
+                </button>
+                {Array.from({ length: Math.ceil(sortedArticles.length / itemsPerPage) }, (_, i) => i + 1).map(page => (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${
+                      currentPage === page
+                        ? "bg-sky-600 text-white shadow-sm"
+                        : "border border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
+                <button
+                  disabled={currentPage === Math.ceil(sortedArticles.length / itemsPerPage)}
+                  onClick={() => setCurrentPage(prev => prev + 1)}
+                  className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-bold text-gray-600 transition hover:bg-gray-50 disabled:opacity-50"
+                >
+                  Sau
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

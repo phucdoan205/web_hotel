@@ -10,6 +10,17 @@ export const createCategory = async (payload) => {
   return response.data;
 };
 
-// Note: Backend currently only supports Get and Create.
-// I will add delete/update if needed by extending the backend later, 
-// but for now let's stick to what's available.
+export const updateCategory = async (id, payload) => {
+  const response = await apiClient.put(`/ArticleCategories/${id}`, payload);
+  return response.data;
+};
+
+export const deleteCategory = async (id) => {
+  const response = await apiClient.delete(`/ArticleCategories/${id}`);
+  return response.data;
+};
+
+export const toggleCategoryStatus = async (id) => {
+  const response = await apiClient.patch(`/ArticleCategories/${id}/status`);
+  return response.data;
+};
