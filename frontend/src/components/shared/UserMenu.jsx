@@ -9,6 +9,7 @@ import {
   UserCircle,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   AUTH_CHANGED_EVENT,
   clearAuth,
@@ -147,43 +148,52 @@ const UserMenu = ({
         />
       </button>
 
-      {isOpen ? (
-        <div className="absolute right-0 top-[calc(100%+0.75rem)] z-50 w-64 rounded-lg border border-gray-100 bg-white p-2 shadow-xl shadow-gray-200/60">
-          <div className="px-3 py-2">
-            <p className="text-sm font-semibold text-gray-950">{user.name}</p>
-            <p className="text-xs text-gray-400">
-              {user.email || user.role || "Signed in"}
-            </p>
-          </div>
-
-          {showCustomerLinks ? (
-            <div className="mt-1 border-t border-gray-100 pt-2">
-              {customerMenuItems.map((item) => (
-                <button
-                  key={item.path}
-                  type="button"
-                  onClick={() => handleNavigate(item.path)}
-                  className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-[#0071c2]"
-                >
-                  <item.icon className="size-4" />
-                  <span>{item.label}</span>
-                </button>
-              ))}
-            </div>
-          ) : null}
-
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="mt-2 flex w-full items-center gap-3 border-t border-gray-100 px-3 py-2.5 pt-4 text-sm font-semibold text-red-500 transition-colors hover:bg-red-50"
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="absolute right-0 top-[calc(100%+0.75rem)] z-50 w-64 rounded-xl border border-gray-100 bg-white p-2 shadow-2xl shadow-gray-200/60"
           >
-            <LogOut className="size-4" />
-            <span>Log out</span>
-          </button>
-        </div>
-      ) : null}
+            <div className="px-3 py-2">
+              <p className="text-sm font-bold text-gray-950">{user.name}</p>
+              <p className="text-xs font-medium text-gray-400">
+                {user.email || user.role || "Signed in"}
+              </p>
+            </div>
+
+            {showCustomerLinks ? (
+              <div className="mt-1 border-t border-gray-100 pt-2">
+                {customerMenuItems.map((item) => (
+                  <button
+                    key={item.path}
+                    type="button"
+                    onClick={() => handleNavigate(item.path)}
+                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-[#1F649C]"
+                  >
+                    <item.icon className="size-4" />
+                    <span>{item.label}</span>
+                  </button>
+                ))}
+              </div>
+            ) : null}
+
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="mt-2 flex w-full items-center gap-3 border-t border-gray-100 px-3 py-2.5 pt-4 text-sm font-bold text-red-500 transition-colors hover:bg-red-50"
+            >
+              <LogOut className="size-4" />
+              <span>Đăng xuất</span>
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
 
 export default UserMenu;
+

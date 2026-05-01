@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeftRight,
   BadgePlus,
@@ -129,20 +130,36 @@ const isPathMatched = (pathname, matchPaths = [], options = {}) => {
 };
 
 function SidebarLink({ item, pathname, className = "" }) {
-  const baseClasses =
-    "flex items-center gap-x-3 rounded-xl px-4 py-2.5 text-sm transition-all duration-200";
   const isActive = isPathMatched(pathname, item.matchPaths ?? [item.path], {
     exactMatch: item.exactMatch,
     excludePaths: item.excludePaths,
   });
-  const stateClasses = isActive
-    ? "bg-white/10 text-white font-bold"
-    : "text-blue-50 hover:bg-white/5 hover:text-white";
 
   return (
-    <NavLink to={item.path} className={`${baseClasses} ${stateClasses} ${className}`}>
-      <item.icon className="size-5 shrink-0" />
-      <span className="whitespace-nowrap leading-none">{item.name}</span>
+    <NavLink 
+      to={item.path} 
+      className={({ isActive: linkActive }) => 
+        `relative flex items-center gap-x-3 rounded-xl px-4 py-2.5 text-sm transition-colors duration-300 ${
+          isActive 
+            ? "text-white font-bold" 
+            : "text-blue-50 hover:text-white"
+        } ${className}`
+      }
+    >
+      {isActive && (
+        <motion.div
+          layoutId="sidebar-active-bg"
+          className="absolute inset-0 z-0 rounded-xl bg-white/10"
+          initial={false}
+          transition={{
+            type: "spring",
+            stiffness: 400,
+            damping: 35
+          }}
+        />
+      )}
+      <item.icon className="relative z-10 size-5 shrink-0" />
+      <span className="relative z-10 whitespace-nowrap leading-none">{item.name}</span>
     </NavLink>
   );
 }
@@ -158,6 +175,7 @@ export default function Sidebar() {
       [name]: !prev[name],
     }));
   };
+
 
   const visibleMenuItems = useMemo(
     () =>
@@ -228,18 +246,27 @@ export default function Sidebar() {
                     />
                   </button>
 
-                  {isExpanded ? (
-                    <div className="mt-1 flex flex-col gap-y-1 pl-4">
-                      {item.children.map((child) => (
-                        <SidebarLink
-                          key={child.name}
-                          item={child}
-                          pathname={location.pathname}
-                          className="pl-4 text-[13px]"
-                        />
-                      ))}
-                    </div>
-                  ) : null}
+                  <AnimatePresence>
+                    {isExpanded && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.3, ease: "easeInOut" }}
+                        className="mt-1 flex flex-col gap-y-1 overflow-hidden pl-4"
+                      >
+                        {item.children.map((child) => (
+                          <SidebarLink
+                            key={child.name}
+                            item={child}
+                            pathname={location.pathname}
+                            className="pl-4 text-[13px]"
+                          />
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
                 </div>
               );
             }
