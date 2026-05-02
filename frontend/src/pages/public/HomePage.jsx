@@ -1,8 +1,6 @@
 import React, { useRef, useState, useEffect } from "react";
-import { ArrowRight, BadgePercent, BedDouble, Building2, ChevronLeft, ChevronRight, Home, Landmark, Palmtree, Search, Star } from "lucide-react";
-
-
-
+import { ArrowRight, BadgePercent, BedDouble, Building2, ChevronLeft, ChevronRight, Heart, Home, Landmark, Palmtree, Search, Star } from "lucide-react";
+import { isFavoriteRoomType, toggleFavoriteRoomType } from "../../utils/userFavorites";
 import Hero from "../../components/home/Hero";
 import FeaturedHotels from "../../components/home/FeaturedHotels";
 import Destinations from "../../components/home/Destinations";
@@ -46,8 +44,45 @@ const HomePage = () => {
     if (!carouselRef.current) return;
     const card = carouselRef.current.querySelector("article");
     if (!card) return;
-    const scrollAmount = card.clientWidth + 16; // 16 là gap-4
+    const scrollAmount = card.clientWidth + 16;
     carouselRef.current.scrollBy({
+      left: direction === "left" ? -scrollAmount : scrollAmount,
+      behavior: "smooth",
+    });
+  };
+
+  const recentCarouselRef = useRef(null);
+  const [recentlyViewed, setRecentlyViewed] = useState([]);
+  const [showRecentLeft, setShowRecentLeft] = useState(false);
+  const [showRecentRight, setShowRecentRight] = useState(false);
+
+  useEffect(() => {
+    const saved = JSON.parse(localStorage.getItem("recentlyViewed") || "[]");
+    setRecentlyViewed(saved);
+  }, []);
+
+  const checkRecentScroll = () => {
+    if (!recentCarouselRef.current) return;
+    const { scrollLeft, scrollWidth, clientWidth } = recentCarouselRef.current;
+    setShowRecentLeft(scrollLeft > 10);
+    setShowRecentRight(scrollLeft < scrollWidth - clientWidth - 10);
+  };
+
+  useEffect(() => {
+    const el = recentCarouselRef.current;
+    if (el) {
+      el.addEventListener("scroll", checkRecentScroll);
+      checkRecentScroll();
+    }
+    return () => el?.removeEventListener("scroll", checkRecentScroll);
+  }, [recentlyViewed]);
+
+  const handleRecentScroll = (direction) => {
+    if (!recentCarouselRef.current) return;
+    const card = recentCarouselRef.current.querySelector("article");
+    if (!card) return;
+    const scrollAmount = card.clientWidth + 16;
+    recentCarouselRef.current.scrollBy({
       left: direction === "left" ? -scrollAmount : scrollAmount,
       behavior: "smooth",
     });
@@ -73,6 +108,110 @@ const HomePage = () => {
   return (
     <div className="bg-[#f8fafc]">
       <Hero />
+
+      {/* Section: Recently Viewed */}
+      {recentlyViewed.length > 0 && (
+        <section className="mx-auto max-w-7xl px-5 pt-12 lg:px-8">
+          <div className="mb-8 flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Bạn vẫn quan tâm?</h2>
+            </div>
+            {recentlyViewed.length > 4 && (
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => handleRecentScroll("left")}
+                  disabled={!showRecentLeft}
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  <ChevronLeft size={20} />
+                </button>
+                <button 
+                  onClick={() => handleRecentScroll("right")}
+                  disabled={!showRecentRight}
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  <ChevronRight size={20} />
+                </button>
+              </div>
+            )}
+          </div>
+          
+          <div className="relative group/recent">
+            <div 
+              ref={recentCarouselRef}
+              className="no-scrollbar flex gap-4 overflow-x-auto pb-4 scroll-smooth"
+            >
+              {recentlyViewed.map((rt) => (
+                <article 
+                  key={rt.id} 
+                  onClick={() => (window.location.href = `/room-types/${rt.id}`)}
+                  className="min-w-[280px] w-[280px] cursor-pointer overflow-hidden rounded-2xl border border-slate-200 bg-white transition-all hover:shadow-lg"
+                >
+                  <div className="relative aspect-[4/3] overflow-hidden">
+                    <img
+                      src={rt.primaryImageUrl}
+                      alt={rt.name}
+                      className="h-full w-full object-cover transition-transform duration-700 hover:scale-105"
+                    />
+                    <div className="absolute right-3 top-3">
+                      <button 
+                        onClick={(e) => { 
+                          e.stopPropagation(); 
+                          toggleFavoriteRoomType({
+                            roomTypeId: rt.id,
+                            roomTypeName: rt.name,
+                            basePrice: rt.basePrice,
+                            imageUrls: [rt.primaryImageUrl]
+                          }); 
+                        }}
+                        className="flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-slate-700 shadow-md backdrop-blur-sm transition hover:bg-white"
+                      >
+                        <Heart size={20} className={isFavoriteRoomType(rt.id) ? 'text-red-500 fill-red-500' : 'text-slate-600'} />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="p-4 flex flex-col gap-3">
+                    <div>
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <span className="text-[12px] font-medium text-slate-500">Khách sạn</span>
+                        <div className="flex gap-0.5">
+                          {[...Array(5)].map((_, i) => (
+                            <Star 
+                              key={i} 
+                              size={12} 
+                              fill={i < Math.round(rt.rating || 0) ? "#fbbf24" : "none"} 
+                              className={i < Math.round(rt.rating || 0) ? "text-amber-400" : "text-slate-200"} 
+                            />
+                          ))}
+                        </div>
+                      </div>
+                      <h3 className="text-lg font-bold text-slate-900 line-clamp-1 leading-tight">{rt.name}</h3>
+                      <p className="mt-1 text-xs font-medium text-slate-500">Hệ thống HPT Hotel</p>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#003b95] text-sm font-bold text-white">
+                        {rt.rating > 0 ? Number(rt.rating).toFixed(1).replace('.', ',') : "0,0"}
+                      </div>
+                      <div className="flex flex-col">
+                        <p className="text-[13px] font-bold text-slate-900 leading-none">
+                          {rt.rating >= 4.5 ? "Tuyệt hảo" : rt.rating >= 4 ? "Rất tốt" : rt.rating > 0 ? "Tốt" : "Chưa có đánh giá"}
+                        </p>
+                        <p className="text-[10px] font-medium text-slate-500 mt-0.5">{rt.reviewCount || 0} đánh giá</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-end justify-between pt-2">
+                      <p className="text-[10px] font-bold text-slate-400 uppercase">Bắt đầu từ</p>
+                      <p className="text-lg font-black text-slate-900">VND {new Intl.NumberFormat("vi-VN").format(rt.basePrice || 0)}</p>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Section: Offers & Promo */}
       <section className="mx-auto max-w-7xl px-5 py-12 lg:px-8">

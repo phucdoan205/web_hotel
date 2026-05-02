@@ -25,6 +25,7 @@ namespace backend.DTOs.Room
         public List<string> Amenities { get; set; } = new();
         public List<AmenityDTO> RoomTypeAmenities { get; set; } = new();
         public List<AmenityDTO> RoomSpecificAmenities { get; set; } = new();
+        public string Description { get; set; } = string.Empty;
         public List<string> ImageUrls { get; set; } = new();
         public List<RoomInventoryDTO> Inventory { get; set; } = new();
         public double Rating { get; set; }

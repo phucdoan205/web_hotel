@@ -43,6 +43,7 @@ namespace backend.Controllers
             .Include(r => r.RoomType)
             .ThenInclude(rt => rt!.RoomTypeAmenities)
             .ThenInclude(rta => rta.Amenity)
+            .ThenInclude(a => a.AmenityDetails)
             .Include(r => r.RoomType)
             .ThenInclude(rt => rt!.RoomImages)
             .Include(r => r.RoomType)
@@ -51,6 +52,7 @@ namespace backend.Controllers
             .ThenInclude(ri => ri.Equipment)
             .Include(r => r.RoomAmenities)
             .ThenInclude(ra => ra.Amenity)
+            .ThenInclude(a => a.AmenityDetails)
             .AsNoTracking();
 
 
@@ -110,12 +112,13 @@ namespace backend.Controllers
         public async Task<ActionResult<RoomDetailDTO>> GetRoom(int id)
         {
             var room = await _context.Rooms
-                .Include(r => r.RoomType).ThenInclude(rt => rt!.RoomTypeAmenities).ThenInclude(rta => rta.Amenity)
+                .Include(r => r.RoomType).ThenInclude(rt => rt!.RoomTypeAmenities).ThenInclude(rta => rta.Amenity).ThenInclude(a => a.AmenityDetails)
                 .Include(r => r.RoomType).ThenInclude(rt => rt!.RoomImages)
                 .Include(r => r.RoomInventory)
                 .ThenInclude(ri => ri.Equipment)
                 .Include(r => r.RoomAmenities)
                 .ThenInclude(ra => ra.Amenity)
+                .ThenInclude(a => a.AmenityDetails)
                 .AsNoTracking()
                 .FirstOrDefaultAsync(r => r.Id == id);
 
@@ -302,12 +305,14 @@ namespace backend.Controllers
                 .Include(r => r.RoomType)
                     .ThenInclude(rt => rt!.RoomTypeAmenities)
                         .ThenInclude(rta => rta.Amenity)
+                        .ThenInclude(a => a.AmenityDetails)
                 .Include(r => r.RoomType)
                     .ThenInclude(rt => rt!.RoomImages)
                 .Include(r => r.RoomType)
                     .ThenInclude(rt => rt!.Reviews)
                 .Include(r => r.RoomAmenities)
                     .ThenInclude(ra => ra.Amenity)
+                    .ThenInclude(a => a.AmenityDetails)
                 .Where(r => !r.IsDeleted && r.Status == RoomStatuses.Available);
 
 
@@ -412,7 +417,7 @@ namespace backend.Controllers
 
             var updatedRoom = await _context.Rooms
                 .Include(r => r.RoomType)
-                .ThenInclude(rt => rt!.RoomTypeAmenities).ThenInclude(a => a.Amenity)
+                .ThenInclude(rt => rt!.RoomTypeAmenities).ThenInclude(a => a.Amenity).ThenInclude(ad => ad.AmenityDetails)
                 .Include(r => r.RoomType)
                 .ThenInclude(rt => rt!.RoomImages)
                 .Include(r => r.RoomInventory)

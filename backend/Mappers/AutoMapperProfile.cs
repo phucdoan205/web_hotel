@@ -49,7 +49,8 @@ namespace backend.Mappers
             CreateMap<Article, ArticleDTO>();
             CreateMap<ArticleDTO, Article>();
             
-            CreateMap<Amenity, AmenityDTO>();
+            CreateMap<Amenity, AmenityDTO>()
+                .ForMember(dest => dest.Details, opt => opt.MapFrom(src => src.AmenityDetails));
             CreateMap<AmenityDetail, AmenityDetailDTO>();
 
             CreateMap<RoomInventory, RoomInventoryDTO>()
@@ -103,6 +104,8 @@ namespace backend.Mappers
                             .Where(ri => !string.IsNullOrWhiteSpace(ri.ImageUrl))
                             .Select(ri => ri.ImageUrl)
                         : Enumerable.Empty<string>()))
+                .ForMember(dest => dest.Description, opt => opt.MapFrom(src =>
+                    src.RoomType != null ? src.RoomType.Description : string.Empty))
                 .ForMember(dest => dest.Inventory, opt => opt.MapFrom(src => src.RoomInventory))
                 .ForMember(dest => dest.Rating, opt => opt.MapFrom(src =>
                     src.RoomType != null ? src.RoomType.Reviews.Average(r => r.Rating) ?? 0 : 0))
