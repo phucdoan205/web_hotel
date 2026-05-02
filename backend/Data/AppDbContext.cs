@@ -18,6 +18,7 @@ namespace backend.Data
         public DbSet<Membership> Memberships { get; set; }
 
         public DbSet<Amenity> Amenities { get; set; }
+        public DbSet<AmenityDetail> AmenityDetails { get; set; }
         public DbSet<Equipment> Equipments { get; set; }
         public DbSet<RoomType> RoomTypes { get; set; }
         public DbSet<Room> Rooms { get; set; }
@@ -60,6 +61,12 @@ namespace backend.Data
 
             modelBuilder.Entity<RoomAmenity>()
                 .HasKey(ra => new { ra.RoomId, ra.AmenityId });
+
+            modelBuilder.Entity<AmenityDetail>()
+                .HasOne(ad => ad.Amenity)
+                .WithMany(a => a.AmenityDetails)
+                .HasForeignKey(ad => ad.AmenityId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<Equipment>(entity =>
             {

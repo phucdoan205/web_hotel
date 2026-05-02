@@ -12,8 +12,8 @@ using backend.Data;
 namespace backend.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260502051948_database")]
-    partial class database
+    [Migration("20260502062856_newww")]
+    partial class newww
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -46,6 +46,28 @@ namespace backend.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Amenities");
+                });
+
+            modelBuilder.Entity("backend.Models.AmenityDetail", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AmenityId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AmenityId");
+
+                    b.ToTable("AmenityDetails");
                 });
 
             modelBuilder.Entity("backend.Models.Article", b =>
@@ -1180,6 +1202,17 @@ namespace backend.Migrations
                     b.ToTable("Vouchers");
                 });
 
+            modelBuilder.Entity("backend.Models.AmenityDetail", b =>
+                {
+                    b.HasOne("backend.Models.Amenity", "Amenity")
+                        .WithMany("AmenityDetails")
+                        .HasForeignKey("AmenityId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Amenity");
+                });
+
             modelBuilder.Entity("backend.Models.Article", b =>
                 {
                     b.HasOne("backend.Models.User", "ApprovedBy")
@@ -1494,6 +1527,8 @@ namespace backend.Migrations
 
             modelBuilder.Entity("backend.Models.Amenity", b =>
                 {
+                    b.Navigation("AmenityDetails");
+
                     b.Navigation("RoomAmenities");
 
                     b.Navigation("RoomTypeAmenities");

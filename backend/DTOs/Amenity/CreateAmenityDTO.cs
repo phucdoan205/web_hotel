@@ -4,5 +4,6 @@ namespace backend.DTOs.Amenity
     {
         public string Name { get; set; } = string.Empty;
         public string? IconUrl { get; set; }
+        public List<string> Details { get; set; } = new();
     }
 }

@@ -1,14 +1,18 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "react-hot-toast";
 import { roomAmenitiesApi } from "../../../api/admin/roomAmenitiesApi";
 import AmenityTable from "./AmenityTable";
 import AmenityForm from "./AmenityForm";
+import AmenityViewModal from "./AmenityViewModal";
 
 export default function AmenityManagement() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [openForm, setOpenForm] = useState(false);
+  const [openView, setOpenView] = useState(false);
   const [editingAmenity, setEditingAmenity] = useState(null);
+  const [viewingAmenity, setViewingAmenity] = useState(null);
 
   const { data: amenities, isLoading } = useQuery({
     queryKey: ["amenities", { includeInactive: true }],
@@ -20,7 +24,9 @@ export default function AmenityManagement() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["amenities"] });
       setOpenForm(false);
+      toast.success("Đã thêm tiện nghi mới thành công!");
     },
+    onError: () => toast.error("Có lỗi xảy ra khi thêm tiện nghi."),
   });
 
   const updateMutation = useMutation({
@@ -29,20 +35,25 @@ export default function AmenityManagement() {
       queryClient.invalidateQueries({ queryKey: ["amenities"] });
       setOpenForm(false);
       setEditingAmenity(null);
+      toast.success("Đã cập nhật tiện nghi thành công!");
     },
+    onError: () => toast.error("Có lỗi xảy ra khi cập nhật tiện nghi."),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id) => roomAmenitiesApi.deleteAmenity(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["amenities"] });
+      toast.success("Đã xóa tiện nghi thành công!");
     },
+    onError: () => toast.error("Không thể xóa tiện nghi này."),
   });
 
   const toggleMutation = useMutation({
     mutationFn: (id) => roomAmenitiesApi.toggleAmenityStatus(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["amenities"] });
+      toast.success("Đã thay đổi trạng thái tiện nghi!");
     },
   });
 
@@ -56,6 +67,12 @@ export default function AmenityManagement() {
   const paginatedAmenities = filteredAmenities.slice((page - 1) * pageSize, page * pageSize);
   const totalPages = Math.ceil(filteredAmenities.length / pageSize);
 
+  const handleDelete = (item) => {
+    if (window.confirm(`Bạn có chắc chắn muốn xóa tiện nghi "${item.name}"? Hành động này không thể hoàn tác.`)) {
+      deleteMutation.mutate(item.id);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
@@ -63,7 +80,7 @@ export default function AmenityManagement() {
           <div>
             <h2 className="text-2xl font-black text-slate-900">Danh sách tiện nghi</h2>
             <p className="mt-1 text-sm font-medium text-slate-500">
-              Quản lý danh sách tiện nghi và trạng thái hiển thị của chúng.
+              Quản lý danh sách tiện nghi và các tính năng chi tiết đi kèm.
             </p>
           </div>
 
@@ -98,12 +115,12 @@ export default function AmenityManagement() {
           setEditingAmenity(item);
           setOpenForm(true);
         }}
-        onDelete={(item) => {
-          if (window.confirm(`Xóa tiện nghi ${item.name}?`)) {
-            deleteMutation.mutate(item.id);
-          }
-        }}
+        onDelete={handleDelete}
         onToggle={(item) => toggleMutation.mutate(item.id)}
+        onView={(item) => {
+          setViewingAmenity(item);
+          setOpenView(true);
+        }}
       />
 
       {totalPages > 1 && (
@@ -141,6 +158,15 @@ export default function AmenityManagement() {
           } else {
             createMutation.mutate(payload);
           }
+        }}
+      />
+
+      <AmenityViewModal
+        open={openView}
+        amenity={viewingAmenity}
+        onClose={() => {
+          setOpenView(false);
+          setViewingAmenity(null);
         }}
       />
     </div>

@@ -6,5 +6,6 @@ namespace backend.DTOs.Amenity
         public string Name { get; set; } = string.Empty;
         public string? IconUrl { get; set; }
         public bool IsActive { get; set; }
+        public List<AmenityDetailDTO> Details { get; set; } = new();
     }
 }

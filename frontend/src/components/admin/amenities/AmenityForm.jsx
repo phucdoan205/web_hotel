@@ -1,27 +1,44 @@
 import React, { useEffect, useState } from "react";
-import { X } from "lucide-react";
+import { X, Plus, Trash2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function AmenityForm({ open, initialData, onClose, onSave }) {
   const [name, setName] = useState("");
   const [iconUrl, setIconUrl] = useState("");
+  const [details, setDetails] = useState([]);
+  const [newDetail, setNewDetail] = useState("");
 
   useEffect(() => {
     if (initialData) {
       setName(initialData.name);
       setIconUrl(initialData.iconUrl || "");
+      setDetails(initialData.details?.map(d => d.content) || []);
     } else {
       setName("");
       setIconUrl("");
+      setDetails([]);
     }
+    setNewDetail("");
   }, [initialData, open]);
+
+  const handleAddDetail = () => {
+    if (!newDetail.trim()) return;
+    if (details.includes(newDetail.trim())) return;
+    setDetails([...details, newDetail.trim()]);
+    setNewDetail("");
+  };
+
+  const handleRemoveDetail = (index) => {
+    setDetails(details.filter((_, i) => i !== index));
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!name.trim()) return;
     onSave({ 
       name: name.trim(),
-      iconUrl: iconUrl.trim() || null
+      iconUrl: iconUrl.trim() || null,
+      details: details
     });
   };
 
@@ -40,7 +57,7 @@ export default function AmenityForm({ open, initialData, onClose, onSave }) {
             initial={{ scale: 0.95, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.95, opacity: 0, y: 20 }}
-            className="relative w-full max-w-md overflow-hidden rounded-[32px] bg-white p-8 shadow-2xl"
+            className="relative w-full max-w-lg overflow-hidden rounded-[32px] bg-white p-8 shadow-2xl"
           >
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-black text-slate-900">
@@ -55,35 +72,81 @@ export default function AmenityForm({ open, initialData, onClose, onSave }) {
             </div>
 
             <form onSubmit={handleSubmit} className="mt-6 space-y-6">
-              <div className="space-y-2">
-                <label className="text-sm font-black uppercase tracking-wider text-slate-500">
-                  Tên tiện nghi
-                </label>
-                <input
-                  autoFocus
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Ví dụ: WiFi miễn phí, Hồ bơi..."
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition-all focus:border-orange-300 focus:bg-white"
-                />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <label className="text-sm font-black uppercase tracking-wider text-slate-500">
+                    Tên tiện nghi
+                  </label>
+                  <input
+                    autoFocus
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Ví dụ: WiFi miễn phí..."
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition-all focus:border-orange-300 focus:bg-white"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-black uppercase tracking-wider text-slate-500">
+                    Icon URL / Class
+                  </label>
+                  <input
+                    value={iconUrl}
+                    onChange={(e) => setIconUrl(e.target.value)}
+                    placeholder="Ví dụ: wifi, fa-wifi..."
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition-all focus:border-orange-300 focus:bg-white"
+                  />
+                </div>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-4">
                 <label className="text-sm font-black uppercase tracking-wider text-slate-500">
-                  Icon URL / Class (FontAwesome)
+                  Chi tiết tiện nghi
                 </label>
-                <input
-                  value={iconUrl}
-                  onChange={(e) => setIconUrl(e.target.value)}
-                  placeholder="Ví dụ: wifi, pool, fa-wifi..."
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition-all focus:border-orange-300 focus:bg-white"
-                />
-                <p className="text-[10px] font-medium text-slate-400">
-                  Nhập URL ảnh hoặc tên icon để hiển thị.
-                </p>
+                
+                <div className="flex gap-2">
+                  <input
+                    value={newDetail}
+                    onChange={(e) => setNewDetail(e.target.value)}
+                    onKeyPress={(e) => e.key === "Enter" && (e.preventDefault(), handleAddDetail())}
+                    placeholder="Nhập chi tiết (VD: Băng thông 100Mbps)"
+                    className="flex-1 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition-all focus:border-orange-300 focus:bg-white"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddDetail}
+                    className="inline-flex size-12 items-center justify-center rounded-2xl bg-orange-100 text-orange-600 transition-all hover:bg-orange-200"
+                  >
+                    <Plus className="size-5" />
+                  </button>
+                </div>
+
+                <div className="max-h-[200px] space-y-2 overflow-y-auto pr-1">
+                  {details.length === 0 ? (
+                    <p className="py-4 text-center text-xs font-medium text-slate-400">
+                      Chưa có chi tiết nào được thêm.
+                    </p>
+                  ) : (
+                    details.map((detail, index) => (
+                      <div 
+                        key={index}
+                        className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50/50 px-4 py-2"
+                      >
+                        <span className="text-sm font-semibold text-slate-700">{detail}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveDetail(index)}
+                          className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600"
+                        >
+                          <Trash2 className="size-4" />
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
 
-              <div className="flex gap-3">
+              <div className="flex gap-3 pt-2">
                 <button
                   type="button"
                   onClick={onClose}

@@ -1,7 +1,9 @@
-import React from "react";
-import { Edit2, Trash2 } from "lucide-react";
+import React, { useState } from "react";
+import { Edit2, MoreVertical, Trash2, Eye } from "lucide-react";
 
-export default function AmenityTable({ amenities, isLoading, onEdit, onDelete, onToggle }) {
+export default function AmenityTable({ amenities, isLoading, onEdit, onDelete, onToggle, onView }) {
+  const [openMenuId, setOpenMenuId] = useState(null);
+
   if (isLoading) {
     return (
       <div className="flex h-64 items-center justify-center">
@@ -10,15 +12,19 @@ export default function AmenityTable({ amenities, isLoading, onEdit, onDelete, o
     );
   }
 
+  const toggleMenu = (id) => {
+    setOpenMenuId(openMenuId === id ? null : id);
+  };
+
   return (
-    <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm">
-      <table className="w-full text-left border-collapse">
+    <div className="rounded-[28px] border border-slate-200 bg-white shadow-sm">
+      <table className="w-full text-left border-separate border-spacing-0">
         <thead>
-          <tr className="border-b border-slate-100 bg-slate-50/50">
-            <th className="px-6 py-4 text-[13px] font-black uppercase tracking-wider text-slate-500">Icon</th>
-            <th className="px-6 py-4 text-[13px] font-black uppercase tracking-wider text-slate-500">Tên tiện nghi</th>
-            <th className="px-6 py-4 text-[13px] font-black uppercase tracking-wider text-slate-500">Trạng thái</th>
-            <th className="px-6 py-4 text-right text-[13px] font-black uppercase tracking-wider text-slate-500">Hành động</th>
+          <tr className="bg-slate-50/50">
+            <th className="rounded-tl-[28px] border-b border-slate-100 px-6 py-4 text-[13px] font-black uppercase tracking-wider text-slate-500">Icon</th>
+            <th className="border-b border-slate-100 px-6 py-4 text-[13px] font-black uppercase tracking-wider text-slate-500">Tên tiện nghi</th>
+            <th className="border-b border-slate-100 px-6 py-4 text-[13px] font-black uppercase tracking-wider text-slate-500">Trạng thái</th>
+            <th className="rounded-tr-[28px] border-b border-slate-100 px-6 py-4 text-right text-[13px] font-black uppercase tracking-wider text-slate-500">Hành động</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100">
@@ -37,13 +43,11 @@ export default function AmenityTable({ amenities, isLoading, onEdit, onDelete, o
                       const url = item.iconUrl || "";
                       if (!url) return <span className="text-[10px]">No Icon</span>;
 
-                      // Nếu là link từ trang web fontawesome, trích xuất tên icon
                       if (url.includes("fontawesome.com/icons/")) {
                         const iconName = url.split("/").pop().split("?")[0];
                         return <i className={`fa-solid fa-${iconName} text-lg`} />;
                       }
 
-                      // Nếu là link ảnh trực tiếp
                       if (url.startsWith("http")) {
                         return (
                           <img
@@ -58,7 +62,6 @@ export default function AmenityTable({ amenities, isLoading, onEdit, onDelete, o
                         );
                       }
 
-                      // Nếu là class fontawesome hoặc tên icon
                       return (
                         <i className={`${url.includes("fa-") ? url : `fa-solid fa-${url}`} text-lg`} />
                       );
@@ -81,19 +84,56 @@ export default function AmenityTable({ amenities, isLoading, onEdit, onDelete, o
                   </button>
                 </td>
                 <td className="px-6 py-4 text-right">
-                  <div className="flex justify-end gap-2">
+                  <div className="relative flex justify-end gap-2">
                     <button
-                      onClick={() => onEdit(item)}
-                      className="rounded-xl p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+                      onClick={() => onView(item)}
+                      className="rounded-xl bg-sky-50 px-3 py-2 text-xs font-black text-sky-700 transition-all hover:bg-sky-100"
                     >
-                      <Edit2 className="size-4" />
+                      <div className="flex items-center gap-1">
+                        <Eye className="size-3.5" />
+                        <span>Xem</span>
+                      </div>
                     </button>
-                    <button
-                      onClick={() => onDelete(item)}
-                      className="rounded-xl p-2 text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600"
-                    >
-                      <Trash2 className="size-4" />
-                    </button>
+                    
+                    <div className="relative">
+                      <button
+                        onClick={() => toggleMenu(item.id)}
+                        className="inline-flex items-center justify-center rounded-xl bg-slate-100 px-2 py-2 text-slate-700 transition-all hover:bg-slate-200"
+                      >
+                        <MoreVertical className="size-4" />
+                      </button>
+
+                      {openMenuId === item.id && (
+                        <>
+                          <div 
+                            className="fixed inset-0 z-10" 
+                            onClick={() => setOpenMenuId(null)}
+                          />
+                          <div className="absolute right-0 top-[calc(100%+8px)] z-20 min-w-[140px] overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl">
+                            <button
+                              onClick={() => {
+                                setOpenMenuId(null);
+                                onEdit(item);
+                              }}
+                              className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-bold text-slate-700 transition-all hover:bg-slate-50"
+                            >
+                              <Edit2 className="size-4 text-slate-400" />
+                              Sửa
+                            </button>
+                            <button
+                              onClick={() => {
+                                setOpenMenuId(null);
+                                onDelete(item);
+                              }}
+                              className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-bold text-rose-600 transition-all hover:bg-rose-50"
+                            >
+                              <Trash2 className="size-4 text-rose-400" />
+                              Xóa
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </td>
               </tr>

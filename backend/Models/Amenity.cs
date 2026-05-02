@@ -11,6 +11,7 @@ namespace backend.Models
         public bool IsActive { get; set; } = true;
         public ICollection<RoomTypeAmenity> RoomTypeAmenities { get; set; } = new List<RoomTypeAmenity>();
         public ICollection<RoomAmenity> RoomAmenities { get; set; } = new List<RoomAmenity>();
+        public ICollection<AmenityDetail> AmenityDetails { get; set; } = new List<AmenityDetail>();
     }
 }
 

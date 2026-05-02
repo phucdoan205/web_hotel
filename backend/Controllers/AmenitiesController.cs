@@ -19,7 +19,7 @@ namespace backend.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<AmenityDTO>>> GetAll([FromQuery] bool includeInactive = false)
         {
-            var query = _context.Amenities.AsQueryable();
+            var query = _context.Amenities.Include(a => a.AmenityDetails).AsQueryable();
             
             if (!includeInactive)
             {
@@ -32,7 +32,12 @@ namespace backend.Controllers
                     Id = x.Id,
                     Name = x.Name,
                     IconUrl = x.IconUrl,
-                    IsActive = x.IsActive
+                    IsActive = x.IsActive,
+                    Details = x.AmenityDetails.Select(d => new AmenityDetailDTO
+                    {
+                        Id = d.Id,
+                        Content = d.Content
+                    }).ToList()
                 })
                 .AsNoTracking()
                 .ToListAsync();
@@ -44,13 +49,19 @@ namespace backend.Controllers
         public async Task<ActionResult<AmenityDTO>> GetById(int id)
         {
             var entity = await _context.Amenities
+                .Include(a => a.AmenityDetails)
                 .Where(x => x.Id == id && x.IsActive)
                 .Select(x => new AmenityDTO
                 {
                     Id = x.Id,
                     Name = x.Name,
                     IconUrl = x.IconUrl,
-                    IsActive = x.IsActive
+                    IsActive = x.IsActive,
+                    Details = x.AmenityDetails.Select(d => new AmenityDetailDTO
+                    {
+                        Id = d.Id,
+                        Content = d.Content
+                    }).ToList()
                 })
                 .AsNoTracking()
                 .FirstOrDefaultAsync();
@@ -75,7 +86,8 @@ namespace backend.Controllers
             {
                 Name = request.Name.Trim(),
                 IconUrl = string.IsNullOrWhiteSpace(request.IconUrl) ? null : request.IconUrl.Trim(),
-                IsActive = true
+                IsActive = true,
+                AmenityDetails = request.Details?.Select(d => new Models.AmenityDetail { Content = d.Trim() }).ToList() ?? new List<Models.AmenityDetail>()
             };
 
             _context.Amenities.Add(amenity);
@@ -86,7 +98,12 @@ namespace backend.Controllers
                 Id = amenity.Id,
                 Name = amenity.Name,
                 IconUrl = amenity.IconUrl,
-                IsActive = amenity.IsActive
+                IsActive = amenity.IsActive,
+                Details = amenity.AmenityDetails.Select(d => new AmenityDetailDTO
+                {
+                    Id = d.Id,
+                    Content = d.Content
+                }).ToList()
             };
 
             return CreatedAtAction(nameof(GetById), new { id = amenity.Id }, result);
@@ -95,7 +112,10 @@ namespace backend.Controllers
         [HttpPut("{id:int}")]
         public async Task<IActionResult> Update(int id, [FromBody] CreateAmenityDTO request)
         {
-            var amenity = await _context.Amenities.FindAsync(id);
+            var amenity = await _context.Amenities
+                .Include(a => a.AmenityDetails)
+                .FirstOrDefaultAsync(a => a.Id == id);
+
             if (amenity == null)
             {
                 return NotFound();
@@ -103,6 +123,10 @@ namespace backend.Controllers
 
             amenity.Name = request.Name.Trim();
             amenity.IconUrl = string.IsNullOrWhiteSpace(request.IconUrl) ? null : request.IconUrl.Trim();
+
+            // Update details: simple way is to remove all and add new ones
+            _context.AmenityDetails.RemoveRange(amenity.AmenityDetails);
+            amenity.AmenityDetails = request.Details?.Select(d => new Models.AmenityDetail { Content = d.Trim() }).ToList() ?? new List<Models.AmenityDetail>();
 
             await _context.SaveChangesAsync();
             return NoContent();
