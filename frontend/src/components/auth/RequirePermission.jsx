@@ -8,7 +8,7 @@ const RequirePermission = ({ permission, children }) => {
   const auth = useStoredAuth();
 
   if (!auth?.token) {
-    return <Navigate to="/login" replace state={{ from: location }} />;
+    return <Navigate to="/" replace />;
   }
 
   if (!hasPermission(permission, auth)) {

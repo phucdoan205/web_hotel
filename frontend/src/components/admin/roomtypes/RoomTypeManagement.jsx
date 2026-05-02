@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { roomTypesApi } from "../../../api/admin/roomTypesApi";
 import { hasPermission } from "../../../utils/permissions";
 import RoomTypeForm from "./RoomTypeForm";
@@ -7,6 +8,7 @@ import RoomTypeTable from "./RoomTypeTable";
 import RoomTypeAmenities from "./RoomTypeAmenities";
 
 export default function RoomTypeManagement() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [openForm, setOpenForm] = useState(false);
@@ -92,6 +94,9 @@ export default function RoomTypeManagement() {
         canEdit={canEditRoomTypes}
         canDelete={canDeleteRoomTypes}
         canManageAmenities={canEditRoomTypes}
+        onView={(roomType) => {
+          window.open(`/room-types/${roomType.id}`, "_blank");
+        }}
         onEdit={async (roomType) => {
           const detail = await roomTypesApi.getRoomTypeById(roomType.id);
           setEditingRoomType(detail);
