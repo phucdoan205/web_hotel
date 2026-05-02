@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Rocket, User, Hotel, Calendar, Utensils, Ticket, FileText } from "lucide-react";
+import { Rocket, User, Hotel, Calendar, Utensils, Ticket, FileText, HelpCircle } from "lucide-react";
 import NavItem from "./NavItem";
 import { getStoredAuth } from "../../utils/authStorage";
 import UserMenu from "../shared/UserMenu";
@@ -10,7 +10,7 @@ const Navbar = () => {
   const location = useLocation();
   const [isScrolled, setIsScrolled] = React.useState(false);
 
-  const isTransparentNav = location.pathname === "/" || location.pathname === "/hotels" || location.pathname === "/articles";
+  const isTransparentNav = location.pathname === "/" || location.pathname === "/hotels" || location.pathname === "/articles" || location.pathname === "/support/help-center";
 
   React.useEffect(() => {
     const handleScroll = () => {
@@ -45,6 +45,7 @@ const Navbar = () => {
           <NavItem label="Tìm phòng" to="/booking" icon={Calendar} />
           <NavItem label="Ẩm thực" to="/food" icon={Utensils} />
           <NavItem label="Địa điểm & Hoạt động" to="/articles" icon={Ticket} />
+          <NavItem label="Trợ giúp" to="/support/help-center" icon={HelpCircle} />
         </div>
       </div>
 

@@ -1,17 +1,18 @@
 import React from "react";
 import { Share2, Globe, Mail, Rocket } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const FooterColumn = ({ title, links }) => (
   <div className="flex flex-col gap-3">
     <h3 className="font-bold text-slate-800 mb-2">{title}</h3>
     {links.map((link, index) => (
-      <a
+      <Link
         key={index}
-        href="#"
+        to={link.to}
         className="text-slate-500 hover:text-blue-500 text-sm transition-colors"
       >
-        {link}
-      </a>
+        {link.label}
+      </Link>
     ))}
   </div>
 );
@@ -45,17 +46,22 @@ const Footer = () => {
 
         {/* Links Sections */}
         <FooterColumn
-          title="Explore"
-          links={["Hotels", "Villas", "Trains", "Buses & Travel", "Bài viết"]}
+          title="Khám phá"
+          links={[
+            { label: "Khách sạn", to: "/" },
+            { label: "Tìm phòng", to: "/booking" },
+            { label: "Ẩm thực", to: "/food" },
+            { label: "Địa điểm & Hoạt động", to: "/articles" },
+          ]}
         />
         <FooterColumn
-          title="Support"
+          title="Hỗ trợ"
           links={[
-            "Help Center",
-            "Contact Us",
-            "Privacy Policy",
-            "Terms & Conditions",
-            "Refund Policy",
+            { label: "Trung tâm trợ giúp", to: "/support/help-center" },
+            { label: "Liên hệ", to: "/support/contact-us" },
+            { label: "Chính sách bảo mật", to: "/support/privacy-policy" },
+            { label: "Điều khoản sử dụng", to: "/support/terms" },
+            { label: "Chính sách hoàn tiền", to: "/support/refund-policy" },
           ]}
         />
 

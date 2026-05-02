@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { ArrowLeft, BedDouble, CalendarRange, Check, DoorClosed, Heart, Users, Star, Search, Wifi, Wind, Tv, Refrigerator, Waves, Utensils, Bath, ShieldCheck, Coffee, Smartphone, Car, Languages, ChevronLeft, ChevronRight, X, Maximize2 } from "lucide-react";
+import { useMutation, useQuery, keepPreviousData } from "@tanstack/react-query";
+import { ArrowLeft, BedDouble, CalendarRange, Check, DoorClosed, Heart, Users, Star, Search, Wifi, Wind, Tv, Refrigerator, Waves, Utensils, Bath, ShieldCheck, Coffee, Smartphone, Car, Languages, ChevronLeft, ChevronRight, X, Maximize2, RefreshCw } from "lucide-react";
 import { roomsApi } from "../../api/admin/roomsApi";
 import { roomTypesApi } from "../../api/admin/roomTypesApi";
 import HorizontalSearchFilter from "../../components/public/bookings/HorizontalSearchFilter";
@@ -18,26 +18,25 @@ registerLocale("vi", vi);
 
 const CustomDateInput = React.forwardRef(({ value, onClick, startDate, endDate }, ref) => (
   <div
-    className="flex w-full cursor-pointer items-center justify-between gap-4 px-4"
+    className="flex w-full cursor-pointer items-center justify-between gap-4 px-4 py-1"
     onClick={onClick}
     ref={ref}
   >
-    <div className="flex items-center gap-6">
+    <div className="flex items-center gap-3">
+      <CalendarRange size={22} className="text-[#0194f3]" />
       <div className="flex flex-col">
-        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Nhận phòng</span>
-        <span className="text-sm font-black text-slate-800">
-          {startDate ? format(startDate, "dd/MM/yyyy") : "Chọn ngày"}
-        </span>
-      </div>
-      <div className="h-8 w-px bg-slate-200" />
-      <div className="flex flex-col">
-        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Trả phòng</span>
-        <span className="text-sm font-black text-slate-800">
-          {endDate ? format(endDate, "dd/MM/yyyy") : "Chọn ngày"}
-        </span>
+        <span className="text-[11px] font-bold uppercase tracking-widest text-slate-500">Ngày nhận - trả phòng</span>
+        <div className="flex items-center gap-2 text-[15px] font-black text-slate-900 mt-0.5">
+          <span className="truncate">
+            {startDate ? format(startDate, "dd/MM/yyyy") : "Chọn ngày"}
+          </span>
+          <span className="text-slate-300 font-normal">-</span>
+          <span className="truncate">
+            {endDate ? format(endDate, "dd/MM/yyyy") : "Chọn ngày"}
+          </span>
+        </div>
       </div>
     </div>
-    <CalendarRange size={20} className="text-slate-400" />
   </div>
 ));
 
@@ -198,6 +197,7 @@ const RoomDetailPage = () => {
         pageSize: 100,
       }),
     enabled: Boolean(id),
+    placeholderData: keepPreviousData,
   });
 
   const reviewsQuery = useQuery({
@@ -577,8 +577,8 @@ const RoomDetailPage = () => {
                   <div className="flex-1">
                     <DatePicker
                       selectsRange={true}
-                      startDate={new Date(filters.checkIn)}
-                      endDate={new Date(filters.checkOut)}
+                      startDate={filters.checkIn ? new Date(filters.checkIn) : null}
+                      endDate={filters.checkOut ? new Date(filters.checkOut) : null}
                       onChange={(update) => {
                         const [start, end] = update;
                         const toDateStr = (d) => {
@@ -586,8 +586,8 @@ const RoomDetailPage = () => {
                           const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
                           return local.toISOString().split("T")[0];
                         };
-                        if (start) handleFilterChange("checkIn", `${toDateStr(start)}T14:00`);
-                        if (end) handleFilterChange("checkOut", `${toDateStr(end)}T12:00`);
+                        handleFilterChange("checkIn", start ? `${toDateStr(start)}T14:00` : "");
+                        handleFilterChange("checkOut", end ? `${toDateStr(end)}T12:00` : "");
                         
                         // Immediately apply dates for room fetching
                         if (start && end) {
@@ -600,7 +600,7 @@ const RoomDetailPage = () => {
                       }}
                       monthsShown={2}
                       minDate={new Date()}
-                      customInput={<CustomDateInput startDate={new Date(filters.checkIn)} endDate={new Date(filters.checkOut)} />}
+                      customInput={<CustomDateInput startDate={filters.checkIn ? new Date(filters.checkIn) : null} endDate={filters.checkOut ? new Date(filters.checkOut) : null} />}
                       className="w-full"
                     />
                   </div>
@@ -608,8 +608,8 @@ const RoomDetailPage = () => {
                   <div className="flex items-center gap-4 border-l border-slate-100 pl-4 pr-2">
                     {selectedRoom && (
                       <div className="text-right hidden sm:block">
-                        <p className="text-[10px] font-black uppercase text-slate-400">Tổng cộng ({stayDays} đêm)</p>
-                        <p className="text-lg font-black text-blue-600 leading-none">{formatCurrency(totalPrice)}</p>
+                        <p className="text-[10px] font-black uppercase text-slate-400">Giá cọc (1 đêm)</p>
+                        <p className="text-lg font-black text-blue-600 leading-none">{formatCurrency(roomType.basePrice || 0)}</p>
                       </div>
                     )}
                     <button
@@ -638,14 +638,22 @@ const RoomDetailPage = () => {
             )}
 
             {availableRooms.length ? (
-              <div className="space-y-6">
+              <div className="space-y-6 relative">
+                {availableRoomsQuery.isFetching && (
+                  <div className="absolute inset-0 z-10 bg-white/50 backdrop-blur-[1px] flex items-center justify-center rounded-xl">
+                    <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-full shadow-md text-sm font-bold text-blue-600">
+                      <RefreshCw size={16} className="animate-spin" />
+                      Đang cập nhật giá...
+                    </div>
+                  </div>
+                )}
                 <div className="rounded-t-xl rounded-b border border-slate-300 shadow-sm overflow-hidden">
                   <table className="w-full text-left text-sm text-slate-700">
                     <thead className="bg-[#003b95] text-white">
                       <tr>
                         <th className="px-4 py-3 font-bold border-r border-[#00224f] w-[35%]">Số phòng cụ thể</th>
                         <th className="px-3 py-3 font-bold border-r border-[#00224f] text-center w-[15%]">Số lượng</th>
-                        <th className="px-4 py-3 font-bold border-r border-[#00224f] bg-[#00224f] w-[25%]">Giá cho {stayDays} đêm</th>
+                        <th className="px-4 py-3 font-bold border-r border-[#00224f] bg-[#00224f] w-[25%]">Giá cọc (1 đêm)</th>
                         <th className="px-4 py-3 font-bold w-[25%]">Tùy chọn cho bạn</th>
                       </tr>
                     </thead>
@@ -688,7 +696,10 @@ const RoomDetailPage = () => {
                               </div>
                             </td>
                             <td className="px-4 py-4 border-r border-slate-300 align-middle">
-                              <div className="text-xl font-bold text-slate-900">{formatCurrency(totalPrice)}</div>
+                              <div className="text-xl font-bold text-slate-900">{formatCurrency(roomType.basePrice || 0)}</div>
+                              <div className="mt-1.5 text-[13px] font-semibold text-slate-500">
+                                Tổng <span className="text-slate-700">{formatCurrency(totalPrice)}</span> cho {stayDays} đêm
+                              </div>
                             </td>
                             <td className="px-4 py-4 align-middle">
                               {isSelected ? (

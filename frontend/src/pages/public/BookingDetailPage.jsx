@@ -115,8 +115,9 @@ const BookingDetailPage = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
+    <div className="min-h-screen bg-[#F8FAFC] px-4 py-10 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl space-y-6">
+        <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <button
             type="button"
@@ -448,6 +449,7 @@ const BookingDetailPage = () => {
           </div>
         </div>
       ) : null}
+      </div>
     </div>
   );
 };

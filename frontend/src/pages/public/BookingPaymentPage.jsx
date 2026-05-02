@@ -215,8 +215,9 @@ const BookingPaymentPage = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
+    <div className="min-h-screen bg-[#F8FAFC] px-4 py-10 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl space-y-6">
+        <div>
         <button
           type="button"
           onClick={() => navigate(`/booking/${id}`)}
@@ -568,6 +569,7 @@ const BookingPaymentPage = () => {
           </div>
         </div>
       ) : null}
+      </div>
     </div>
   );
 };

@@ -59,6 +59,7 @@ import AccountReviewsPage from "../pages/public/AccountReviewsPage";
 import PersonalDetailsPage from "../pages/public/account/PersonalDetailsPage";
 import SecuritySettingsPage from "../pages/public/account/SecuritySettingsPage";
 import GeneralSettingsPage from "../pages/public/account/GeneralSettingsPage";
+import SupportPage from "../pages/public/SupportPage";
 import RequirePermission from "../components/auth/RequirePermission";
 
 const AppRoutes = () => {
@@ -104,6 +105,7 @@ const AppRoutes = () => {
         <Route path="activities" element={<BlogPage />} />
         <Route path="hotels/search" element={<HotelListPage />} />
         <Route path="food" element={<FoodPage />} />
+        <Route path="support/:pageId" element={<SupportPage />} />
       </Route>
 
       <Route path="/login" element={<LoginPage />} />

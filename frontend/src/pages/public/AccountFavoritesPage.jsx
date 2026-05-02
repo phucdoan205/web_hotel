@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Heart, DoorClosed, Star, BedDouble, Users, ArrowRight } from "lucide-react";
+import { Heart, DoorClosed, BedDouble, Users, MapPin, Star, ArrowRight } from "lucide-react";
 import { getFavoriteRoomTypes, toggleFavoriteRoomType } from "../../utils/userFavorites";
 
 const formatCurrency = (value) =>
@@ -18,94 +18,117 @@ const AccountFavoritesPage = () => {
   }, []);
 
   const handleRemove = (roomTypeId) => {
-    // toggle will remove it if it exists
     const result = toggleFavoriteRoomType({ roomTypeId });
     setFavorites(result.favorites);
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-16">
-      <div className="bg-[#01539d] pt-12 pb-[14rem] text-white">
-        <div className="mx-auto max-w-5xl px-5 lg:px-8">
-          <div className="flex flex-col items-center gap-5 text-center">
-            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-white/10 shadow-inner">
-              <Heart className="h-10 w-10 text-[#ffb700]" fill="currentColor" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-black tracking-tight">Phòng yêu thích của bạn</h1>
-              <p className="mt-2 text-lg font-medium text-white/80">
-                Lưu lại những lựa chọn ưng ý nhất để đặt phòng nhanh chóng trong tương lai.
-              </p>
-            </div>
-          </div>
-        </div>
+    <div className="min-h-screen bg-[#F8FAFC] p-10">
+      <div className="mb-10">
+        <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">User / Danh sách yêu thích</p>
+        <h1 className="mt-3 text-3xl font-black text-gray-900">Phòng đã lưu</h1>
+        <p className="mt-2 text-[13px] font-bold text-gray-400">
+          Bạn đang có {favorites.length} phòng trong danh sách yêu thích. Nơi lưu giữ những căn phòng tuyệt vời nhất.
+        </p>
       </div>
 
-      <div className="mx-auto -mt-[11rem] max-w-5xl px-5 lg:px-8 relative z-10">
-        <div className="rounded-[2rem] border border-slate-100 bg-white p-6 shadow-xl md:p-10">
-          <div className="mb-8 border-b border-slate-100 pb-6">
-            <h2 className="text-2xl font-black text-slate-950">Danh sách đã lưu</h2>
-            <p className="mt-1 text-sm font-medium text-slate-500">
-              Bạn đang có {favorites.length} phòng trong danh sách yêu thích.
-            </p>
-          </div>
-
-          {favorites.length === 0 ? (
-            <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 py-16 text-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-100 text-[#0194f3] mb-4">
-                <Heart className="h-8 w-8" />
-              </div>
-              <h3 className="text-xl font-bold text-slate-900">Danh sách trống</h3>
-              <p className="mt-2 max-w-md text-sm font-medium text-slate-500">
-                Hãy khám phá các khách sạn và nhấn vào biểu tượng trái tim để lưu lại những lựa chọn mà bạn yêu thích.
-              </p>
-              <Link
-                to="/booking"
-                className="mt-6 rounded-full bg-[#0194f3] px-8 py-3.5 text-sm font-bold text-white shadow-lg transition hover:bg-[#017bc0]"
-              >
-                Khám phá ngay
-              </Link>
+      <div className="rounded-[2rem] bg-white p-6 shadow-sm ring-1 ring-gray-100">
+        {favorites.length === 0 ? (
+          <div className="flex flex-col items-center justify-center rounded-[1.5rem] bg-slate-50 py-20 text-center border border-dashed border-slate-200">
+            <div className="mb-6 flex size-20 items-center justify-center rounded-full bg-rose-50 border border-rose-100">
+              <Heart className="size-8 text-rose-400" />
             </div>
-          ) : (
-            <div className="grid gap-6">
-              {favorites.map((room) => (
-                <div key={room.roomTypeId} className="group relative flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4 transition-all hover:border-[#0194f3] hover:shadow-lg sm:flex-row sm:items-center">
-                  <div className="relative h-48 w-full shrink-0 overflow-hidden rounded-xl sm:h-32 sm:w-48">
-                    <img
-                      src={room.imageUrl || "https://placehold.co/400x300/e2e8f0/64748b?text=Room"}
-                      alt={room.roomTypeName}
-                      className="h-full w-full object-cover transition duration-500 group-hover:scale-110"
-                    />
-                    <button
-                      onClick={() => handleRemove(room.roomTypeId)}
-                      className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-red-500 shadow-sm backdrop-blur transition hover:bg-red-50"
-                    >
-                      <Heart className="h-4 w-4" fill="currentColor" />
-                    </button>
-                  </div>
-                  <div className="flex flex-1 flex-col justify-center gap-1">
-                    <h3 className="text-lg font-bold text-slate-900">{room.roomTypeName || "Phòng nghỉ"}</h3>
-                    <div className="flex flex-wrap items-center gap-3 text-sm font-medium text-slate-500">
-                      <span className="flex items-center gap-1.5"><Users size={16} /> {room.capacityAdults} người lớn</span>
-                      <span className="flex items-center gap-1.5"><BedDouble size={16} /> {room.bedType || "1 giường đôi"}</span>
-                      {room.size && <span className="flex items-center gap-1.5"><DoorClosed size={16} /> {room.size} m²</span>}
+            <h3 className="text-xl font-black text-slate-900">Chưa có phòng nào được lưu</h3>
+            <p className="mt-3 max-w-md text-sm font-medium text-slate-500">
+              Hãy dạo quanh các khách sạn của chúng tôi và nhấn vào biểu tượng trái tim để lưu lại những căn phòng bạn ưng ý nhé.
+            </p>
+            <Link
+              to="/booking"
+              className="mt-8 inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-6 py-3 text-sm font-bold text-white transition hover:bg-blue-700"
+            >
+              Khám phá ngay <ArrowRight size={16} />
+            </Link>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+            {favorites.map((room) => (
+              <div 
+                key={room.roomTypeId} 
+                className="group relative flex flex-col overflow-hidden rounded-[2rem] bg-white shadow-xl shadow-slate-200/40 transition-all hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-200/50"
+              >
+                {/* Image & Favorite Button */}
+                <div className="relative aspect-[4/3] w-full overflow-hidden">
+                  <img
+                    src={room.imageUrl || "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80"}
+                    alt={room.roomTypeName}
+                    className="size-full object-cover transition-transform duration-700 group-hover:scale-110"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                  
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleRemove(room.roomTypeId);
+                    }}
+                    className="absolute right-4 top-4 z-10 flex size-10 items-center justify-center rounded-full bg-white/90 shadow-sm backdrop-blur transition-transform hover:scale-110"
+                  >
+                    <Heart className="size-5 text-rose-500" fill="currentColor" />
+                  </button>
+
+                  <div className="absolute bottom-4 left-4 z-10">
+                    <div className="inline-flex items-center gap-1.5 rounded-xl bg-white/95 px-3 py-1.5 text-[11px] font-black shadow-sm backdrop-blur">
+                      <Star className="size-3.5 fill-amber-400 text-amber-400" />
+                      <span className="text-slate-900">Tuyệt vời</span>
                     </div>
                   </div>
-                  <div className="flex flex-col items-end justify-center sm:border-l sm:border-slate-100 sm:pl-6">
-                    <div className="text-sm font-semibold text-slate-500 mb-1">Giá từ</div>
-                    <div className="text-xl font-black text-slate-900">{formatCurrency(room.basePrice)}</div>
+                </div>
+
+                {/* Content */}
+                <div className="flex flex-1 flex-col p-6">
+                  <div className="mb-4">
+                    <h3 className="line-clamp-1 text-xl font-black text-slate-900 transition-colors group-hover:text-[#0194f3]">
+                      {room.roomTypeName || "Phòng nghỉ cao cấp"}
+                    </h3>
+                    <div className="mt-2 flex items-center gap-1 text-sm font-semibold text-slate-500">
+                      <MapPin size={14} className="text-[#0194f3]" />
+                      <span>Trung tâm & thuận tiện di chuyển</span>
+                    </div>
+                  </div>
+
+                  <div className="mb-6 grid grid-cols-2 gap-y-3 gap-x-2 text-[13px] font-bold text-slate-600 bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
+                    <div className="flex items-center gap-2">
+                      <Users size={16} className="text-slate-400" />
+                      <span className="truncate">{room.capacityAdults} Người lớn</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <BedDouble size={16} className="text-slate-400" />
+                      <span className="truncate">{room.bedType || "1 Giường đôi"}</span>
+                    </div>
+                    {room.size && (
+                      <div className="flex items-center gap-2">
+                        <DoorClosed size={16} className="text-slate-400" />
+                        <span>{room.size} m²</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mt-auto flex items-end justify-between border-t border-slate-100 pt-5">
+                    <div>
+                      <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Giá phòng / đêm</p>
+                      <p className="mt-1 text-2xl font-black text-[#0194f3]">{formatCurrency(room.basePrice)}</p>
+                    </div>
                     <Link
                       to={`/room-types/${room.roomTypeId}`}
-                      className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-blue-50 px-4 py-2 text-sm font-bold text-[#0194f3] transition hover:bg-[#0194f3] hover:text-white sm:w-auto"
+                      className="inline-flex size-12 items-center justify-center rounded-2xl bg-slate-900 text-white shadow-md transition-all hover:bg-[#0194f3] hover:-translate-y-1"
                     >
-                      Xem chi tiết <ArrowRight size={16} />
+                      <ArrowRight size={20} />
                     </Link>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
