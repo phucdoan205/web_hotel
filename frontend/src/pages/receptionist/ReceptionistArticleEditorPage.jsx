@@ -20,6 +20,7 @@ import {
   Tag,
   Trash2,
   Underline,
+  X,
 } from "lucide-react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import apiClient from "../../api/client";
@@ -31,7 +32,7 @@ const emptyForm = {
   content: "",
   categoryId: "",
   attractionId: "",
-  tags: "",
+  tags: [],
   thumbnailUrl: "",
   galleryUrls: [],
 };
@@ -192,7 +193,7 @@ const ReceptionistArticleEditorPage = ({ scope = "author", basePath = "/admin/ar
         content: nextContent,
         categoryId: detail.categoryId ? String(detail.categoryId) : "",
         attractionId: detail.attractionId ? String(detail.attractionId) : "",
-        tags: (detail.tags ?? []).join(", "),
+        tags: detail.tags ?? [],
         thumbnailUrl: detail.thumbnailUrl ?? "",
         galleryUrls: detail.galleryUrls ?? [],
       });
@@ -362,7 +363,7 @@ const ReceptionistArticleEditorPage = ({ scope = "author", basePath = "/admin/ar
         content: editorRef.current?.innerHTML?.trim() || "",
         categoryId: formData.categoryId ? Number(formData.categoryId) : "",
         attractionId: formData.attractionId ? Number(formData.attractionId) : "",
-        tags: formData.tags.trim(),
+        tags: (formData.tags ?? []).join(", "),
         thumbnailUrl: formData.thumbnailUrl || "",
         galleryUrls: formData.galleryUrls || [],
         removeThumbnail,
@@ -652,19 +653,59 @@ const ReceptionistArticleEditorPage = ({ scope = "author", basePath = "/admin/ar
                 </p>
               </div>
 
-              <label className="flex flex-col gap-2">
-                <span className="text-sm font-bold text-slate-700">Tags</span>
-                <div className="relative">
-                  <Tag className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
-                  <input
-                    name="tags"
-                    value={formData.tags}
-                    onChange={handleInputChange}
-                    placeholder="tin tức, ưu đãi, sự kiện"
-                    className="w-full rounded-2xl border border-gray-200 bg-white py-3 pl-11 pr-4 text-sm outline-none focus:border-sky-300 focus:ring-2 focus:ring-sky-100"
-                  />
+              <div className="space-y-3 rounded-[1.5rem] bg-white p-4 ring-1 ring-gray-100">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-bold text-slate-700">Tags</span>
+                  <Tag className="size-4 text-sky-500" />
                 </div>
-              </label>
+
+                <div className="flex flex-wrap gap-2">
+                  {(formData.tags ?? []).map((tag, index) => (
+                    <span
+                      key={index}
+                      className="inline-flex items-center gap-1.5 rounded-xl bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-600 ring-1 ring-gray-200"
+                    >
+                      {tag}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFormData((prev) => ({
+                            ...prev,
+                            tags: prev.tags.filter((_, i) => i !== index),
+                          }));
+                        }}
+                        className="rounded-full p-0.5 hover:bg-slate-200 hover:text-rose-500 transition-colors"
+                      >
+                        <X className="size-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Nhập tag rồi nhấn Enter..."
+                    className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-sky-300 focus:bg-white focus:ring-2 focus:ring-sky-100"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        const value = e.target.value.trim();
+                        if (value && !(formData.tags ?? []).includes(value)) {
+                          setFormData((prev) => ({
+                            ...prev,
+                            tags: [...(prev.tags ?? []), value],
+                          }));
+                          e.target.value = "";
+                        }
+                      }
+                    }}
+                  />
+                  <p className="mt-2 px-1 text-[10px] font-medium text-slate-400">
+                    Gõ tên tag và nhấn phím Enter để thêm. Bạn có thể thêm nhiều tag để bài viết dễ được tìm thấy hơn.
+                  </p>
+                </div>
+              </div>
 
               <div className="rounded-[1.5rem] bg-white p-4 ring-1 ring-gray-100">
                 <p className="text-sm font-bold text-slate-700">Ảnh bài viết</p>
