@@ -1,4 +1,5 @@
 using backend.DTOs.RoomInventory;
+using backend.DTOs.Amenity;
 
 namespace backend.DTOs.Room
 {
@@ -22,6 +23,8 @@ namespace backend.DTOs.Room
         public DateTime? DeletedAt { get; set; }
 
         public List<string> Amenities { get; set; } = new();
+        public List<AmenityDTO> RoomTypeAmenities { get; set; } = new();
+        public List<AmenityDTO> RoomSpecificAmenities { get; set; } = new();
         public List<string> ImageUrls { get; set; } = new();
         public List<RoomInventoryDTO> Inventory { get; set; } = new();
         public double Rating { get; set; }

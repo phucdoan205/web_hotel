@@ -1,4 +1,5 @@
 using AutoMapper;
+using backend.DTOs.Amenity;
 using backend.DTOs;
 using backend.DTOs.Attraction;
 using backend.DTOs.Audit;
@@ -47,6 +48,9 @@ namespace backend.Mappers
 
             CreateMap<Article, ArticleDTO>();
             CreateMap<ArticleDTO, Article>();
+            
+            CreateMap<Amenity, AmenityDTO>();
+            CreateMap<AmenityDetail, AmenityDetailDTO>();
 
             CreateMap<RoomInventory, RoomInventoryDTO>()
                 .ForMember(dest => dest.RoomId, opt => opt.MapFrom(src => src.RoomId ?? 0))
@@ -81,6 +85,18 @@ namespace backend.Mappers
                         ? src.RoomAmenities.Where(ra => ra.Amenity != null).Select(ra => ra.Amenity.Name)
                         : Enumerable.Empty<string>())
                     .ToList()))
+                .ForMember(dest => dest.RoomTypeAmenities, opt => opt.MapFrom(src =>
+                    src.RoomType != null
+                        ? src.RoomType.RoomTypeAmenities
+                            .Where(rta => rta.Amenity != null)
+                            .Select(rta => rta.Amenity)
+                        : Enumerable.Empty<Amenity>()))
+                .ForMember(dest => dest.RoomSpecificAmenities, opt => opt.MapFrom(src =>
+                    src.RoomAmenities != null
+                        ? src.RoomAmenities
+                            .Where(ra => ra.Amenity != null)
+                            .Select(ra => ra.Amenity)
+                        : Enumerable.Empty<Amenity>()))
                 .ForMember(dest => dest.ImageUrls, opt => opt.MapFrom(src =>
                     src.RoomType != null
                         ? src.RoomType.RoomImages

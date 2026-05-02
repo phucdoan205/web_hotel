@@ -1,5 +1,7 @@
 import { ChevronLeft, ChevronRight, ImagePlus, MoreHorizontal, Search } from "lucide-react";
 import { useState } from "react";
+import { Menu, MenuItem, ListItemIcon, ListItemText } from "@mui/material";
+import { ShieldCheck, Info, Eraser, Package, Trash2, RotateCcw } from "lucide-react";
 
 const statuses = ["Available", "Occupied", "Maintenance", "Cleaning", "OutOfOrder"];
 const cleaningStatuses = ["Dirty", "InProgress", "Clean", "Inspected", "Pickup"];
@@ -72,14 +74,19 @@ export default function RoomTable({
   onOpenAmenities,
   onClean,
 }) {
-  const [menuRoomId, setMenuRoomId] = useState(null);
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [selectedRoom, setSelectedRoom] = useState(null);
   const totalPages = Math.max(1, Math.ceil((totalCount || 0) / filters.pageSize));
 
-  const toggleMenu = (roomId) => {
-    setMenuRoomId((prev) => (prev === roomId ? null : roomId));
+  const handleOpenMenu = (event, room) => {
+    setAnchorEl(event.currentTarget);
+    setSelectedRoom(room);
   };
 
-  const closeMenu = () => setMenuRoomId(null);
+  const handleCloseMenu = () => {
+    setAnchorEl(null);
+    setSelectedRoom(null);
+  };
 
   return (
     <div className="space-y-4">
@@ -238,7 +245,6 @@ export default function RoomTable({
                 </tr>
               ) : (
                 rooms.map((room) => {
-                  const isMenuOpen = menuRoomId === room.id;
 
                   return (
                     <tr key={room.id} className="hover:bg-slate-50/80">
@@ -276,7 +282,6 @@ export default function RoomTable({
                             <button
                               type="button"
                               onClick={() => {
-                                closeMenu();
                                 onEdit(room);
                               }}
                               className="rounded-xl bg-sky-50 px-3 py-2 text-xs font-black text-sky-700 transition-all hover:bg-sky-100"
@@ -288,76 +293,13 @@ export default function RoomTable({
                           {canUpdateRoomStatus || canViewInventory || canDeleteRooms ? (
                             <button
                               type="button"
-                              onClick={() => toggleMenu(room.id)}
+                              onClick={(e) => handleOpenMenu(e, room)}
                               className="inline-flex items-center justify-center rounded-xl bg-slate-100 px-3 py-2 text-slate-700 transition-all hover:bg-slate-200"
                             >
                               <MoreHorizontal className="size-4" />
                             </button>
                           ) : null}
 
-                          {isMenuOpen ? (
-                            <div className="absolute right-0 top-[calc(100%+8px)] z-20 min-w-[160px] overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 shadow-xl">
-                              {canUpdateRoomStatus ? (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    closeMenu();
-                                    onClean(room);
-                                  }}
-                                  className="flex w-full rounded-xl px-3 py-2 text-left text-sm font-bold text-amber-700 transition-all hover:bg-amber-50"
-                                >
-                                  {text.clean}
-                                </button>
-                              ) : null}
-                              {canViewInventory ? (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    closeMenu();
-                                    onOpenInventory(room);
-                                  }}
-                                  className="flex w-full rounded-xl px-3 py-2 text-left text-sm font-bold text-violet-700 transition-all hover:bg-violet-50"
-                                >
-                                  {text.inventory}
-                                </button>
-                              ) : null}
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  closeMenu();
-                                  onOpenAmenities(room);
-                                }}
-                                className="flex w-full rounded-xl px-3 py-2 text-left text-sm font-bold text-sky-700 transition-all hover:bg-sky-50"
-                              >
-                                {text.amenities}
-                              </button>
-                              {canDeleteRooms ? (
-                                room.status === "OutOfOrder" ? (
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      closeMenu();
-                                      onRestore(room);
-                                    }}
-                                    className="flex w-full rounded-xl px-3 py-2 text-left text-sm font-bold text-emerald-700 transition-all hover:bg-emerald-50"
-                                  >
-                                    {text.restore}
-                                  </button>
-                                ) : (
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      closeMenu();
-                                      onDelete(room);
-                                    }}
-                                    className="flex w-full rounded-xl px-3 py-2 text-left text-sm font-bold text-rose-700 transition-all hover:bg-rose-50"
-                                  >
-                                    {text.hide}
-                                  </button>
-                                )
-                              ) : null}
-                            </div>
-                          ) : null}
                         </div>
                       </td>
                     </tr>
@@ -409,6 +351,119 @@ export default function RoomTable({
           </div>
         </div>
       </div>
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleCloseMenu}
+        slotProps={{
+          paper: {
+            sx: {
+              borderRadius: "20px",
+              marginTop: "8px",
+              boxShadow: "0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)",
+              border: "1px solid #e2e8f0",
+              minWidth: "180px",
+              padding: "4px",
+            },
+          },
+        }}
+        transformOrigin={{ horizontal: "left", vertical: "top" }}
+        anchorOrigin={{ horizontal: "left", vertical: "bottom" }}
+      >
+        {selectedRoom && (
+          <>
+            {canUpdateRoomStatus && (
+              <MenuItem
+                onClick={() => {
+                  handleCloseMenu();
+                  onClean(selectedRoom);
+                }}
+                sx={{
+                  borderRadius: "12px",
+                  fontSize: "0.875rem",
+                  fontWeight: 700,
+                  color: "#b45309",
+                  "&:hover": { backgroundColor: "#fffbeb" },
+                }}
+              >
+                <ListItemIcon><Eraser className="size-4 text-amber-600" /></ListItemIcon>
+                <ListItemText primary={text.clean} />
+              </MenuItem>
+            )}
+            {canViewInventory && (
+              <MenuItem
+                onClick={() => {
+                  handleCloseMenu();
+                  onOpenInventory(selectedRoom);
+                }}
+                sx={{
+                  borderRadius: "12px",
+                  fontSize: "0.875rem",
+                  fontWeight: 700,
+                  color: "#6d28d9",
+                  "&:hover": { backgroundColor: "#f5f3ff" },
+                }}
+              >
+                <ListItemIcon><Package className="size-4 text-violet-600" /></ListItemIcon>
+                <ListItemText primary={text.inventory} />
+              </MenuItem>
+            )}
+            <MenuItem
+              onClick={() => {
+                handleCloseMenu();
+                onOpenAmenities(selectedRoom);
+              }}
+              sx={{
+                borderRadius: "12px",
+                fontSize: "0.875rem",
+                fontWeight: 700,
+                color: "#0369a1",
+                "&:hover": { backgroundColor: "#f0f9ff" },
+              }}
+            >
+              <ListItemIcon><ShieldCheck className="size-4 text-sky-600" /></ListItemIcon>
+              <ListItemText primary={text.amenities} />
+            </MenuItem>
+            {canDeleteRooms && (
+              selectedRoom.status === "OutOfOrder" ? (
+                <MenuItem
+                  onClick={() => {
+                    handleCloseMenu();
+                    onRestore(selectedRoom);
+                  }}
+                  sx={{
+                    borderRadius: "12px",
+                    fontSize: "0.875rem",
+                    fontWeight: 700,
+                    color: "#047857",
+                    "&:hover": { backgroundColor: "#ecfdf5" },
+                  }}
+                >
+                  <ListItemIcon><RotateCcw className="size-4 text-emerald-600" /></ListItemIcon>
+                  <ListItemText primary={text.restore} />
+                </MenuItem>
+              ) : (
+                <MenuItem
+                  onClick={() => {
+                    handleCloseMenu();
+                    onDelete(selectedRoom);
+                  }}
+                  sx={{
+                    borderRadius: "12px",
+                    fontSize: "0.875rem",
+                    fontWeight: 700,
+                    color: "#be123c",
+                    "&:hover": { backgroundColor: "#fff1f2" },
+                  }}
+                >
+                  <ListItemIcon><Trash2 className="size-4 text-rose-600" /></ListItemIcon>
+                  <ListItemText primary={text.hide} />
+                </MenuItem>
+              )
+            )}
+          </>
+        )}
+      </Menu>
     </div>
   );
 }

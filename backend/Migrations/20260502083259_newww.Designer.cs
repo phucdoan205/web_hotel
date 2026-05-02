@@ -12,7 +12,7 @@ using backend.Data;
 namespace backend.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260502062856_newww")]
+    [Migration("20260502083259_newww")]
     partial class newww
     {
         /// <inheritdoc />
