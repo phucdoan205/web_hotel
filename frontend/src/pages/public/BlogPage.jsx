@@ -109,10 +109,7 @@ const BlogPage = () => {
                     {article.summary || "Xem chi tiết bài viết để biết thêm thông tin về chủ đề này. Các bài viết luôn được cập nhật thường xuyên."}
                   </p>
                   
-                  <div className="mt-auto flex items-center justify-between border-t border-slate-100 pt-4">
-                    <span className="text-sm font-bold text-slate-900">
-                      {article.authorName || "Hotel Staff"}
-                    </span>
+                  <div className="mt-auto flex items-center justify-end border-t border-slate-100 pt-4">
                     <span className="flex items-center gap-1 text-sm font-bold text-[#0194f3]">
                       Đọc tiếp <ArrowRight className="size-4" />
                     </span>

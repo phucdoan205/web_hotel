@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, MessageCircle, Reply, Send, Calendar, User, ArrowLeft, MapPin } from "lucide-react";
+import { ChevronDown, MessageCircle, Reply, Send, Calendar, User, ArrowLeft, MapPin, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { useParams, Link } from "react-router-dom";
 import { createArticleComment, getArticleDetail } from "../../api/articles/articleApi";
 import { getStoredAuth } from "../../utils/authStorage";
@@ -171,9 +171,25 @@ const PostDetailPage = () => {
   const [error, setError] = useState("");
   const [expandedContent, setExpandedContent] = useState(false);
   const [canExpandContent, setCanExpandContent] = useState(false);
+  const [isGalleryOpen, setIsGalleryOpen] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   const canInteract = auth?.role?.toLowerCase() !== "housekeeping";
   const htmlContent = useMemo(() => normalizeArticleContent(article?.content), [article?.content]);
+
+  const imageUrls = useMemo(() => {
+    if (!article) return [];
+    return [...new Set([article.thumbnailUrl, ...(article.galleryUrls || [])].filter(Boolean))];
+  }, [article]);
+
+  useEffect(() => {
+    if (isGalleryOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "unset";
+    }
+    return () => { document.body.style.overflow = "unset"; };
+  }, [isGalleryOpen]);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -254,77 +270,90 @@ const PostDetailPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-24">
-      {/* Hero Header */}
-      <div className="relative h-[400px] w-full md:h-[500px]">
-        <img
-          src={article.thumbnailUrl || "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=2000&q=80"}
-          alt={article.title}
-          className="absolute inset-0 h-full w-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-slate-900/10" />
+    <div className="min-h-screen bg-white pb-24 pt-6 md:pt-10">
+      <div className="mx-auto max-w-6xl px-5 lg:px-8">
         
-        <div className="absolute inset-x-0 bottom-0 mx-auto max-w-4xl px-5 pb-12 lg:px-8">
-          <Link to="/articles" className="mb-6 inline-flex items-center gap-2 text-sm font-bold text-white/80 transition hover:text-white">
-            <ArrowLeft className="size-4" /> Quay lại Góc Khám Phá
-          </Link>
-          <div className="flex flex-wrap items-center gap-3 mb-4">
-            <span className="rounded-full bg-[#0194f3] px-4 py-1.5 text-xs font-black uppercase tracking-widest text-white shadow-sm">
-              {article.categoryName || "Tin tức"}
-            </span>
-            {article.tags?.map((tag) => (
-              <span key={tag} className="rounded-full bg-white/20 px-3 py-1.5 text-xs font-bold text-white backdrop-blur">
-                #{tag}
-              </span>
-            ))}
-          </div>
-          <h1 className="text-3xl font-black leading-tight text-white md:text-4xl lg:text-5xl lg:leading-tight">
+        {/* Breadcrumbs / Back */}
+        <div className="mb-6 flex items-center gap-2 text-sm font-semibold text-slate-500">
+          <Link to="/articles" className="hover:text-[#0194f3] transition-colors">Góc Khám Phá</Link>
+          <span className="text-slate-300">/</span>
+          <span className="text-[#0194f3] truncate">{article.categoryName || "Tin tức"}</span>
+          <span className="text-slate-300 hidden sm:inline">/</span>
+          <span className="text-slate-900 truncate hidden sm:inline">{article.title}</span>
+        </div>
+
+        {/* Title & Summary */}
+        <div className="mb-6">
+          <h1 className="text-3xl font-black leading-tight text-slate-900 md:text-4xl lg:text-5xl mb-4">
             {article.title}
           </h1>
-        </div>
-      </div>
-
-      {/* Main Content Area */}
-      <div className="mx-auto max-w-4xl px-5 lg:px-8">
-        <div className="-mt-6 relative z-10 rounded-[2.5rem] bg-white p-6 shadow-xl sm:p-10 md:p-12">
-          
-          {/* Author Info Bar */}
-          <div className="mb-10 flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-6">
-            <div className="flex items-center gap-3">
-              <div className="flex size-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
-                <User className="size-6" />
-              </div>
-              <div>
-                <p className="text-sm font-bold text-slate-900">{article.authorName || "Đội ngũ Khách sạn"}</p>
-                <p className="text-xs font-semibold text-slate-500">Biên tập viên</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-6 text-sm font-semibold text-slate-500">
-              <span className="flex items-center gap-2">
-                <Calendar className="size-4" />
-                {new Date(article.publishedAt || article.createdAt).toLocaleDateString("vi-VN", { day: 'numeric', month: 'long', year: 'numeric' })}
-              </span>
-              <span className="flex items-center gap-2">
-                <MessageCircle className="size-4" />
-                {comments.length} bình luận
-              </span>
-            </div>
-
-            {article.attractionName && (
-              <div className="flex w-full items-center gap-2 rounded-2xl bg-sky-50 px-4 py-3 text-sm font-bold text-sky-700">
-                <MapPin className="size-4 shrink-0" />
-                <span>Địa điểm: <span className="font-black underline">{article.attractionName}</span></span>
-              </div>
-            )}
-          </div>
-
-          {/* Summary / Intro */}
           {article.summary && (
-            <p className="mb-8 text-lg font-semibold leading-relaxed text-slate-600 border-l-4 border-[#0194f3] pl-5 italic">
+            <p className="text-base font-medium text-slate-600 mb-4 border-l-4 border-[#0194f3] pl-4">
               {article.summary}
             </p>
           )}
+        </div>
 
+        {/* Tags */}
+        <div className="flex flex-wrap items-center gap-2 mb-8">
+          <span className="rounded bg-[#003b95] px-2.5 py-1 text-xs font-bold text-white">
+            {article.categoryName || "Tin tức"}
+          </span>
+          {article.tags?.map((tag) => (
+            <span key={tag} className="rounded bg-[#003b95] px-2.5 py-1 text-xs font-bold text-white">
+              {tag}
+            </span>
+          ))}
+          <div className="ml-auto flex items-center gap-6 text-sm font-semibold text-slate-500">
+             <span className="flex items-center gap-1.5">
+               <Calendar className="size-4" />
+               {new Date(article.publishedAt || article.createdAt).toLocaleDateString("vi-VN")}
+             </span>
+             <span className="flex items-center gap-1.5">
+               <MessageCircle className="size-4" />
+               {comments.length} bình luận
+             </span>
+          </div>
+        </div>
+
+        {/* Image Grid (Booking.com style) */}
+        {imageUrls.length > 0 && (
+          <div 
+            className="mb-12 grid gap-2 overflow-hidden rounded-xl cursor-pointer group h-[300px] sm:h-[400px] md:h-[460px] md:grid-cols-3"
+            onClick={() => { setIsGalleryOpen(true); setCurrentImageIndex(0); }}
+          >
+            <div className={`${imageUrls.length >= 2 ? "md:col-span-2" : "md:col-span-3"} h-full overflow-hidden relative`}>
+              <img src={imageUrls[0]} alt="Ảnh chính" className="h-full w-full object-cover transition-transform duration-500 hover:scale-105" />
+            </div>
+
+            {imageUrls.length >= 2 && (
+               <div className={`hidden md:grid gap-2 ${imageUrls.length >= 5 ? "grid-cols-2 grid-rows-2" : imageUrls.length === 4 ? "grid-cols-1 grid-rows-3" : imageUrls.length === 3 ? "grid-cols-1 grid-rows-2" : "grid-cols-1 grid-rows-1"}`}>
+                 {imageUrls.slice(1, 5).map((url, idx) => {
+                   const isLast = idx === 3 || (imageUrls.length < 5 && idx === imageUrls.length - 2);
+                   return (
+                     <div key={idx} className="relative h-full overflow-hidden">
+                       <img src={url} alt="" className="h-full w-full object-cover transition-transform duration-500 hover:scale-105" />
+                       {isLast && imageUrls.length > 5 && (
+                         <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white font-bold flex-col gap-1.5 transition-colors hover:bg-black/40">
+                           <div className="flex gap-1 mb-1">
+                             <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
+                             <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
+                             <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
+                           </div>
+                           <span className="text-sm">Hiển thị tất cả hình ảnh</span>
+                         </div>
+                       )}
+                     </div>
+                   );
+                 })}
+               </div>
+            )}
+          </div>
+        )}
+
+        {/* Content & Comments Wrapper */}
+        <div className="mx-auto max-w-4xl">
+          
           {/* HTML Content */}
           <div className="relative">
             <div
@@ -348,18 +377,39 @@ const PostDetailPage = () => {
               </button>
             </div>
           )}
-        </div>
 
-        {/* Comments Section */}
-        <div className="mt-12 rounded-[2.5rem] bg-white p-6 shadow-sm ring-1 ring-slate-100 sm:p-10">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-5">
-            <h2 className="text-2xl font-black text-slate-900">Bình luận ({comments.length})</h2>
-            {!canInteract && (
-              <span className="rounded-full bg-slate-100 px-4 py-1.5 text-xs font-bold text-slate-500">
-                Tài khoản của bạn bị hạn chế
-              </span>
-            )}
-          </div>
+          {/* Map Section */}
+          {article.attractionName && (
+            <div className="mt-12 pt-8 border-t border-slate-100">
+              <h3 className="text-xl font-black text-slate-900 mb-6 flex items-center gap-2">
+                <MapPin className="size-6 text-[#0194f3]" />
+                Vị trí: {article.attractionName}
+              </h3>
+              <div className="overflow-hidden rounded-2xl shadow-sm ring-1 ring-slate-100 bg-slate-50">
+                <iframe
+                  title="Google Maps"
+                  width="100%"
+                  height="400"
+                  style={{ border: 0 }}
+                  loading="lazy"
+                  allowFullScreen
+                  referrerPolicy="no-referrer-when-downgrade"
+                  src={`https://maps.google.com/maps?q=${encodeURIComponent(article.attractionName + " Việt Nam")}&t=&z=14&ie=UTF8&iwloc=&output=embed`}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Comments Section */}
+          <div className="mt-12 pt-8 border-t border-slate-100">
+            <div className="flex items-center justify-between pb-5">
+              <h2 className="text-2xl font-black text-slate-900">Bình luận ({comments.length})</h2>
+              {!canInteract && (
+                <span className="rounded-full bg-slate-100 px-4 py-1.5 text-xs font-bold text-slate-500">
+                  Tài khoản của bạn bị hạn chế
+                </span>
+              )}
+            </div>
 
           {error && (
             <div className="mt-6 rounded-2xl bg-rose-50 px-5 py-4 text-sm font-semibold text-rose-600">
@@ -413,6 +463,76 @@ const PostDetailPage = () => {
           </div>
         </div>
       </div>
+    </div>
+
+      {/* GALLERY MODAL OVERLAY */}
+      {isGalleryOpen && (
+        <div 
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/95 backdrop-blur-sm p-4 animate-in fade-in duration-300"
+          onClick={() => setIsGalleryOpen(false)}
+        >
+          <div 
+            className="relative flex flex-col w-full h-full max-w-5xl max-h-[90vh] bg-white rounded-2xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex h-16 items-center justify-between border-b bg-white px-6">
+              <span className="font-bold text-slate-900">{currentImageIndex + 1} / {imageUrls.length}</span>
+              <button
+                onClick={() => setIsGalleryOpen(false)}
+                className="flex items-center gap-2 text-slate-500 font-bold hover:text-red-500 transition-colors"
+              >
+                <span>Đóng</span>
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="relative flex flex-1 flex-col items-center justify-center bg-slate-50 p-4">
+              <div className="relative flex-1 w-full flex items-center justify-center">
+                {imageUrls.length > 1 && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setCurrentImageIndex((prev) => (prev > 0 ? prev - 1 : imageUrls.length - 1)); }}
+                    className="absolute left-4 z-10 flex h-12 w-12 items-center justify-center rounded-full bg-white/80 text-slate-800 shadow-md backdrop-blur-md transition hover:bg-white hover:scale-105"
+                  >
+                    <ChevronLeft size={24} />
+                  </button>
+                )}
+
+                <img
+                  src={imageUrls[currentImageIndex]}
+                  alt="Ảnh bài viết"
+                  className="max-h-full max-w-full object-contain rounded-lg shadow-sm"
+                />
+
+                {imageUrls.length > 1 && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setCurrentImageIndex((prev) => (prev < imageUrls.length - 1 ? prev + 1 : 0)); }}
+                    className="absolute right-4 z-10 flex h-12 w-12 items-center justify-center rounded-full bg-white/80 text-slate-800 shadow-md backdrop-blur-md transition hover:bg-white hover:scale-105"
+                  >
+                    <ChevronRight size={24} />
+                  </button>
+                )}
+              </div>
+            </div>
+            
+            {/* Thumbnail Strip */}
+            {imageUrls.length > 1 && (
+              <div className="h-24 border-t bg-white p-2 flex items-center justify-center gap-2 overflow-x-auto">
+                {imageUrls.map((url, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setCurrentImageIndex(i)}
+                    className={`relative h-full aspect-[4/3] flex-shrink-0 overflow-hidden rounded-md transition-all duration-300 ${
+                      i === currentImageIndex ? "ring-2 ring-[#0194f3] scale-105 z-10 shadow-sm" : "opacity-50 hover:opacity-100"
+                    }`}
+                  >
+                    <img src={url} alt="" className="h-full w-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
