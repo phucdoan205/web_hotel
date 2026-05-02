@@ -1,9 +1,11 @@
 import React from "react";
+import { useSearchParams } from "react-router-dom";
 import SearchSidebar from "../../components/blog-search/SearchSidebar";
 import SearchResultCard from "../../components/blog-search/SearchResultCard";
 
 const BlogSearchPage = () => {
-  const searchKeyword = "Đà Lạt";
+  const [searchParams] = useSearchParams();
+  const searchKeyword = searchParams.get("q") || "Tất cả bài viết";
   const resultsCount = 12;
 
   const results = [

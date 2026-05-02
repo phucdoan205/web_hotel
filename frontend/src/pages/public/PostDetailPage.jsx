@@ -3,6 +3,7 @@ import { ChevronDown, MessageCircle, Reply, Send, Calendar, User, ArrowLeft, Map
 import { useParams, Link } from "react-router-dom";
 import { createArticleComment, getArticleDetail } from "../../api/articles/articleApi";
 import { getStoredAuth } from "../../utils/authStorage";
+import PostSidebar from "../../components/blog/PostSidebar";
 
 const normalizeArticleContent = (content) => {
   if (!content) {
@@ -351,8 +352,11 @@ const PostDetailPage = () => {
           </div>
         )}
 
-        {/* Content & Comments Wrapper */}
-        <div className="mx-auto max-w-4xl">
+        {/* Main Content & Sidebar Wrapper */}
+        <div className="grid gap-12 lg:grid-cols-3">
+          
+          {/* Main Content */}
+          <div className="lg:col-span-2">
           
           {/* HTML Content */}
           <div className="relative">
@@ -463,7 +467,15 @@ const PostDetailPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Sidebar */}
+      <div className="hidden lg:block">
+        <div className="sticky top-24">
+          <PostSidebar />
+        </div>
+      </div>
     </div>
+  </div>
 
       {/* GALLERY MODAL OVERLAY */}
       {isGalleryOpen && (
