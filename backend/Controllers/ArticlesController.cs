@@ -61,6 +61,7 @@ namespace backend.Controllers
 
             query = query
                 .Include(a => a.Category)
+                .Include(a => a.Attraction)
                 .Include(a => a.Author)
                 .Include(a => a.Comments);
 
@@ -146,6 +147,7 @@ namespace backend.Controllers
 
             query = query
                 .Include(a => a.Category)
+                .Include(a => a.Attraction)
                 .Include(a => a.Author)
                 .Include(a => a.ApprovedBy)
                 .Include(a => a.Comments)
@@ -197,11 +199,8 @@ namespace backend.Controllers
             {
                 return Unauthorized();
             }
+            // Permisssion "CREATE_CONTENT" is handled by the [Permission] attribute
 
-            if (!IsReceptionist(currentUser))
-            {
-                return Forbid();
-            }
 
             if (string.IsNullOrWhiteSpace(request.Title))
             {
@@ -219,6 +218,7 @@ namespace backend.Controllers
                 Content = NormalizeOptional(request.Content),
                 Tags = NormalizeTags(request.Tags),
                 GalleryUrls = NormalizeGalleryUrls(request.GalleryUrls, request.ThumbnailUrl),
+                AttractionId = request.AttractionId,
                 PublishedAt = null,
                 Status = false,
                 IsApproved = false,
@@ -246,6 +246,7 @@ namespace backend.Controllers
 
             var created = await _context.Articles
                 .Include(a => a.Category)
+                .Include(a => a.Attraction)
                 .Include(a => a.Author)
                 .FirstAsync(a => a.Id == article.Id);
 
@@ -264,21 +265,13 @@ namespace backend.Controllers
                 return Unauthorized();
             }
 
-            if (!IsReceptionist(currentUser))
-            {
-                return Forbid();
-            }
-
+            // For now, we rely on the [Permission("EDIT_CONTENT")] attribute
             var article = await _context.Articles.IgnoreQueryFilters().FirstOrDefaultAsync(a => a.Id == id);
             if (article == null)
             {
                 return NotFound("Khong tim thay bai viet.");
             }
 
-            if (article.AuthorId != currentUser.Id)
-            {
-                return Forbid();
-            }
 
             if (article.IsDeleted)
             {
@@ -299,6 +292,7 @@ namespace backend.Controllers
             article.Content = NormalizeOptional(request.Content);
             article.Tags = NormalizeTags(request.Tags);
             article.GalleryUrls = NormalizeGalleryUrls(request.GalleryUrls, request.ThumbnailUrl);
+            article.AttractionId = request.AttractionId;
             article.UpdatedAt = DateTime.UtcNow;
             article.Status = article.IsApproved;
             article.ApprovedAt = article.IsApproved ? article.ApprovedAt : null;
@@ -339,6 +333,7 @@ namespace backend.Controllers
 
             var updated = await _context.Articles
                 .Include(a => a.Category)
+                .Include(a => a.Attraction)
                 .Include(a => a.Author)
                 .FirstAsync(a => a.Id == article.Id);
 
@@ -355,10 +350,8 @@ namespace backend.Controllers
                 return Unauthorized();
             }
 
-            if (!IsAdmin(currentUser))
-            {
-                return Forbid();
-            }
+            // Permission "PUBLISH_CONTENT" is handled by the [Permission] attribute
+
 
             var article = await _context.Articles.IgnoreQueryFilters().FirstOrDefaultAsync(a => a.Id == id);
             if (article == null)
@@ -385,6 +378,7 @@ namespace backend.Controllers
         [HttpPost("upload-images")]
         [Consumes("multipart/form-data")]
         [RequestSizeLimit(30_000_000)]
+        [Permission("CREATE_CONTENT", "EDIT_CONTENT")]
         public async Task<IActionResult> UploadImages([FromForm] List<IFormFile> files, [FromForm] string? articleTitle = null)
         {
             var currentUser = await RequireCurrentUserAsync();
@@ -393,10 +387,8 @@ namespace backend.Controllers
                 return Unauthorized();
             }
 
-            if (!IsReceptionist(currentUser))
-            {
-                return Forbid();
-            }
+            // Permission is handled by [Permission] attribute
+
 
             if (files == null || files.Count == 0)
             {
@@ -442,40 +434,20 @@ namespace backend.Controllers
                 return NotFound("Khong tim thay bai viet.");
             }
 
-            if (IsReceptionist(currentUser))
+            // Soft-delete or hard-delete based on approval status
+            if (!article.IsApproved)
             {
-                if (article.AuthorId != currentUser.Id)
-                {
-                    return Forbid();
-                }
-
-                article.IsDeleted = true;
-                article.DeletedAt = DateTime.UtcNow;
-                article.Status = false;
-                article.UpdatedAt = DateTime.UtcNow;
-
-                await _context.SaveChangesAsync();
+                await HardDeleteArticleAsync(article);
                 return NoContent();
             }
 
-            if (IsAdmin(currentUser))
-            {
-                if (!article.IsApproved)
-                {
-                    await HardDeleteArticleAsync(article);
-                    return NoContent();
-                }
+            article.IsDeleted = true;
+            article.DeletedAt = DateTime.UtcNow;
+            article.Status = false;
+            article.UpdatedAt = DateTime.UtcNow;
 
-                article.IsDeleted = true;
-                article.DeletedAt = DateTime.UtcNow;
-                article.Status = false;
-                article.UpdatedAt = DateTime.UtcNow;
-
-                await _context.SaveChangesAsync();
-                return NoContent();
-            }
-
-            return Forbid();
+            await _context.SaveChangesAsync();
+            return NoContent();
         }
 
         [HttpDelete("{id:int}/hard-delete")]
@@ -488,10 +460,8 @@ namespace backend.Controllers
                 return Unauthorized();
             }
 
-            if (!IsAdmin(currentUser))
-            {
-                return Forbid();
-            }
+            // Permission "DELETE_CONTENT" is handled by the [Permission] attribute
+
 
             var article = await _context.Articles.IgnoreQueryFilters().FirstOrDefaultAsync(a => a.Id == id);
             if (article == null)
@@ -519,15 +489,11 @@ namespace backend.Controllers
                 return NotFound("Khong tim thay bai viet.");
             }
 
-            if (IsReceptionist(currentUser) && article.AuthorId != currentUser.Id)
-            {
-                return Forbid();
-            }
+            // Permission "DELETE_CONTENT" is handled by the [Permission] attribute
 
-            if (!IsAdmin(currentUser) && !IsReceptionist(currentUser))
-            {
-                return Forbid();
-            }
+
+            // Permission "DELETE_CONTENT" is handled by the [Permission] attribute
+
 
             if (!article.IsDeleted)
             {
@@ -704,6 +670,8 @@ namespace backend.Controllers
                 Id = article.Id,
                 CategoryId = article.CategoryId,
                 CategoryName = article.Category?.Name,
+                AttractionId = article.AttractionId,
+                AttractionName = article.Attraction?.Name,
                 AuthorId = article.AuthorId,
                 AuthorName = article.Author?.FullName,
                 Title = article.Title,
@@ -734,6 +702,8 @@ namespace backend.Controllers
                 Id = article.Id,
                 CategoryId = article.CategoryId,
                 CategoryName = article.Category?.Name,
+                AttractionId = article.AttractionId,
+                AttractionName = article.Attraction?.Name,
                 AuthorId = article.AuthorId,
                 AuthorName = article.Author?.FullName,
                 Title = article.Title,

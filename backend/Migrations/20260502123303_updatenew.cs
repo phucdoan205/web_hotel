@@ -426,6 +426,7 @@ namespace backend.Migrations
                     UpdatedAt = table.Column<DateTime>(type: "datetime", nullable: true),
                     ApprovedAt = table.Column<DateTime>(type: "datetime", nullable: true),
                     ApprovedById = table.Column<int>(type: "int", nullable: true),
+                    AttractionId = table.Column<int>(type: "int", nullable: true),
                     IsDeleted = table.Column<bool>(type: "bit", nullable: false),
                     DeletedAt = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
@@ -436,6 +437,11 @@ namespace backend.Migrations
                         name: "FK_Articles_ArticleCategories_CategoryId",
                         column: x => x.CategoryId,
                         principalTable: "ArticleCategories",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_Articles_Attractions_AttractionId",
+                        column: x => x.AttractionId,
+                        principalTable: "Attractions",
                         principalColumn: "Id");
                     table.ForeignKey(
                         name: "FK_Articles_Users_ApprovedById",
@@ -864,6 +870,11 @@ namespace backend.Migrations
                 column: "ApprovedById");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Articles_AttractionId",
+                table: "Articles",
+                column: "AttractionId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Articles_AuthorId",
                 table: "Articles",
                 column: "AuthorId");
@@ -1046,9 +1057,6 @@ namespace backend.Migrations
                 name: "ArticleComments");
 
             migrationBuilder.DropTable(
-                name: "Attractions");
-
-            migrationBuilder.DropTable(
                 name: "AuditLogs");
 
             migrationBuilder.DropTable(
@@ -1107,6 +1115,9 @@ namespace backend.Migrations
 
             migrationBuilder.DropTable(
                 name: "ArticleCategories");
+
+            migrationBuilder.DropTable(
+                name: "Attractions");
 
             migrationBuilder.DropTable(
                 name: "Equipments");

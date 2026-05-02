@@ -81,6 +81,9 @@ namespace backend.Migrations
                     b.Property<int?>("ApprovedById")
                         .HasColumnType("int");
 
+                    b.Property<int?>("AttractionId")
+                        .HasColumnType("int");
+
                     b.Property<int?>("AuthorId")
                         .HasColumnType("int");
 
@@ -135,6 +138,8 @@ namespace backend.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ApprovedById");
+
+                    b.HasIndex("AttractionId");
 
                     b.HasIndex("AuthorId");
 
@@ -1217,6 +1222,10 @@ namespace backend.Migrations
                         .HasForeignKey("ApprovedById")
                         .OnDelete(DeleteBehavior.NoAction);
 
+                    b.HasOne("backend.Models.Attraction", "Attraction")
+                        .WithMany()
+                        .HasForeignKey("AttractionId");
+
                     b.HasOne("backend.Models.User", "Author")
                         .WithMany("Articles")
                         .HasForeignKey("AuthorId")
@@ -1227,6 +1236,8 @@ namespace backend.Migrations
                         .HasForeignKey("CategoryId");
 
                     b.Navigation("ApprovedBy");
+
+                    b.Navigation("Attraction");
 
                     b.Navigation("Author");
 

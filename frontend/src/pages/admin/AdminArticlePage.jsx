@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { CheckCircle2, Eye, RefreshCw, RotateCcw, Search, Trash2, Edit } from "lucide-react";
+import { CheckCircle2, Eye, RefreshCw, RotateCcw, Search, Trash2, Edit, MapPin, MoreVertical } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import ArticleTrashDialog from "../../components/articles/ArticleTrashDialog";
 import { approveArticle, deleteArticle, getArticles, hardDeleteArticle, restoreArticle } from "../../api/articles/articleApi";
@@ -12,6 +12,116 @@ const filterOptions = [
   { value: "pending", label: "Chờ duyệt" },
   { value: "deleted", label: "Thùng rác" },
 ];
+
+const ArticleActionMenu = ({
+  article,
+  onApprove,
+  onEdit,
+  onAction,
+  canEditContent,
+  canPublishContent,
+  canDeleteContent,
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleClickOutside = () => setIsOpen(false);
+    window.addEventListener("click", handleClickOutside);
+    return () => window.removeEventListener("click", handleClickOutside);
+  }, [isOpen]);
+
+  return (
+    <div className="relative inline-block text-left" onClick={(e) => e.stopPropagation()}>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex size-9 items-center justify-center rounded-xl transition hover:bg-slate-100 text-slate-500"
+      >
+        <MoreVertical className="size-5" />
+      </button>
+
+      {isOpen && (
+        <div className="absolute right-0 z-50 mt-2 w-52 origin-top-right rounded-2xl bg-white p-1.5 shadow-xl ring-1 ring-black/5 focus:outline-none">
+          <div className="py-1">
+            <button
+              onClick={() => {
+                window.open(`/articles/${article.slug || article.id}`, "_blank");
+                setIsOpen(false);
+              }}
+              className="flex w-full items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold text-sky-600 hover:bg-sky-50"
+            >
+              <Eye className="size-4" /> Xem bài viết
+            </button>
+
+            {canEditContent && (
+              <button
+                onClick={() => {
+                  onEdit(article.id);
+                  setIsOpen(false);
+                }}
+                className="flex w-full items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50"
+              >
+                <Edit className="size-4" /> Chỉnh sửa
+              </button>
+            )}
+
+            {article.isDeleted ? (
+              canDeleteContent && (
+                <button
+                  onClick={() => {
+                    onAction("restore", article);
+                    setIsOpen(false);
+                  }}
+                  className="flex w-full items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold text-emerald-600 hover:bg-emerald-50"
+                >
+                  <RotateCcw className="size-4" /> Khôi phục
+                </button>
+              )
+            ) : !article.isApproved ? (
+              <>
+                {canPublishContent && (
+                  <button
+                    onClick={() => {
+                      onApprove(article.id);
+                      setIsOpen(false);
+                    }}
+                    className="flex w-full items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold text-emerald-600 hover:bg-emerald-50"
+                  >
+                    <CheckCircle2 className="size-4" /> Duyệt bài
+                  </button>
+                )}
+                {canDeleteContent && (
+                  <button
+                    onClick={() => {
+                      onAction("hardDelete", article);
+                      setIsOpen(false);
+                    }}
+                    className="flex w-full items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold text-rose-600 hover:bg-rose-50"
+                  >
+                    <Trash2 className="size-4" /> Xóa vĩnh viễn
+                  </button>
+                )}
+              </>
+            ) : (
+              canDeleteContent && (
+                <button
+                  onClick={() => {
+                    onAction("delete", article);
+                    setIsOpen(false);
+                  }}
+                  className="flex w-full items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold text-rose-600 hover:bg-rose-50"
+                >
+                  <Trash2 className="size-4" /> Thùng rác
+                </button>
+              )
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const getStatusBadgeClass = (article) => {
   if (article.isDeleted) {
@@ -223,28 +333,30 @@ const AdminArticlePage = () => {
           </div>
         ) : null}
 
-        <div className="overflow-hidden rounded-[2rem] bg-white shadow-sm ring-1 ring-gray-100">
-          <div className="overflow-x-auto">
+        <div className="rounded-[2rem] bg-white shadow-sm ring-1 ring-gray-100">
+          <div>
             <table className="min-w-full table-fixed text-left">
               <thead className="bg-slate-50">
                 <tr>
-                  {["Bài viết", "Tác giả", "Danh mục", "Trạng thái", "Ngày hiển thị", "Tác vụ"].map((header) => (
-                    <th key={header} className="px-4 py-4 text-xs font-black uppercase tracking-wider text-slate-500">
-                      {header}
-                    </th>
-                  ))}
+                  <th className="w-[35%] px-4 py-4 text-xs font-black uppercase tracking-wider text-slate-500">Bài viết</th>
+                  <th className="w-[10%] px-4 py-4 text-xs font-black uppercase tracking-wider text-slate-500">Tác giả</th>
+                  <th className="w-[10%] px-4 py-4 text-xs font-black uppercase tracking-wider text-slate-500">Danh mục</th>
+                  <th className="w-[10%] px-4 py-4 text-xs font-black uppercase tracking-wider text-slate-500">Địa điểm</th>
+                  <th className="w-[10%] px-4 py-4 text-xs font-black uppercase tracking-wider text-slate-500">Trạng thái</th>
+                  <th className="w-[10%] px-4 py-4 text-xs font-black uppercase tracking-wider text-slate-500">Ngày hiển thị</th>
+                  <th className="w-[15%] px-4 py-4 text-xs font-black uppercase tracking-wider text-slate-500 text-right">Tác vụ</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {loading ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-10 text-center text-sm font-semibold text-gray-400">
+                    <td colSpan={7} className="px-4 py-10 text-center text-sm font-semibold text-gray-400">
                       Đang tải bài viết...
                     </td>
                   </tr>
                 ) : sortedArticles.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-10 text-center text-sm font-semibold text-gray-400">
+                    <td colSpan={7} className="px-4 py-10 text-center text-sm font-semibold text-gray-400">
                       Không có bài viết phù hợp bộ lọc.
                     </td>
                   </tr>
@@ -262,14 +374,21 @@ const AdminArticlePage = () => {
                             />
                             <div className="min-w-0">
                               <p className="break-words text-sm font-black text-slate-900">{article.title}</p>
-                              <p className="mt-1 line-clamp-2 break-words text-xs font-medium text-slate-500">
-                                {article.summary || "Chưa có mô tả ngắn."}
-                              </p>
                             </div>
                           </div>
                         </td>
                         <td className="px-4 py-4 align-top text-sm font-semibold text-slate-600">{article.authorName || "-"}</td>
                         <td className="px-4 py-4 align-top text-sm font-semibold text-slate-600">{article.categoryName || "-"}</td>
+                        <td className="px-4 py-4 align-top text-sm font-semibold text-slate-600">
+                          {article.attractionName ? (
+                            <div className="flex items-center gap-1.5 text-sky-600">
+                              <MapPin className="size-3.5" />
+                              <span>{article.attractionName}</span>
+                            </div>
+                          ) : (
+                            <span className="text-slate-400">-</span>
+                          )}
+                        </td>
                         <td className="px-4 py-4 align-top">
                           <span className={`rounded-full px-3 py-1 text-xs font-black uppercase tracking-wide ${getStatusBadgeClass(article)}`}>
                             {getStatusLabel(article)}
@@ -278,75 +397,16 @@ const AdminArticlePage = () => {
                         <td className="px-4 py-4 align-top text-sm font-semibold text-slate-600">
                           {getDisplayTime(article) ? formatPreservedApiDateTime(getDisplayTime(article)) : "Chưa hiển thị"}
                         </td>
-                        <td className="px-4 py-4 align-top">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => navigate(`/articles/${article.slug || article.id}`)}
-                              className="inline-flex items-center gap-2 rounded-xl bg-sky-50 px-3 py-2 text-sm font-bold text-sky-700"
-                            >
-                              <Eye className="size-4" />
-                              Xem
-                            </button>
-
-                            {canEditContent ? (
-                              <button
-                                type="button"
-                                onClick={() => navigate(`/admin/articles/${article.id}/edit`)}
-                                className="inline-flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-bold text-gray-700 ring-1 ring-gray-200"
-                              >
-                                <Edit className="size-4" />
-                                Chỉnh sửa
-                              </button>
-                            ) : null}
-
-                            {article.isDeleted ? (
-                              canDeleteContent ? (
-                                <button
-                                  type="button"
-                                  onClick={() => openActionDialog("restore", article)}
-                                  className="inline-flex items-center gap-2 rounded-xl bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-600"
-                                >
-                                  <RotateCcw className="size-4" />
-                                  Khôi phục
-                                </button>
-                              ) : null
-                            ) : !article.isApproved ? (
-                              <>
-                                {canPublishContent ? (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleApprove(article.id)}
-                                    className="inline-flex items-center gap-2 rounded-xl bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-600"
-                                  >
-                                    <CheckCircle2 className="size-4" />
-                                    Duyệt
-                                  </button>
-                                ) : null}
-                                {canDeleteContent ? (
-                                  <button
-                                    type="button"
-                                    onClick={() => openActionDialog("hardDelete", article)}
-                                    className="inline-flex items-center gap-2 rounded-xl bg-rose-50 px-3 py-2 text-sm font-bold text-rose-600"
-                                  >
-                                    <Trash2 className="size-4" />
-                                    Không duyệt
-                                  </button>
-                                ) : null}
-                              </>
-                            ) : (
-                              canDeleteContent ? (
-                                <button
-                                  type="button"
-                                  onClick={() => openActionDialog("delete", article)}
-                                  className="inline-flex items-center gap-2 rounded-xl bg-rose-50 px-3 py-2 text-sm font-bold text-rose-600"
-                                >
-                                  <Trash2 className="size-4" />
-                                  Chuyển vào thùng rác
-                                </button>
-                              ) : null
-                            )}
-                          </div>
+                        <td className="px-4 py-4 align-top text-right">
+                          <ArticleActionMenu
+                            article={article}
+                            onApprove={handleApprove}
+                            onEdit={(id) => navigate(`/admin/articles/${id}/edit`)}
+                            onAction={openActionDialog}
+                            canEditContent={canEditContent}
+                            canPublishContent={canPublishContent}
+                            canDeleteContent={canDeleteContent}
+                          />
                         </td>
                       </tr>
                     ))

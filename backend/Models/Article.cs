@@ -23,11 +23,13 @@ namespace backend.Models
         public DateTime? UpdatedAt { get; set; }
         public DateTime? ApprovedAt { get; set; }
         public int? ApprovedById { get; set; }
+        public int? AttractionId { get; set; }
         public bool IsDeleted { get; set; }
         public DateTime? DeletedAt { get; set; }
         public ArticleCategory? Category { get; set; }
         public User? Author { get; set; }
         public User? ApprovedBy { get; set; }
+        public Attraction? Attraction { get; set; }
         public ICollection<ArticleComment> Comments { get; set; } = new List<ArticleComment>();
     }
 }

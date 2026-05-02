@@ -12,6 +12,7 @@ import {
   Link as LinkIcon,
   List,
   ListOrdered,
+  MapPin,
   Minus,
   Plus,
   Quote,
@@ -29,6 +30,7 @@ const emptyForm = {
   summary: "",
   content: "",
   categoryId: "",
+  attractionId: "",
   tags: "",
   thumbnailUrl: "",
 };
@@ -80,6 +82,7 @@ const ReceptionistArticleEditorPage = ({ scope = "author", basePath = "/admin/ar
   const [submitting, setSubmitting] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
   const [uploadingContentImage, setUploadingContentImage] = useState(false);
+  const [attractions, setAttractions] = useState([]);
   const [creatingCategory, setCreatingCategory] = useState(false);
   const [error, setError] = useState("");
   const [showCategoryForm, setShowCategoryForm] = useState(false);
@@ -156,14 +159,17 @@ const ReceptionistArticleEditorPage = ({ scope = "author", basePath = "/admin/ar
     setError("");
 
     try {
-      const [categoryResponse, articleResponse] = await Promise.all([
+      const [categoryResponse, attractionResponse, articleResponse] = await Promise.all([
         apiClient.get("/ArticleCategories"),
-          isEditMode
-            ? apiClient.get(`/Articles/${id}`, { params: { scope } })
+        apiClient.get("/Attractions/public", { params: { pageSize: 1000 } }),
+        isEditMode
+          ? apiClient.get(`/Articles/${id}`, { params: { scope } })
           : Promise.resolve({ data: null }),
       ]);
 
       setCategories(categoryResponse.data ?? []);
+      // Attractions API returns a PagedResponse with an 'items' property
+      setAttractions(attractionResponse.data?.items ?? attractionResponse.data ?? []);
 
       if (!isEditMode || !articleResponse.data) {
         setEditingArticle(null);
@@ -184,6 +190,7 @@ const ReceptionistArticleEditorPage = ({ scope = "author", basePath = "/admin/ar
         summary: detail.summary ?? "",
         content: nextContent,
         categoryId: detail.categoryId ? String(detail.categoryId) : "",
+        attractionId: detail.attractionId ? String(detail.attractionId) : "",
         tags: (detail.tags ?? []).join(", "),
         thumbnailUrl: detail.thumbnailUrl ?? "",
       });
@@ -350,6 +357,7 @@ const ReceptionistArticleEditorPage = ({ scope = "author", basePath = "/admin/ar
         summary: formData.summary.trim(),
         content: editorRef.current?.innerHTML?.trim() || "",
         categoryId: formData.categoryId ? Number(formData.categoryId) : "",
+        attractionId: formData.attractionId ? Number(formData.attractionId) : "",
         tags: formData.tags.trim(),
         thumbnailUrl: formData.thumbnailUrl || "",
         galleryUrls: [],
@@ -614,6 +622,30 @@ const ReceptionistArticleEditorPage = ({ scope = "author", basePath = "/admin/ar
                     </button>
                   </div>
                 ) : null}
+              </div>
+
+              <div className="space-y-3 rounded-[1.5rem] bg-white p-4 ring-1 ring-gray-100">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-bold text-slate-700">Địa điểm liên quan</span>
+                  <MapPin className="size-4 text-sky-500" />
+                </div>
+
+                <select
+                  name="attractionId"
+                  value={formData.attractionId}
+                  onChange={handleInputChange}
+                  className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:border-sky-300 focus:ring-2 focus:ring-sky-100"
+                >
+                  <option value="">Không gắn địa điểm</option>
+                  {attractions.map((attraction) => (
+                    <option key={attraction.id} value={attraction.id}>
+                      {attraction.name}
+                    </option>
+                  ))}
+                </select>
+                <p className="px-1 text-[10px] font-medium text-slate-400">
+                  Gắn địa điểm giúp người đọc dễ dàng tìm thấy vị trí được nhắc tới trong bài viết.
+                </p>
               </div>
 
               <label className="flex flex-col gap-2">

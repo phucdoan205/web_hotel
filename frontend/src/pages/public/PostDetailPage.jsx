@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, MessageCircle, Reply, Send, Calendar, User, ArrowLeft } from "lucide-react";
+import { ChevronDown, MessageCircle, Reply, Send, Calendar, User, ArrowLeft, MapPin } from "lucide-react";
 import { useParams, Link } from "react-router-dom";
 import { createArticleComment, getArticleDetail } from "../../api/articles/articleApi";
 import { getStoredAuth } from "../../utils/authStorage";
@@ -309,6 +309,13 @@ const PostDetailPage = () => {
                 {comments.length} bình luận
               </span>
             </div>
+
+            {article.attractionName && (
+              <div className="flex w-full items-center gap-2 rounded-2xl bg-sky-50 px-4 py-3 text-sm font-bold text-sky-700">
+                <MapPin className="size-4 shrink-0" />
+                <span>Địa điểm: <span className="font-black underline">{article.attractionName}</span></span>
+              </div>
+            )}
           </div>
 
           {/* Summary / Intro */}

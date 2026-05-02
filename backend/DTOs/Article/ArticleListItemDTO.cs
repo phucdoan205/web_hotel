@@ -7,6 +7,8 @@ namespace backend.DTOs.Article
         public string? CategoryName { get; set; }
         public int? AuthorId { get; set; }
         public string? AuthorName { get; set; }
+        public int? AttractionId { get; set; }
+        public string? AttractionName { get; set; }
         public string Title { get; set; } = string.Empty;
         public string? Slug { get; set; }
         public string? Summary { get; set; }
