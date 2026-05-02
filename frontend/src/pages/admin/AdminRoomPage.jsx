@@ -9,6 +9,7 @@ import DeleteRoomDialog from "../../components/admin/rooms/DeleteRoomDialog";
 import RoomDetailModal from "../../components/admin/rooms/RoomDetailModal";
 import RoomInventoryModal from "../../components/admin/rooms/RoomInventoryModal";
 import RoomTypeManagement from "../../components/admin/roomtypes/RoomTypeManagement";
+import AmenityManagement from "../../components/admin/amenities/AmenityManagement";
 import { roomsApi } from "../../api/admin/roomsApi";
 import { roomTypesApi } from "../../api/admin/roomTypesApi";
 import { hasPermission } from "../../utils/permissions";
@@ -28,7 +29,11 @@ export default function AdminRoomPage() {
   const location = useLocation();
   const queryClient = useQueryClient();
 
-  const tab = location.pathname.includes("/room-types") ? 1 : 0;
+  const tab = location.pathname.includes("/room-types") 
+    ? 1 
+    : location.pathname.includes("/amenities") 
+      ? 2 
+      : 0;
   const [filters, setFilters] = useState(defaultFilters);
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -124,12 +129,19 @@ export default function AdminRoomPage() {
           {[
             { label: "Phòng", value: 0 },
             { label: "Loại phòng", value: 1 },
+            { label: "Tiện nghi", value: 2 },
           ].map((item) => (
             <button
               key={item.value}
               type="button"
               onClick={() =>
-                navigate(item.value === 0 ? "/admin/rooms" : "/admin/room-types")
+                navigate(
+                  item.value === 0 
+                    ? "/admin/rooms" 
+                    : item.value === 1 
+                      ? "/admin/room-types" 
+                      : "/admin/amenities"
+                )
               }
               className={`border-b-2 px-1 pb-3 text-sm font-black uppercase tracking-wide transition-all ${
                 tab === item.value
@@ -183,8 +195,10 @@ export default function AdminRoomPage() {
             setOpenInventory(true);
           }}
         />
-      ) : (
+      ) : tab === 1 ? (
         <RoomTypeManagement />
+      ) : (
+        <AmenityManagement />
       )}
 
       <RoomForm

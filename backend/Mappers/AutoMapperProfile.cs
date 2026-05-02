@@ -72,11 +72,15 @@ namespace backend.Mappers
                 .ForMember(dest => dest.BedType, opt => opt.MapFrom(src => src.RoomType != null ? src.RoomType.BedType : null))
                 .ForMember(dest => dest.Size, opt => opt.MapFrom(src => src.RoomType != null ? src.RoomType.Size : null))
                 .ForMember(dest => dest.Amenities, opt => opt.MapFrom(src =>
-                    src.RoomType != null
+                    (src.RoomType != null
                         ? src.RoomType.RoomTypeAmenities
                             .Where(rta => rta.Amenity != null)
                             .Select(rta => rta.Amenity.Name)
-                        : Enumerable.Empty<string>()))
+                        : Enumerable.Empty<string>())
+                    .Union(src.RoomAmenities != null
+                        ? src.RoomAmenities.Where(ra => ra.Amenity != null).Select(ra => ra.Amenity.Name)
+                        : Enumerable.Empty<string>())
+                    .ToList()))
                 .ForMember(dest => dest.ImageUrls, opt => opt.MapFrom(src =>
                     src.RoomType != null
                         ? src.RoomType.RoomImages

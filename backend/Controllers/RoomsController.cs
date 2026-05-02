@@ -1,6 +1,7 @@
 using AutoMapper;
 using backend.Common;
 using backend.Data;
+using backend.DTOs.Amenity;
 using backend.DTOs.Room;
 using backend.Models;
 using backend.Security;
@@ -48,6 +49,8 @@ namespace backend.Controllers
             .ThenInclude(rt => rt!.Reviews)
             .Include(r => r.RoomInventory)
             .ThenInclude(ri => ri.Equipment)
+            .Include(r => r.RoomAmenities)
+            .ThenInclude(ra => ra.Amenity)
             .AsNoTracking();
 
 
@@ -111,6 +114,8 @@ namespace backend.Controllers
                 .Include(r => r.RoomType).ThenInclude(rt => rt!.RoomImages)
                 .Include(r => r.RoomInventory)
                 .ThenInclude(ri => ri.Equipment)
+                .Include(r => r.RoomAmenities)
+                .ThenInclude(ra => ra.Amenity)
                 .AsNoTracking()
                 .FirstOrDefaultAsync(r => r.Id == id);
 
@@ -262,6 +267,8 @@ namespace backend.Controllers
                     .ThenInclude(rt => rt!.RoomImages)
                 .Include(r => r.RoomInventory)
                 .ThenInclude(ri => ri.Equipment)
+                .Include(r => r.RoomAmenities)
+                .ThenInclude(ra => ra.Amenity)
                 .AsNoTracking()
                 .ToListAsync();
 
@@ -299,6 +306,8 @@ namespace backend.Controllers
                     .ThenInclude(rt => rt!.RoomImages)
                 .Include(r => r.RoomType)
                     .ThenInclude(rt => rt!.Reviews)
+                .Include(r => r.RoomAmenities)
+                    .ThenInclude(ra => ra.Amenity)
                 .Where(r => !r.IsDeleted && r.Status == RoomStatuses.Available);
 
 
@@ -408,6 +417,8 @@ namespace backend.Controllers
                 .ThenInclude(rt => rt!.RoomImages)
                 .Include(r => r.RoomInventory)
                 .ThenInclude(ri => ri.Equipment)
+                .Include(r => r.RoomAmenities)
+                .ThenInclude(ra => ra.Amenity)
                 .FirstOrDefaultAsync(r => r.Id == id);
 
             var resultDto = _mapper.Map<RoomDetailDTO>(updatedRoom);
@@ -504,6 +515,7 @@ namespace backend.Controllers
         {
             var originalRoom = await _context.Rooms
                 .Include(r => r.RoomInventory)
+                .Include(r => r.RoomAmenities)
                 .FirstOrDefaultAsync(r => r.Id == id);
 
             if (originalRoom == null)
@@ -546,6 +558,16 @@ namespace backend.Controllers
                 });
             }
 
+            // Clone RoomAmenities
+            foreach (var item in originalRoom.RoomAmenities)
+            {
+                _context.RoomAmenities.Add(new RoomAmenity
+                {
+                    RoomId = newRoom.Id,
+                    AmenityId = item.AmenityId
+                });
+            }
+
             await _context.SaveChangesAsync();
 
             var createdRoom = await _context.Rooms
@@ -556,11 +578,71 @@ namespace backend.Controllers
                 .ThenInclude(rt => rt!.RoomImages)
                 .Include(r => r.RoomInventory)
                 .ThenInclude(ri => ri.Equipment)
+                .Include(r => r.RoomAmenities)
+                .ThenInclude(ra => ra.Amenity)
                 .AsNoTracking()
                 .FirstAsync(r => r.Id == newRoom.Id);
 
             var result = _mapper.Map<RoomDetailDTO>(createdRoom);
             return Ok(result);
+        }
+
+        [HttpGet("{id}/amenities")]
+        [Permission("VIEW_ROOMS")]
+        public async Task<ActionResult<IEnumerable<AmenityDTO>>> GetRoomAmenities(int id)
+        {
+            var room = await _context.Rooms
+                .Include(r => r.RoomAmenities)
+                .ThenInclude(ra => ra.Amenity)
+                .FirstOrDefaultAsync(r => r.Id == id);
+
+            if (room == null) return NotFound();
+
+            var dtos = room.RoomAmenities.Select(ra => new AmenityDTO
+            {
+                Id = ra.Amenity.Id,
+                Name = ra.Amenity.Name,
+                IconUrl = ra.Amenity.IconUrl,
+                IsActive = ra.Amenity.IsActive
+            });
+
+            return Ok(dtos);
+        }
+
+        [HttpPost("{id}/amenities/{amenityId}")]
+        [Permission("EDIT_ROOMS")]
+        public async Task<IActionResult> AddAmenityToRoom(int id, int amenityId)
+        {
+            var room = await _context.Rooms.FindAsync(id);
+            var amenity = await _context.Amenities.FindAsync(amenityId);
+
+            if (room == null || amenity == null) return NotFound();
+
+            if (await _context.RoomAmenities.AnyAsync(ra => ra.RoomId == id && ra.AmenityId == amenityId))
+            {
+                return BadRequest("Phòng đã có tiện nghi này.");
+            }
+
+            var roomAmenity = new RoomAmenity { RoomId = id, AmenityId = amenityId };
+            _context.RoomAmenities.Add(roomAmenity);
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+
+        [HttpDelete("{id}/amenities/{amenityId}")]
+        [Permission("EDIT_ROOMS")]
+        public async Task<IActionResult> RemoveAmenityFromRoom(int id, int amenityId)
+        {
+            var roomAmenity = await _context.RoomAmenities
+                .FirstOrDefaultAsync(ra => ra.RoomId == id && ra.AmenityId == amenityId);
+
+            if (roomAmenity == null) return NotFound();
+
+            _context.RoomAmenities.Remove(roomAmenity);
+            await _context.SaveChangesAsync();
+
+            return NoContent();
         }
     }
 }

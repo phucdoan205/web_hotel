@@ -93,7 +93,13 @@ const menuItems = [
     matchPaths: ["/admin/article-categories", "/admin/articles", "/admin/attractions"],
     permission: "VIEW_CONTENT",
   },
-  { name: "Quản lý phòng", icon: Building, path: "/admin/rooms", permission: "VIEW_ROOMS" },
+  {
+    name: "Quản lý phòng",
+    icon: Building,
+    path: "/admin/rooms",
+    matchPaths: ["/admin/rooms", "/admin/room-types", "/admin/amenities"],
+    permission: "VIEW_ROOMS"
+  },
   { name: "Nhiệm vụ dọn phòng", icon: ClipboardList, path: "/admin/housekeeping/tasks", permission: "VIEW_HOUSEKEEPING" },
   { name: "Vật tư", icon: Boxes, path: "/admin/equipment", permission: "VIEW_INVENTORY" },
   { name: "Thất thoát đền bù", icon: ShieldAlert, path: "/admin/loss-damage", permission: "VIEW_COMPENSATION" },

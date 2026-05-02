@@ -21,6 +21,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { roomsApi } from "../../../api/admin/roomsApi";
 import { roomTypesApi } from "../../../api/admin/roomTypesApi";
+import RoomAmenitiesEditor from "./RoomAmenitiesEditor";
 
 const createRoomFormData = (room) => ({
   roomNumber: room?.roomNumber ?? "",
@@ -193,6 +194,12 @@ export default function RoomDetailModal({ open, onClose, room, roomTypes = [] })
                     <Chip key={item} label={item} size="small" />
                   ))}
                 </Stack>
+
+                <Divider sx={{ my: 2 }} />
+                <RoomAmenitiesEditor 
+                  roomId={room.id} 
+                  roomTypeAmenities={roomType?.amenities ?? []} 
+                />
               </Paper>
             </Grid>
           </Grid>

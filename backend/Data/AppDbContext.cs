@@ -22,6 +22,7 @@ namespace backend.Data
         public DbSet<RoomType> RoomTypes { get; set; }
         public DbSet<Room> Rooms { get; set; }
         public DbSet<RoomTypeAmenity> RoomTypeAmenities { get; set; }
+        public DbSet<RoomAmenity> RoomAmenities { get; set; }
         public DbSet<RoomImage> RoomImages { get; set; }
         public DbSet<RoomInventory> RoomInventory { get; set; }
 
@@ -56,6 +57,9 @@ namespace backend.Data
 
             modelBuilder.Entity<RoomTypeAmenity>()
                 .HasKey(rta => new { rta.RoomTypeId, rta.AmenityId });
+
+            modelBuilder.Entity<RoomAmenity>()
+                .HasKey(ra => new { ra.RoomId, ra.AmenityId });
 
             modelBuilder.Entity<Equipment>(entity =>
             {

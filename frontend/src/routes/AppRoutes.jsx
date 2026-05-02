@@ -40,6 +40,7 @@ import AdminHousekeepingTasksPage from "../pages/admin/AdminHousekeepingTasksPag
 import AdminLossDamagePage from "../pages/admin/AdminLossDamagePage";
 import AdminRoomPage from "../pages/admin/AdminRoomPage";
 import AdminRoomTypesPage from "../pages/admin/AdminRoomTypesPage";
+import AdminAmenitiesPage from "../pages/admin/AdminAmenitiesPage";
 import AdminArticlePage from "../pages/admin/AdminArticlePage";
 import AdminArticleEditorPage from "../pages/admin/AdminArticleEditorPage";
 import AdminArticleCategoriesPage from "../pages/admin/AdminArticleCategoriesPage";
@@ -247,6 +248,14 @@ const AppRoutes = () => {
           element={
             <RequirePermission permission="VIEW_ROOMS">
               <AdminRoomTypesPage />
+            </RequirePermission>
+          }
+        />
+        <Route
+          path="amenities"
+          element={
+            <RequirePermission permission="VIEW_ROOMS">
+              <AdminAmenitiesPage />
             </RequirePermission>
           }
         />

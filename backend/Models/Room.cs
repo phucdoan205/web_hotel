@@ -17,6 +17,7 @@ namespace backend.Models
         public RoomType? RoomType { get; set; }
         public ICollection<BookingDetail> BookingDetails { get; set; } = new List<BookingDetail>();
         public ICollection<RoomInventory> RoomInventory { get; set; } = new List<RoomInventory>();
+        public ICollection<RoomAmenity> RoomAmenities { get; set; } = new List<RoomAmenity>();
         public DateTime? LastCleaningUpdatedAt { get; set; }
     }
 }

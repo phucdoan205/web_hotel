@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace backend.Migrations
 {
     /// <inheritdoc />
-    public partial class @new : Migration
+    public partial class database : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -536,6 +536,30 @@ namespace backend.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "RoomAmenities",
+                columns: table => new
+                {
+                    RoomId = table.Column<int>(type: "int", nullable: false),
+                    AmenityId = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_RoomAmenities", x => new { x.RoomId, x.AmenityId });
+                    table.ForeignKey(
+                        name: "FK_RoomAmenities_Amenities_AmenityId",
+                        column: x => x.AmenityId,
+                        principalTable: "Amenities",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_RoomAmenities_Rooms_RoomId",
+                        column: x => x.RoomId,
+                        principalTable: "Rooms",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "RoomInventory",
                 columns: table => new
                 {
@@ -942,6 +966,11 @@ namespace backend.Migrations
                 column: "PermissionId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_RoomAmenities_AmenityId",
+                table: "RoomAmenities",
+                column: "AmenityId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_RoomImages_RoomTypeId",
                 table: "RoomImages",
                 column: "RoomTypeId");
@@ -1014,6 +1043,9 @@ namespace backend.Migrations
 
             migrationBuilder.DropTable(
                 name: "RolePermissions");
+
+            migrationBuilder.DropTable(
+                name: "RoomAmenities");
 
             migrationBuilder.DropTable(
                 name: "RoomImages");

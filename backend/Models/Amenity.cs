@@ -10,6 +10,7 @@ namespace backend.Models
         public string? IconUrl { get; set; }
         public bool IsActive { get; set; } = true;
         public ICollection<RoomTypeAmenity> RoomTypeAmenities { get; set; } = new List<RoomTypeAmenity>();
+        public ICollection<RoomAmenity> RoomAmenities { get; set; } = new List<RoomAmenity>();
     }
 }
 

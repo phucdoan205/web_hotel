@@ -17,10 +17,16 @@ namespace backend.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<AmenityDTO>>> GetAll()
+        public async Task<ActionResult<IEnumerable<AmenityDTO>>> GetAll([FromQuery] bool includeInactive = false)
         {
-            var items = await _context.Amenities
-                .Where(x => x.IsActive)
+            var query = _context.Amenities.AsQueryable();
+            
+            if (!includeInactive)
+            {
+                query = query.Where(x => x.IsActive);
+            }
+
+            var items = await query
                 .Select(x => new AmenityDTO
                 {
                     Id = x.Id,
@@ -87,29 +93,32 @@ namespace backend.Controllers
         }
 
         [HttpPut("{id:int}")]
-        public async Task<IActionResult> Update(int id, Models.Amenity amenity)
+        public async Task<IActionResult> Update(int id, [FromBody] CreateAmenityDTO request)
         {
-            if (id != amenity.Id)
+            var amenity = await _context.Amenities.FindAsync(id);
+            if (amenity == null)
             {
-                return BadRequest();
+                return NotFound();
             }
 
-            _context.Entry(amenity).State = EntityState.Modified;
+            amenity.Name = request.Name.Trim();
+            amenity.IconUrl = string.IsNullOrWhiteSpace(request.IconUrl) ? null : request.IconUrl.Trim();
 
-            try
+            await _context.SaveChangesAsync();
+            return NoContent();
+        }
+
+        [HttpPatch("{id:int}/toggle")]
+        public async Task<IActionResult> ToggleStatus(int id)
+        {
+            var amenity = await _context.Amenities.FindAsync(id);
+            if (amenity == null)
             {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!AmenityExists(id))
-                {
-                    return NotFound();
-                }
-
-                throw;
+                return NotFound();
             }
 
+            amenity.IsActive = !amenity.IsActive;
+            await _context.SaveChangesAsync();
             return NoContent();
         }
 
@@ -122,7 +131,7 @@ namespace backend.Controllers
                 return NotFound();
             }
 
-            entity.IsActive = false;
+            _context.Amenities.Remove(entity);
             await _context.SaveChangesAsync();
 
             return NoContent();

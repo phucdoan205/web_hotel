@@ -12,8 +12,8 @@ using backend.Data;
 namespace backend.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260501083433_new")]
-    partial class @new
+    [Migration("20260502051948_database")]
+    partial class database
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -891,6 +891,21 @@ namespace backend.Migrations
                     b.ToTable("Rooms");
                 });
 
+            modelBuilder.Entity("backend.Models.RoomAmenity", b =>
+                {
+                    b.Property<int>("RoomId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("AmenityId")
+                        .HasColumnType("int");
+
+                    b.HasKey("RoomId", "AmenityId");
+
+                    b.HasIndex("AmenityId");
+
+                    b.ToTable("RoomAmenities");
+                });
+
             modelBuilder.Entity("backend.Models.RoomImage", b =>
                 {
                     b.Property<int>("Id")
@@ -1389,6 +1404,25 @@ namespace backend.Migrations
                     b.Navigation("RoomType");
                 });
 
+            modelBuilder.Entity("backend.Models.RoomAmenity", b =>
+                {
+                    b.HasOne("backend.Models.Amenity", "Amenity")
+                        .WithMany("RoomAmenities")
+                        .HasForeignKey("AmenityId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("backend.Models.Room", "Room")
+                        .WithMany("RoomAmenities")
+                        .HasForeignKey("RoomId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Amenity");
+
+                    b.Navigation("Room");
+                });
+
             modelBuilder.Entity("backend.Models.RoomImage", b =>
                 {
                     b.HasOne("backend.Models.RoomType", "RoomType")
@@ -1460,6 +1494,8 @@ namespace backend.Migrations
 
             modelBuilder.Entity("backend.Models.Amenity", b =>
                 {
+                    b.Navigation("RoomAmenities");
+
                     b.Navigation("RoomTypeAmenities");
                 });
 
@@ -1537,6 +1573,8 @@ namespace backend.Migrations
             modelBuilder.Entity("backend.Models.Room", b =>
                 {
                     b.Navigation("BookingDetails");
+
+                    b.Navigation("RoomAmenities");
 
                     b.Navigation("RoomInventory");
                 });

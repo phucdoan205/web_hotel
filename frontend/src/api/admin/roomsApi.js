@@ -55,4 +55,16 @@ export const roomsApi = {
     });
     return response.data;
   },
+  getRoomAmenities: async (roomId) => {
+    const response = await apiClient.get(`/Rooms/${roomId}/amenities`);
+    return response.data;
+  },
+  addAmenity: async (roomId, amenityId) => {
+    const response = await apiClient.post(`/Rooms/${roomId}/amenities/${amenityId}`);
+    return response.data;
+  },
+  removeAmenity: async (roomId, amenityId) => {
+    const response = await apiClient.delete(`/Rooms/${roomId}/amenities/${amenityId}`);
+    return response.data;
+  },
 };
