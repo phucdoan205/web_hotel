@@ -7,12 +7,12 @@ import PageTransition from '../components/layout/PageTransition';
 
 const MainLayout = () => {
   const location = useLocation();
-  const isHomePage = location.pathname === "/" || location.pathname === "/hotels";
+  const isTransparentNav = location.pathname === "/" || location.pathname === "/hotels" || location.pathname === "/articles";
 
   return (
     <div className="main-layout-container flex flex-col min-h-screen">
       <Navbar />
-      <main className={`grow ${isHomePage ? "" : "pt-16"}`}>
+      <main className={`grow ${isTransparentNav ? "" : "pt-16"}`}>
         <AnimatePresence mode="wait">
           <PageTransition key={location.pathname}>
             <Outlet />

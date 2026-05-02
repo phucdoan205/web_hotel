@@ -10,7 +10,7 @@ const Navbar = () => {
   const location = useLocation();
   const [isScrolled, setIsScrolled] = React.useState(false);
 
-  const isHomePage = location.pathname === "/" || location.pathname === "/hotels";
+  const isTransparentNav = location.pathname === "/" || location.pathname === "/hotels" || location.pathname === "/articles";
 
   React.useEffect(() => {
     const handleScroll = () => {
@@ -20,7 +20,7 @@ const Navbar = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const navBgClass = isHomePage
+  const navBgClass = isTransparentNav
     ? isScrolled
       ? "bg-[#1F649C] shadow-md"
       : "bg-transparent"
@@ -39,14 +39,12 @@ const Navbar = () => {
             HPT
           </span>
         </Link>
-
         <div className="hidden items-center gap-1 xl:flex">
           <NavItem label="Khách sạn" to="/" icon={Hotel} />
 
           <NavItem label="Tìm phòng" to="/booking" icon={Calendar} />
           <NavItem label="Ẩm thực" to="/food" icon={Utensils} />
-          <NavItem label="Hoạt động" to="/activities" icon={Ticket} />
-          <NavItem label="Bài viết" to="/articles" icon={FileText} />
+          <NavItem label="Địa điểm & Hoạt động" to="/articles" icon={Ticket} />
         </div>
       </div>
 

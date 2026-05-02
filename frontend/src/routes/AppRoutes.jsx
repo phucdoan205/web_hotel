@@ -10,7 +10,6 @@ import BlogPage from "../pages/public/BlogPage";
 import LoginPage from "../pages/auth/LoginPage";
 import RegisterPage from "../pages/auth/RegisterPage";
 import ForbiddenPage from "../pages/ForbiddenPage";
-import ActivityPage from "../pages/public/ActivityPage";
 import PostDetailPage from "../pages/public/PostDetailPage";
 import BlogSearchPage from "../pages/public/BlogSearchPage";
 import HotelListPage from "../pages/public/HotelListPage";
@@ -102,7 +101,7 @@ const AppRoutes = () => {
         <Route path="articles" element={<BlogPage />} />
         <Route path="articles/:id" element={<PostDetailPage />} />
         <Route path="articles/search" element={<BlogSearchPage />} />
-        <Route path="activities" element={<ActivityPage />} />
+        <Route path="activities" element={<BlogPage />} />
         <Route path="hotels/search" element={<HotelListPage />} />
         <Route path="food" element={<FoodPage />} />
       </Route>

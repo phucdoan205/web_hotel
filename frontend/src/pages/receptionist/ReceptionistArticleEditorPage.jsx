@@ -33,6 +33,7 @@ const emptyForm = {
   attractionId: "",
   tags: "",
   thumbnailUrl: "",
+  galleryUrls: [],
 };
 
 const emptyCategoryForm = {
@@ -193,6 +194,7 @@ const ReceptionistArticleEditorPage = ({ scope = "author", basePath = "/admin/ar
         attractionId: detail.attractionId ? String(detail.attractionId) : "",
         tags: (detail.tags ?? []).join(", "),
         thumbnailUrl: detail.thumbnailUrl ?? "",
+        galleryUrls: detail.galleryUrls ?? [],
       });
       setRemoveThumbnail(false);
 
@@ -262,8 +264,8 @@ const ReceptionistArticleEditorPage = ({ scope = "author", basePath = "/admin/ar
   };
 
   const handleCoverUpload = async (event) => {
-    const file = event.target.files?.[0];
-    if (!file) {
+    const files = Array.from(event.target.files ?? []);
+    if (files.length === 0) {
       return;
     }
 
@@ -271,18 +273,19 @@ const ReceptionistArticleEditorPage = ({ scope = "author", basePath = "/admin/ar
     setError("");
 
     try {
-      const urls = await uploadArticleImages([file], formData.title.trim());
+      const urls = await uploadArticleImages(files, formData.title.trim());
       if (!urls.length) {
-        throw new Error("Không tải được ảnh nền.");
+        throw new Error("Không tải được ảnh.");
       }
 
       setFormData((current) => ({
         ...current,
         thumbnailUrl: urls[0],
+        galleryUrls: urls.slice(1),
       }));
       setRemoveThumbnail(false);
     } catch (uploadError) {
-      setError(uploadError?.response?.data || uploadError?.message || "Không tải được ảnh nền.");
+      setError(uploadError?.response?.data || uploadError?.message || "Không tải được ảnh.");
     } finally {
       setUploadingCover(false);
       event.target.value = "";
@@ -293,6 +296,7 @@ const ReceptionistArticleEditorPage = ({ scope = "author", basePath = "/admin/ar
     setFormData((current) => ({
       ...current,
       thumbnailUrl: "",
+      galleryUrls: [],
     }));
     setRemoveThumbnail(Boolean(editingArticle?.thumbnailUrl));
   };
@@ -360,7 +364,7 @@ const ReceptionistArticleEditorPage = ({ scope = "author", basePath = "/admin/ar
         attractionId: formData.attractionId ? Number(formData.attractionId) : "",
         tags: formData.tags.trim(),
         thumbnailUrl: formData.thumbnailUrl || "",
-        galleryUrls: [],
+        galleryUrls: formData.galleryUrls || [],
         removeThumbnail,
       };
 
@@ -663,9 +667,9 @@ const ReceptionistArticleEditorPage = ({ scope = "author", basePath = "/admin/ar
               </label>
 
               <div className="rounded-[1.5rem] bg-white p-4 ring-1 ring-gray-100">
-                <p className="text-sm font-bold text-slate-700">Ảnh nền bài viết</p>
+                <p className="text-sm font-bold text-slate-700">Ảnh bài viết</p>
                 <p className="mt-1 text-xs font-medium text-slate-500">
-                  Phần này chỉ dùng 1 ảnh duy nhất để làm ảnh bìa bên ngoài bài viết. Ảnh trong nội dung hãy chèn từ thanh công cụ phía trên.
+                  Bạn có thể chọn nhiều ảnh cùng lúc. Ảnh đầu tiên sẽ được dùng làm ảnh nền bên ngoài bài viết.
                 </p>
 
                 <button
@@ -674,44 +678,57 @@ const ReceptionistArticleEditorPage = ({ scope = "author", basePath = "/admin/ar
                   disabled={uploadingCover}
                   className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-gray-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-100 disabled:opacity-60"
                 >
-                  {uploadingCover ? "Đang tải ảnh nền..." : "Chọn ảnh nền"}
+                  {uploadingCover ? "Đang tải ảnh..." : "Chọn ảnh bài viết"}
                 </button>
                 <input
                   ref={coverInputRef}
                   type="file"
                   accept="image/*"
+                  multiple
                   onChange={handleCoverUpload}
                   className="hidden"
                 />
 
                 {formData.thumbnailUrl ? (
-                  <div className="mt-4 overflow-hidden rounded-[1.5rem] border border-gray-100">
-                    <img
-                      src={formData.thumbnailUrl}
-                      alt="Ảnh nền bài viết"
-                      className="h-48 w-full object-cover"
-                    />
-                    <div className="flex items-center justify-between gap-3 bg-slate-50 p-3">
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-bold text-slate-800">Ảnh nền hiện tại</p>
-                        <p className="truncate text-xs font-medium text-slate-500">
-                          {formData.thumbnailUrl.split("/").pop()}
-                        </p>
+                  <div className="mt-4 space-y-3">
+                    <div className="overflow-hidden rounded-[1.5rem] border border-gray-100">
+                      <img
+                        src={formData.thumbnailUrl}
+                        alt="Ảnh nền bài viết"
+                        className="h-48 w-full object-cover"
+                      />
+                      <div className="flex items-center justify-between gap-3 bg-slate-50 p-3">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-bold text-slate-800">Ảnh nền hiện tại</p>
+                          <p className="truncate text-xs font-medium text-slate-500">
+                            {formData.thumbnailUrl.split("/").pop()}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleRemoveCover}
+                          className="inline-flex items-center gap-2 rounded-xl bg-rose-50 px-3 py-2 text-xs font-black text-rose-600"
+                        >
+                          <Trash2 className="size-3.5" />
+                          Xóa tất cả ảnh
+                        </button>
                       </div>
-                      <button
-                        type="button"
-                        onClick={handleRemoveCover}
-                        className="inline-flex items-center gap-2 rounded-xl bg-rose-50 px-3 py-2 text-xs font-black text-rose-600"
-                      >
-                        <Trash2 className="size-3.5" />
-                        Xóa ảnh
-                      </button>
                     </div>
+
+                    {formData.galleryUrls?.length > 0 && (
+                      <div className="grid grid-cols-3 gap-2 mt-2">
+                        {formData.galleryUrls.map((url, idx) => (
+                          <div key={idx} className="relative aspect-video overflow-hidden rounded-xl border border-gray-100">
+                            <img src={url} alt={`Gallery ${idx}`} className="h-full w-full object-cover" />
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <img
-                    src="https://placehold.co/600x400/e2e8f0/64748b?text=Cover"
-                    alt="Xem trước ảnh nền"
+                    src="https://placehold.co/600x400/e2e8f0/64748b?text=Gallery"
+                    alt="Xem trước ảnh"
                     className="mt-4 h-44 w-full rounded-[1.5rem] object-cover ring-1 ring-gray-200"
                   />
                 )}
