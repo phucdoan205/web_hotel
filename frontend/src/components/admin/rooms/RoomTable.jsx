@@ -42,6 +42,7 @@ const text = {
   edit: "S\u1eeda",
   clean: "D\u1ecdn ph\u00f2ng",
   inventory: "V\u1eadt t\u01b0",
+  amenities: "Tiện ích",
   hide: "\u1ea8n ph\u00f2ng",
   restore: "Kh\u00f4i ph\u1ee5c",
   showing: "Hi\u1ec3n th\u1ecb",
@@ -68,6 +69,7 @@ export default function RoomTable({
   onDelete,
   onRestore,
   onOpenInventory,
+  onOpenAmenities,
   onClean,
 }) {
   const [menuRoomId, setMenuRoomId] = useState(null);
@@ -319,6 +321,16 @@ export default function RoomTable({
                                   {text.inventory}
                                 </button>
                               ) : null}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  closeMenu();
+                                  onOpenAmenities(room);
+                                }}
+                                className="flex w-full rounded-xl px-3 py-2 text-left text-sm font-bold text-sky-700 transition-all hover:bg-sky-50"
+                              >
+                                {text.amenities}
+                              </button>
                               {canDeleteRooms ? (
                                 room.status === "OutOfOrder" ? (
                                   <button

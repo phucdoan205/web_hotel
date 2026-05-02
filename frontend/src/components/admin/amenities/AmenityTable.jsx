@@ -15,7 +15,7 @@ export default function AmenityTable({ amenities, isLoading, onEdit, onDelete, o
       <table className="w-full text-left border-collapse">
         <thead>
           <tr className="border-b border-slate-100 bg-slate-50/50">
-            <th className="px-6 py-4 text-[13px] font-black uppercase tracking-wider text-slate-500">ID</th>
+            <th className="px-6 py-4 text-[13px] font-black uppercase tracking-wider text-slate-500">Icon</th>
             <th className="px-6 py-4 text-[13px] font-black uppercase tracking-wider text-slate-500">Tên tiện nghi</th>
             <th className="px-6 py-4 text-[13px] font-black uppercase tracking-wider text-slate-500">Trạng thái</th>
             <th className="px-6 py-4 text-right text-[13px] font-black uppercase tracking-wider text-slate-500">Hành động</th>
@@ -31,7 +31,40 @@ export default function AmenityTable({ amenities, isLoading, onEdit, onDelete, o
           ) : (
             amenities.map((item) => (
               <tr key={item.id} className="group transition-colors hover:bg-slate-50/50">
-                <td className="px-6 py-4 text-sm font-bold text-slate-400">#{item.id}</td>
+                <td className="px-6 py-4">
+                  <div className="flex size-10 items-center justify-center rounded-xl bg-slate-50 text-slate-500">
+                    {(() => {
+                      const url = item.iconUrl || "";
+                      if (!url) return <span className="text-[10px]">No Icon</span>;
+
+                      // Nếu là link từ trang web fontawesome, trích xuất tên icon
+                      if (url.includes("fontawesome.com/icons/")) {
+                        const iconName = url.split("/").pop().split("?")[0];
+                        return <i className={`fa-solid fa-${iconName} text-lg`} />;
+                      }
+
+                      // Nếu là link ảnh trực tiếp
+                      if (url.startsWith("http")) {
+                        return (
+                          <img
+                            src={url}
+                            alt=""
+                            className="size-6 object-contain"
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.src = "https://ui-avatars.com/api/?name=?&background=f1f5f9&color=94a3b8";
+                            }}
+                          />
+                        );
+                      }
+
+                      // Nếu là class fontawesome hoặc tên icon
+                      return (
+                        <i className={`${url.includes("fa-") ? url : `fa-solid fa-${url}`} text-lg`} />
+                      );
+                    })()}
+                  </div>
+                </td>
                 <td className="px-6 py-4 text-sm font-bold text-slate-700">{item.name}</td>
                 <td className="px-6 py-4">
                   <button

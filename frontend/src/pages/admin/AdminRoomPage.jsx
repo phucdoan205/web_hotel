@@ -8,6 +8,7 @@ import CleaningModal from "../../components/admin/rooms/CleaningModal";
 import DeleteRoomDialog from "../../components/admin/rooms/DeleteRoomDialog";
 import RoomDetailModal from "../../components/admin/rooms/RoomDetailModal";
 import RoomInventoryModal from "../../components/admin/rooms/RoomInventoryModal";
+import RoomAmenitiesModal from "../../components/admin/rooms/RoomAmenitiesModal";
 import RoomTypeManagement from "../../components/admin/roomtypes/RoomTypeManagement";
 import AmenityManagement from "../../components/admin/amenities/AmenityManagement";
 import { roomsApi } from "../../api/admin/roomsApi";
@@ -42,6 +43,7 @@ export default function AdminRoomPage() {
   const [openCleaning, setOpenCleaning] = useState(false);
   const [openDetail, setOpenDetail] = useState(false);
   const [openInventory, setOpenInventory] = useState(false);
+  const [openAmenities, setOpenAmenities] = useState(false);
   const canCreateRooms = hasPermission("CREATE_ROOMS");
   const canEditRooms = hasPermission("EDIT_ROOMS");
   const canDeleteRooms = hasPermission("DELETE_ROOMS");
@@ -194,6 +196,10 @@ export default function AdminRoomPage() {
             setSelectedRoom(room);
             setOpenInventory(true);
           }}
+          onOpenAmenities={(room) => {
+            setSelectedRoom(room);
+            setOpenAmenities(true);
+          }}
         />
       ) : tab === 1 ? (
         <RoomTypeManagement />
@@ -256,6 +262,12 @@ export default function AdminRoomPage() {
         roomId={selectedRoom?.id}
         roomNumber={selectedRoom?.roomNumber}
         onClose={() => setOpenInventory(false)}
+      />
+
+      <RoomAmenitiesModal
+        open={openAmenities}
+        room={selectedRoom}
+        onClose={() => setOpenAmenities(false)}
       />
     </div>
   );

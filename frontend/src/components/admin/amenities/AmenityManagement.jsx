@@ -46,9 +46,15 @@ export default function AmenityManagement() {
     },
   });
 
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
+
   const filteredAmenities = (amenities ?? []).filter((item) =>
     item.name.toLowerCase().includes(search.toLowerCase())
   );
+
+  const paginatedAmenities = filteredAmenities.slice((page - 1) * pageSize, page * pageSize);
+  const totalPages = Math.ceil(filteredAmenities.length / pageSize);
 
   return (
     <div className="space-y-4">
@@ -64,7 +70,10 @@ export default function AmenityManagement() {
           <div className="flex flex-col gap-2 sm:flex-row">
             <input
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
               placeholder="Tìm tiện nghi"
               className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition-all focus:border-orange-300 focus:bg-white"
             />
@@ -83,7 +92,7 @@ export default function AmenityManagement() {
       </div>
 
       <AmenityTable
-        amenities={filteredAmenities}
+        amenities={paginatedAmenities}
         isLoading={isLoading}
         onEdit={(item) => {
           setEditingAmenity(item);
@@ -96,6 +105,28 @@ export default function AmenityManagement() {
         }}
         onToggle={(item) => toggleMutation.mutate(item.id)}
       />
+
+      {totalPages > 1 && (
+        <div className="flex justify-center gap-2 mt-4">
+          <button
+            disabled={page === 1}
+            onClick={() => setPage((p) => p - 1)}
+            className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-600 transition-all hover:bg-slate-50 disabled:opacity-50"
+          >
+            Trước
+          </button>
+          <span className="flex items-center px-4 text-sm font-bold text-slate-600">
+            Trang {page} / {totalPages}
+          </span>
+          <button
+            disabled={page === totalPages}
+            onClick={() => setPage((p) => p + 1)}
+            className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-600 transition-all hover:bg-slate-50 disabled:opacity-50"
+          >
+            Sau
+          </button>
+        </div>
+      )}
 
       <AmenityForm
         open={openForm}

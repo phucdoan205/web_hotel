@@ -4,19 +4,25 @@ import { motion, AnimatePresence } from "framer-motion";
 
 export default function AmenityForm({ open, initialData, onClose, onSave }) {
   const [name, setName] = useState("");
+  const [iconUrl, setIconUrl] = useState("");
 
   useEffect(() => {
     if (initialData) {
       setName(initialData.name);
+      setIconUrl(initialData.iconUrl || "");
     } else {
       setName("");
+      setIconUrl("");
     }
   }, [initialData, open]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!name.trim()) return;
-    onSave({ name: name.trim() });
+    onSave({ 
+      name: name.trim(),
+      iconUrl: iconUrl.trim() || null
+    });
   };
 
   return (
@@ -60,6 +66,21 @@ export default function AmenityForm({ open, initialData, onClose, onSave }) {
                   placeholder="Ví dụ: WiFi miễn phí, Hồ bơi..."
                   className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition-all focus:border-orange-300 focus:bg-white"
                 />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-black uppercase tracking-wider text-slate-500">
+                  Icon URL / Class (FontAwesome)
+                </label>
+                <input
+                  value={iconUrl}
+                  onChange={(e) => setIconUrl(e.target.value)}
+                  placeholder="Ví dụ: wifi, pool, fa-wifi..."
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition-all focus:border-orange-300 focus:bg-white"
+                />
+                <p className="text-[10px] font-medium text-slate-400">
+                  Nhập URL ảnh hoặc tên icon để hiển thị.
+                </p>
               </div>
 
               <div className="flex gap-3">

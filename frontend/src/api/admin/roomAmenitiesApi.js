@@ -1,8 +1,10 @@
 import apiClient from "../client";
 
 export const roomAmenitiesApi = {
-  getAmenities: async () => {
-    const response = await apiClient.get("/Amenities");
+  getAmenities: async (includeInactive = true) => {
+    const response = await apiClient.get("/Amenities", {
+      params: { includeInactive },
+    });
     return response.data;
   },
   createAmenity: async (payload) => {
