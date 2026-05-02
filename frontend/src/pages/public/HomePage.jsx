@@ -186,7 +186,6 @@ const HomePage = () => {
                         </div>
                       </div>
                       <h3 className="text-lg font-bold text-slate-900 line-clamp-1 leading-tight">{rt.name}</h3>
-                      <p className="mt-1 text-xs font-medium text-slate-500">Hệ thống HPT Hotel</p>
                     </div>
                     
                     <div className="flex items-center gap-2">
@@ -324,7 +323,6 @@ const HomePage = () => {
                     </div>
                   </div>
                   <h3 className="text-base font-bold text-slate-900 line-clamp-1">{rt.name}</h3>
-                  <p className="mt-0.5 text-xs font-medium text-slate-500">Hệ thống HPT Hotel</p>
                   
                   <div className="mt-3 flex items-center gap-2">
                     <div className="flex h-8 w-8 items-center justify-center rounded bg-[#003b95] text-sm font-bold text-white">

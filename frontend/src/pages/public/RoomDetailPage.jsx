@@ -248,7 +248,7 @@ const RoomDetailPage = () => {
   const reviews = reviewsQuery.data || [];
 
   const avgRating = useMemo(() => {
-    if (reviews.length === 0) return roomType.rating || 9.6;
+    if (reviews.length === 0) return roomType.rating || 0;
     const sum = reviews.reduce((acc, r) => acc + r.rating, 0);
     return sum / reviews.length;
   }, [reviews, roomType.rating]);
@@ -904,7 +904,6 @@ const RoomDetailPage = () => {
                     </div>
                     
                     <h3 className="text-lg font-black text-slate-900 line-clamp-1 group-hover:text-blue-600 transition-colors">{rt.name}</h3>
-                    <p className="mt-1 text-xs font-bold text-slate-500">Hệ thống HPT Hotel</p>
                     
                     <div className="mt-4 flex items-center gap-3">
                       <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600 text-sm font-black text-white shadow-md shadow-blue-100">
@@ -993,11 +992,11 @@ const RoomDetailPage = () => {
               >
                 <div className="flex items-start gap-4 mb-10 pb-8 border-b border-slate-100">
                   <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg bg-blue-600 font-black text-sm text-white shadow-lg shadow-blue-100">
-                    {avgRating > 0 ? avgRating.toFixed(1).replace('.', ',') : "9,6"}
+                    {avgRating > 0 ? avgRating.toFixed(1).replace('.', ',') : "0,0"}
                   </div>
                   <div>
                     <h2 className="text-xl font-black text-slate-900 leading-tight">
-                      {avgRating >= 9 ? "Xuất sắc" : avgRating >= 8 ? "Rất tốt" : avgRating >= 7 ? "Tốt" : "Hài lòng"}
+                      {avgRating >= 4.5 ? "Xuất sắc" : avgRating >= 4 ? "Rất tốt" : avgRating >= 3 ? "Tốt" : avgRating > 0 ? "Hài lòng" : "Chưa có đánh giá"}
                     </h2>
                     <p className="text-xs font-bold text-slate-400 mt-1">{reviews.length.toLocaleString()} đánh giá</p>
                   </div>

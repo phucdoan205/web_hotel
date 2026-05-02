@@ -53,7 +53,7 @@ const buildQueryParams = (filters) => ({
   adults: filters.adults,
   children: filters.children,
   page: 1,
-  pageSize: 100,
+  pageSize: 20,
 });
 
 const groupRoomsByType = (rooms) => {
