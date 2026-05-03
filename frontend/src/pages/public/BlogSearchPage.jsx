@@ -97,7 +97,7 @@ const BlogSearchPage = () => {
           <nav className="text-sm font-medium text-slate-500 mb-2 flex gap-2">
             <span className="hover:text-blue-600 cursor-pointer transition-colors">Trang chủ</span> 
             <span>/</span> 
-            <span className="hover:text-blue-600 cursor-pointer transition-colors">Bài viết</span>
+            <span className="hover:text-blue-600 cursor-pointer transition-colors">Hoạt động</span>
             <span>/</span> 
             <span className="text-slate-800">Kết quả tìm kiếm</span>
           </nav>

@@ -51,7 +51,7 @@ const Footer = () => {
             { label: "Khách sạn", to: "/" },
             { label: "Tìm phòng", to: "/booking" },
             { label: "Ẩm thực", to: "/food" },
-            { label: "Địa điểm & Hoạt động", to: "/articles" },
+            { label: "Hoạt động", to: "/articles" },
           ]}
         />
         <FooterColumn

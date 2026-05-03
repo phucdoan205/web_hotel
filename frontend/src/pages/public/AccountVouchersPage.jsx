@@ -64,7 +64,7 @@ const AccountVouchersPage = () => {
                 onClick={() => setActiveTab("skip")}
                 className={`relative pb-4 text-sm font-black transition-all ${activeTab === "skip" ? "text-orange-600" : "text-slate-400 hover:text-slate-600"}`}
               >
-                Không áp dụng
+                Đặc biệt
                 {activeTab === "skip" && <div className="absolute bottom-0 left-0 h-1 w-full rounded-full bg-orange-600" />}
               </button>
             </div>
@@ -98,13 +98,7 @@ const AccountVouchersPage = () => {
                         <p className="text-xs font-medium opacity-90">
                           {v.minBookingValue ? `Đơn tối thiểu: ${v.minBookingValue.toLocaleString()} VND` : "Không cần đơn tối thiểu"}
                         </p>
-                        <p className="text-xs font-medium opacity-90">
-                          Phù hợp với mọi nền tảng
-                        </p>
                       </div>
-                      <button className="mt-3 flex items-center gap-1 text-[10px] font-black uppercase tracking-wider hover:underline">
-                        Hoạt động không áp dụng
-                      </button>
                     </div>
                     
                     {/* Dashed line effect */}
@@ -123,12 +117,14 @@ const AccountVouchersPage = () => {
                         <p className="mt-1 text-[10px] font-bold text-slate-400 line-clamp-1">{v.name}</p>
                       </div>
                       {isExpired && (
-                        <span className="text-[10px] font-black text-rose-500 uppercase tracking-tighter">Hết hạn</span>
+                        <span className="text-[10px] font-black text-rose-500 uppercase tracking-tighter">Đã hết hạn</span>
                       )}
                       {!isExpired && uv.isUsed && (
                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Đã sử dụng</span>
                       )}
-                      {!isExpired && !uv.isUsed && (
+                      {!isExpired && !uv.isUsed && v.validTo && 
+                        (new Date(v.validTo) - new Date()) <= 14 * 24 * 60 * 60 * 1000 && 
+                        (!v.validFrom || new Date(v.validFrom) <= new Date()) && (
                         <span className="text-[10px] font-black text-orange-500 uppercase tracking-tighter">Sắp hết hạn dùng</span>
                       )}
                     </div>
