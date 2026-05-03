@@ -42,6 +42,10 @@ const BookingPaymentPage = () => {
   const [copied, setCopied] = useState(false);
   const [showReviewOverlay, setShowReviewOverlay] = useState(false);
   const [rating, setRating] = useState(5);
+  const [amenitiesRating, setAmenitiesRating] = useState(5);
+  const [staffRating, setStaffRating] = useState(5);
+  const [cleanlinessRating, setCleanlinessRating] = useState(5);
+  const [locationRating, setLocationRating] = useState(5);
   const [comment, setComment] = useState("");
   const completedRef = useRef(false);
 
@@ -150,6 +154,10 @@ const BookingPaymentPage = () => {
       userReviewsApi.createReview({
         roomTypeId: selectedDetail?.roomTypeId || null,
         rating,
+        amenitiesRating,
+        staffRating,
+        cleanlinessRating,
+        locationRating,
         comment,
       }),
     onSuccess: () => {
@@ -522,20 +530,86 @@ const BookingPaymentPage = () => {
               Cho chúng tôi biết cảm nhận về {selectedDetail.roomTypeName} - Phòng {selectedDetail.roomNumber}.
             </p>
 
-            <div className="mt-6 flex items-center gap-2">
-              {[1, 2, 3, 4, 5].map((value) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => setRating(value)}
-                  className="rounded-2xl p-2 transition hover:bg-amber-50"
-                >
-                  <Star
-                    size={28}
-                    className={value <= rating ? "fill-amber-400 text-amber-400" : "text-slate-300"}
-                  />
-                </button>
-              ))}
+            <div className="mt-6 space-y-6">
+              <div className="space-y-3">
+                <p className="text-sm font-bold text-slate-700">Tiện nghi</p>
+                <div className="flex items-center gap-1">
+                  {[1, 2, 3, 4, 5].map((value) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => setAmenitiesRating(value)}
+                      className="p-1 transition hover:scale-110"
+                    >
+                      <Star
+                        size={24}
+                        fill={value <= amenitiesRating ? "#fbbf24" : "none"}
+                        className={value <= amenitiesRating ? "text-amber-400" : "text-slate-300"}
+                      />
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <p className="text-sm font-bold text-slate-700">Nhân viên</p>
+                <div className="flex items-center gap-1">
+                  {[1, 2, 3, 4, 5].map((value) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => setStaffRating(value)}
+                      className="p-1 transition hover:scale-110"
+                    >
+                      <Star
+                        size={24}
+                        fill={value <= staffRating ? "#fbbf24" : "none"}
+                        className={value <= staffRating ? "text-amber-400" : "text-slate-300"}
+                      />
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <p className="text-sm font-bold text-slate-700">Sạch sẽ</p>
+                <div className="flex items-center gap-1">
+                  {[1, 2, 3, 4, 5].map((value) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => setCleanlinessRating(value)}
+                      className="p-1 transition hover:scale-110"
+                    >
+                      <Star
+                        size={24}
+                        fill={value <= cleanlinessRating ? "#fbbf24" : "none"}
+                        className={value <= cleanlinessRating ? "text-amber-400" : "text-slate-300"}
+                      />
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <p className="text-sm font-bold text-slate-700">Vị trí</p>
+                <div className="flex items-center gap-1">
+                  {[1, 2, 3, 4, 5].map((value) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => setLocationRating(value)}
+                      className="p-1 transition hover:scale-110"
+                    >
+                      <Star
+                        size={24}
+                        fill={value <= locationRating ? "#fbbf24" : "none"}
+                        className={value <= locationRating ? "text-amber-400" : "text-slate-300"}
+                      />
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
 
             <textarea

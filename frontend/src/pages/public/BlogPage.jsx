@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Calendar, ArrowRight, MapPin } from "lucide-react";
+import { Calendar, ArrowRight, MapPin, Star } from "lucide-react";
 import { Link } from "react-router-dom";
 import { getArticles } from "../../api/articles/articleApi";
 import apiClient from "../../api/client";
@@ -82,11 +82,23 @@ const BlogPage = () => {
                         </p>
                         
                         <div className="mt-auto flex items-center justify-between border-t border-slate-100 pt-3">
-                           <div className="flex items-center gap-3 text-[11px] font-semibold text-slate-400">
-                             <span className="flex items-center gap-1">
-                               <Calendar className="size-3" />
-                               {new Date(item.publishedAt || item.createdAt).toLocaleDateString("vi-VN")}
-                             </span>
+                           <div className="flex flex-col gap-1">
+                             <div className="flex items-center gap-3 text-[11px] font-semibold text-slate-400">
+                               <span className="flex items-center gap-1">
+                                 <Calendar className="size-3" />
+                                 {new Date(item.publishedAt || item.createdAt).toLocaleDateString("vi-VN")}
+                               </span>
+                             </div>
+                             {item.averageRating > 0 && (
+                               <div className="flex items-center gap-1">
+                                 <div className="flex gap-0.5">
+                                    {[1,2,3,4,5].map(s => (
+                                      <Star key={s} size={10} fill={s <= Math.round(item.averageRating) ? "#fbbf24" : "none"} className={s <= Math.round(item.averageRating) ? "text-amber-400" : "text-slate-200"} />
+                                    ))}
+                                 </div>
+                                 <span className="text-[10px] font-black text-slate-700">{item.averageRating.toFixed(1)}</span>
+                               </div>
+                             )}
                            </div>
                           <span className="flex items-center gap-1 text-sm font-bold text-[#01539d]">
                             Chi tiết

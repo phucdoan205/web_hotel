@@ -578,6 +578,7 @@ namespace backend.Controllers
                 UserId = currentUser.Id,
                 ParentCommentId = request.ParentCommentId,
                 TaggedUserId = request.TaggedUserId,
+                Rating = request.Rating,
                 Content = request.Content.Trim(),
                 CreatedAt = DateTime.UtcNow
             };
@@ -690,6 +691,7 @@ namespace backend.Controllers
                 ApprovedById = article.ApprovedById,
                 ApprovedByName = article.ApprovedBy?.FullName,
                 CommentCount = allComments.Count,
+                AverageRating = allComments.Any(c => c.Rating > 0) ? allComments.Where(c => c.Rating > 0).Average(c => c.Rating.Value) : 0,
                 Tags = SplitTags(article.Tags),
                 Comments = BuildCommentTree(allComments)
             };
@@ -720,6 +722,7 @@ namespace backend.Controllers
                 IsApproved = article.IsApproved,
                 IsDeleted = article.IsDeleted,
                 CommentCount = article.Comments.Count,
+                AverageRating = article.Comments.Any(c => c.Rating > 0) ? article.Comments.Where(c => c.Rating > 0).Average(c => c.Rating.Value) : 0,
                 Tags = SplitTags(article.Tags)
             };
         }
@@ -737,6 +740,7 @@ namespace backend.Controllers
                     ParentCommentId = c.ParentCommentId,
                     TaggedUserId = c.TaggedUserId,
                     TaggedUserName = c.TaggedUser?.FullName,
+                    Rating = c.Rating,
                     Content = c.Content,
                     CreatedAt = AsUtc(c.CreatedAt)
                 })

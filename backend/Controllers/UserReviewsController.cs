@@ -61,6 +61,10 @@ namespace backend.Controllers
                 RoomImageUrl = review.RoomType?.RoomImages?.FirstOrDefault()?.ImageUrl,
                 StayDate = review.CreatedAt,
                 Rating = review.Rating ?? 0,
+                AmenitiesRating = review.AmenitiesRating,
+                StaffRating = review.StaffRating,
+                CleanlinessRating = review.CleanlinessRating,
+                LocationRating = review.LocationRating,
                 Comment = review.Comment ?? string.Empty,
                 CreatedAt = review.CreatedAt,
                 Status = review.Status
@@ -102,11 +106,27 @@ namespace backend.Controllers
                 return BadRequest(new { message = "Ban chi co the danh gia sau khi hoan tat luu tru va thanh toan." });
             }
 
+            // Calculate average rating if categories are provided
+            double? averageRating = (double?)dto.Rating;
+            if (dto.AmenitiesRating.HasValue || dto.StaffRating.HasValue || dto.CleanlinessRating.HasValue || dto.LocationRating.HasValue)
+            {
+                int sum = (dto.AmenitiesRating ?? 0) + (dto.StaffRating ?? 0) + (dto.CleanlinessRating ?? 0) + (dto.LocationRating ?? 0);
+                int count = (dto.AmenitiesRating.HasValue ? 1 : 0) + (dto.StaffRating.HasValue ? 1 : 0) + (dto.CleanlinessRating.HasValue ? 1 : 0) + (dto.LocationRating.HasValue ? 1 : 0);
+                if (count > 0)
+                {
+                    averageRating = (double)sum / count;
+                }
+            }
+
             var review = new Review
             {
                 UserId = userId.Value,
                 RoomTypeId = dto.RoomTypeId,
-                Rating = dto.Rating,
+                Rating = averageRating,
+                AmenitiesRating = dto.AmenitiesRating,
+                StaffRating = dto.StaffRating,
+                CleanlinessRating = dto.CleanlinessRating,
+                LocationRating = dto.LocationRating,
                 Comment = dto.Comment?.Trim(),
                 CreatedAt = DateTime.UtcNow,
                 Status = true
@@ -128,6 +148,10 @@ namespace backend.Controllers
                 RoomImageUrl = roomType?.RoomImages?.FirstOrDefault()?.ImageUrl,
                 StayDate = review.CreatedAt,
                 Rating = review.Rating ?? 0,
+                AmenitiesRating = review.AmenitiesRating,
+                StaffRating = review.StaffRating,
+                CleanlinessRating = review.CleanlinessRating,
+                LocationRating = review.LocationRating,
                 Comment = review.Comment ?? string.Empty,
                 CreatedAt = review.CreatedAt,
                 Status = review.Status
@@ -153,6 +177,10 @@ namespace backend.Controllers
                 UserName = review.User?.FullName ?? "Khách ẩn danh",
                 AvatarUrl = review.User?.AvatarUrl,
                 Rating = review.Rating ?? 0,
+                AmenitiesRating = review.AmenitiesRating,
+                StaffRating = review.StaffRating,
+                CleanlinessRating = review.CleanlinessRating,
+                LocationRating = review.LocationRating,
                 Comment = review.Comment ?? string.Empty,
                 CreatedAt = review.CreatedAt
             });

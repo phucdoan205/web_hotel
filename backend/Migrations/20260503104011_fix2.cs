@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace backend.Migrations
 {
     /// <inheritdoc />
-    public partial class updatenew : Migration
+    public partial class fix2 : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -541,7 +541,11 @@ namespace backend.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     UserId = table.Column<int>(type: "int", nullable: true),
                     RoomTypeId = table.Column<int>(type: "int", nullable: true),
-                    Rating = table.Column<int>(type: "int", nullable: true),
+                    Rating = table.Column<double>(type: "float", nullable: true),
+                    AmenitiesRating = table.Column<int>(type: "int", nullable: true),
+                    StaffRating = table.Column<int>(type: "int", nullable: true),
+                    CleanlinessRating = table.Column<int>(type: "int", nullable: true),
+                    LocationRating = table.Column<int>(type: "int", nullable: true),
                     Comment = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     Status = table.Column<bool>(type: "bit", nullable: false)
@@ -627,6 +631,7 @@ namespace backend.Migrations
                     ParentCommentId = table.Column<int>(type: "int", nullable: true),
                     TaggedUserId = table.Column<int>(type: "int", nullable: true),
                     Content = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Rating = table.Column<int>(type: "int", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "datetime", nullable: true)
                 },

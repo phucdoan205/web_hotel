@@ -191,6 +191,9 @@ namespace backend.Migrations
                     b.Property<int?>("ParentCommentId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("Rating")
+                        .HasColumnType("int");
+
                     b.Property<int?>("TaggedUserId")
                         .HasColumnType("int");
 
@@ -813,16 +816,28 @@ namespace backend.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<int?>("AmenitiesRating")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("CleanlinessRating")
+                        .HasColumnType("int");
+
                     b.Property<string>("Comment")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime?>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<int?>("Rating")
+                    b.Property<int?>("LocationRating")
                         .HasColumnType("int");
 
+                    b.Property<double?>("Rating")
+                        .HasColumnType("float");
+
                     b.Property<int?>("RoomTypeId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("StaffRating")
                         .HasColumnType("int");
 
                     b.Property<bool>("Status")

@@ -12,8 +12,8 @@ using backend.Data;
 namespace backend.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260502123303_updatenew")]
-    partial class updatenew
+    [Migration("20260503104011_fix2")]
+    partial class fix2
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -192,6 +192,9 @@ namespace backend.Migrations
                         .HasColumnType("datetime");
 
                     b.Property<int?>("ParentCommentId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("Rating")
                         .HasColumnType("int");
 
                     b.Property<int?>("TaggedUserId")
@@ -816,16 +819,28 @@ namespace backend.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<int?>("AmenitiesRating")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("CleanlinessRating")
+                        .HasColumnType("int");
+
                     b.Property<string>("Comment")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime?>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<int?>("Rating")
+                    b.Property<int?>("LocationRating")
                         .HasColumnType("int");
 
+                    b.Property<double?>("Rating")
+                        .HasColumnType("float");
+
                     b.Property<int?>("RoomTypeId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("StaffRating")
                         .HasColumnType("int");
 
                     b.Property<bool>("Status")

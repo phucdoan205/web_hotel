@@ -99,7 +99,7 @@ const AccountReviewsPage = () => {
                         {new Date(review.createdAt || review.stayDate).toLocaleDateString("vi-VN")}
                       </span>
                     </div>
-                    <div className="mt-2 flex gap-1">
+                    <div className="mt-2 flex gap-1 items-center">
                       {[1, 2, 3, 4, 5].map((star) => (
                         <Star 
                           key={star} 
@@ -108,7 +108,22 @@ const AccountReviewsPage = () => {
                           className={star <= review.rating ? "text-amber-400" : "text-slate-200"} 
                         />
                       ))}
-                      <span className="ml-2 text-sm font-bold text-slate-700">{review.rating}.0</span>
+                      <span className="ml-2 text-sm font-bold text-slate-700">{review.rating.toFixed(1)}</span>
+                    </div>
+
+                    {/* Multi-category breakdown */}
+                    <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {[
+                        { label: "Tiện nghi", val: review.amenitiesRating },
+                        { label: "Nhân viên", val: review.staffRating },
+                        { label: "Sạch sẽ", val: review.cleanlinessRating },
+                        { label: "Vị trí", val: review.locationRating },
+                      ].map((item, idx) => (
+                        <div key={idx} className="flex flex-col rounded-lg bg-slate-50 p-2 border border-slate-100">
+                          <span className="text-[9px] font-black uppercase tracking-wider text-slate-400">{item.label}</span>
+                          <span className="text-xs font-black text-slate-700">{item.val || "-"}</span>
+                        </div>
+                      ))}
                     </div>
                     <p className="mt-3 text-sm font-medium leading-relaxed text-slate-600">
                       "{review.content}"

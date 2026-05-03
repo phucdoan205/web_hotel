@@ -803,59 +803,94 @@ const RoomDetailPage = () => {
           </div>
 
           {/* REVIEWS SECTION */}
-          <div id="reviews" className="scroll-mt-40 space-y-6">
-            <h2 className="text-2xl font-bold text-slate-900">Đánh giá của khách</h2>
-            <div>
-              <div className="flex items-center gap-5 pb-6">
-                <div className="flex h-20 w-20 items-center justify-center rounded-xl bg-blue-600 text-3xl font-black text-white shadow-lg shadow-blue-200">
-                  {avgRating.toFixed(1)}
+          <div id="reviews" className="scroll-mt-40 space-y-10">
+            <h2 className="text-2xl font-black text-slate-900">Đánh giá của khách</h2>
+            
+            <div className="grid gap-10 lg:grid-cols-[1fr_2fr]">
+              <div className="space-y-6">
+                <div className="flex items-center gap-5">
+                  <div className="flex h-20 w-20 items-center justify-center gap-1 rounded-2xl bg-amber-400 text-3xl font-black text-white shadow-lg shadow-amber-200">
+                    {avgRating.toFixed(1)}
+                    <Star size={24} fill="currentColor" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-black text-slate-900">{avgRating >= 4.5 ? "Tuyệt hảo" : avgRating >= 4 ? "Rất tốt" : avgRating > 0 ? "Tốt" : "Chưa có đánh giá"}</p>
+                    <p className="mt-1 text-base font-bold text-slate-500">{reviews.length} đánh giá đã được xác thực</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-2xl font-bold text-slate-900">{avgRating >= 4.5 ? "Tuyệt hảo" : avgRating >= 4 ? "Rất tốt" : avgRating > 0 ? "Tốt" : "Chưa có đánh giá"}</p>
-                  <p className="mt-1 text-base font-medium text-slate-500">{reviews.length} đánh giá đã được xác thực</p>
+
+                <div className="space-y-4 rounded-3xl border border-slate-100 bg-slate-50/50 p-6">
+                  {[
+                    { label: "Tiện nghi", key: "amenitiesRating" },
+                    { label: "Nhân viên", key: "staffRating" },
+                    { label: "Sạch sẽ", key: "cleanlinessRating" },
+                    { label: "Vị trí", key: "locationRating" },
+                  ].map((cat) => {
+                    const catAvg = reviews.length > 0 
+                      ? reviews.reduce((acc, r) => acc + (r[cat.key] || 0), 0) / reviews.filter(r => r[cat.key]).length || 0
+                      : 0;
+                    
+                    return (
+                      <div key={cat.key} className="space-y-2">
+                        <div className="flex justify-between text-sm font-bold text-slate-700">
+                          <span>{cat.label}</span>
+                          <div className="flex items-center gap-1 text-amber-500 font-black">
+                            <span>{catAvg > 0 ? (Math.round(catAvg * 10) / 10).toFixed(1) : "-"}</span>
+                            {catAvg > 0 && <Star size={14} fill="currentColor" />}
+                          </div>
+                        </div>
+                        <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
+                          <div 
+                            className="h-full bg-amber-400 transition-all duration-1000" 
+                            style={{ width: `${(catAvg / 5) * 100}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
-              <div className="mt-6 grid gap-6 sm:grid-cols-2">
+              <div className="grid gap-6 sm:grid-cols-2">
                 {reviews.map((review) => (
-                  <div key={review.id} className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-center gap-3">
-                        {review.avatarUrl ? (
-                          <img 
-                            src={review.avatarUrl.startsWith('http') ? review.avatarUrl : `http://localhost:5000${review.avatarUrl}`} 
-                            alt={review.user} 
-                            className="h-12 w-12 rounded-full object-cover border border-slate-200" 
-                          />
-                        ) : (
-                          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-lg font-bold text-slate-600">
-                            {review.user.charAt(0)}
+                  <div key={review.id} className="group flex flex-col justify-between rounded-[2rem] border border-slate-100 bg-white p-6 shadow-sm transition-all hover:shadow-xl hover:border-blue-100">
+                    <div>
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          {review.avatarUrl ? (
+                            <img 
+                              src={review.avatarUrl.startsWith('http') ? review.avatarUrl : `http://localhost:5000${review.avatarUrl}`} 
+                              alt={review.user} 
+                              className="h-12 w-12 rounded-full object-cover border border-slate-200" 
+                            />
+                          ) : (
+                            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-lg font-bold text-slate-600">
+                              {review.user.charAt(0)}
+                            </div>
+                          )}
+                          <div>
+                            <p className="text-base font-black text-slate-900">{review.user}</p>
+                            <p className="text-xs font-bold text-slate-400">{review.date}</p>
                           </div>
-                        )}
-                        <div>
-                          <p className="text-base font-bold text-slate-900">{review.user}</p>
-                          <p className="text-xs font-medium text-slate-500">{review.date}</p>
+                        </div>
+                        <div className="flex h-10 w-10 items-center justify-center gap-0.5 rounded-xl bg-amber-50 text-base font-black text-amber-500">
+                          {review.rating.toFixed(1)}
+                          <Star size={12} fill="currentColor" />
                         </div>
                       </div>
-                      <div className="flex gap-1">
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <Star 
-                            key={star} 
-                            size={16} 
-                            fill={star <= review.rating ? "#fbbf24" : "none"} 
-                            className={star <= review.rating ? "text-amber-400" : "text-slate-200"} 
-                          />
-                        ))}
-                      </div>
+                      
+                      {review.comment && (
+                        <p className="text-sm font-medium leading-relaxed text-slate-600 italic">"{review.comment}"</p>
+                      )}
                     </div>
-                    {review.comment && (
-                      <p className="text-sm text-slate-700 leading-relaxed">"{review.comment}"</p>
-                    )}
                   </div>
                 ))}
                 {reviews.length === 0 && (
-                  <div className="col-span-full rounded-xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center text-sm font-medium text-slate-500">
-                    Chưa có đánh giá nào cho loại phòng này.
+                  <div className="col-span-full rounded-[2rem] border-2 border-dashed border-slate-100 bg-slate-50/50 p-12 text-center">
+                    <Star className="mx-auto mb-4 size-10 text-slate-200" />
+                    <p className="text-sm font-bold text-slate-500">
+                      Chưa có đánh giá nào cho loại phòng này.
+                    </p>
                   </div>
                 )}
               </div>

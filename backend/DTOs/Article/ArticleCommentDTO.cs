@@ -10,6 +10,7 @@ namespace backend.DTOs.Article
         public int? ParentCommentId { get; set; }
         public int? TaggedUserId { get; set; }
         public string? TaggedUserName { get; set; }
+        public int? Rating { get; set; }
         public string Content { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
         public List<ArticleCommentDTO> Replies { get; set; } = new();

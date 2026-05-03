@@ -28,6 +28,8 @@ const CommentComposer = ({
   isSubmitting,
   replyTarget,
   onCancelReply,
+  rating,
+  setRating,
 }) => (
   <form onSubmit={onSubmit} className="mt-6 space-y-4 rounded-2xl bg-slate-50 p-4 sm:p-6">
     {replyTarget ? (
@@ -37,7 +39,36 @@ const CommentComposer = ({
           Hủy
         </button>
       </div>
-    ) : null}
+    ) : (
+      <div className="space-y-2">
+        <p className="text-sm font-bold text-slate-700">Đánh giá bài viết (tùy chọn)</p>
+        <div className="flex items-center gap-1">
+          {[1, 2, 3, 4, 5].map((value) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setRating(value)}
+              className="p-1 transition hover:scale-110"
+            >
+              <Star
+                size={24}
+                fill={value <= rating ? "#fbbf24" : "none"}
+                className={value <= rating ? "text-amber-400" : "text-slate-300"}
+              />
+            </button>
+          ))}
+          {rating > 0 && (
+             <button 
+               type="button" 
+               onClick={() => setRating(0)}
+               className="ml-2 text-xs font-bold text-slate-400 hover:text-slate-600"
+             >
+               Xóa
+             </button>
+          )}
+        </div>
+      </div>
+    )}
 
     <div className="flex items-start gap-4">
       <img
@@ -85,6 +116,8 @@ const CommentItem = ({
   auth,
   canInteract,
   cancelReply,
+  rating,
+  setRating,
 }) => {
   const isReplyingHere = replyTarget?.id === comment.id;
 
@@ -103,6 +136,18 @@ const CommentItem = ({
             <span className="text-xs font-semibold text-slate-400">
               {new Date(comment.createdAt).toLocaleString("vi-VN")}
             </span>
+            {comment.rating > 0 && (
+              <div className="flex items-center gap-0.5 ml-2">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <Star 
+                    key={star} 
+                    size={12} 
+                    fill={star <= comment.rating ? "#fbbf24" : "none"} 
+                    className={star <= comment.rating ? "text-amber-400" : "text-slate-200"} 
+                  />
+                ))}
+              </div>
+            )}
           </div>
           <p className="mt-2 text-sm font-medium leading-relaxed text-slate-700">
             {comment.taggedUserName ? (
@@ -132,6 +177,8 @@ const CommentItem = ({
             isSubmitting={submitting}
             replyTarget={replyTarget}
             onCancelReply={cancelReply}
+            rating={rating}
+            setRating={setRating}
           />
         ) : null}
 
@@ -150,6 +197,8 @@ const CommentItem = ({
                 auth={auth}
                 canInteract={canInteract}
                 cancelReply={cancelReply}
+                rating={rating}
+                setRating={setRating}
               />
             ))}
           </div>
@@ -169,6 +218,7 @@ const PostDetailPage = () => {
   const [replyTarget, setReplyTarget] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [rating, setRating] = useState(0);
   const [error, setError] = useState("");
   const [expandedContent, setExpandedContent] = useState(false);
   const [canExpandContent, setCanExpandContent] = useState(false);
@@ -230,10 +280,12 @@ const PostDetailPage = () => {
         content: commentText.trim(),
         parentCommentId: replyTarget?.id ?? null,
         taggedUserId: replyTarget?.userId ?? null,
+        rating: replyTarget ? null : (rating > 0 ? rating : null),
       });
       setComments(nextComments);
       setCommentText("");
       setReplyTarget(null);
+      setRating(0);
     } catch (submitError) {
       setError(submitError?.response?.data || "Không gửi được bình luận.");
     } finally {
@@ -430,6 +482,8 @@ const PostDetailPage = () => {
               isSubmitting={submitting}
               replyTarget={null}
               onCancelReply={cancelReply}
+              rating={rating}
+              setRating={setRating}
             />
           )}
 
@@ -461,6 +515,8 @@ const PostDetailPage = () => {
                   auth={auth}
                   canInteract={canInteract}
                   cancelReply={cancelReply}
+                  rating={rating}
+                  setRating={setRating}
                 />
               ))
             )}

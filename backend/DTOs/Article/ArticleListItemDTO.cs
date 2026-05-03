@@ -23,6 +23,7 @@ namespace backend.DTOs.Article
         public bool IsApproved { get; set; }
         public bool IsDeleted { get; set; }
         public int CommentCount { get; set; }
+        public double AverageRating { get; set; }
         public List<string> Tags { get; set; } = new();
     }
 }
