@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, MessageCircle, Reply, Send, Calendar, User, ArrowLeft, MapPin, ChevronLeft, ChevronRight, X } from "lucide-react";
+import { ChevronDown, MessageCircle, Reply, Send, Calendar, User, ArrowLeft, MapPin, ChevronLeft, ChevronRight, X, Star } from "lucide-react";
 import { useParams, Link } from "react-router-dom";
 import { createArticleComment, getArticleDetail } from "../../api/articles/articleApi";
 import { getStoredAuth } from "../../utils/authStorage";
@@ -358,6 +358,16 @@ const PostDetailPage = () => {
             </span>
           ))}
           <div className="ml-auto flex items-center gap-6 text-sm font-semibold text-slate-500">
+             {article.averageRating > 0 && (
+               <div className="flex items-center gap-1.5 bg-amber-50 px-3 py-1 rounded-full text-amber-600 border border-amber-100">
+                 <div className="flex gap-0.5">
+                   {[1,2,3,4,5].map(s => (
+                     <Star key={s} size={14} fill={s <= Math.round(article.averageRating) ? "currentColor" : "none"} className={s <= Math.round(article.averageRating) ? "text-amber-500" : "text-amber-200"} />
+                   ))}
+                 </div>
+                 <span className="font-black text-slate-900">{article.averageRating.toFixed(1)}</span>
+               </div>
+             )}
              <span className="flex items-center gap-1.5">
                <Calendar className="size-4" />
                {new Date(article.publishedAt || article.createdAt).toLocaleDateString("vi-VN")}
@@ -458,6 +468,22 @@ const PostDetailPage = () => {
 
           {/* Comments Section */}
           <div className="mt-12 pt-8 border-t border-slate-100">
+            {article.averageRating > 0 && (
+              <div className="mb-10 flex flex-col items-center justify-center rounded-3xl bg-amber-50 p-8 text-center border border-amber-100">
+                <span className="text-sm font-bold text-amber-700 uppercase tracking-widest mb-2">Đánh giá chung của hoạt động</span>
+                <div className="flex items-center gap-3">
+                  <div className="text-5xl font-black text-slate-900">{article.averageRating.toFixed(1)}</div>
+                  <div className="flex flex-col items-start">
+                    <div className="flex gap-0.5">
+                      {[1,2,3,4,5].map(s => (
+                        <Star key={s} size={20} fill={s <= Math.round(article.averageRating) ? "#fbbf24" : "none"} className={s <= Math.round(article.averageRating) ? "text-amber-400" : "text-amber-200"} />
+                      ))}
+                    </div>
+                    <span className="text-sm font-bold text-slate-500 mt-1">Dựa trên {comments.filter(c => c.rating > 0).length} lượt đánh giá</span>
+                  </div>
+                </div>
+              </div>
+            )}
             <div className="flex items-center justify-between pb-5">
               <h2 className="text-2xl font-black text-slate-900">Bình luận ({comments.length})</h2>
               {!canInteract && (

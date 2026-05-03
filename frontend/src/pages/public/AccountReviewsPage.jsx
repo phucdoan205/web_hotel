@@ -111,26 +111,11 @@ const AccountReviewsPage = () => {
                       <span className="ml-2 text-sm font-bold text-slate-700">{review.rating.toFixed(1)}</span>
                     </div>
 
-                    {/* Multi-category breakdown */}
-                    <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
-                      {[
-                        { label: "Tiện nghi", val: review.amenitiesRating },
-                        { label: "Nhân viên", val: review.staffRating },
-                        { label: "Sạch sẽ", val: review.cleanlinessRating },
-                        { label: "Vị trí", val: review.locationRating },
-                      ].map((item, idx) => (
-                        <div key={idx} className="flex flex-col rounded-lg bg-slate-50 p-2 border border-slate-100">
-                          <span className="text-[9px] font-black uppercase tracking-wider text-slate-400">{item.label}</span>
-                          <span className="text-xs font-black text-slate-700">{item.val || "-"}</span>
-                        </div>
-                      ))}
-                    </div>
+
                     <p className="mt-3 text-sm font-medium leading-relaxed text-slate-600">
                       "{review.content}"
                     </p>
-                    <div className="mt-3 text-xs font-semibold text-slate-400">
-                      Tình trạng: <span className={review.isVerified ? "text-emerald-600" : "text-[#0194f3]"}>{review.isVerified ? "Đã duyệt" : "Đang chờ duyệt"}</span>
-                    </div>
+
                   </div>
                 </div>
               ))}
