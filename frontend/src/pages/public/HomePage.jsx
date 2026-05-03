@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect } from "react";
 import { ArrowRight, BadgePercent, BedDouble, Building2, ChevronLeft, ChevronRight, Heart, Home, Landmark, Palmtree, Search, Star } from "lucide-react";
 import { isFavoriteRoomType, toggleFavoriteRoomType } from "../../utils/userFavorites";
+import { getStoredAuth } from "../../utils/authStorage";
 import Hero from "../../components/home/Hero";
 import FeaturedHotels from "../../components/home/FeaturedHotels";
 import Destinations from "../../components/home/Destinations";
@@ -9,6 +10,9 @@ import Testimonials from "../../components/home/Testimonials";
 import { useQuery } from "@tanstack/react-query";
 import { roomTypesApi } from "../../api/admin/roomTypesApi";
 import { getPublicAttractions } from "../../api/admin/attractionsApi";
+import { getPublicVouchers, saveVoucher } from "../../api/user/userVouchersApi";
+import VoucherViewModal from "../../components/shared/VoucherViewModal";
+import toast from "react-hot-toast";
 
 const HomePage = () => {
   const carouselRef = useRef(null);
@@ -105,6 +109,40 @@ const HomePage = () => {
     "Dalat Heritage",
     "Nha Trang Bay",
   ];
+
+  const { data: vouchersData } = useQuery({
+    queryKey: ["home-public-vouchers"],
+    queryFn: () => getPublicVouchers(),
+  });
+
+  const { data: myVouchersData, refetch: refetchMyVouchers } = useQuery({
+    queryKey: ["home-my-vouchers"],
+    queryFn: () => getMyVouchers(),
+    enabled: !!getStoredAuth()?.token, // Chỉ fetch nếu đã đăng nhập
+  });
+
+  const [savingVoucherId, setSavingVoucherId] = useState(null);
+  const [selectedVoucher, setSelectedVoucher] = useState(null);
+
+  const handleSaveVoucher = async (e, voucherId) => {
+    e.stopPropagation();
+    if (isVoucherSaved(voucherId)) return;
+    
+    setSavingVoucherId(voucherId);
+    try {
+      await saveVoucher(voucherId);
+      toast.success("Đã lưu voucher vào ví của bạn!");
+      refetchMyVouchers(); // Cập nhật lại danh sách đã lưu
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Không thể lưu voucher. Vui lòng đăng nhập.");
+    } finally {
+      setSavingVoucherId(null);
+    }
+  };
+
+  const isVoucherSaved = (voucherId) => {
+    return myVouchersData?.data?.some(uv => uv.voucherId === voucherId);
+  };
   return (
     <div className="bg-[#f8fafc]">
       <Hero />
@@ -212,48 +250,81 @@ const HomePage = () => {
         </section>
       )}
 
-      {/* Section: Offers & Promo */}
+      {/* Section: Offers & Promo - Redesigned to 'Ưu đãi cho bạn' */}
       <section className="mx-auto max-w-7xl px-5 py-12 lg:px-8">
-        <div className="grid gap-6 lg:grid-cols-[1fr_400px]">
-          <div className="group relative overflow-hidden rounded-3xl border border-slate-200 bg-white p-8 shadow-sm transition-all hover:shadow-md">
-            <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-              <div className="flex items-start gap-5">
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-amber-50 text-amber-600">
-                  <BadgePercent size={32} />
-                </div>
-                <div>
-                  <h2 className="text-2xl font-black tracking-tight text-slate-900">
-                    Đặc quyền nghỉ dưỡng
-                  </h2>
-                  <p className="mt-2 max-w-md font-medium text-slate-500 leading-relaxed">
-                    Khám phá những ưu đãi giới hạn dành riêng cho thành viên khi đặt phòng trực tiếp tại hệ thống HPT.
+        <div className="mb-8 flex items-center justify-between">
+          <h2 className="text-2xl font-black tracking-tight text-slate-900 uppercase">Ưu đãi cho bạn</h2>
+          <button 
+            onClick={() => window.location.href = '/account/vouchers'}
+            className="text-sm font-bold text-[#1F649C] hover:underline"
+          >
+            Xem tất cả ưu đãi
+          </button>
+        </div>
+
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {vouchersData?.data?.slice(0, 3).map((voucher) => {
+            const isExpired = voucher.validTo && new Date(voucher.validTo) < new Date();
+            
+            return (
+              <div 
+                key={voucher.id}
+                onClick={() => !isExpired && setSelectedVoucher(voucher)}
+                className={`group relative flex overflow-hidden rounded-2xl border border-dashed bg-white shadow-sm transition-all ${isExpired ? 'border-slate-200 cursor-not-allowed opacity-75 grayscale' : 'border-orange-200 cursor-pointer hover:shadow-md'}`}
+              >
+                <div className="flex flex-1 flex-col p-6">
+                  <h3 className={`text-base font-black line-clamp-2 min-h-[48px] ${isExpired ? 'text-slate-400' : 'text-slate-900'}`}>
+                    {voucher.name}
+                  </h3>
+                  <p className="mt-3 text-xs font-bold text-slate-400">
+                    Mã ưu đãi: <span className={isExpired ? 'text-slate-400' : 'text-slate-600'}>{voucher.code}</span>
                   </p>
                 </div>
+                
+                <div className={`relative flex w-40 flex-col items-center justify-center border-l border-dashed p-6 text-white ${isExpired ? 'border-slate-100 bg-slate-400' : 'border-orange-100 bg-orange-500'}`}>
+                  {/* Ticket notches */}
+                  <div className={`absolute -left-2 -top-2 size-4 rounded-full ${isExpired ? 'bg-slate-50' : 'bg-[#f8fafc]'}`} />
+                  <div className={`absolute -left-2 -bottom-2 size-4 rounded-full ${isExpired ? 'bg-slate-50' : 'bg-[#f8fafc]'}`} />
+                  
+                  <div className="text-center">
+                    <p className="text-lg font-black uppercase tracking-tight">
+                      Giảm {voucher.discountType === "PERCENT" ? `${voucher.discountValue}%` : `${voucher.discountValue.toLocaleString()} VND`}
+                    </p>
+                    <p className="mt-1.5 text-[10px] font-bold leading-tight opacity-95">
+                      {voucher.minBookingValue ? `Đơn tối thiểu: ${voucher.minBookingValue.toLocaleString()} VND` : "Không cần đơn tối thiểu"}
+                    </p>
+                  </div>
+                  
+                  {!isExpired ? (
+                    <button 
+                      onClick={(e) => handleSaveVoucher(e, voucher.id)}
+                      disabled={isVoucherSaved(voucher.id) || savingVoucherId === voucher.id}
+                      className={`mt-4 w-full rounded-full py-2 text-xs font-black shadow-sm transition active:scale-95 ${
+                        isVoucherSaved(voucher.id) 
+                          ? 'bg-orange-100/20 text-white cursor-default' 
+                          : 'bg-white text-orange-600 hover:bg-orange-50'
+                      }`}
+                    >
+                      {savingVoucherId === voucher.id ? "Đang lưu..." : isVoucherSaved(voucher.id) ? "Đã lưu" : "Lưu mã"}
+                    </button>
+                  ) : (
+                    <div className="mt-4 w-full rounded-full bg-slate-100/20 py-2 text-center text-xs font-black text-white/50">
+                      Hết hạn
+                    </div>
+                  )}
+                </div>
               </div>
-              <button className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#1F649C] px-6 text-sm font-bold text-white transition hover:bg-[#164e7a] hover:shadow-lg active:scale-95">
-                Xem ưu đãi ngay
-                <ArrowRight size={18} />
-              </button>
-            </div>
-            <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-amber-100/30 blur-3xl" />
-          </div>
-
-          <div className="flex flex-col justify-center rounded-3xl bg-gradient-to-br from-[#0f172a] to-[#1e293b] p-8 text-white shadow-xl">
-            <div className="mb-4 inline-flex w-fit rounded-full bg-white/10 px-3 py-1 text-xs font-bold uppercase tracking-wider text-amber-400">
-              Dành cho bạn
-            </div>
-            <h3 className="text-2xl font-black leading-tight">
-              Nâng tầm trải nghiệm <br /> với HPT Rewards
-            </h3>
-            <p className="mt-4 text-sm font-medium text-slate-400 leading-relaxed">
-              Đăng nhập để nhận mức giá ưu đãi và tích lũy điểm thưởng cho mỗi kỳ nghỉ của bạn.
-            </p>
-            <button className="mt-6 w-full rounded-2xl bg-white py-3 text-sm font-bold text-slate-900 transition hover:bg-slate-100">
-              Đăng nhập ngay
-            </button>
-          </div>
+            );
+          })}
         </div>
       </section>
+
+      {selectedVoucher && (
+        <VoucherViewModal 
+          voucher={selectedVoucher} 
+          onClose={() => setSelectedVoucher(null)} 
+        />
+      )}
 
       {/* Section: Property Types */}
       <section className="mx-auto max-w-7xl px-5 pb-16 lg:px-8">

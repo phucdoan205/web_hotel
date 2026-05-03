@@ -1168,6 +1168,38 @@ namespace backend.Migrations
                     b.ToTable("Users");
                 });
 
+            modelBuilder.Entity("backend.Models.UserVoucher", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("IsUsed")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("SavedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("UsedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("VoucherId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("VoucherId");
+
+                    b.ToTable("UserVouchers");
+                });
+
             modelBuilder.Entity("backend.Models.Voucher", b =>
                 {
                     b.Property<int>("Id")
@@ -1555,6 +1587,25 @@ namespace backend.Migrations
                     b.Navigation("Role");
                 });
 
+            modelBuilder.Entity("backend.Models.UserVoucher", b =>
+                {
+                    b.HasOne("backend.Models.User", "User")
+                        .WithMany("UserVouchers")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("backend.Models.Voucher", "Voucher")
+                        .WithMany("UserVouchers")
+                        .HasForeignKey("VoucherId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+
+                    b.Navigation("Voucher");
+                });
+
             modelBuilder.Entity("backend.Models.Amenity", b =>
                 {
                     b.Navigation("AmenityDetails");
@@ -1685,11 +1736,15 @@ namespace backend.Migrations
                     b.Navigation("Notifications");
 
                     b.Navigation("Reviews");
+
+                    b.Navigation("UserVouchers");
                 });
 
             modelBuilder.Entity("backend.Models.Voucher", b =>
                 {
                     b.Navigation("Bookings");
+
+                    b.Navigation("UserVouchers");
                 });
 #pragma warning restore 612, 618
         }

@@ -21,6 +21,7 @@ namespace backend.Models
         public bool IsDeleted { get; set; }
         public DateTime? DeletedAt { get; set; }
         public ICollection<Booking> Bookings { get; set; } = new List<Booking>();
+        public ICollection<UserVoucher> UserVouchers { get; set; } = new List<UserVoucher>();
     }
 }
 

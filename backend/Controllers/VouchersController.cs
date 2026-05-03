@@ -163,6 +163,32 @@ namespace backend.Controllers
 </div>";
         }
 
+        [HttpGet("public")]
+        public async Task<ActionResult<IEnumerable<VoucherDTO>>> GetPublicVouchers()
+        {
+            var now = DateTime.UtcNow;
+            var list = await _context.Vouchers
+                .Where(v => v.IsActive && !v.IsPrivate && (v.ValidTo == null || v.ValidTo >= now))
+                .OrderByDescending(v => v.Id)
+                .Take(6) // Lấy nhiều hơn chút để backup nếu cần, nhưng user yêu cầu 3
+                .Select(v => new VoucherDTO
+                {
+                    Id = v.Id,
+                    Code = v.Code,
+                    Name = v.Name,
+                    DiscountType = v.DiscountType,
+                    DiscountValue = v.DiscountValue,
+                    MinBookingValue = v.MinBookingValue,
+                    ValidFrom = v.ValidFrom,
+                    ValidTo = v.ValidTo,
+                    Description = v.Description
+                })
+                .AsNoTracking()
+                .ToListAsync();
+
+            return Ok(list);
+        }
+
         [HttpGet]
         [Permission("VIEW_VOUCHERS")]
         public async Task<IActionResult> GetAll([FromQuery] bool includeDeleted = false)

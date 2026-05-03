@@ -50,6 +50,7 @@ namespace backend.Data
         public DbSet<ServiceCategory> ServiceCategories { get; set; }
         public DbSet<Service> Services { get; set; }
         public DbSet<Voucher> Vouchers { get; set; }
+        public DbSet<UserVoucher> UserVouchers { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -345,6 +346,19 @@ namespace backend.Data
                 entity.Property(l => l.LogData)
                       .HasColumnType("nvarchar(max)");
                 entity.HasIndex(l => l.LogDate);
+            });
+
+            modelBuilder.Entity<UserVoucher>(entity =>
+            {
+                entity.HasKey(uv => uv.Id);
+                entity.HasOne(uv => uv.User)
+                    .WithMany(u => u.UserVouchers)
+                    .HasForeignKey(uv => uv.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(uv => uv.Voucher)
+                    .WithMany(v => v.UserVouchers)
+                    .HasForeignKey(uv => uv.VoucherId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
             // Soft-delete

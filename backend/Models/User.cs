@@ -25,5 +25,6 @@ namespace backend.Models
         public ICollection<Review> Reviews { get; set; } = new List<Review>();
         public ICollection<AuditLog> AuditLogs { get; set; } = new List<AuditLog>();
         public ICollection<Notification> Notifications { get; set; } = new List<Notification>();
+        public ICollection<UserVoucher> UserVouchers { get; set; } = new List<UserVoucher>();
     }
 }
