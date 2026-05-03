@@ -347,7 +347,6 @@ namespace backend.Controllers
             {
                 var normalizedSearch = search.Trim().ToLower();
                 query = query.Where(item =>
-                    item.BookingCode.ToLower().Contains(normalizedSearch) ||
                     item.BookingDetails.Any(detail =>
                         (detail.RoomType != null && detail.RoomType.Name.ToLower().Contains(normalizedSearch)) ||
                         (detail.Room != null && detail.Room.RoomNumber.ToLower().Contains(normalizedSearch))));

@@ -279,9 +279,7 @@ const BookingPaymentPage = () => {
       <div className="grid gap-6 lg:grid-cols-[360px_minmax(0,1fr)]">
         <div className="rounded-[2rem] bg-white p-6 shadow-sm ring-1 ring-slate-200">
           <div className="rounded-[1.5rem] bg-slate-50 p-4 text-sm">
-            <p className="text-slate-500">Booking</p>
-            <p className="mt-1 text-lg font-black text-slate-900">{booking.bookingCode}</p>
-            <p className="mt-4 text-slate-500">Phòng</p>
+            <p className="text-slate-500">Phòng</p>
             <p className="mt-1 font-bold text-slate-900">
               {selectedDetail.roomTypeName} - Phòng {selectedDetail.roomNumber}
             </p>

@@ -152,7 +152,7 @@ const BookingHistoryPage = () => {
             <input
               value={search}
               onChange={handleSearchChange}
-              placeholder="Tìm theo mã booking, loại phòng, số phòng..."
+              placeholder="Tìm theo loại phòng, số phòng..."
               className="w-full bg-transparent text-sm font-medium text-slate-700 outline-none placeholder:text-slate-400"
             />
           </label>
@@ -210,7 +210,6 @@ const BookingHistoryPage = () => {
                     <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
                       <div className="space-y-3">
                         <div className="flex flex-wrap items-center gap-3">
-                          <p className="text-lg font-black text-slate-900">{booking.bookingCode}</p>
                           <span
                             className={`rounded-full px-3 py-1 text-xs font-black ${getUserBookingStatusClassName(status)}`}
                           >
@@ -322,7 +321,7 @@ const BookingHistoryPage = () => {
           <div className="w-full max-w-md rounded-[2rem] bg-white p-6 shadow-2xl">
             <h2 className="text-2xl font-black text-slate-900">Xác nhận hủy booking</h2>
             <p className="mt-3 text-sm text-slate-600">
-              Bạn có muốn hủy booking <span className="font-bold">{cancelTarget.bookingCode}</span> không?
+              Bạn có muốn hủy booking này không?
             </p>
             <div className="mt-6 flex justify-end gap-3">
               <button

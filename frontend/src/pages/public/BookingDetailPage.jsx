@@ -127,20 +127,20 @@ const BookingDetailPage = () => {
             <ArrowLeft size={16} />
             Quay lại lịch sử
           </button>
-          <h1 className="mt-4 text-3xl font-black text-slate-900">{booking.bookingCode}</h1>
-          <div className="mt-2 flex flex-wrap items-center gap-3">
-            <span
-              className={`rounded-full px-3 py-1 text-xs font-black ${getUserBookingStatusClassName(bookingStatus)}`}
-            >
-              {getUserBookingStatusLabel(bookingStatus)}
-            </span>
-            <p className="text-sm font-medium text-slate-500">
-              Tổng tiền: <span className="font-bold text-slate-900">{formatCurrency(totalAmount)}</span>
-            </p>
-          </div>
         </div>
 
         <div className="flex flex-wrap gap-3">
+          {canCheckOut ? (
+            <button
+              type="button"
+              onClick={() => setShowCheckoutConfirm(true)}
+              disabled={checkOutMutation.isPending}
+              className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300"
+            >
+              <LogOut size={16} />
+              {checkOutMutation.isPending ? "Đang trả phòng..." : "Trả phòng"}
+            </button>
+          ) : null}
           {canUserPayBooking(booking) ? (
             <button
               type="button"
@@ -165,10 +165,10 @@ const BookingDetailPage = () => {
         </div>
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="space-y-6">
         <section className="space-y-6">
           <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm">
-            <img src={firstImage} alt={booking.bookingCode} className="h-[340px] w-full object-cover" />
+            <img src={firstImage} alt="Phòng đã đặt" className="h-[340px] w-full object-cover" />
           </div>
 
           <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
@@ -286,78 +286,6 @@ const BookingDetailPage = () => {
           </div>
         </section>
 
-        <aside className="space-y-6">
-          <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="flex items-center gap-3">
-              <ReceiptText className="text-emerald-600" size={20} />
-              <h2 className="text-xl font-black text-slate-900">Tóm tắt booking</h2>
-            </div>
-
-            {canCheckOut ? (
-              <button
-                type="button"
-                onClick={() => setShowCheckoutConfirm(true)}
-                disabled={checkOutMutation.isPending}
-                className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300"
-              >
-                <LogOut size={16} />
-                {checkOutMutation.isPending ? "Đang trả phòng..." : "Trả phòng"}
-              </button>
-            ) : null}
-
-            <div className="mt-6 space-y-4 rounded-[1.5rem] bg-slate-50 p-5 text-sm">
-              <div>
-                <p className="text-slate-500">Khách đặt</p>
-                <p className="mt-1 font-bold text-slate-900">{booking.guestName || "Khách hàng"}</p>
-              </div>
-              <div>
-                <p className="text-slate-500">Số điện thoại</p>
-                <p className="mt-1 font-bold text-slate-900">{booking.guestPhone || "--"}</p>
-              </div>
-              <div>
-                <p className="text-slate-500">Email</p>
-                <p className="mt-1 font-bold text-slate-900">{booking.guestEmail || "--"}</p>
-              </div>
-              <div className="flex items-start gap-3">
-                <CalendarRange size={16} className="mt-0.5 text-blue-600" />
-                <div>
-                  <p className="font-bold text-slate-900">Lưu trú</p>
-                  <p className="mt-1 text-slate-500">
-                    {formatDateTime(booking.bookingDetails?.[0]?.checkInDate)} -{" "}
-                    {formatDateTime(booking.bookingDetails?.[0]?.checkOutDate)}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-6 space-y-3 rounded-[1.5rem] bg-blue-50 px-5 py-4">
-              <div className="flex items-center justify-between text-sm text-blue-700">
-                <span>Tiền phòng</span>
-                <span className="font-bold">{formatCurrency(roomTotalAmount)}</span>
-              </div>
-              <div className="flex items-center justify-between text-sm text-blue-700">
-                <span>Dịch vụ</span>
-                <span className="font-bold">{formatCurrency(serviceTotalAmount)}</span>
-              </div>
-              <div className="h-px bg-blue-100" />
-              <div>
-                <p className="text-sm font-semibold text-blue-700">Tổng thanh toán</p>
-                <p className="mt-2 text-3xl font-black text-blue-900">{formatCurrency(totalAmount)}</p>
-              </div>
-            </div>
-
-            {canUserPayBooking(booking) ? (
-              <button
-                type="button"
-                onClick={() => navigate(`/booking-history/${booking.id}/payment`)}
-                className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-blue-700"
-              >
-                <CreditCard size={16} />
-                Thanh toán ngay
-              </button>
-            ) : null}
-          </div>
-        </aside>
       </div>
 
       {showCancelConfirm ? (
@@ -408,7 +336,7 @@ const BookingDetailPage = () => {
           <div className="w-full max-w-md rounded-[2rem] bg-white p-6 shadow-2xl">
             <h2 className="text-2xl font-black text-slate-900">Xác nhận trả phòng</h2>
             <p className="mt-3 text-sm text-slate-600">
-              Bạn có muốn xác nhận trả phòng cho booking <span className="font-bold">{booking.bookingCode}</span> không?
+              Bạn có muốn xác nhận trả phòng không?
             </p>
             <div className="mt-6 flex justify-end gap-3">
               <button
