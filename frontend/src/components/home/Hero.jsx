@@ -37,15 +37,6 @@ const Hero = () => {
           />
         </div>
 
-        <div className="mt-6 flex flex-wrap gap-3 text-sm font-semibold text-white">
-          <span className="inline-flex items-center gap-2 rounded-full border border-white/45 bg-white/20 px-4 py-2 backdrop-blur hover:bg-white/30 cursor-pointer transition">
-            <BedDouble size={16} />
-            Khách sạn
-          </span>
-          <span className="rounded-full border border-white/45 bg-white/10 px-4 py-2 backdrop-blur hover:bg-white/20 cursor-pointer transition">Căn hộ</span>
-          <span className="rounded-full border border-white/45 bg-white/10 px-4 py-2 backdrop-blur hover:bg-white/20 cursor-pointer transition">Resort</span>
-          <span className="rounded-full border border-white/45 bg-white/10 px-4 py-2 backdrop-blur hover:bg-white/20 cursor-pointer transition">Villa</span>
-        </div>
       </div>
     </section>
   );

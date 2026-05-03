@@ -187,5 +187,41 @@ namespace backend.Controllers
 
             return Ok(result);
         }
+        [HttpGet("public")]
+        public async Task<ActionResult<IEnumerable<object>>> GetPublicReviews([FromQuery] string? sort = "newest", [FromQuery] int limit = 6)
+        {
+            IQueryable<Review> query = _context.Reviews
+                .AsNoTracking()
+                .Where(item => item.Status)
+                .Include(item => item.User)
+                .Include(item => item.RoomType);
+
+            if (sort == "oldest")
+            {
+                query = query.OrderBy(item => item.CreatedAt ?? DateTime.MaxValue).ThenBy(item => item.Id);
+            }
+            else
+            {
+                query = query.OrderByDescending(item => item.CreatedAt ?? DateTime.MinValue).ThenByDescending(item => item.Id);
+            }
+
+            var reviews = await query
+                .Take(limit)
+                .ToListAsync();
+
+            var result = reviews.Select(review => new 
+            {
+                Id = review.Id,
+                RoomTypeId = review.RoomTypeId,
+                RoomTypeName = review.RoomType?.Name,
+                UserName = review.User?.FullName ?? "Khách ẩn danh",
+                AvatarUrl = review.User?.AvatarUrl,
+                Rating = review.Rating ?? 0,
+                Comment = review.Comment ?? string.Empty,
+                CreatedAt = review.CreatedAt
+            });
+
+            return Ok(result);
+        }
     }
 }

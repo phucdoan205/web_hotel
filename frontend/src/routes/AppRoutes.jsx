@@ -13,7 +13,7 @@ import ForbiddenPage from "../pages/ForbiddenPage";
 import PostDetailPage from "../pages/public/PostDetailPage";
 import BlogSearchPage from "../pages/public/BlogSearchPage";
 import HotelListPage from "../pages/public/HotelListPage";
-import FoodPage from "../pages/public/FoodPage";
+import OffersPage from "../pages/public/OffersPage";
 
 import AdminSettingsPage from "../pages/admin/AdminSettingsPage";
 import AdminRolePermissionsPage from "../pages/admin/AdminRolePermissionsPage";
@@ -105,7 +105,7 @@ const AppRoutes = () => {
         <Route path="articles/search" element={<BlogSearchPage />} />
         <Route path="activities" element={<BlogPage />} />
         <Route path="hotels/search" element={<HotelListPage />} />
-        <Route path="food" element={<FoodPage />} />
+        <Route path="offers" element={<OffersPage />} />
         <Route path="support/:pageId" element={<SupportPage />} />
       </Route>
 

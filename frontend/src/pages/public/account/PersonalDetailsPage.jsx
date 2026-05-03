@@ -4,6 +4,7 @@ import {
   Camera,
   ArrowLeft,
 } from "lucide-react";
+import { toast } from "react-hot-toast";
 import {
   getMyProfile,
   updateMyProfile,
@@ -100,9 +101,9 @@ const PersonalDetailsPage = () => {
       }));
 
       setEditingField(null);
-      window.alert("Đã chỉnh sửa thành công.");
+      toast.success("Đã chỉnh sửa thành công.");
     } catch (err) {
-      window.alert("Lỗi khi cập nhật thông tin.");
+      toast.error("Lỗi khi cập nhật thông tin.");
     } finally {
       setIsSaving(false);
     }
@@ -115,9 +116,9 @@ const PersonalDetailsPage = () => {
       const response = await uploadMyAvatar(profile.id, file);
       setProfile({ ...profile, avatarUrl: response.url });
       updateStoredAuth((curr) => ({ ...curr, avatarUrl: response.url }));
-      window.alert("Đã thay đổi ảnh đại diện thành công.");
+      toast.success("Đã thay đổi ảnh đại diện thành công.");
     } catch (err) {
-      window.alert("Lỗi khi tải ảnh.");
+      toast.error("Lỗi khi tải ảnh.");
     }
   };
 
@@ -197,12 +198,6 @@ const PersonalDetailsPage = () => {
           )}
         </div>
 
-        {/* Display Name Row */}
-        <div className={`py-8 border-b flex justify-between items-center ${isDark ? 'border-slate-800' : 'border-slate-100'}`}>
-          <p className={`text-sm font-bold w-1/3 ${isDark ? 'text-slate-300' : 'text-slate-900'}`}>Tên hiển thị</p>
-          <p className="flex-1 text-sm text-slate-400 italic">Chọn tên hiển thị</p>
-          <button className="text-sm font-bold text-[#006ce4] hover:underline">Chỉnh sửa</button>
-        </div>
 
         {/* Email Row */}
         <div className={`py-8 border-b flex justify-between items-start ${isDark ? 'border-slate-800' : 'border-slate-100'}`}>

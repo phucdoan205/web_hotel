@@ -45,6 +45,19 @@ export const userReviewsApi = {
       date: item.createdAt ? new Date(item.createdAt).toLocaleDateString("vi-VN") : "Gần đây",
     }));
   },
+  async getPublicReviews(params) {
+    const response = await apiClient.get("/user-reviews/public", { params });
+    const items = Array.isArray(response.data) ? response.data : [];
+    return items.map(item => ({
+      id: item.id,
+      name: item.userName || "Khách ẩn danh",
+      trip: item.roomTypeName || "Kỳ nghỉ dưỡng",
+      content: item.comment || "Không có nhận xét.",
+      avatar: item.avatarUrl || "/default-avatar.png",
+      rating: item.rating || 5,
+      date: item.createdAt ? new Date(item.createdAt).toLocaleDateString("vi-VN") : "Gần đây",
+    }));
+  },
 };
 
 export default userReviewsApi;

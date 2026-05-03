@@ -1,4 +1,5 @@
 import React, { useRef, useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { ArrowRight, BadgePercent, BedDouble, Building2, ChevronLeft, ChevronRight, Heart, Home, Landmark, Palmtree, Search, Star } from "lucide-react";
 import { isFavoriteRoomType, toggleFavoriteRoomType } from "../../utils/userFavorites";
 import { getStoredAuth } from "../../utils/authStorage";
@@ -10,7 +11,8 @@ import Testimonials from "../../components/home/Testimonials";
 import { useQuery } from "@tanstack/react-query";
 import { roomTypesApi } from "../../api/admin/roomTypesApi";
 import { getPublicAttractions } from "../../api/admin/attractionsApi";
-import { getPublicVouchers, saveVoucher } from "../../api/user/userVouchersApi";
+import { getPublicVouchers, saveVoucher, getMyVouchers } from "../../api/user/userVouchersApi";
+import { getArticles } from "../../api/articles/articleApi";
 import VoucherViewModal from "../../components/shared/VoucherViewModal";
 import toast from "react-hot-toast";
 
@@ -143,6 +145,11 @@ const HomePage = () => {
   const isVoucherSaved = (voucherId) => {
     return myVouchersData?.data?.some(uv => uv.voucherId === voucherId);
   };
+
+  const { data: articlesData, isLoading: isLoadingArticles } = useQuery({
+    queryKey: ["home-recent-articles"],
+    queryFn: () => getArticles({ page: 1, pageSize: 3 }),
+  });
   return (
     <div className="bg-[#f8fafc]">
       <Hero />
@@ -254,12 +261,13 @@ const HomePage = () => {
       <section className="mx-auto max-w-7xl px-5 py-12 lg:px-8">
         <div className="mb-8 flex items-center justify-between">
           <h2 className="text-2xl font-black tracking-tight text-slate-900 uppercase">Ưu đãi cho bạn</h2>
-          <button 
-            onClick={() => window.location.href = '/account/vouchers'}
-            className="text-sm font-bold text-[#1F649C] hover:underline"
+          <Link 
+            to="/offers"
+            className="flex items-center gap-1.5 text-sm font-black text-orange-600 transition hover:gap-2 hover:text-orange-700"
           >
             Xem tất cả ưu đãi
-          </button>
+            <ArrowRight size={16} />
+          </Link>
         </div>
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -419,29 +427,74 @@ const HomePage = () => {
       </section>
 
 
-      {/* Section: Popular Keywords */}
+      <Destinations />
+
+      {/* Section: Recent Articles */}
       <section className="mx-auto max-w-7xl px-5 pb-20 lg:px-8">
-        <div className="rounded-3xl bg-white p-8 border border-slate-200 shadow-sm">
-          <div className="mb-6 flex items-center gap-3">
-            <div className="h-1 w-8 rounded-full bg-[#1F649C]" />
-            <h2 className="text-xl font-black text-slate-900 uppercase tracking-tight">Tìm kiếm phổ biến</h2>
+        <div className="mb-10 flex items-center justify-between">
+          <div>
+            <h2 className="text-3xl font-black tracking-tight text-slate-900 uppercase">Bài viết gần đây</h2>
+            <p className="mt-2 font-medium text-slate-500">Cập nhật những xu hướng và kinh nghiệm du lịch mới nhất.</p>
           </div>
-          <div className="flex flex-wrap gap-3">
-            {quickDeals.map((deal) => (
-              <button
-                key={deal}
-                className="group flex items-center gap-2 rounded-2xl border border-slate-100 bg-slate-50 px-5 py-3 text-sm font-bold text-slate-600 transition-all hover:border-[#1F649C]/30 hover:bg-[#1F649C]/5 hover:text-[#1F649C]"
-              >
-                <Search size={16} className="text-slate-400 group-hover:text-[#1F649C]" />
-                {deal}
-              </button>
+          <Link 
+            to="/articles"
+            className="hidden sm:flex items-center gap-2 rounded-full border border-slate-200 bg-white px-6 py-2.5 text-sm font-black text-slate-900 shadow-sm transition hover:bg-slate-50 active:scale-95"
+          >
+            Xem tất cả bài viết
+            <ArrowRight size={16} className="text-[#1F649C]" />
+          </Link>
+        </div>
+
+        {isLoadingArticles ? (
+          <div className="grid gap-8 md:grid-cols-3">
+             {[1, 2, 3].map(i => <div key={i} className="h-80 animate-pulse rounded-[2.5rem] bg-slate-100" />)}
+          </div>
+        ) : (
+          <div className="grid gap-8 md:grid-cols-3">
+            {articlesData?.slice(0, 3)?.map((article) => (
+              <article key={article.id} className="group flex flex-col overflow-hidden rounded-[2.5rem] border border-slate-100 bg-white transition-all hover:shadow-xl">
+                <div className="relative aspect-[16/10] overflow-hidden">
+                  <img 
+                    src={article.thumbnailUrl || "https://images.unsplash.com/photo-1506012733851-bb3f3e2c3d10?auto=format&fit=crop&w=800&q=80"} 
+                    alt={article.title} 
+                    className="h-full w-full object-cover transition duration-700 group-hover:scale-110"
+                  />
+                  <div className="absolute left-6 top-6">
+                    <span className="rounded-full bg-white/90 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-[#1F649C] backdrop-blur-sm">
+                      {article.categoryName || "Discovery"}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex flex-1 flex-col p-8">
+                  <h3 className="text-xl font-black text-slate-900 line-clamp-2 leading-snug group-hover:text-[#1F649C] transition-colors">
+                    {article.title}
+                  </h3>
+                  <p className="mt-4 text-sm font-medium leading-relaxed text-slate-500 line-clamp-3">
+                    {article.summary}
+                  </p>
+                  <Link 
+                    to={`/articles/${article.slug}`}
+                    className="mt-8 flex items-center gap-2 text-sm font-black text-[#1F649C]"
+                  >
+                    Đọc tiếp <ArrowRight size={16} />
+                  </Link>
+                </div>
+              </article>
             ))}
           </div>
+        )}
+        
+        <div className="mt-12 flex sm:hidden justify-center">
+            <Link 
+                to="/articles"
+                className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-8 py-3 text-sm font-black text-slate-900 shadow-sm transition hover:bg-slate-50 active:scale-95"
+            >
+                Xem tất cả bài viết
+                <ArrowRight size={16} className="text-[#1F649C]" />
+            </Link>
         </div>
       </section>
 
-      <Destinations />
-      <FeaturedHotels />
       <Testimonials />
     </div>
   );

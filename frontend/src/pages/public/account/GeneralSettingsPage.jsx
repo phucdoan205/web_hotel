@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-hot-toast";
 import {
   Globe,
   Moon,
@@ -21,7 +22,7 @@ const GeneralSettingsPage = () => {
   const handleSaveSettings = (field) => {
     if (field === 'language') {
       localStorage.setItem("app-lang", settings.language);
-      window.alert("Đã thay đổi ngôn ngữ thành công.");
+      toast.success("Đã thay đổi ngôn ngữ thành công.");
     } else {
       localStorage.setItem("app-theme", settings.theme);
       if (settings.theme === 'dark') {
@@ -29,7 +30,7 @@ const GeneralSettingsPage = () => {
       } else {
         document.documentElement.classList.remove('dark-theme');
       }
-      window.alert("Đã thay đổi giao diện thành công.");
+      toast.success("Đã thay đổi giao diện thành công.");
     }
     setEditingField(null);
   };

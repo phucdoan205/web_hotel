@@ -4,6 +4,7 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { getMyProfile, changeMyPassword } from "../../../api/admin/profileApi";
+import { toast } from "react-hot-toast";
 
 const SecuritySettingsPage = () => {
   const navigate = useNavigate();
@@ -37,7 +38,7 @@ const SecuritySettingsPage = () => {
   const handleSavePassword = async (e) => {
     e.preventDefault();
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      window.alert("Mật khẩu xác nhận không khớp.");
+      toast.error("Mật khẩu xác nhận không khớp.");
       return;
     }
     setIsSaving(true);
@@ -47,10 +48,10 @@ const SecuritySettingsPage = () => {
         newPassword: passwordData.newPassword,
       });
       setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" });
-      window.alert("Đã đổi mật khẩu thành công.");
+      toast.success("Đã đổi mật khẩu thành công.");
       setIsEditing(false);
     } catch {
-      window.alert("Lỗi khi đổi mật khẩu. Vui lòng kiểm tra lại mật khẩu hiện tại.");
+      toast.error("Lỗi khi đổi mật khẩu. Vui lòng kiểm tra lại mật khẩu hiện tại.");
     } finally {
       setIsSaving(false);
     }

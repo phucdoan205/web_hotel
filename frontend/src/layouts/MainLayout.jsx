@@ -7,7 +7,7 @@ import PageTransition from '../components/layout/PageTransition';
 
 const MainLayout = () => {
   const location = useLocation();
-  const isTransparentNav = location.pathname === "/" || location.pathname === "/hotels" || location.pathname === "/articles" || location.pathname === "/support/help-center";
+  const isTransparentNav = location.pathname === "/" || location.pathname === "/hotels" || location.pathname === "/offers" || location.pathname === "/articles" || location.pathname === "/support/help-center";
 
   return (
     <div className="main-layout-container flex flex-col min-h-screen">
