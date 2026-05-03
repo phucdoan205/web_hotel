@@ -4,7 +4,7 @@ import { ArrowDownWideNarrow, MapPin } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import HorizontalSearchFilter from "../../components/public/bookings/HorizontalSearchFilter";
 import BookingCard from "../../components/public/bookings/BookingCard";
-import { roomsApi } from "../../api/admin/roomsApi";
+import { roomsApi } from "../../api/public/roomsApi";
 
 const DEFAULT_CHECK_IN_HOUR = 14;
 const DEFAULT_CHECK_OUT_HOUR = 12;

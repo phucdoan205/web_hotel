@@ -116,6 +116,7 @@ namespace backend.Controllers
                 .Include(rt => rt.RoomImages)
                 .Include(rt => rt.Reviews)
                 .AsNoTracking()
+                .AsSplitQuery()
                 .AsQueryable();
 
 
@@ -146,6 +147,7 @@ namespace backend.Controllers
                 .Include(rt => rt.Rooms)
                 .Include(rt => rt.Reviews)
                 .AsNoTracking()
+                .AsSplitQuery()
                 .FirstOrDefaultAsync(rt => rt.Id == id);
 
 
@@ -207,6 +209,7 @@ namespace backend.Controllers
                 .Include(rt => rt.RoomImages)
                 .Include(rt => rt.Rooms)
                 .AsNoTracking()
+                .AsSplitQuery()
                 .FirstAsync(rt => rt.Id == roomType.Id);
 
             return CreatedAtAction(nameof(GetRoomType), new { id = roomType.Id }, MapRoomTypeDetail(created));
@@ -320,6 +323,7 @@ namespace backend.Controllers
                 .IgnoreQueryFilters()
                 .Include(rt => rt.Rooms)
                 .Include(rt => rt.RoomImages)
+                .AsSplitQuery()
                 .Where(rt => rt.IsDeleted);
 
             if (!string.IsNullOrWhiteSpace(search))

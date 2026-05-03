@@ -53,7 +53,8 @@ namespace backend.Controllers
             .Include(r => r.RoomAmenities)
             .ThenInclude(ra => ra.Amenity)
             .ThenInclude(a => a.AmenityDetails)
-            .AsNoTracking();
+            .AsNoTracking()
+            .AsSplitQuery();
 
 
             // Áp dụng filter
@@ -120,6 +121,7 @@ namespace backend.Controllers
                 .ThenInclude(ra => ra.Amenity)
                 .ThenInclude(a => a.AmenityDetails)
                 .AsNoTracking()
+                .AsSplitQuery()
                 .FirstOrDefaultAsync(r => r.Id == id);
 
             if (room == null) return NotFound();
@@ -273,6 +275,7 @@ namespace backend.Controllers
                 .Include(r => r.RoomAmenities)
                 .ThenInclude(ra => ra.Amenity)
                 .AsNoTracking()
+                .AsSplitQuery()
                 .ToListAsync();
 
             var dtos = _mapper.Map<List<RoomDetailDTO>>(rooms);
@@ -313,6 +316,7 @@ namespace backend.Controllers
                 .Include(r => r.RoomAmenities)
                     .ThenInclude(ra => ra.Amenity)
                     .ThenInclude(a => a.AmenityDetails)
+                .AsSplitQuery()
                 .Where(r => !r.IsDeleted && r.Status == RoomStatuses.Available);
 
 
@@ -424,6 +428,7 @@ namespace backend.Controllers
                 .ThenInclude(ri => ri.Equipment)
                 .Include(r => r.RoomAmenities)
                 .ThenInclude(ra => ra.Amenity)
+                .AsSplitQuery()
                 .FirstOrDefaultAsync(r => r.Id == id);
 
             var resultDto = _mapper.Map<RoomDetailDTO>(updatedRoom);
@@ -586,6 +591,7 @@ namespace backend.Controllers
                 .Include(r => r.RoomAmenities)
                 .ThenInclude(ra => ra.Amenity)
                 .AsNoTracking()
+                .AsSplitQuery()
                 .FirstAsync(r => r.Id == newRoom.Id);
 
             var result = _mapper.Map<RoomDetailDTO>(createdRoom);

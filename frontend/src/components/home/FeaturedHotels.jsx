@@ -2,7 +2,7 @@ import React from "react";
 import { Heart, MapPin, Star, ArrowRight } from "lucide-react";
 
 import { useQuery } from "@tanstack/react-query";
-import { roomTypesApi } from "../../api/admin/roomTypesApi";
+import { roomTypesApi } from "../../api/public/roomTypesApi";
 
 const formatCurrency = (value) =>
   new Intl.NumberFormat("vi-VN", {

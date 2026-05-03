@@ -9,7 +9,7 @@ import Destinations from "../../components/home/Destinations";
 import Testimonials from "../../components/home/Testimonials";
 
 import { useQuery } from "@tanstack/react-query";
-import { roomTypesApi } from "../../api/admin/roomTypesApi";
+import { roomTypesApi } from "../../api/public/roomTypesApi";
 import { getPublicAttractions } from "../../api/admin/attractionsApi";
 import { getPublicVouchers, saveVoucher, getMyVouchers } from "../../api/user/userVouchersApi";
 import { getArticles } from "../../api/articles/articleApi";

@@ -13,10 +13,7 @@ export const roomsApi = {
     const response = await apiClient.get("/Rooms", { params });
     return normalizePagedResponse(response.data);
   },
-  getAvailableRooms: async (params = {}) => {
-    const response = await apiClient.get("/Rooms/available", { params });
-    return normalizePagedResponse(response.data);
-  },
+
   getRoomById: async (id) => {
     const response = await apiClient.get(`/Rooms/${id}`);
     return response.data;

@@ -13,10 +13,7 @@ export const roomTypesApi = {
     const response = await apiClient.get("/RoomTypes", { params });
     return normalizePagedResponse(response.data);
   },
-  getPublicRoomTypes: async (params = {}) => {
-    const response = await apiClient.get("/RoomTypes/public", { params });
-    return normalizePagedResponse(response.data);
-  },
+
   getRoomTypeById: async (id) => {
     const response = await apiClient.get(`/RoomTypes/${id}`);
     return response.data;
