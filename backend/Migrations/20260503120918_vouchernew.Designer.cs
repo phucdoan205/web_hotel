@@ -12,8 +12,8 @@ using backend.Data;
 namespace backend.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260503104011_fix2")]
-    partial class fix2
+    [Migration("20260503120918_vouchernew")]
+    partial class vouchernew
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -1186,6 +1186,9 @@ namespace backend.Migrations
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("DiscountType")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -1204,6 +1207,10 @@ namespace backend.Migrations
 
                     b.Property<decimal?>("MinBookingValue")
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("UsageCount")
                         .HasColumnType("int");

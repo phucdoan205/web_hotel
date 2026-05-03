@@ -16,6 +16,8 @@ const normalizeVoucher = (voucher = {}) => ({
   validTo: voucher.validTo ?? voucher.ValidTo ?? null,
   usageLimit: voucher.usageLimit ?? voucher.UsageLimit ?? null,
   usageCount: voucher.usageCount ?? voucher.UsageCount ?? 0,
+  name: voucher.name ?? voucher.Name ?? "",
+  description: voucher.description ?? voucher.Description ?? "",
   isPrivate: voucher.isPrivate ?? voucher.IsPrivate ?? false,
   isActive: voucher.isActive ?? voucher.IsActive ?? false,
   isDeleted: voucher.isDeleted ?? voucher.IsDeleted ?? false,
@@ -83,6 +85,7 @@ export const useVoucherData = () => {
       const matchesSearch =
         !q ||
         String(voucher.code ?? "").toLowerCase().includes(q) ||
+        String(voucher.name ?? "").toLowerCase().includes(q) ||
         String(voucher.discountValue ?? "").toLowerCase().includes(q) ||
         String(voucher.discountType ?? "").toLowerCase().includes(q);
 

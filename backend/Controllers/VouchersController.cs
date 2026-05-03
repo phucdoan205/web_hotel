@@ -177,6 +177,7 @@ namespace backend.Controllers
                 {
                     Id = v.Id,
                     Code = v.Code,
+                    Name = v.Name,
                     DiscountType = v.DiscountType,
                     DiscountValue = v.DiscountValue,
                     MinBookingValue = v.MinBookingValue,
@@ -184,6 +185,7 @@ namespace backend.Controllers
                     ValidTo = v.ValidTo,
                     UsageLimit = v.UsageLimit,
                     UsageCount = v.UsageCount,
+                    Description = v.Description,
                     IsPrivate = v.IsPrivate,
                     IsActive = v.IsActive,
                     IsDeleted = v.IsDeleted,
@@ -210,6 +212,7 @@ namespace backend.Controllers
             {
                 Id = voucher.Id,
                 Code = voucher.Code,
+                Name = voucher.Name,
                 DiscountType = voucher.DiscountType,
                 DiscountValue = voucher.DiscountValue,
                 MinBookingValue = voucher.MinBookingValue,
@@ -217,6 +220,7 @@ namespace backend.Controllers
                 ValidTo = voucher.ValidTo,
                 UsageLimit = voucher.UsageLimit,
                 UsageCount = voucher.UsageCount,
+                Description = voucher.Description,
                 IsPrivate = voucher.IsPrivate,
                 IsActive = voucher.IsActive,
                 IsDeleted = voucher.IsDeleted,
@@ -239,6 +243,7 @@ namespace backend.Controllers
             var voucher = new Voucher
             {
                 Code = dto.Code.Trim(),
+                Name = dto.Name?.Trim() ?? "Chưa đặt tên",
                 DiscountType = dto.DiscountType?.Trim() ?? "PERCENT",
                 DiscountValue = dto.DiscountValue,
                 MinBookingValue = dto.MinBookingValue,
@@ -246,6 +251,7 @@ namespace backend.Controllers
                 ValidTo = dto.ValidTo,
                 UsageLimit = dto.UsageLimit,
                 UsageCount = dto.UsageCount,
+                Description = dto.Description,
                 IsPrivate = dto.IsPrivate,
                 IsActive = true,
                 IsDeleted = false,
@@ -272,12 +278,14 @@ namespace backend.Controllers
             }
 
             voucher.Code = dto.Code ?? voucher.Code;
+            voucher.Name = dto.Name ?? voucher.Name;
             voucher.DiscountType = dto.DiscountType ?? voucher.DiscountType;
             voucher.DiscountValue = dto.DiscountValue;
             voucher.MinBookingValue = dto.MinBookingValue;
             voucher.ValidFrom = dto.ValidFrom;
             voucher.ValidTo = dto.ValidTo;
             voucher.UsageLimit = dto.UsageLimit;
+            voucher.Description = dto.Description;
             voucher.IsPrivate = dto.IsPrivate;
             voucher.IsActive = dto.IsActive;
 

@@ -1,5 +1,5 @@
 import React from "react";
-import { Eye, Pencil, Send, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Eye, Pencil, Send, MoreVertical, ChevronLeft, ChevronRight } from "lucide-react";
 
 const VoucherTable = ({
   data = [],
@@ -15,19 +15,31 @@ const VoucherTable = ({
   canEnable = false,
   canDisable = false,
 }) => {
+  const [openDropdownId, setOpenDropdownId] = React.useState(null);
+  const dropdownRef = React.useRef(null);
+
+  React.useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setOpenDropdownId(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
   return (
-    <div className="overflow-hidden rounded-[2.5rem] border border-gray-50 bg-white shadow-sm">
-      <div className="overflow-x-auto">
+    <div className="rounded-[2.5rem] border border-gray-50 bg-white shadow-sm">
+      <div>
         <table className="min-w-[1120px] w-full table-fixed text-left">
           <thead className="border-b border-gray-50 bg-gray-50/50">
             <tr className="text-[10px] font-black uppercase tracking-[0.15em] text-gray-400">
-              <th className="w-[16%] px-8 py-5">Mã</th>
-              <th className="w-[16%] px-6 py-5">Ưu đãi</th>
-              <th className="w-[18%] px-6 py-5">Thời gian</th>
-              <th className="w-[12%] px-6 py-5 text-center">Số lần</th>
-              <th className="w-[12%] px-6 py-5">Loại</th>
-              <th className="w-[14%] px-6 py-5">Trạng thái</th>
-              <th className="w-[12%] px-8 py-5 text-right">Hành động</th>
+              <th className="w-[12%] px-8 py-5">Mã</th>
+              <th className="w-[20%] px-6 py-5">Tên</th>
+              <th className="w-[12%] px-6 py-5">Ưu đãi</th>
+              <th className="w-[15%] px-6 py-5">Thời gian</th>
+              <th className="w-[10%] px-6 py-5 text-center">Số lần</th>
+              <th className="w-[16%] px-6 py-5">Trạng thái</th>
+              <th className="w-[15%] px-10 py-5 text-right">Hành động</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
@@ -42,7 +54,11 @@ const VoucherTable = ({
                 >
                   <td className="px-8 py-5">
                     <p className="text-sm font-bold text-gray-900">{voucher.code}</p>
-                    <p className="mt-1 text-[10px] font-bold text-gray-400">Mã nội bộ: {voucher.id}</p>
+                  </td>
+                  <td className="px-6 py-5">
+                    <p className="text-sm font-bold text-gray-900 line-clamp-1" title={voucher.name}>
+                      {voucher.name || "Chưa đặt tên"}
+                    </p>
                   </td>
                   <td className="px-6 py-5">
                     <div className="text-sm font-bold text-gray-700">
@@ -61,17 +77,6 @@ const VoucherTable = ({
                   <td className="px-6 py-5 text-center">
                     <span className="inline-block rounded-full bg-gray-50 px-3 py-1 text-xs font-black text-gray-700">
                       {voucher.usageCount ?? 0}/{voucher.usageLimit ?? "-"}
-                    </span>
-                  </td>
-                  <td className="px-6 py-5">
-                    <span
-                      className={`inline-flex rounded-full px-3 py-1 text-xs font-black ${
-                        voucher.isPrivate
-                          ? "bg-amber-50 text-amber-600"
-                          : "bg-emerald-50 text-emerald-600"
-                      }`}
-                    >
-                      {voucher.isPrivate ? "Riêng" : "Công khai"}
                     </span>
                   </td>
                   <td className="px-6 py-5">
@@ -118,38 +123,51 @@ const VoucherTable = ({
                         </button>
                       ) : null}
 
-                      {canEdit ? (
+                      <div className="relative">
                         <button
                           type="button"
-                          onClick={() => onEdit && onEdit(voucher)}
-                          className="rounded-xl p-2 text-sky-600 transition-all hover:bg-sky-50"
-                          title="Sửa voucher"
+                          onClick={() => setOpenDropdownId(openDropdownId === voucher.id ? null : voucher.id)}
+                          className="rounded-xl p-2 text-gray-400 transition-all hover:bg-gray-50"
                         >
-                          <Pencil size={16} />
+                          <MoreVertical size={16} />
                         </button>
-                      ) : null}
 
-                      {canSend ? (
-                        <button
-                          type="button"
-                          onClick={() => onSend && onSend(voucher)}
-                          className="rounded-xl p-2 text-indigo-600 transition-all hover:bg-indigo-50"
-                          title="Gửi voucher"
-                        >
-                          <Send size={16} />
-                        </button>
-                      ) : null}
-
-                      {canDelete ? (
-                        <button
-                          type="button"
-                          onClick={() => onDelete && onDelete(voucher)}
-                          className="rounded-xl p-2 text-rose-600 transition-all hover:bg-rose-50"
-                          title="Xóa voucher"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      ) : null}
+                        {openDropdownId === voucher.id ? (
+                          <div
+                            ref={dropdownRef}
+                            className="absolute right-0 top-full z-[100] mt-2 w-44 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-[0_10px_40px_-10px_rgba(0,0,0,0.2)]"
+                          >
+                            <div className="py-1">
+                              {canEdit ? (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    onEdit && onEdit(voucher);
+                                    setOpenDropdownId(null);
+                                  }}
+                                  className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-bold text-sky-600 hover:bg-sky-50 transition-colors"
+                                >
+                                  <Pencil size={14} />
+                                  Chỉnh sửa
+                                </button>
+                              ) : null}
+                              {canSend ? (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    onSend && onSend(voucher);
+                                    setOpenDropdownId(null);
+                                  }}
+                                  className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-bold text-indigo-600 hover:bg-indigo-50 transition-colors"
+                                >
+                                  <Send size={14} />
+                                  Gửi voucher
+                                </button>
+                              ) : null}
+                            </div>
+                          </div>
+                        ) : null}
+                      </div>
                     </div>
                   </td>
                 </tr>

@@ -5,6 +5,7 @@ import { RefreshCw } from "lucide-react";
 const VoucherForm = ({ initial = {}, onSubmit, onCancel }) => {
   const [form, setForm] = useState({
     code: "",
+    name: "",
     discountType: "PERCENT",
     discountValue: 0,
     minBookingValue: null,
@@ -32,11 +33,26 @@ const VoucherForm = ({ initial = {}, onSubmit, onCancel }) => {
   return (
     <form onSubmit={submit} className="space-y-3">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        <div className="lg:col-span-2">
+          <label className="text-[11px] font-bold text-gray-400">Tên Voucher</label>
+          <input 
+            value={form.name || ''} 
+            onChange={(e) => onChange('name', e.target.value)} 
+            className="w-full p-3 rounded-2xl bg-gray-50 text-sm font-bold mt-1" 
+            placeholder="Ví dụ: Voucher Chào Hè 2024"
+          />
+        </div>
+
         <div>
           <label className="text-[11px] font-bold text-gray-400">Mã Voucher</label>
           <div className="flex items-center gap-2 mt-1">
-            <input value={form.code} readOnly className="flex-1 p-3 rounded-2xl bg-gray-50 text-sm font-bold" />
-            <button type="button" onClick={() => onChange('code', generateCode())} className="p-2 bg-white rounded-xl border">
+            <input 
+              value={form.code} 
+              onChange={(e) => onChange('code', e.target.value)} 
+              className="flex-1 p-3 rounded-2xl bg-gray-50 text-sm font-bold border-0 focus:ring-2 focus:ring-blue-100" 
+              placeholder="VCHR-..."
+            />
+            <button type="button" onClick={() => onChange('code', generateCode())} className="p-2 bg-white rounded-xl border hover:bg-gray-50 transition-colors">
               <RefreshCw size={16} />
             </button>
           </div>
@@ -75,15 +91,16 @@ const VoucherForm = ({ initial = {}, onSubmit, onCancel }) => {
           <input type="number" value={form.usageLimit ?? ''} onChange={(e) => onChange('usageLimit', e.target.value || null)} className="w-full p-3 rounded-2xl bg-gray-50 text-sm font-bold mt-1" />
         </div>
 
-        <div>
-          <label className="text-[11px] font-bold text-gray-400">Loại hiển thị</label>
-          <div className="mt-1">
-            <label className="inline-flex items-center gap-3">
-              <input type="checkbox" checked={form.isPrivate} onChange={(e) => onChange('isPrivate', e.target.checked)} className="w-4 h-4" />
-              <span className="text-sm font-bold">Riêng (chỉ người được chỉ định)</span>
-            </label>
-          </div>
+        <div className="lg:col-span-2">
+          <label className="text-[11px] font-bold text-gray-400">Mô tả</label>
+          <textarea 
+            value={form.description || ''} 
+            onChange={(e) => onChange('description', e.target.value)} 
+            className="w-full p-4 rounded-2xl bg-gray-50 text-sm font-bold mt-1 min-h-[160px] border-0 focus:ring-2 focus:ring-blue-100 transition-all"
+            placeholder="Mô tả ưu đãi của voucher..."
+          />
         </div>
+
 
         {/* Private checkbox added above. Sending handled separately. */}
       </div>

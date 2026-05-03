@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { UserPlus } from "lucide-react";
+import { UserPlus, Ticket, Calendar, Copy, CheckCircle2, Info, ReceiptText, X } from "lucide-react";
 import useVoucherData from "../../hooks/useVoucherData";
 import VoucherFilters from "../../components/receptionist/vouchers/VoucherFilters";
 import VoucherTable from "../../components/receptionist/vouchers/VoucherTable";
@@ -46,6 +46,7 @@ const ReceptionistVoucherPage = () => {
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const [selectedForDelete, setSelectedForDelete] = useState(null);
   const [errorMessage, setErrorMessage] = useState(null);
+  const [isDescExpanded, setIsDescExpanded] = useState(false);
 
   const closeForm = () => {
     setShowForm(false);
@@ -88,6 +89,7 @@ const ReceptionistVoucherPage = () => {
     }
 
     setViewVoucher(voucher);
+    setIsDescExpanded(false);
     setShowView(true);
   };
 
@@ -346,46 +348,85 @@ const ReceptionistVoucherPage = () => {
       ) : null}
 
       {showView ? (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/30 p-6">
-          <div className="w-full max-w-2xl rounded-2xl bg-white p-6">
-            <h3 className="mb-3 text-lg font-black">Xem voucher</h3>
-            <div className="space-y-2 text-sm">
-              <div><strong>Mã:</strong> {viewVoucher?.code}</div>
-              <div><strong>Loại:</strong> {viewVoucher?.discountType} - {viewVoucher?.discountValue}</div>
-              <div>
-                <strong>Thời hạn:</strong> {viewVoucher?.validFrom ? new Date(viewVoucher.validFrom).toLocaleDateString() : "-"} - {viewVoucher?.validTo ? new Date(viewVoucher.validTo).toLocaleDateString() : "-"}
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/40 p-6 backdrop-blur-sm">
+          <div className="relative w-full max-w-2xl overflow-hidden rounded-3xl bg-white shadow-2xl">
+            <button
+              onClick={() => setShowView(false)}
+              className="absolute right-6 top-6 rounded-xl p-2 text-slate-400 transition hover:bg-slate-50 hover:text-slate-600"
+            >
+              <X size={20} />
+            </button>
+
+            <div className="border-b border-slate-100 bg-slate-50/50 p-8">
+              <div className="flex items-center gap-4">
+                <div className="flex size-12 items-center justify-center rounded-2xl bg-orange-500 text-white shadow-lg shadow-orange-100">
+                  <Ticket size={24} />
+                </div>
+                <h3 className="text-2xl font-black text-slate-900">
+                  {viewVoucher?.name || "Chi tiết Voucher"}
+                </h3>
               </div>
-              <div><strong>Giới hạn sử dụng:</strong> {viewVoucher?.usageLimit ?? "-"}</div>
-              <div><strong>Loại hiển thị:</strong> {viewVoucher?.isPrivate ? "Riêng" : "Công khai"}</div>
             </div>
-            <div className="mt-4 flex justify-end gap-2">
-              {canSendVoucher ? (
-                <button
-                  onClick={() => onOpenSend(viewVoucher)}
-                  className="rounded-2xl border border-indigo-100 bg-indigo-50 px-4 py-2 font-bold text-indigo-600"
-                >
-                  Gửi voucher
-                </button>
-              ) : null}
-              {canEditVoucher ? (
-                <button
-                  onClick={() => onEdit(viewVoucher)}
-                  className="rounded-2xl border border-sky-100 bg-sky-50 px-4 py-2 font-bold text-sky-600"
-                >
-                  Sửa voucher
-                </button>
-              ) : null}
-              {canDeleteVoucher ? (
-                <button
-                  onClick={() => onDelete(viewVoucher)}
-                  className="rounded-2xl border border-rose-100 bg-rose-50 px-4 py-2 font-bold text-rose-600"
-                >
-                  Xóa voucher
-                </button>
-              ) : null}
-              <button onClick={() => setShowView(false)} className="rounded-2xl border bg-white px-6 py-2">
-                Đóng
-              </button>
+
+            <div className="divide-y divide-slate-100 px-8 py-6">
+              <div className="grid grid-cols-[180px_1fr] py-5">
+                <span className="text-sm font-bold text-slate-400">Giá trị ưu đãi</span>
+                <div>
+                  <p className="text-sm font-bold text-slate-900">
+                    Giảm {viewVoucher?.discountType === "PERCENT" ? `${viewVoucher?.discountValue}%` : `${viewVoucher?.discountValue?.toLocaleString()} VND`}
+                  </p>
+                  <p className="mt-1 text-xs font-medium text-slate-500">
+                    Cho đơn từ {viewVoucher?.minBookingValue ? `${viewVoucher.minBookingValue.toLocaleString()} VND` : "0 VND"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-[180px_1fr] py-5">
+                <span className="text-sm font-bold text-slate-400">Thời gian hiệu lực</span>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm font-bold text-slate-700">
+                    <div className="size-1.5 rounded-full bg-slate-400" />
+                    Bắt đầu ngày: {viewVoucher?.validFrom ? new Date(viewVoucher.validFrom).toLocaleDateString("vi-VN", { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : "-"}
+                  </div>
+                  <div className="flex items-center gap-2 text-sm font-bold text-slate-700">
+                    <div className="size-1.5 rounded-full bg-slate-400" />
+                    Hiệu lực tới: {viewVoucher?.validTo ? new Date(viewVoucher.validTo).toLocaleDateString("vi-VN", { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : "-"}
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-[180px_1fr] py-5">
+                <span className="text-sm font-bold text-slate-400">Mã ưu đãi</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-lg font-black tracking-wider text-slate-900">{viewVoucher?.code}</span>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(viewVoucher?.code);
+                    }}
+                    className="flex items-center gap-1.5 rounded-xl bg-orange-50 px-3 py-1.5 text-xs font-black text-orange-600 transition hover:bg-orange-100"
+                  >
+                    <Copy size={14} />
+                    Sao chép
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-[180px_1fr] py-5">
+                <span className="text-sm font-bold text-slate-400">Mô tả</span>
+                <div>
+                  <p className={`text-sm font-medium leading-relaxed text-slate-600 ${!isDescExpanded ? 'line-clamp-3' : ''}`}>
+                    {viewVoucher?.description || "Không có mô tả cho voucher này."}
+                  </p>
+                  {viewVoucher?.description && viewVoucher.description.length > 150 && (
+                    <button
+                      onClick={() => setIsDescExpanded(!isDescExpanded)}
+                      className="mt-2 text-xs font-bold text-blue-600 hover:underline"
+                    >
+                      {isDescExpanded ? "Thu gọn" : "Xem thêm"}
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </div>

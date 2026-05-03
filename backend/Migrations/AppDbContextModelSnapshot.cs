@@ -1183,6 +1183,9 @@ namespace backend.Migrations
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("DiscountType")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -1201,6 +1204,10 @@ namespace backend.Migrations
 
                     b.Property<decimal?>("MinBookingValue")
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("UsageCount")
                         .HasColumnType("int");
