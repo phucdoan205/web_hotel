@@ -22,6 +22,8 @@ namespace backend.Controllers
         private static ServiceResponseDTO MapService(Service service) => new()
         {
             Id = service.Id,
+            CategoryId = service.CategoryId,
+            CategoryName = service.Category?.Name,
             Name = service.Name,
             Price = service.Price,
             Unit = service.Unit,
@@ -61,6 +63,7 @@ namespace backend.Controllers
             }
 
             var services = await query
+                .Include(service => service.Category)
                 .OrderByDescending(service => service.Status)
                 .ThenBy(service => service.Name)
                 .ToListAsync();
@@ -243,6 +246,7 @@ namespace backend.Controllers
 
             var service = new Service
             {
+                CategoryId = request.CategoryId,
                 Name = request.Name.Trim(),
                 Price = request.Price,
                 Unit = string.IsNullOrWhiteSpace(request.Unit) ? null : request.Unit.Trim(),
@@ -275,6 +279,7 @@ namespace backend.Controllers
                 return BadRequest("Giá dịch vụ không hợp lệ.");
             }
 
+            service.CategoryId = request.CategoryId;
             service.Name = request.Name.Trim();
             service.Price = request.Price;
             service.Unit = string.IsNullOrWhiteSpace(request.Unit) ? null : request.Unit.Trim();

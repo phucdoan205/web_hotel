@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ClipboardList, History, Pencil, Plus, Receipt, Search, Trash2, Wrench, X } from "lucide-react";
+import { ClipboardList, History, Layers, MoreVertical, Pencil, Plus, Search, Trash2, Wrench, X, CheckCircle2, AlertCircle } from "lucide-react";
 import { servicesApi } from "../../api/admin/servicesApi";
 import { hasPermission } from "../../utils/permissions";
 import { formatVietnamDate, formatVietnamDateTime } from "../../utils/vietnamTime";
@@ -12,20 +12,29 @@ const formatCurrency = (value) => `${currencyFormatter.format(Number(value || 0)
 const tabs = [
   { id: "apply", label: "Áp dụng", icon: ClipboardList },
   { id: "services", label: "Dịch vụ", icon: Wrench },
+  { id: "categories", label: "Nhóm dịch vụ", icon: Layers },
   { id: "history", label: "Lịch sử", icon: History },
 ];
 
 const emptyServiceForm = {
   id: null,
+  categoryId: "",
   name: "",
   price: "",
   unit: "",
   status: true,
 };
 
+const emptyCategoryForm = {
+  id: null,
+  name: "",
+  status: true,
+};
+
 const ServiceFormOverlay = ({
   serviceForm,
   setServiceForm,
+  categories = [],
   onClose,
   onSubmit,
   canSubmit,
@@ -59,6 +68,22 @@ const ServiceFormOverlay = ({
             className="rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-sky-400"
             placeholder="Ví dụ: Ăn sáng buffet"
           />
+        </label>
+
+        <label className="grid gap-2">
+          <span className="text-sm font-bold text-slate-700">Nhóm dịch vụ</span>
+          <select
+            value={serviceForm.categoryId || ""}
+            onChange={(event) => setServiceForm((current) => ({ ...current, categoryId: event.target.value }))}
+            className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-sky-400"
+          >
+            <option value="">Chọn nhóm dịch vụ (nếu có)</option>
+            {categories.map((cat) => (
+              <option key={cat.id} value={cat.id}>
+                {cat.name}
+              </option>
+            ))}
+          </select>
         </label>
 
         <label className="grid gap-2">
@@ -105,6 +130,155 @@ const ServiceFormOverlay = ({
   </div>
 );
 
+const StatusToggle = ({ status, onToggle, isPending }) => (
+  <button
+    type="button"
+    onClick={onToggle}
+    disabled={isPending}
+    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+      status ? "bg-sky-600" : "bg-slate-200"
+    } ${isPending ? "opacity-50 cursor-not-allowed" : ""}`}
+  >
+    <span
+      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+        status ? "translate-x-5" : "translate-x-0"
+      }`}
+    />
+  </button>
+);
+
+const Notice = ({ type, message, onBlur }) => {
+  useEffect(() => {
+    const timer = setTimeout(onBlur, 3000);
+    return () => clearTimeout(timer);
+  }, [message, onBlur]);
+
+  return (
+    <div
+      className={`fixed top-8 left-1/2 -translate-x-1/2 z-[200] min-w-[320px] max-w-md rounded-[1.5rem] px-6 py-4 text-center text-sm font-bold shadow-2xl backdrop-blur-xl animate-in fade-in slide-in-from-top-8 duration-500 ${
+        type === "success" 
+          ? "bg-white/95 text-emerald-600 ring-1 ring-emerald-100" 
+          : "bg-white/95 text-rose-600 ring-1 ring-rose-100"
+      }`}
+    >
+      <div className="flex items-center justify-center gap-3">
+        {type === "success" ? (
+          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
+            <CheckCircle2 className="h-4 w-4" />
+          </div>
+        ) : (
+          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-rose-50 text-rose-600">
+            <AlertCircle className="h-4 w-4" />
+          </div>
+        )}
+        <span className="flex-1 text-left">{message}</span>
+      </div>
+    </div>
+  );
+};
+
+const CategoryFormOverlay = ({ categoryForm, setCategoryForm, onClose, onSubmit, canSubmit, isSubmitting }) => (
+  <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm">
+    <div className="w-full max-w-lg rounded-[2rem] bg-white p-6 shadow-2xl">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Quản lý nhóm dịch vụ</p>
+          <h2 className="mt-2 text-2xl font-black text-slate-900">
+            {categoryForm.id ? "Chỉnh sửa nhóm dịch vụ" : "Tạo nhóm dịch vụ mới"}
+          </h2>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-2xl bg-slate-100 p-3 text-slate-500 transition hover:bg-slate-200 hover:text-slate-700"
+        >
+          <X size={18} />
+        </button>
+      </div>
+
+      <form onSubmit={onSubmit} className="mt-6 grid gap-4">
+        <label className="grid gap-2">
+          <span className="text-sm font-bold text-slate-700">Tên nhóm dịch vụ</span>
+          <input
+            value={categoryForm.name}
+            onChange={(event) => setCategoryForm((current) => ({ ...current, name: event.target.value }))}
+            className="rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-sky-400"
+            placeholder="Ví dụ: Chuyển phát, Ăn uống..."
+          />
+        </label>
+
+        <div className="mt-2 flex gap-3">
+          <button
+            type="submit"
+            disabled={!canSubmit || isSubmitting}
+            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-sky-600 px-5 py-3 text-sm font-black text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:bg-sky-300"
+          >
+            <Plus size={16} />
+            {isSubmitting ? "Đang lưu..." : categoryForm.id ? "Lưu thay đổi" : "Tạo nhóm"}
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-2xl bg-slate-100 px-4 py-3 text-sm font-bold text-slate-600 transition hover:bg-slate-200"
+          >
+            Hủy
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+);
+
+const ActionMenu = ({ onEdit, onDelete, canEdit, canDelete }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <div className="relative flex justify-end">
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="rounded-xl bg-slate-50 p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
+      >
+        <MoreVertical size={18} />
+      </button>
+
+      {isOpen && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
+          <div className="absolute right-full top-0 z-50 mr-2 min-w-[140px] overflow-hidden rounded-2xl bg-white shadow-xl ring-1 ring-slate-200">
+            {canEdit && (
+              <button
+                type="button"
+                onClick={() => {
+                  onEdit();
+                  setIsOpen(false);
+                }}
+                className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-bold text-slate-700 transition hover:bg-sky-50 hover:text-sky-700"
+              >
+                <Pencil size={14} />
+                Sửa
+              </button>
+            )}
+            {canDelete && (
+              <button
+                type="button"
+                onClick={() => {
+                  onDelete();
+                  setIsOpen(false);
+                }}
+                className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-bold text-rose-600 transition hover:bg-rose-50 hover:text-rose-700"
+              >
+                <Trash2 size={14} />
+                Xóa
+              </button>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
 const ReceptionistPOSServicePage = () => {
   const queryClient = useQueryClient();
   const canCreateService = hasPermission("CREATE_SERVICES");
@@ -114,13 +288,16 @@ const ReceptionistPOSServicePage = () => {
   const [activeTab, setActiveTab] = useState("apply");
   const [notice, setNotice] = useState(null);
   const [showServiceForm, setShowServiceForm] = useState(false);
+  const [showCategoryForm, setShowCategoryForm] = useState(false);
   const [serviceSearch, setServiceSearch] = useState("");
+  const [categorySearch, setCategorySearch] = useState("");
   const [applyForm, setApplyForm] = useState({
     bookingDetailId: "",
     serviceId: "",
     quantity: 1,
   });
   const [serviceForm, setServiceForm] = useState(emptyServiceForm);
+  const [categoryForm, setCategoryForm] = useState(emptyCategoryForm);
   const [historyFilter, setHistoryFilter] = useState({
     paymentStatus: "all",
     search: "",
@@ -130,6 +307,11 @@ const ReceptionistPOSServicePage = () => {
   const servicesQuery = useQuery({
     queryKey: ["services", "management"],
     queryFn: () => servicesApi.getServices({ includeInactive: true }),
+  });
+
+  const categoriesQuery = useQuery({
+    queryKey: ["service-categories"],
+    queryFn: () => servicesApi.getServiceCategories(),
   });
 
   const activeServicesQuery = useQuery({
@@ -179,11 +361,13 @@ const ReceptionistPOSServicePage = () => {
 
   const updateServiceMutation = useMutation({
     mutationFn: ({ id, payload }) => servicesApi.updateService(id, payload),
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["services"] });
+      if (!variables.isToggle) {
+        setNotice({ type: "success", message: "Đã cập nhật dịch vụ." });
+      }
       setServiceForm(emptyServiceForm);
       setShowServiceForm(false);
-      setNotice({ type: "success", message: "Đã cập nhật dịch vụ." });
     },
     onError: (error) => {
       setNotice({ type: "error", message: error?.response?.data || "Không thể cập nhật dịch vụ." });
@@ -201,24 +385,81 @@ const ReceptionistPOSServicePage = () => {
     },
   });
 
+  const createCategoryMutation = useMutation({
+    mutationFn: (payload) => servicesApi.createServiceCategory(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["service-categories"] });
+      setCategoryForm(emptyCategoryForm);
+      setShowCategoryForm(false);
+      setNotice({ type: "success", message: "Đã tạo nhóm dịch vụ mới." });
+    },
+    onError: (error) => {
+      setNotice({ type: "error", message: error?.response?.data || "Không thể tạo nhóm dịch vụ." });
+    },
+  });
+
+  const updateCategoryMutation = useMutation({
+    mutationFn: ({ id, payload }) => servicesApi.updateServiceCategory(id, payload),
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["service-categories"] });
+      if (!variables.isToggle) {
+        setNotice({ type: "success", message: "Đã cập nhật nhóm dịch vụ." });
+      }
+      setCategoryForm(emptyCategoryForm);
+      setShowCategoryForm(false);
+    },
+    onError: (error) => {
+      setNotice({ type: "error", message: error?.response?.data || "Không thể cập nhật nhóm dịch vụ." });
+    },
+  });
+
+  const deleteCategoryMutation = useMutation({
+    mutationFn: (id) => servicesApi.deleteServiceCategory(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["service-categories"] });
+      setNotice({ type: "success", message: "Nhóm dịch vụ đã được xóa." });
+    },
+    onError: (error) => {
+      setNotice({ type: "error", message: error?.response?.data || "Không thể xóa nhóm dịch vụ." });
+    },
+  });
+
   const inHouseRooms = useMemo(() => inHouseRoomsQuery.data || [], [inHouseRoomsQuery.data]);
   const activeServices = useMemo(() => activeServicesQuery.data || [], [activeServicesQuery.data]);
   const services = useMemo(() => servicesQuery.data || [], [servicesQuery.data]);
+  const categories = useMemo(() => categoriesQuery.data || [], [categoriesQuery.data]);
   const historyItems = useMemo(() => historyQuery.data || [], [historyQuery.data]);
 
   const filteredServices = useMemo(() => {
     const normalizedSearch = serviceSearch.trim().toLowerCase();
-    if (!normalizedSearch) return services;
+    let result = services;
 
-    return services.filter((service) =>
-      [service.name, service.unit, service.status ? "đang hoạt động" : "ngừng sử dụng"]
-        .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(normalizedSearch)),
-    );
+    if (normalizedSearch) {
+      result = services.filter((service) =>
+        [service.name, service.unit, service.categoryName, service.status ? "đang hoạt động" : "ngừng sử dụng"]
+          .filter(Boolean)
+          .some((value) => String(value).toLowerCase().includes(normalizedSearch)),
+      );
+    }
+
+    return result.sort((a, b) => a.id - b.id).slice(0, 10);
   }, [serviceSearch, services]);
 
+  const filteredCategories = useMemo(() => {
+    const normalizedSearch = categorySearch.trim().toLowerCase();
+    let result = categories;
+
+    if (normalizedSearch) {
+      result = categories.filter((cat) =>
+        cat.name.toLowerCase().includes(normalizedSearch)
+      );
+    }
+
+    return result.sort((a, b) => a.id - b.id).slice(0, 10);
+  }, [categorySearch, categories]);
+
   const filteredHistoryItems = useMemo(() => {
-    return historyItems.filter((item) => {
+    const result = historyItems.filter((item) => {
       const usedDate = item.usedAt ? String(item.usedAt).slice(0, 10) : "";
 
       if (historyFilter.date && usedDate !== historyFilter.date) {
@@ -227,6 +468,8 @@ const ReceptionistPOSServicePage = () => {
 
       return true;
     });
+
+    return result.sort((a, b) => new Date(b.usedAt) - new Date(a.usedAt)).slice(0, 10);
   }, [historyItems, historyFilter.date]);
 
   const handleClearHistoryFilter = () => {
@@ -261,6 +504,7 @@ const ReceptionistPOSServicePage = () => {
     }
 
     const payload = {
+      categoryId: serviceForm.categoryId ? Number(serviceForm.categoryId) : null,
       name: serviceForm.name.trim(),
       price: Number(serviceForm.price),
       unit: serviceForm.unit.trim() || null,
@@ -283,12 +527,48 @@ const ReceptionistPOSServicePage = () => {
   const handleOpenEditForm = (service) => {
     setServiceForm({
       id: service.id,
+      categoryId: service.categoryId || "",
       name: service.name,
       price: String(service.price),
       unit: service.unit || "",
       status: service.status,
     });
     setShowServiceForm(true);
+  };
+
+  const handleCategorySubmit = (event) => {
+    event.preventDefault();
+
+    if (!categoryForm.name.trim()) {
+      setNotice({ type: "error", message: "Tên nhóm dịch vụ là bắt buộc." });
+      return;
+    }
+
+    const payload = {
+      name: categoryForm.name.trim(),
+      status: categoryForm.id ? categoryForm.status : true,
+    };
+
+    if (categoryForm.id) {
+      updateCategoryMutation.mutate({ id: categoryForm.id, payload });
+      return;
+    }
+
+    createCategoryMutation.mutate(payload);
+  };
+
+  const handleOpenCategoryCreateForm = () => {
+    setCategoryForm(emptyCategoryForm);
+    setShowCategoryForm(true);
+  };
+
+  const handleOpenCategoryEditForm = (cat) => {
+    setCategoryForm({
+      id: cat.id,
+      name: cat.name,
+      status: cat.status,
+    });
+    setShowCategoryForm(true);
   };
 
   const handleCloseServiceForm = () => {
@@ -306,17 +586,7 @@ const ReceptionistPOSServicePage = () => {
           </p>
         </div>
 
-        {notice ? (
-          <div
-            className={`rounded-[1.5rem] px-4 py-3 text-sm font-semibold ${
-              notice.type === "error"
-                ? "bg-rose-50 text-rose-700 ring-1 ring-rose-200"
-                : "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"
-            }`}
-          >
-            {notice.message}
-          </div>
-        ) : null}
+        {notice && <Notice type={notice.type} message={notice.message} onBlur={() => setNotice(null)} />}
 
         <div className="rounded-[2rem] bg-white p-3 shadow-sm ring-1 ring-slate-200">
           <div className="flex flex-wrap gap-3">
@@ -343,7 +613,7 @@ const ReceptionistPOSServicePage = () => {
 
         {activeTab === "apply" ? (
           <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_380px]">
-            <section className="rounded-[2rem] bg-white p-6 shadow-sm ring-1 ring-slate-200">
+            <section>
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Áp dụng dịch vụ</p>
               <h2 className="mt-2 text-2xl font-black text-slate-900">Chỉ áp dụng cho phòng đang lưu trú</h2>
 
@@ -435,11 +705,10 @@ const ReceptionistPOSServicePage = () => {
         ) : null}
 
         {activeTab === "services" ? (
-          <section className="rounded-[2rem] bg-white p-6 shadow-sm ring-1 ring-slate-200">
+          <section>
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Danh sách dịch vụ</p>
-                <h2 className="mt-2 text-2xl font-black text-slate-900">{filteredServices.length} dịch vụ phù hợp</h2>
               </div>
 
               <div className="flex flex-wrap gap-3">
@@ -466,7 +735,7 @@ const ReceptionistPOSServicePage = () => {
               </div>
             </div>
 
-            <div className="mt-6 overflow-hidden rounded-[1.75rem] border border-slate-200">
+            <div className="mt-6">
               <table className="min-w-full divide-y divide-slate-200">
                 <thead className="bg-slate-50">
                   <tr className="text-left text-xs font-black uppercase tracking-[0.18em] text-slate-500">
@@ -488,44 +757,121 @@ const ReceptionistPOSServicePage = () => {
                       <tr key={service.id}>
                         <td className="px-5 py-4">
                           <p className="font-black text-slate-900">{service.name}</p>
-                          <p className="mt-1 text-sm text-slate-500">{service.unit || "Không có đơn vị"}</p>
+                          <p className="mt-1 text-sm text-slate-500">
+                            {service.categoryName || "Không có nhóm"} • {service.unit || "Không có đơn vị"}
+                          </p>
                         </td>
                         <td className="px-5 py-4 text-sm font-bold text-slate-900">{formatCurrency(service.price)}</td>
                         <td className="px-5 py-4">
-                          <span
-                            className={`inline-flex rounded-full px-3 py-1 text-xs font-black ${
-                              service.status
-                                ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"
-                                : "bg-slate-100 text-slate-600 ring-1 ring-slate-200"
-                            }`}
-                          >
-                            {service.status ? "Đang hoạt động" : "Ngừng sử dụng"}
-                          </span>
+                          <StatusToggle
+                            status={service.status}
+                            isPending={updateServiceMutation.isPending}
+                            onToggle={() => {
+                              const payload = {
+                                categoryId: service.categoryId,
+                                name: service.name,
+                                price: service.price,
+                                unit: service.unit,
+                                status: !service.status,
+                              };
+                              updateServiceMutation.mutate({ id: service.id, payload, isToggle: true });
+                            }}
+                          />
                         </td>
                         <td className="px-5 py-4">
-                          <div className="flex justify-end gap-2">
-                            {canEditService ? (
-                              <button
-                                type="button"
-                                onClick={() => handleOpenEditForm(service)}
-                                className="inline-flex items-center gap-2 rounded-2xl bg-sky-100 px-4 py-2.5 text-sm font-bold text-sky-700 transition hover:bg-sky-200"
-                              >
-                                <Pencil size={16} />
-                                Sửa
-                              </button>
-                            ) : null}
+                          <ActionMenu
+                            canEdit={canEditService}
+                            canDelete={canDeleteService}
+                            onEdit={() => handleOpenEditForm(service)}
+                            onDelete={() => deleteServiceMutation.mutate(service.id)}
+                          />
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        ) : null}
 
-                            {canDeleteService ? (
-                              <button
-                                type="button"
-                                onClick={() => deleteServiceMutation.mutate(service.id)}
-                                className="inline-flex items-center gap-2 rounded-2xl bg-rose-100 px-4 py-2.5 text-sm font-bold text-rose-700 transition hover:bg-rose-200"
-                              >
-                                <Trash2 size={16} />
-                                Xóa
-                              </button>
-                            ) : null}
-                          </div>
+        {activeTab === "categories" ? (
+          <section>
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Quản lý nhóm dịch vụ</p>
+              </div>
+
+              <div className="flex flex-wrap gap-3">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+                  <input
+                    value={categorySearch}
+                    onChange={(event) => setCategorySearch(event.target.value)}
+                    placeholder="Tìm tên nhóm..."
+                    className="w-64 rounded-2xl border border-slate-200 bg-white py-3 pl-10 pr-4 text-sm text-slate-700 outline-none transition focus:border-sky-400"
+                  />
+                </div>
+
+                {canCreateService ? (
+                  <button
+                    type="button"
+                    onClick={handleOpenCategoryCreateForm}
+                    className="inline-flex items-center gap-2 rounded-2xl bg-sky-600 px-4 py-3 text-sm font-black text-white transition hover:bg-sky-700"
+                  >
+                    <Plus size={16} />
+                    Tạo nhóm mới
+                  </button>
+                ) : null}
+              </div>
+            </div>
+
+            <div className="mt-6">
+              <table className="min-w-full divide-y divide-slate-200">
+                <thead className="bg-slate-50">
+                  <tr className="text-left text-xs font-black uppercase tracking-[0.18em] text-slate-500">
+                    <th className="px-5 py-4">Tên nhóm</th>
+                    <th className="px-5 py-4">Trạng thái</th>
+                    <th className="px-5 py-4 text-right">Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 bg-white">
+                  {categoriesQuery.isLoading ? (
+                    <tr>
+                      <td colSpan="3" className="px-5 py-10 text-center text-sm text-slate-500">
+                        Đang tải dữ liệu...
+                      </td>
+                    </tr>
+                  ) : filteredCategories.length === 0 ? (
+                    <tr>
+                      <td colSpan="3" className="px-5 py-10 text-center text-sm text-slate-500">
+                        Không tìm thấy nhóm dịch vụ nào.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredCategories.map((cat) => (
+                      <tr key={cat.id}>
+                        <td className="px-5 py-4 font-black text-slate-900">{cat.name}</td>
+                        <td className="px-5 py-4">
+                          <StatusToggle
+                            status={cat.status}
+                            isPending={updateCategoryMutation.isPending}
+                            onToggle={() => {
+                              const payload = {
+                                name: cat.name,
+                                status: !cat.status,
+                              };
+                              updateCategoryMutation.mutate({ id: cat.id, payload, isToggle: true });
+                            }}
+                          />
+                        </td>
+                        <td className="px-5 py-4">
+                          <ActionMenu
+                            canEdit={canEditService}
+                            canDelete={canDeleteService}
+                            onEdit={() => handleOpenCategoryEditForm(cat)}
+                            onDelete={() => deleteCategoryMutation.mutate(cat.id)}
+                          />
                         </td>
                       </tr>
                     ))
@@ -537,11 +883,10 @@ const ReceptionistPOSServicePage = () => {
         ) : null}
 
         {activeTab === "history" ? (
-          <section className="rounded-[2rem] bg-white p-6 shadow-sm ring-1 ring-slate-200">
+          <section>
             <div className="flex flex-wrap items-end justify-between gap-4">
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Lịch sử dịch vụ</p>
-                <h2 className="mt-2 text-2xl font-black text-slate-900">Lịch sử</h2>
               </div>
 
               <div className="flex flex-wrap gap-3">
@@ -597,7 +942,7 @@ const ReceptionistPOSServicePage = () => {
               </div>
             </div>
 
-            <div className="mt-6 overflow-hidden rounded-[1.75rem] border border-slate-200">
+            <div className="mt-6">
               <table className="min-w-full divide-y divide-slate-200">
                 <thead className="bg-slate-50">
                   <tr className="text-left text-xs font-black uppercase tracking-[0.18em] text-slate-500">
@@ -668,10 +1013,22 @@ const ReceptionistPOSServicePage = () => {
         <ServiceFormOverlay
           serviceForm={serviceForm}
           setServiceForm={setServiceForm}
+          categories={categories}
           onClose={handleCloseServiceForm}
           onSubmit={handleServiceSubmit}
           canSubmit={serviceForm.id ? canEditService : canCreateService}
           isSubmitting={createServiceMutation.isPending || updateServiceMutation.isPending}
+        />
+      ) : null}
+
+      {showCategoryForm ? (
+        <CategoryFormOverlay
+          categoryForm={categoryForm}
+          setCategoryForm={setCategoryForm}
+          onClose={() => setShowCategoryForm(false)}
+          onSubmit={handleCategorySubmit}
+          canSubmit={categoryForm.id ? canEditService : canCreateService}
+          isSubmitting={createCategoryMutation.isPending || updateCategoryMutation.isPending}
         />
       ) : null}
     </>

@@ -2,10 +2,18 @@ import apiClient from "../client";
 
 const normalizeService = (service = {}) => ({
   id: Number(service.id || 0),
+  categoryId: service.categoryId ? Number(service.categoryId) : null,
+  categoryName: service.categoryName || null,
   name: service.name || "",
   price: Number(service.price || 0),
   unit: service.unit || "",
   status: Boolean(service.status),
+});
+
+const normalizeCategory = (category = {}) => ({
+  id: Number(category.id || 0),
+  name: category.name || "",
+  status: Boolean(category.status),
 });
 
 const normalizeUsage = (item = {}) => ({
@@ -73,6 +81,26 @@ export const servicesApi = {
 
   async deleteService(id) {
     await apiClient.delete(`/Services/${id}`);
+  },
+
+  async getServiceCategories() {
+    const response = await apiClient.get("/ServiceCategories");
+    const items = Array.isArray(response.data) ? response.data : [];
+    return items.map(normalizeCategory);
+  },
+
+  async createServiceCategory(payload) {
+    const response = await apiClient.post("/ServiceCategories", payload);
+    return normalizeCategory(response.data);
+  },
+
+  async updateServiceCategory(id, payload) {
+    const response = await apiClient.put(`/ServiceCategories/${id}`, payload);
+    return normalizeCategory(response.data);
+  },
+
+  async deleteServiceCategory(id) {
+    await apiClient.delete(`/ServiceCategories/${id}`);
   },
 };
 
