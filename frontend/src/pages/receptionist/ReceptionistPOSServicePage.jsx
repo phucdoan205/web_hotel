@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ClipboardList, History, Layers, MoreVertical, Pencil, Plus, Search, Trash2, Wrench, X, CheckCircle2, AlertCircle } from "lucide-react";
+import { ClipboardList, History, Layers, MoreVertical, Pencil, Plus, Search, Trash2, Wrench, X, CheckCircle2, AlertCircle, Image as ImageIcon, ImagePlus } from "lucide-react";
 import { servicesApi } from "../../api/admin/servicesApi";
 import { hasPermission } from "../../utils/permissions";
 import { formatVietnamDate, formatVietnamDateTime } from "../../utils/vietnamTime";
@@ -16,119 +17,13 @@ const tabs = [
   { id: "history", label: "Lịch sử", icon: History },
 ];
 
-const emptyServiceForm = {
-  id: null,
-  categoryId: "",
-  name: "",
-  price: "",
-  unit: "",
-  status: true,
-};
-
 const emptyCategoryForm = {
   id: null,
   name: "",
+  iconUrl: "",
   status: true,
 };
 
-const ServiceFormOverlay = ({
-  serviceForm,
-  setServiceForm,
-  categories = [],
-  onClose,
-  onSubmit,
-  canSubmit,
-  isSubmitting,
-}) => (
-  <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm">
-    <div className="w-full max-w-2xl rounded-[2rem] bg-white p-6 shadow-2xl">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Quản lý dịch vụ</p>
-          <h2 className="mt-2 text-2xl font-black text-slate-900">
-            {serviceForm.id ? "Chỉnh sửa dịch vụ" : "Tạo dịch vụ mới"}
-          </h2>
-        </div>
-
-        <button
-          type="button"
-          onClick={onClose}
-          className="rounded-2xl bg-slate-100 p-3 text-slate-500 transition hover:bg-slate-200 hover:text-slate-700"
-        >
-          <X size={18} />
-        </button>
-      </div>
-
-      <form onSubmit={onSubmit} className="mt-6 grid gap-4 md:grid-cols-2">
-        <label className="grid gap-2">
-          <span className="text-sm font-bold text-slate-700">Tên dịch vụ</span>
-          <input
-            value={serviceForm.name}
-            onChange={(event) => setServiceForm((current) => ({ ...current, name: event.target.value }))}
-            className="rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-sky-400"
-            placeholder="Ví dụ: Ăn sáng buffet"
-          />
-        </label>
-
-        <label className="grid gap-2">
-          <span className="text-sm font-bold text-slate-700">Nhóm dịch vụ</span>
-          <select
-            value={serviceForm.categoryId || ""}
-            onChange={(event) => setServiceForm((current) => ({ ...current, categoryId: event.target.value }))}
-            className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-sky-400"
-          >
-            <option value="">Chọn nhóm dịch vụ (nếu có)</option>
-            {categories.map((cat) => (
-              <option key={cat.id} value={cat.id}>
-                {cat.name}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="grid gap-2">
-          <span className="text-sm font-bold text-slate-700">Giá</span>
-          <input
-            type="number"
-            min="0"
-            value={serviceForm.price}
-            onChange={(event) => setServiceForm((current) => ({ ...current, price: event.target.value }))}
-            className="rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-sky-400"
-          />
-        </label>
-
-        <label className="grid gap-2 md:col-span-2">
-          <span className="text-sm font-bold text-slate-700">Đơn vị</span>
-          <input
-            value={serviceForm.unit}
-            onChange={(event) => setServiceForm((current) => ({ ...current, unit: event.target.value }))}
-            className="rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-sky-400"
-            placeholder="suất, lần, kg..."
-          />
-        </label>
-
-        <div className="flex gap-3 md:col-span-2">
-          <button
-            type="submit"
-            disabled={!canSubmit || isSubmitting}
-            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-sky-600 px-5 py-3 text-sm font-black text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:bg-sky-300"
-          >
-            <Plus size={16} />
-            {isSubmitting ? "Đang lưu..." : serviceForm.id ? "Lưu thay đổi" : "Tạo dịch vụ"}
-          </button>
-
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-2xl bg-slate-100 px-4 py-3 text-sm font-bold text-slate-600 transition hover:bg-slate-200"
-          >
-            Hủy
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-);
 
 const StatusToggle = ({ status, onToggle, isPending }) => (
   <button
@@ -202,9 +97,22 @@ const CategoryFormOverlay = ({ categoryForm, setCategoryForm, onClose, onSubmit,
           <input
             value={categoryForm.name}
             onChange={(event) => setCategoryForm((current) => ({ ...current, name: event.target.value }))}
-            className="rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-sky-400"
+            className="rounded-2xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-sky-400"
             placeholder="Ví dụ: Chuyển phát, Ăn uống..."
           />
+        </label>
+
+        <label className="grid gap-2">
+          <span className="text-sm font-bold text-slate-700">URL Icon</span>
+          <div className="relative">
+            <ImageIcon className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+            <input
+              value={categoryForm.iconUrl}
+              onChange={(event) => setCategoryForm((current) => ({ ...current, iconUrl: event.target.value }))}
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 py-3 pl-10 pr-4 text-sm text-slate-700 outline-none transition focus:border-sky-400"
+              placeholder="https://..."
+            />
+          </div>
         </label>
 
         <div className="mt-2 flex gap-3">
@@ -233,7 +141,7 @@ const ActionMenu = ({ onEdit, onDelete, canEdit, canDelete }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className="relative flex justify-end">
+    <div className="relative ml-auto w-fit">
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
@@ -245,7 +153,7 @@ const ActionMenu = ({ onEdit, onDelete, canEdit, canDelete }) => {
       {isOpen && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
-          <div className="absolute right-full top-0 z-50 mr-2 min-w-[140px] overflow-hidden rounded-2xl bg-white shadow-xl ring-1 ring-slate-200">
+          <div className="absolute right-0 top-full z-50 mt-2 min-w-[140px] overflow-hidden rounded-2xl bg-white shadow-xl ring-1 ring-slate-200">
             {canEdit && (
               <button
                 type="button"
@@ -280,6 +188,7 @@ const ActionMenu = ({ onEdit, onDelete, canEdit, canDelete }) => {
 };
 
 const ReceptionistPOSServicePage = () => {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const canCreateService = hasPermission("CREATE_SERVICES");
   const canEditService = hasPermission("EDIT_SERVICES");
@@ -287,7 +196,6 @@ const ReceptionistPOSServicePage = () => {
 
   const [activeTab, setActiveTab] = useState("apply");
   const [notice, setNotice] = useState(null);
-  const [showServiceForm, setShowServiceForm] = useState(false);
   const [showCategoryForm, setShowCategoryForm] = useState(false);
   const [serviceSearch, setServiceSearch] = useState("");
   const [categorySearch, setCategorySearch] = useState("");
@@ -296,7 +204,6 @@ const ReceptionistPOSServicePage = () => {
     serviceId: "",
     quantity: 1,
   });
-  const [serviceForm, setServiceForm] = useState(emptyServiceForm);
   const [categoryForm, setCategoryForm] = useState(emptyCategoryForm);
   const [historyFilter, setHistoryFilter] = useState({
     paymentStatus: "all",
@@ -346,18 +253,6 @@ const ReceptionistPOSServicePage = () => {
     },
   });
 
-  const createServiceMutation = useMutation({
-    mutationFn: (payload) => servicesApi.createService(payload),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["services"] });
-      setServiceForm(emptyServiceForm);
-      setShowServiceForm(false);
-      setNotice({ type: "success", message: "Đã tạo dịch vụ mới." });
-    },
-    onError: (error) => {
-      setNotice({ type: "error", message: error?.response?.data || "Không thể tạo dịch vụ." });
-    },
-  });
 
   const updateServiceMutation = useMutation({
     mutationFn: ({ id, payload }) => servicesApi.updateService(id, payload),
@@ -366,8 +261,6 @@ const ReceptionistPOSServicePage = () => {
       if (!variables.isToggle) {
         setNotice({ type: "success", message: "Đã cập nhật dịch vụ." });
       }
-      setServiceForm(emptyServiceForm);
-      setShowServiceForm(false);
     },
     onError: (error) => {
       setNotice({ type: "error", message: error?.response?.data || "Không thể cập nhật dịch vụ." });
@@ -495,45 +388,13 @@ const ReceptionistPOSServicePage = () => {
     });
   };
 
-  const handleServiceSubmit = (event) => {
-    event.preventDefault();
-
-    if (!serviceForm.name.trim() || Number(serviceForm.price) < 0) {
-      setNotice({ type: "error", message: "Tên dịch vụ và giá tiền chưa hợp lệ." });
-      return;
-    }
-
-    const payload = {
-      categoryId: serviceForm.categoryId ? Number(serviceForm.categoryId) : null,
-      name: serviceForm.name.trim(),
-      price: Number(serviceForm.price),
-      unit: serviceForm.unit.trim() || null,
-      status: serviceForm.id ? serviceForm.status : true,
-    };
-
-    if (serviceForm.id) {
-      updateServiceMutation.mutate({ id: serviceForm.id, payload });
-      return;
-    }
-
-    createServiceMutation.mutate(payload);
-  };
 
   const handleOpenCreateForm = () => {
-    setServiceForm(emptyServiceForm);
-    setShowServiceForm(true);
+    navigate("/admin/pos/new");
   };
 
   const handleOpenEditForm = (service) => {
-    setServiceForm({
-      id: service.id,
-      categoryId: service.categoryId || "",
-      name: service.name,
-      price: String(service.price),
-      unit: service.unit || "",
-      status: service.status,
-    });
-    setShowServiceForm(true);
+    navigate(`/admin/pos/${service.id}/edit`);
   };
 
   const handleCategorySubmit = (event) => {
@@ -546,6 +407,7 @@ const ReceptionistPOSServicePage = () => {
 
     const payload = {
       name: categoryForm.name.trim(),
+      iconUrl: categoryForm.iconUrl?.trim() || null,
       status: categoryForm.id ? categoryForm.status : true,
     };
 
@@ -566,15 +428,12 @@ const ReceptionistPOSServicePage = () => {
     setCategoryForm({
       id: cat.id,
       name: cat.name,
+      iconUrl: cat.iconUrl || "",
       status: cat.status,
     });
     setShowCategoryForm(true);
   };
 
-  const handleCloseServiceForm = () => {
-    setServiceForm(emptyServiceForm);
-    setShowServiceForm(false);
-  };
 
   return (
     <>
@@ -738,7 +597,8 @@ const ReceptionistPOSServicePage = () => {
             <div className="mt-6">
               <table className="min-w-full divide-y divide-slate-200">
                 <thead className="bg-slate-50">
-                  <tr className="text-left text-xs font-black uppercase tracking-[0.18em] text-slate-500">
+                  <tr className="text-left text-xs font-bold uppercase tracking-[0.18em] text-slate-500">
+                    <th className="px-5 py-4 w-16"></th>
                     <th className="px-5 py-4">Dịch vụ</th>
                     <th className="px-5 py-4">Giá</th>
                     <th className="px-5 py-4">Trạng thái</th>
@@ -756,7 +616,18 @@ const ReceptionistPOSServicePage = () => {
                     filteredServices.map((service) => (
                       <tr key={service.id}>
                         <td className="px-5 py-4">
-                          <p className="font-black text-slate-900">{service.name}</p>
+                          <div className="size-10 overflow-hidden rounded-xl bg-slate-100 ring-1 ring-slate-200 shadow-sm">
+                            {service.thumbnailUrl ? (
+                              <img src={service.thumbnailUrl} alt={service.name} className="h-full w-full object-cover" />
+                            ) : (
+                              <div className="flex h-full w-full items-center justify-center text-slate-400">
+                                <ImageIcon size={16} />
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-5 py-4">
+                          <p className="font-bold text-slate-900">{service.name}</p>
                           <p className="mt-1 text-sm text-slate-500">
                             {service.categoryName || "Không có nhóm"} • {service.unit || "Không có đơn vị"}
                           </p>
@@ -778,7 +649,7 @@ const ReceptionistPOSServicePage = () => {
                             }}
                           />
                         </td>
-                        <td className="px-5 py-4">
+                        <td className="px-5 py-4 text-right">
                           <ActionMenu
                             canEdit={canEditService}
                             canDelete={canDeleteService}
@@ -829,7 +700,8 @@ const ReceptionistPOSServicePage = () => {
             <div className="mt-6">
               <table className="min-w-full divide-y divide-slate-200">
                 <thead className="bg-slate-50">
-                  <tr className="text-left text-xs font-black uppercase tracking-[0.18em] text-slate-500">
+                  <tr className="text-left text-xs font-bold uppercase tracking-[0.18em] text-slate-500">
+                    <th className="px-5 py-4 w-16"></th>
                     <th className="px-5 py-4">Tên nhóm</th>
                     <th className="px-5 py-4">Trạng thái</th>
                     <th className="px-5 py-4 text-right">Thao tác</th>
@@ -851,7 +723,16 @@ const ReceptionistPOSServicePage = () => {
                   ) : (
                     filteredCategories.map((cat) => (
                       <tr key={cat.id}>
-                        <td className="px-5 py-4 font-black text-slate-900">{cat.name}</td>
+                        <td className="px-5 py-4">
+                          <div className="flex size-10 items-center justify-center rounded-xl bg-sky-50 text-sky-600 ring-1 ring-sky-100">
+                            {cat.iconUrl ? (
+                              <img src={cat.iconUrl} alt={cat.name} className="size-6 object-contain" />
+                            ) : (
+                              <Layers size={18} />
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-5 py-4 font-bold text-slate-900">{cat.name}</td>
                         <td className="px-5 py-4">
                           <StatusToggle
                             status={cat.status}
@@ -865,7 +746,7 @@ const ReceptionistPOSServicePage = () => {
                             }}
                           />
                         </td>
-                        <td className="px-5 py-4">
+                        <td className="px-5 py-4 text-right">
                           <ActionMenu
                             canEdit={canEditService}
                             canDelete={canDeleteService}
@@ -1009,17 +890,6 @@ const ReceptionistPOSServicePage = () => {
         ) : null}
       </div>
 
-      {showServiceForm ? (
-        <ServiceFormOverlay
-          serviceForm={serviceForm}
-          setServiceForm={setServiceForm}
-          categories={categories}
-          onClose={handleCloseServiceForm}
-          onSubmit={handleServiceSubmit}
-          canSubmit={serviceForm.id ? canEditService : canCreateService}
-          isSubmitting={createServiceMutation.isPending || updateServiceMutation.isPending}
-        />
-      ) : null}
 
       {showCategoryForm ? (
         <CategoryFormOverlay

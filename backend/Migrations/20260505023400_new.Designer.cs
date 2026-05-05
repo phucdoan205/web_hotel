@@ -12,7 +12,7 @@ using backend.Data;
 namespace backend.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260503125719_new")]
+    [Migration("20260505023400_new")]
     partial class @new
     {
         /// <inheritdoc />
@@ -1078,6 +1078,9 @@ namespace backend.Migrations
                     b.Property<int?>("CategoryId")
                         .HasColumnType("int");
 
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -1087,6 +1090,9 @@ namespace backend.Migrations
 
                     b.Property<bool>("Status")
                         .HasColumnType("bit");
+
+                    b.Property<string>("ThumbnailUrl")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Unit")
                         .HasColumnType("nvarchar(max)");
@@ -1106,8 +1112,10 @@ namespace backend.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("IconUrl")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Name")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("Status")
@@ -1116,6 +1124,28 @@ namespace backend.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("ServiceCategories");
+                });
+
+            modelBuilder.Entity("backend.Models.ServiceImage", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ImageUrl")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("ServiceId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ServiceId");
+
+                    b.ToTable("ServiceImages");
                 });
 
             modelBuilder.Entity("backend.Models.User", b =>
@@ -1575,6 +1605,17 @@ namespace backend.Migrations
                     b.Navigation("Category");
                 });
 
+            modelBuilder.Entity("backend.Models.ServiceImage", b =>
+                {
+                    b.HasOne("backend.Models.Service", "Service")
+                        .WithMany("ServiceImages")
+                        .HasForeignKey("ServiceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Service");
+                });
+
             modelBuilder.Entity("backend.Models.User", b =>
                 {
                     b.HasOne("backend.Models.Membership", "Membership")
@@ -1719,6 +1760,8 @@ namespace backend.Migrations
             modelBuilder.Entity("backend.Models.Service", b =>
                 {
                     b.Navigation("OrderServiceDetails");
+
+                    b.Navigation("ServiceImages");
                 });
 
             modelBuilder.Entity("backend.Models.ServiceCategory", b =>

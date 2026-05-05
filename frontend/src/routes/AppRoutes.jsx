@@ -61,6 +61,7 @@ import SecuritySettingsPage from "../pages/public/account/SecuritySettingsPage";
 import GeneralSettingsPage from "../pages/public/account/GeneralSettingsPage";
 import AccountVouchersPage from "../pages/public/AccountVouchersPage";
 import SupportPage from "../pages/public/SupportPage";
+import ReceptionistServiceEditorPage from "../pages/receptionist/ReceptionistServiceEditorPage";
 import RequirePermission from "../components/auth/RequirePermission";
 
 const AppRoutes = () => {
@@ -114,6 +115,32 @@ const AppRoutes = () => {
       <Route path="/403" element={<ForbiddenPage />} />
 
       <Route path="/admin" element={<AdminLayout />}>
+        <Route path="pos">
+          <Route
+            index
+            element={
+              <RequirePermission permission="VIEW_SERVICES">
+                <AdminPOSServicePage />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="new"
+            element={
+              <RequirePermission permission="CREATE_SERVICES">
+                <ReceptionistServiceEditorPage />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path=":id/edit"
+            element={
+              <RequirePermission permission="EDIT_SERVICES">
+                <ReceptionistServiceEditorPage />
+              </RequirePermission>
+            }
+          />
+        </Route>
         <Route
           index
           element={
@@ -282,14 +309,6 @@ const AppRoutes = () => {
           element={
             <RequirePermission permission="VIEW_COMPENSATION">
               <AdminLossDamagePage />
-            </RequirePermission>
-          }
-        />
-        <Route
-          path="pos"
-          element={
-            <RequirePermission permission="VIEW_SERVICES">
-              <AdminPOSServicePage />
             </RequirePermission>
           }
         />

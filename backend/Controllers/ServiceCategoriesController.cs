@@ -23,6 +23,7 @@ namespace backend.Controllers
         {
             Id = category.Id,
             Name = category.Name,
+            IconUrl = category.IconUrl,
             Status = category.Status
         };
 
@@ -46,6 +47,7 @@ namespace backend.Controllers
             var category = new ServiceCategory
             {
                 Name = request.Name.Trim(),
+                IconUrl = request.IconUrl,
                 Status = request.Status
             };
 
@@ -66,6 +68,7 @@ namespace backend.Controllers
             }
 
             category.Name = request.Name.Trim();
+            category.IconUrl = request.IconUrl;
             category.Status = request.Status;
 
             await _context.SaveChangesAsync();

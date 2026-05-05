@@ -49,6 +49,7 @@ namespace backend.Data
 
         public DbSet<ServiceCategory> ServiceCategories { get; set; }
         public DbSet<Service> Services { get; set; }
+        public DbSet<ServiceImage> ServiceImages { get; set; }
         public DbSet<Voucher> Vouchers { get; set; }
         public DbSet<UserVoucher> UserVouchers { get; set; }
 
@@ -376,6 +377,14 @@ namespace backend.Data
                         .HasQueryFilter(lambda);
                 }
             }
+
+            modelBuilder.Entity<ServiceImage>(entity =>
+            {
+                entity.HasOne(si => si.Service)
+                    .WithMany(s => s.ServiceImages)
+                    .HasForeignKey(si => si.ServiceId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
 
             base.OnModelCreating(modelBuilder);
         }

@@ -5,14 +5,18 @@ const normalizeService = (service = {}) => ({
   categoryId: service.categoryId ? Number(service.categoryId) : null,
   categoryName: service.categoryName || null,
   name: service.name || "",
+  thumbnailUrl: service.thumbnailUrl || null,
+  description: service.description || "",
   price: Number(service.price || 0),
   unit: service.unit || "",
   status: Boolean(service.status),
+  images: Array.isArray(service.images) ? service.images : [],
 });
 
 const normalizeCategory = (category = {}) => ({
   id: Number(category.id || 0),
   name: category.name || "",
+  iconUrl: category.iconUrl || null,
   status: Boolean(category.status),
 });
 
@@ -51,6 +55,11 @@ export const servicesApi = {
     const items = Array.isArray(response.data) ? response.data : [];
     return items.map(normalizeService);
   },
+  
+  async getServiceDetail(id) {
+    const response = await apiClient.get(`/Services/${id}`);
+    return normalizeService(response.data);
+  },
 
   async getInHouseRooms() {
     const response = await apiClient.get("/Services/in-house");
@@ -77,6 +86,17 @@ export const servicesApi = {
   async updateService(id, payload) {
     const response = await apiClient.put(`/Services/${id}`, payload);
     return normalizeService(response.data);
+  },
+
+  async uploadImages(files, serviceName = "") {
+    const formData = new FormData();
+    files.forEach(file => formData.append("files", file));
+    if (serviceName) formData.append("serviceName", serviceName);
+
+    const response = await apiClient.post("/Services/upload-images", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return response.data.urls;
   },
 
   async deleteService(id) {

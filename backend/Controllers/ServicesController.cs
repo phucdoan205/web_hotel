@@ -1,9 +1,11 @@
+using backend.Common;
 using backend.Data;
 using backend.DTOs.Service;
 using backend.Models;
 using backend.Security;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Text;
 
 namespace backend.Controllers
 {
@@ -13,10 +15,12 @@ namespace backend.Controllers
     public class ServicesController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly CloudinaryService _cloudinaryService;
 
-        public ServicesController(AppDbContext context)
+        public ServicesController(AppDbContext context, CloudinaryService cloudinaryService)
         {
             _context = context;
+            _cloudinaryService = cloudinaryService;
         }
 
         private static ServiceResponseDTO MapService(Service service) => new()
@@ -25,9 +29,12 @@ namespace backend.Controllers
             CategoryId = service.CategoryId,
             CategoryName = service.Category?.Name,
             Name = service.Name,
+            ThumbnailUrl = service.ThumbnailUrl,
+            Description = service.Description,
             Price = service.Price,
             Unit = service.Unit,
-            Status = service.Status
+            Status = service.Status,
+            Images = service.ServiceImages.Select(img => img.ImageUrl).ToList()
         };
 
         private static ServiceUsageResponseDTO MapUsage(OrderServiceDetail detail) => new()
@@ -64,6 +71,7 @@ namespace backend.Controllers
 
             var services = await query
                 .Include(service => service.Category)
+                .Include(service => service.ServiceImages)
                 .OrderByDescending(service => service.Status)
                 .ThenBy(service => service.Name)
                 .ToListAsync();
@@ -248,9 +256,12 @@ namespace backend.Controllers
             {
                 CategoryId = request.CategoryId,
                 Name = request.Name.Trim(),
+                ThumbnailUrl = request.ThumbnailUrl,
+                Description = request.Description,
                 Price = request.Price,
                 Unit = string.IsNullOrWhiteSpace(request.Unit) ? null : request.Unit.Trim(),
-                Status = request.Status
+                Status = request.Status,
+                ServiceImages = request.Images.Select(url => new ServiceImage { ImageUrl = url }).ToList()
             };
 
             _context.Services.Add(service);
@@ -263,7 +274,10 @@ namespace backend.Controllers
         [Permission("EDIT_SERVICES")]
         public async Task<ActionResult<ServiceResponseDTO>> UpdateService(int id, [FromBody] ServiceUpsertDTO request)
         {
-            var service = await _context.Services.FirstOrDefaultAsync(item => item.Id == id);
+            var service = await _context.Services
+                .Include(s => s.ServiceImages)
+                .FirstOrDefaultAsync(item => item.Id == id);
+
             if (service == null)
             {
                 return NotFound("Không tìm thấy dịch vụ.");
@@ -281,9 +295,15 @@ namespace backend.Controllers
 
             service.CategoryId = request.CategoryId;
             service.Name = request.Name.Trim();
+            service.ThumbnailUrl = request.ThumbnailUrl;
+            service.Description = request.Description;
             service.Price = request.Price;
             service.Unit = string.IsNullOrWhiteSpace(request.Unit) ? null : request.Unit.Trim();
             service.Status = request.Status;
+
+            // Update images
+            _context.RemoveRange(service.ServiceImages);
+            service.ServiceImages = request.Images.Select(url => new ServiceImage { ImageUrl = url }).ToList();
 
             await _context.SaveChangesAsync();
 
@@ -304,6 +324,62 @@ namespace backend.Controllers
             await _context.SaveChangesAsync();
 
             return NoContent();
+        }
+        [HttpPost("upload-images")]
+        [Consumes("multipart/form-data")]
+        [RequestSizeLimit(50_000_000)]
+        [Permission("CREATE_SERVICES", "EDIT_SERVICES")]
+        public async Task<ActionResult<object>> UploadServiceImages([FromForm] List<IFormFile> files, [FromForm] string? serviceName = null)
+        {
+            if (files == null || files.Count == 0)
+            {
+                return BadRequest("Vui lòng chọn ít nhất một hình ảnh.");
+            }
+
+            var folderName = Slugify(serviceName);
+            var folder = string.IsNullOrWhiteSpace(folderName)
+                ? "services/general"
+                : $"services/{folderName}";
+
+            var results = new List<string>();
+            foreach (var file in files)
+            {
+                var uploadedUrl = await _cloudinaryService.UploadImageAsync(file, folder);
+                if (!string.IsNullOrWhiteSpace(uploadedUrl))
+                {
+                    results.Add(uploadedUrl);
+                }
+            }
+
+            if (results.Count == 0)
+            {
+                return StatusCode(500, "Upload ảnh lên Cloudinary thất bại.");
+            }
+
+            return Ok(new { urls = results, folder });
+        }
+
+        private static string Slugify(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return string.Empty;
+            }
+
+            var builder = new StringBuilder();
+            foreach (var ch in value.Trim().ToLowerInvariant())
+            {
+                if (char.IsLetterOrDigit(ch))
+                {
+                    builder.Append(ch);
+                }
+                else if (builder.Length > 0 && builder[^1] != '-')
+                {
+                    builder.Append('-');
+                }
+            }
+
+            return builder.ToString().Trim('-');
         }
     }
 }
