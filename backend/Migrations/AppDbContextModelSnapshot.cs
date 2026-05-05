@@ -1123,6 +1123,52 @@ namespace backend.Migrations
                     b.ToTable("ServiceCategories");
                 });
 
+            modelBuilder.Entity("backend.Models.ServiceComment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<int?>("ParentCommentId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("Rating")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ServiceId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("TaggedUserId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ParentCommentId");
+
+                    b.HasIndex("ServiceId");
+
+                    b.HasIndex("TaggedUserId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("ServiceComments");
+                });
+
             modelBuilder.Entity("backend.Models.ServiceImage", b =>
                 {
                     b.Property<int>("Id")
@@ -1602,6 +1648,39 @@ namespace backend.Migrations
                     b.Navigation("Category");
                 });
 
+            modelBuilder.Entity("backend.Models.ServiceComment", b =>
+                {
+                    b.HasOne("backend.Models.ServiceComment", "ParentComment")
+                        .WithMany("Replies")
+                        .HasForeignKey("ParentCommentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("backend.Models.Service", "Service")
+                        .WithMany()
+                        .HasForeignKey("ServiceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("backend.Models.User", "TaggedUser")
+                        .WithMany()
+                        .HasForeignKey("TaggedUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("backend.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ParentComment");
+
+                    b.Navigation("Service");
+
+                    b.Navigation("TaggedUser");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("backend.Models.ServiceImage", b =>
                 {
                     b.HasOne("backend.Models.Service", "Service")
@@ -1764,6 +1843,11 @@ namespace backend.Migrations
             modelBuilder.Entity("backend.Models.ServiceCategory", b =>
                 {
                     b.Navigation("Services");
+                });
+
+            modelBuilder.Entity("backend.Models.ServiceComment", b =>
+                {
+                    b.Navigation("Replies");
                 });
 
             modelBuilder.Entity("backend.Models.User", b =>

@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace backend.Migrations
 {
     /// <inheritdoc />
-    public partial class @new : Migration
+    public partial class _123 : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -655,6 +655,50 @@ namespace backend.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "ServiceComments",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    ServiceId = table.Column<int>(type: "int", nullable: false),
+                    UserId = table.Column<int>(type: "int", nullable: false),
+                    ParentCommentId = table.Column<int>(type: "int", nullable: true),
+                    TaggedUserId = table.Column<int>(type: "int", nullable: true),
+                    Content = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Rating = table.Column<int>(type: "int", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ServiceComments", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_ServiceComments_ServiceComments_ParentCommentId",
+                        column: x => x.ParentCommentId,
+                        principalTable: "ServiceComments",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_ServiceComments_Services_ServiceId",
+                        column: x => x.ServiceId,
+                        principalTable: "Services",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_ServiceComments_Users_TaggedUserId",
+                        column: x => x.TaggedUserId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.SetNull);
+                    table.ForeignKey(
+                        name: "FK_ServiceComments_Users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "ServiceImages",
                 columns: table => new
                 {
@@ -1091,6 +1135,26 @@ namespace backend.Migrations
                 column: "AmenityId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_ServiceComments_ParentCommentId",
+                table: "ServiceComments",
+                column: "ParentCommentId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ServiceComments_ServiceId",
+                table: "ServiceComments",
+                column: "ServiceId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ServiceComments_TaggedUserId",
+                table: "ServiceComments",
+                column: "TaggedUserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ServiceComments_UserId",
+                table: "ServiceComments",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_ServiceImages_ServiceId",
                 table: "ServiceImages",
                 column: "ServiceId");
@@ -1162,6 +1226,9 @@ namespace backend.Migrations
 
             migrationBuilder.DropTable(
                 name: "RoomTypeAmenities");
+
+            migrationBuilder.DropTable(
+                name: "ServiceComments");
 
             migrationBuilder.DropTable(
                 name: "ServiceImages");

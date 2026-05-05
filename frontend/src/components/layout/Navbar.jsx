@@ -41,8 +41,8 @@ const Navbar = () => {
         </Link>
         <div className="hidden items-center gap-1 xl:flex">
           <NavItem label="Khách sạn" to="/" icon={Hotel} />
-
           <NavItem label="Tìm phòng" to="/booking" icon={Calendar} />
+          <NavItem label="Dịch vụ" to="/services" icon={Utensils} />
           <NavItem label="Hoạt động" to="/articles" icon={Ticket} />
           <NavItem label="Ưu đãi" to="/offers" icon={BadgePercent} />
           <NavItem label="Trợ giúp" to="/support/help-center" icon={HelpCircle} />

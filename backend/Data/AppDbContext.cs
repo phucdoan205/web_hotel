@@ -52,6 +52,7 @@ namespace backend.Data
         public DbSet<ServiceImage> ServiceImages { get; set; }
         public DbSet<Voucher> Vouchers { get; set; }
         public DbSet<UserVoucher> UserVouchers { get; set; }
+        public DbSet<ServiceComment> ServiceComments { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -384,6 +385,33 @@ namespace backend.Data
                     .WithMany(s => s.ServiceImages)
                     .HasForeignKey(si => si.ServiceId)
                     .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<ServiceComment>(entity =>
+            {
+                entity.Property(c => c.Content).HasColumnType("nvarchar(max)");
+                entity.Property(c => c.CreatedAt).HasColumnType("datetime");
+                entity.Property(c => c.UpdatedAt).HasColumnType("datetime");
+
+                entity.HasOne(c => c.Service)
+                    .WithMany()
+                    .HasForeignKey(c => c.ServiceId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(c => c.User)
+                    .WithMany()
+                    .HasForeignKey(c => c.UserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(c => c.TaggedUser)
+                    .WithMany()
+                    .HasForeignKey(c => c.TaggedUserId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasOne(c => c.ParentComment)
+                    .WithMany(c => c.Replies)
+                    .HasForeignKey(c => c.ParentCommentId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             base.OnModelCreating(modelBuilder);

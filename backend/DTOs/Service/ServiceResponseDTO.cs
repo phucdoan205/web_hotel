@@ -12,5 +12,8 @@ namespace backend.DTOs.Service
         public string? Unit { get; set; }
         public bool Status { get; set; }
         public List<string> Images { get; set; } = new List<string>();
+        public double AverageRating { get; set; }
+        public int CommentCount { get; set; }
+        public List<backend.DTOs.Article.ArticleCommentDTO> Comments { get; set; } = new();
     }
 }

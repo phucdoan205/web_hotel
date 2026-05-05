@@ -14,6 +14,8 @@ import PostDetailPage from "../pages/public/PostDetailPage";
 import BlogSearchPage from "../pages/public/BlogSearchPage";
 import HotelListPage from "../pages/public/HotelListPage";
 import OffersPage from "../pages/public/OffersPage";
+import ServicesPage from "../pages/public/ServicesPage";
+import ServiceDetailPage from "../pages/public/ServiceDetailPage";
 
 import AdminSettingsPage from "../pages/admin/AdminSettingsPage";
 import AdminRolePermissionsPage from "../pages/admin/AdminRolePermissionsPage";
@@ -101,6 +103,8 @@ const AppRoutes = () => {
         <Route path="favorites" element={<AccountFavoritesPage />} />
         <Route path="reviews" element={<AccountReviewsPage />} />
         <Route path="vouchers" element={<AccountVouchersPage />} />
+        <Route path="services" element={<ServicesPage />} />
+        <Route path="services/:id" element={<ServiceDetailPage />} />
         <Route path="articles" element={<BlogPage />} />
         <Route path="articles/:id" element={<PostDetailPage />} />
         <Route path="articles/search" element={<BlogSearchPage />} />
