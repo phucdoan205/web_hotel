@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { 
   ArrowLeft, 
@@ -20,18 +20,27 @@ import "react-quill-new/dist/quill.snow.css";
 import servicesApi from "../../api/admin/servicesApi";
 import toast from "react-hot-toast";
 
+// Register custom font sizes
+const Size = ReactQuill.Quill.import("attributors/style/size");
+Size.whitelist = ["8px", "10px", "12px", "14px", "16px", "18px", "20px", "24px", "28px", "32px", "36px", "48px"];
+ReactQuill.Quill.register(Size, true);
+
 const QuillModules = {
   toolbar: [
-    [{ header: [1, 2, 3, false] }],
+    [{ header: [1, 2, 3, 4, 5, 6, false] }],
+    [{ size: Size.whitelist }],
     ["bold", "italic", "underline", "strike"],
     [{ color: [] }, { background: [] }],
     [{ list: "ordered" }, { list: "bullet" }],
-    ["link", "clean"],
+    [{ align: [] }],
+    ["link", "image"],
+    ["clean"],
   ],
 };
 
 const QuillFormats = [
   "header",
+  "size",
   "bold",
   "italic",
   "underline",
@@ -40,7 +49,9 @@ const QuillFormats = [
   "background",
   "list",
   "bullet",
+  "align",
   "link",
+  "image",
 ];
 
 const ReceptionistServiceEditorPage = () => {
@@ -64,6 +75,7 @@ const ReceptionistServiceEditorPage = () => {
 
   const thumbnailInputRef = useRef(null);
   const galleryInputRef = useRef(null);
+  const quillRef = useRef(null);
 
   const loadData = useCallback(async () => {
     try {
@@ -106,6 +118,43 @@ const ReceptionistServiceEditorPage = () => {
   const handleDescriptionChange = (content) => {
     setFormData((prev) => ({ ...prev, description: content }));
   };
+
+  const imageHandler = useCallback(() => {
+    const input = document.createElement("input");
+    input.setAttribute("type", "file");
+    input.setAttribute("accept", "image/*");
+    input.click();
+
+    input.onchange = async () => {
+      const file = input.files[0];
+      if (!file) return;
+
+      try {
+        setSubmitting(true);
+        const urls = await servicesApi.uploadImages([file], formData.name);
+        if (urls.length > 0) {
+          const quill = quillRef.current.getEditor();
+          const range = quill.getSelection();
+          quill.insertEmbed(range.index, "image", urls[0]);
+          toast.success("Đã chèn ảnh vào mô tả.");
+        }
+      } catch (error) {
+        toast.error("Không thể tải ảnh lên mô tả.");
+      } finally {
+        setSubmitting(false);
+      }
+    };
+  }, [formData.name]);
+
+  const modules = useMemo(() => ({
+    ...QuillModules,
+    toolbar: {
+      container: QuillModules.toolbar,
+      handlers: {
+        image: imageHandler
+      }
+    }
+  }), [imageHandler]);
 
   const handleThumbnailUpload = async (e) => {
     const file = e.target.files[0];
@@ -169,7 +218,7 @@ const ReceptionistServiceEditorPage = () => {
         await servicesApi.createService(payload);
         toast.success("Tạo dịch vụ thành công.");
       }
-      navigate("/admin/pos");
+      navigate("/admin/pos?tab=services");
     } catch (error) {
       toast.error(error.response?.data || "Có lỗi xảy ra.");
     } finally {
@@ -191,7 +240,7 @@ const ReceptionistServiceEditorPage = () => {
       <div className="flex items-center justify-between">
         <div>
           <button
-            onClick={() => navigate("/admin/pos")}
+            onClick={() => navigate("/admin/pos?tab=services")}
             className="group mb-4 flex items-center gap-2 text-sm font-bold text-slate-500 transition hover:text-sky-600"
           >
             <ArrowLeft className="size-4 transition-transform group-hover:-translate-x-1" />
@@ -273,14 +322,15 @@ const ReceptionistServiceEditorPage = () => {
                   <Type className="size-4 text-sky-500" />
                   Mô tả chi tiết
                 </label>
-                <div className="quill-editor rounded-3xl border border-slate-200 overflow-hidden">
+                <div className="quill-editor rounded-3xl border border-slate-200 bg-white">
                   <ReactQuill
+                    ref={quillRef}
                     theme="snow"
                     value={formData.description}
                     onChange={handleDescriptionChange}
-                    modules={QuillModules}
+                    modules={modules}
                     formats={QuillFormats}
-                    className="h-64"
+                    className="min-h-[300px]"
                   />
                 </div>
                 <p className="text-[11px] text-slate-400 font-medium ml-1">
@@ -405,21 +455,39 @@ const ReceptionistServiceEditorPage = () => {
           background: #f8fafc !important;
           padding: 12px !important;
           border-bottom: 1px solid #e2e8f0 !important;
+          position: sticky !important;
+          top: 0;
+          z-index: 10;
         }
         .quill-editor .ql-container {
           border: none !important;
           font-family: 'Inter', sans-serif !important;
-          font-size: 14px !important;
+          font-size: 15px !important;
+          min-height: 300px;
         }
         .quill-editor .ql-editor {
-          min-height: 200px !important;
-          padding: 20px !important;
+          min-height: 300px !important;
+          padding: 24px !important;
         }
         .quill-editor .ql-editor.ql-blank::before {
-          left: 20px !important;
+          left: 24px !important;
           font-style: normal !important;
           color: #94a3b8 !important;
           font-weight: 500 !important;
+        }
+
+        /* Custom Font Sizes Labels */
+        .ql-snow .ql-picker.ql-size .ql-picker-label::before,
+        .ql-snow .ql-picker.ql-size .ql-picker-item::before {
+          content: attr(data-value) !important;
+        }
+        .ql-snow .ql-picker.ql-size .ql-picker-label[data-value]::before,
+        .ql-snow .ql-picker.ql-size .ql-picker-item[data-value]::before {
+          content: attr(data-value) !important;
+        }
+        .ql-snow .ql-picker.ql-size .ql-picker-label:not([data-value])::before,
+        .ql-snow .ql-picker.ql-size .ql-picker-item:not([data-value])::before {
+          content: '14px' !important;
         }
       `}</style>
     </div>

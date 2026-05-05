@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useMemo, useState, useEffect } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ClipboardList, History, Layers, MoreVertical, Pencil, Plus, Search, Trash2, Wrench, X, CheckCircle2, AlertCircle, Image as ImageIcon, ImagePlus } from "lucide-react";
 import { servicesApi } from "../../api/admin/servicesApi";
@@ -103,16 +103,25 @@ const CategoryFormOverlay = ({ categoryForm, setCategoryForm, onClose, onSubmit,
         </label>
 
         <label className="grid gap-2">
-          <span className="text-sm font-bold text-slate-700">URL Icon</span>
+          <span className="text-sm font-bold text-slate-700">Icon (FontAwesome hoặc URL)</span>
           <div className="relative">
-            <ImageIcon className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+            {categoryForm.iconUrl && !categoryForm.iconUrl.startsWith("http") ? (
+              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-sky-600">
+                <i className={`${categoryForm.iconUrl.includes("fa-") ? categoryForm.iconUrl : `fa-solid fa-${categoryForm.iconUrl}`} text-sm`} />
+              </div>
+            ) : (
+              <ImageIcon className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+            )}
             <input
               value={categoryForm.iconUrl}
               onChange={(event) => setCategoryForm((current) => ({ ...current, iconUrl: event.target.value }))}
               className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 py-3 pl-10 pr-4 text-sm text-slate-700 outline-none transition focus:border-sky-400"
-              placeholder="https://..."
+              placeholder="Ví dụ: coffee, fa-solid fa-utensils..."
             />
           </div>
+          <p className="text-[10px] text-slate-400 font-medium ml-1">
+            Nhập tên icon từ FontAwesome (vd: utensils) hoặc URL ảnh.
+          </p>
         </label>
 
         <div className="mt-2 flex gap-3">
@@ -194,7 +203,10 @@ const ReceptionistPOSServicePage = () => {
   const canEditService = hasPermission("EDIT_SERVICES");
   const canDeleteService = hasPermission("DELETE_SERVICES");
 
-  const [activeTab, setActiveTab] = useState("apply");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialTab = searchParams.get("tab") || "apply";
+
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [notice, setNotice] = useState(null);
   const [showCategoryForm, setShowCategoryForm] = useState(false);
   const [serviceSearch, setServiceSearch] = useState("");
@@ -437,7 +449,7 @@ const ReceptionistPOSServicePage = () => {
 
   return (
     <>
-      <div className="space-y-6 p-8">
+      <div className="space-y-6 px-2 py-6">
         <div>
           <h1 className="text-3xl font-black tracking-tight text-slate-900">Dịch vụ phòng</h1>
           <p className="mt-2 text-sm font-medium text-slate-500">
@@ -457,7 +469,10 @@ const ReceptionistPOSServicePage = () => {
                 <button
                   key={tab.id}
                   type="button"
-                  onClick={() => setActiveTab(tab.id)}
+                  onClick={() => {
+                    setActiveTab(tab.id);
+                    setSearchParams({ tab: tab.id });
+                  }}
                   className={`inline-flex items-center gap-2 rounded-[1.25rem] px-4 py-3 text-sm font-bold transition ${
                     active ? "bg-sky-600 text-white shadow-sm" : "bg-slate-50 text-slate-600 hover:bg-sky-50 hover:text-sky-700"
                   }`}
@@ -725,11 +740,33 @@ const ReceptionistPOSServicePage = () => {
                       <tr key={cat.id}>
                         <td className="px-5 py-4">
                           <div className="flex size-10 items-center justify-center rounded-xl bg-sky-50 text-sky-600 ring-1 ring-sky-100">
-                            {cat.iconUrl ? (
-                              <img src={cat.iconUrl} alt={cat.name} className="size-6 object-contain" />
-                            ) : (
-                              <Layers size={18} />
-                            )}
+                            {(() => {
+                              const url = cat.iconUrl || "";
+                              if (!url) return <Layers size={18} />;
+
+                              if (url.includes("fontawesome.com/icons/")) {
+                                const iconName = url.split("/").pop().split("?")[0];
+                                return <i className={`fa-solid fa-${iconName} text-lg`} />;
+                              }
+
+                              if (url.startsWith("http")) {
+                                return (
+                                  <img
+                                    src={url}
+                                    alt=""
+                                    className="size-6 object-contain"
+                                    onError={(e) => {
+                                      e.target.onerror = null;
+                                      e.target.src = "https://ui-avatars.com/api/?name=?&background=f0f9ff&color=0284c7";
+                                    }}
+                                  />
+                                );
+                              }
+
+                              return (
+                                <i className={`${url.includes("fa-") ? url : `fa-solid fa-${url}`} text-lg`} />
+                              );
+                            })()}
                           </div>
                         </td>
                         <td className="px-5 py-4 font-bold text-slate-900">{cat.name}</td>
@@ -740,6 +777,7 @@ const ReceptionistPOSServicePage = () => {
                             onToggle={() => {
                               const payload = {
                                 name: cat.name,
+                                iconUrl: cat.iconUrl,
                                 status: !cat.status,
                               };
                               updateCategoryMutation.mutate({ id: cat.id, payload, isToggle: true });

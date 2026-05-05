@@ -79,6 +79,24 @@ namespace backend.Controllers
             return Ok(services.Select(MapService));
         }
 
+        [HttpGet("{id:int}")]
+        [Permission("VIEW_SERVICES")]
+        public async Task<ActionResult<ServiceResponseDTO>> GetService(int id)
+        {
+            var service = await _context.Services
+                .AsNoTracking()
+                .Include(service => service.Category)
+                .Include(service => service.ServiceImages)
+                .FirstOrDefaultAsync(item => item.Id == id);
+
+            if (service == null)
+            {
+                return NotFound("Không tìm thấy dịch vụ.");
+            }
+
+            return Ok(MapService(service));
+        }
+
         [HttpGet("in-house")]
         [Permission("VIEW_SERVICES")]
         public async Task<ActionResult<IEnumerable<InHouseRoomResponseDTO>>> GetInHouseRooms()
@@ -293,6 +311,22 @@ namespace backend.Controllers
                 return BadRequest("Giá dịch vụ không hợp lệ.");
             }
 
+            // Identify images to delete from Cloudinary
+            var currentImageUrls = service.ServiceImages.Select(img => img.ImageUrl).ToList();
+            var newImageUrls = request.Images;
+            var imagesToDelete = currentImageUrls.Except(newImageUrls).ToList();
+
+            // Also check thumbnail
+            if (!string.IsNullOrEmpty(service.ThumbnailUrl) && service.ThumbnailUrl != request.ThumbnailUrl)
+            {
+                imagesToDelete.Add(service.ThumbnailUrl);
+            }
+
+            foreach (var imageUrl in imagesToDelete)
+            {
+                await _cloudinaryService.DeleteImageByUrlAsync(imageUrl);
+            }
+
             service.CategoryId = request.CategoryId;
             service.Name = request.Name.Trim();
             service.ThumbnailUrl = request.ThumbnailUrl;
@@ -301,8 +335,8 @@ namespace backend.Controllers
             service.Unit = string.IsNullOrWhiteSpace(request.Unit) ? null : request.Unit.Trim();
             service.Status = request.Status;
 
-            // Update images
-            _context.RemoveRange(service.ServiceImages);
+            // Update images in database
+            _context.ServiceImages.RemoveRange(service.ServiceImages);
             service.ServiceImages = request.Images.Select(url => new ServiceImage { ImageUrl = url }).ToList();
 
             await _context.SaveChangesAsync();
@@ -314,13 +348,27 @@ namespace backend.Controllers
         [Permission("DELETE_SERVICES")]
         public async Task<IActionResult> DeleteService(int id)
         {
-            var service = await _context.Services.FirstOrDefaultAsync(item => item.Id == id);
+            var service = await _context.Services
+                .Include(s => s.ServiceImages)
+                .FirstOrDefaultAsync(item => item.Id == id);
+
             if (service == null)
             {
                 return NotFound("Không tìm thấy dịch vụ.");
             }
 
-            service.Status = false;
+            // Cleanup Cloudinary
+            if (!string.IsNullOrEmpty(service.ThumbnailUrl))
+            {
+                await _cloudinaryService.DeleteImageByUrlAsync(service.ThumbnailUrl);
+            }
+
+            foreach (var img in service.ServiceImages)
+            {
+                await _cloudinaryService.DeleteImageByUrlAsync(img.ImageUrl);
+            }
+
+            _context.Services.Remove(service);
             await _context.SaveChangesAsync();
 
             return NoContent();
@@ -338,8 +386,8 @@ namespace backend.Controllers
 
             var folderName = Slugify(serviceName);
             var folder = string.IsNullOrWhiteSpace(folderName)
-                ? "services/general"
-                : $"services/{folderName}";
+                ? "home/services/general"
+                : $"home/services/{folderName}";
 
             var results = new List<string>();
             foreach (var file in files)
