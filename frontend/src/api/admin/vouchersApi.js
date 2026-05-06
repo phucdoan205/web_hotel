@@ -11,6 +11,9 @@ export const toggleActiveVoucher = (id) => apiClient.post(`${base}/${id}/toggle-
 export const sendVoucherToUsers = (payload) => apiClient.post(`${base}/send/users`, payload);
 export const sendVoucherToBirthdays = (payload) =>
   apiClient.post(`${base}/send/birthdays`, payload);
+export const uploadImage = (formData) => apiClient.post(`${base}/upload-image`, formData, {
+  headers: { "Content-Type": "multipart/form-data" },
+});
 
 export default {
   listVouchers,
@@ -21,4 +24,5 @@ export default {
   toggleActiveVoucher,
   sendVoucherToUsers,
   sendVoucherToBirthdays,
+  uploadImage,
 };
