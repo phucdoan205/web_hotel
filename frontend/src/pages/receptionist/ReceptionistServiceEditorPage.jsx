@@ -1,58 +1,82 @@
-import React, { useEffect, useState, useCallback, useMemo } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { 
-  ArrowLeft, 
-  Save, 
-  Image as ImageIcon, 
-  Plus, 
-  Trash2, 
-  Layers,
-  Layout,
-  Type,
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import {
+  AlignCenter,
+  AlignLeft,
+  AlignRight,
+  ArrowLeft,
   BadgeDollarSign,
+  Bold,
+  Eraser,
+  Highlighter,
+  Image as ImageIcon,
+  Italic,
+  Layers,
+  Link as LinkIcon,
+  List,
+  ListOrdered,
+  Minus,
   Package,
+  Quote,
+  Save,
+  Strikethrough,
+  Trash2,
+  Type,
+  Underline,
   Upload,
-  Loader2
+  X,
 } from "lucide-react";
-import { useRef } from "react";
-import ReactQuill from "react-quill-new";
-import "react-quill-new/dist/quill.snow.css";
-import servicesApi from "../../api/admin/servicesApi";
+import { useNavigate, useParams } from "react-router-dom";
 import toast from "react-hot-toast";
+import servicesApi from "../../api/admin/servicesApi";
 
-// Register custom font sizes
-const Size = ReactQuill.Quill.import("attributors/style/size");
-Size.whitelist = ["8px", "10px", "12px", "14px", "16px", "18px", "20px", "24px", "28px", "32px", "36px", "48px"];
-ReactQuill.Quill.register(Size, true);
-
-const QuillModules = {
-  toolbar: [
-    [{ header: [1, 2, 3, 4, 5, 6, false] }],
-    [{ size: Size.whitelist }],
-    ["bold", "italic", "underline", "strike"],
-    [{ color: [] }, { background: [] }],
-    [{ list: "ordered" }, { list: "bullet" }],
-    [{ align: [] }],
-    ["link", "image"],
-    ["clean"],
-  ],
-};
-
-const QuillFormats = [
-  "header",
-  "size",
-  "bold",
-  "italic",
-  "underline",
-  "strike",
-  "color",
-  "background",
-  "list",
-  "bullet",
-  "align",
-  "link",
-  "image",
+const textFormats = [
+  { value: "p", label: "Normal" },
+  { value: "h1", label: "Heading 1" },
+  { value: "h2", label: "Heading 2" },
+  { value: "h3", label: "Heading 3" },
 ];
+
+const fontFamilies = [
+  { value: "Arial, sans-serif", label: "Sans Serif" },
+  { value: "Georgia, serif", label: "Serif" },
+  { value: "'Courier New', monospace", label: "Monospace" },
+  { value: "'Times New Roman', serif", label: "Classic" },
+];
+
+const fontSizes = [
+  { value: "1", label: "10" },
+  { value: "2", label: "12" },
+  { value: "3", label: "14" },
+  { value: "4", label: "16" },
+  { value: "5", label: "18" },
+  { value: "6", label: "24" },
+  { value: "7", label: "32" },
+];
+
+const ToolbarButton = ({ children, onClick, title, disabled = false }) => (
+  <button
+    type="button"
+    title={title}
+    onClick={onClick}
+    disabled={disabled}
+    className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 bg-white text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+  >
+    {children}
+  </button>
+);
+
+const ToolbarDivider = () => <div className="h-8 w-px bg-gray-200" />;
+
+const emptyForm = {
+  name: "",
+  categoryId: "",
+  price: "",
+  unit: "",
+  status: true,
+  description: "",
+  thumbnailUrl: "",
+  images: [],
+};
 
 const ReceptionistServiceEditorPage = () => {
   const { id } = useParams();
@@ -62,20 +86,78 @@ const ReceptionistServiceEditorPage = () => {
   const [loading, setLoading] = useState(isEditMode);
   const [submitting, setSubmitting] = useState(false);
   const [categories, setCategories] = useState([]);
-  const [formData, setFormData] = useState({
-    name: "",
-    categoryId: "",
-    price: "",
-    unit: "",
-    status: true,
-    description: "",
-    thumbnailUrl: "",
-    images: [],
-  });
+  const [formData, setFormData] = useState(emptyForm);
+  const [blockFormat, setBlockFormat] = useState("p");
+  const [fontFamily, setFontFamily] = useState(fontFamilies[0].value);
+  const [fontSize, setFontSize] = useState("4");
 
   const thumbnailInputRef = useRef(null);
   const galleryInputRef = useRef(null);
-  const quillRef = useRef(null);
+  const contentImageInputRef = useRef(null);
+  const editorRef = useRef(null);
+  const savedSelectionRef = useRef(null);
+
+  const saveSelection = () => {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) {
+      return;
+    }
+
+    savedSelectionRef.current = selection.getRangeAt(0).cloneRange();
+  };
+
+  const restoreSelection = () => {
+    const selection = window.getSelection();
+    if (!selection || !savedSelectionRef.current) {
+      return;
+    }
+
+    selection.removeAllRanges();
+    selection.addRange(savedSelectionRef.current);
+  };
+
+  const syncEditorContent = useCallback(() => {
+    setFormData((current) => ({
+      ...current,
+      description: editorRef.current?.innerHTML ?? "",
+    }));
+  }, []);
+
+  const updateToolbarState = useCallback(() => {
+    if (!editorRef.current) {
+      return;
+    }
+
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) {
+      return;
+    }
+
+    const anchorNode = selection.anchorNode;
+    const element = anchorNode?.nodeType === Node.ELEMENT_NODE ? anchorNode : anchorNode?.parentElement;
+    const block = element?.closest("h1, h2, h3, p, div, blockquote");
+    const computed = element ? window.getComputedStyle(element) : null;
+    const currentFontSize = parseFloat(computed?.fontSize || "16");
+    const closestFontSize = fontSizes.reduce((closest, option) => {
+      const optionSize = Number(option.label);
+      return Math.abs(optionSize - currentFontSize) < Math.abs(Number(closest.label) - currentFontSize)
+        ? option
+        : closest;
+    }, fontSizes[3]);
+
+    setBlockFormat(block?.tagName?.toLowerCase() === "div" ? "p" : block?.tagName?.toLowerCase() || "p");
+    setFontFamily(computed?.fontFamily || fontFamilies[0].value);
+    setFontSize(closestFontSize.value);
+  }, []);
+
+  const applyCommand = useCallback((command, value = null) => {
+    editorRef.current?.focus();
+    restoreSelection();
+    document.execCommand(command, false, value);
+    saveSelection();
+    syncEditorContent();
+    updateToolbarState();
+  }, [syncEditorContent, updateToolbarState]);
 
   const loadData = useCallback(async () => {
     try {
@@ -85,14 +167,28 @@ const ReceptionistServiceEditorPage = () => {
       if (isEditMode) {
         const service = await servicesApi.getServiceDetail(id);
         setFormData({
-          name: service.name,
+          name: service.name || "",
           categoryId: service.categoryId ? String(service.categoryId) : "",
-          price: String(service.price),
-          unit: service.unit,
+          price: String(service.price ?? ""),
+          unit: service.unit || "",
           status: service.status,
-          description: service.description,
+          description: service.description || "",
           thumbnailUrl: service.thumbnailUrl || "",
           images: service.images || [],
+        });
+
+        requestAnimationFrame(() => {
+          if (editorRef.current) {
+            editorRef.current.innerHTML = service.description || "";
+            updateToolbarState();
+          }
+        });
+      } else {
+        setFormData(emptyForm);
+        requestAnimationFrame(() => {
+          if (editorRef.current) {
+            editorRef.current.innerHTML = "";
+          }
         });
       }
     } catch (error) {
@@ -101,111 +197,144 @@ const ReceptionistServiceEditorPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [id, isEditMode]);
+  }, [id, isEditMode, updateToolbarState]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
 
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setFormData((prev) => ({
-      ...prev,
+  const handleChange = (event) => {
+    const { name, value, type, checked } = event.target;
+    setFormData((current) => ({
+      ...current,
       [name]: type === "checkbox" ? checked : value,
     }));
   };
 
-  const handleDescriptionChange = (content) => {
-    setFormData((prev) => ({ ...prev, description: content }));
+  const handleBlockFormatChange = (event) => {
+    const value = event.target.value;
+    setBlockFormat(value);
+    applyCommand("formatBlock", value === "p" ? "<p>" : `<${value}>`);
   };
 
-  const imageHandler = useCallback(() => {
-    const input = document.createElement("input");
-    input.setAttribute("type", "file");
-    input.setAttribute("accept", "image/*");
-    input.click();
+  const handleFontFamilyChange = (event) => {
+    const value = event.target.value;
+    setFontFamily(value);
+    applyCommand("fontName", value);
+  };
 
-    input.onchange = async () => {
-      const file = input.files[0];
-      if (!file) return;
+  const handleFontSizeChange = (event) => {
+    const value = event.target.value;
+    setFontSize(value);
+    applyCommand("fontSize", value);
+  };
 
-      try {
-        setSubmitting(true);
-        const urls = await servicesApi.uploadImages([file], formData.name);
-        if (urls.length > 0) {
-          const quill = quillRef.current.getEditor();
-          const range = quill.getSelection();
-          quill.insertEmbed(range.index, "image", urls[0]);
-          toast.success("Đã chèn ảnh vào mô tả.");
-        }
-      } catch (error) {
-        toast.error("Không thể tải ảnh lên mô tả.");
-      } finally {
-        setSubmitting(false);
-      }
-    };
-  }, [formData.name]);
-
-  const modules = useMemo(() => ({
-    ...QuillModules,
-    toolbar: {
-      container: QuillModules.toolbar,
-      handlers: {
-        image: imageHandler
-      }
+  const handleInsertLink = () => {
+    const url = window.prompt("Nhập link cần chèn");
+    if (!url) {
+      return;
     }
-  }), [imageHandler]);
 
-  const handleThumbnailUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+    applyCommand("createLink", url);
+  };
+
+  const handleThumbnailUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
 
     try {
       setSubmitting(true);
       const urls = await servicesApi.uploadImages([file], formData.name);
       if (urls.length > 0) {
-        setFormData(prev => ({ ...prev, thumbnailUrl: urls[0] }));
+        setFormData((current) => ({ ...current, thumbnailUrl: urls[0] }));
         toast.success("Tải ảnh đại diện thành công.");
       }
     } catch (error) {
       toast.error("Không thể tải ảnh lên.");
     } finally {
       setSubmitting(false);
+      event.target.value = "";
     }
   };
 
-  const handleGalleryUpload = async (e) => {
-    const files = Array.from(e.target.files);
-    if (files.length === 0) return;
+  const insertHtmlAtCaret = (html) => {
+    editorRef.current?.focus();
+    restoreSelection();
+    document.execCommand("insertHTML", false, html);
+    saveSelection();
+    syncEditorContent();
+    updateToolbarState();
+  };
+
+  const handleContentImageUpload = async (event) => {
+    const files = Array.from(event.target.files ?? []);
+    if (files.length === 0) {
+      return;
+    }
 
     try {
       setSubmitting(true);
       const urls = await servicesApi.uploadImages(files, formData.name);
-      setFormData(prev => ({
-        ...prev,
-        images: [...prev.images, ...urls]
+      if (!urls.length) {
+        throw new Error("Không tải được ảnh.");
+      }
+
+      const html = urls
+        .map(
+          (url) =>
+            `<p><img src="${url}" alt="service-content" style="max-width:100%;border-radius:16px;margin:16px 0;" /></p>`,
+        )
+        .join("");
+
+      insertHtmlAtCaret(html);
+      toast.success("Đã chèn ảnh vào mô tả.");
+    } catch (error) {
+      toast.error("Không thể tải ảnh lên mô tả.");
+    } finally {
+      setSubmitting(false);
+      event.target.value = "";
+    }
+  };
+
+  const handleGalleryUpload = async (event) => {
+    const files = Array.from(event.target.files ?? []);
+    if (files.length === 0) {
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      const urls = await servicesApi.uploadImages(files, formData.name);
+      setFormData((current) => ({
+        ...current,
+        images: [...current.images, ...urls],
       }));
       toast.success(`Đã tải lên ${urls.length} ảnh.`);
     } catch (error) {
       toast.error("Không thể tải ảnh lên.");
     } finally {
       setSubmitting(false);
+      event.target.value = "";
     }
   };
 
   const handleRemoveImage = (index) => {
-    setFormData((prev) => ({
-      ...prev,
-      images: prev.images.filter((_, i) => i !== index),
+    setFormData((current) => ({
+      ...current,
+      images: current.images.filter((_, imageIndex) => imageIndex !== index),
     }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (event) => {
+    event.preventDefault();
     setSubmitting(true);
+    syncEditorContent();
 
     const payload = {
       ...formData,
+      description: editorRef.current?.innerHTML?.trim() || "",
       categoryId: formData.categoryId ? Number(formData.categoryId) : null,
       price: Number(formData.price),
     };
@@ -229,14 +358,13 @@ const ReceptionistServiceEditorPage = () => {
   if (loading) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
-        <div className="size-10 animate-spin rounded-full border-4 border-sky-500 border-t-transparent"></div>
+        <div className="size-10 animate-spin rounded-full border-4 border-sky-500 border-t-transparent" />
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-[1400px] px-6 space-y-10 pb-20">
-      {/* Header */}
+    <div className="mx-auto max-w-[1400px] space-y-10 px-6 pb-20">
       <div className="flex items-center justify-between">
         <div>
           <button
@@ -249,7 +377,7 @@ const ReceptionistServiceEditorPage = () => {
           <h1 className="text-3xl font-black text-slate-900">
             {isEditMode ? "Chỉnh sửa dịch vụ" : "Tạo dịch vụ mới"}
           </h1>
-          <p className="mt-2 text-slate-500 font-medium">
+          <p className="mt-2 font-medium text-slate-500">
             Thiết lập thông tin chi tiết, hình ảnh và mô tả cho dịch vụ của bạn.
           </p>
         </div>
@@ -260,7 +388,7 @@ const ReceptionistServiceEditorPage = () => {
           className="inline-flex items-center gap-2 rounded-2xl bg-sky-600 px-6 py-3.5 text-sm font-black text-white shadow-lg shadow-sky-200 transition hover:bg-sky-700 hover:shadow-xl disabled:opacity-50"
         >
           {submitting ? (
-            <div className="size-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+            <div className="size-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
           ) : (
             <Save className="size-4" />
           )}
@@ -269,78 +397,199 @@ const ReceptionistServiceEditorPage = () => {
       </div>
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-        {/* Left Column - Main Info */}
-        <div className="lg:col-span-2 space-y-8">
+        <div className="space-y-8 lg:col-span-2">
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              <div className="space-y-2 md:col-span-2">
+                <label className="ml-1 text-sm font-bold text-slate-700">Tên dịch vụ</label>
+                <input
+                  name="name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  placeholder="VD: Coca Cola, Massage chân..."
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-5 py-3.5 text-sm font-medium outline-none transition focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-50"
+                  required
+                />
+              </div>
 
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                <div className="space-y-2 md:col-span-2">
-                  <label className="text-sm font-bold text-slate-700 ml-1">Tên dịch vụ</label>
+              <div className="space-y-2">
+                <label className="ml-1 text-sm font-bold text-slate-700">Giá bán (VNĐ)</label>
+                <div className="relative">
+                  <BadgeDollarSign className="absolute left-4 top-1/2 size-5 -translate-y-1/2 text-slate-400" />
                   <input
-                    name="name"
-                    value={formData.name}
+                    name="price"
+                    type="number"
+                    value={formData.price}
                     onChange={handleChange}
-                    placeholder="VD: Coca Cola, Massage chân..."
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-5 py-3.5 text-sm font-medium outline-none transition focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-50"
+                    placeholder="0"
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 py-3.5 pl-12 pr-5 text-sm font-bold outline-none transition focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-50"
                     required
                   />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-700 ml-1">Giá bán (VNĐ)</label>
-                  <div className="relative">
-                    <BadgeDollarSign className="absolute left-4 top-1/2 size-5 -translate-y-1/2 text-slate-400" />
-                    <input
-                      name="price"
-                      type="number"
-                      value={formData.price}
-                      onChange={handleChange}
-                      placeholder="0"
-                      className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 py-3.5 pl-12 pr-5 text-sm font-bold outline-none transition focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-50"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-700 ml-1">Đơn vị tính</label>
-                  <div className="relative">
-                    <Package className="absolute left-4 top-1/2 size-5 -translate-y-1/2 text-slate-400" />
-                    <input
-                      name="unit"
-                      value={formData.unit}
-                      onChange={handleChange}
-                      placeholder="VD: Lon, Chai, Giờ..."
-                      className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 py-3.5 pl-12 pr-5 text-sm font-medium outline-none transition focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-50"
-                    />
-                  </div>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700 ml-1 flex items-center gap-2">
-                  <Type className="size-4 text-sky-500" />
-                  Mô tả chi tiết
-                </label>
-                <div className="quill-editor rounded-3xl border border-slate-200 bg-white">
-                  <ReactQuill
-                    ref={quillRef}
-                    theme="snow"
-                    value={formData.description}
-                    onChange={handleDescriptionChange}
-                    modules={modules}
-                    formats={QuillFormats}
-                    className="min-h-[300px]"
+                <label className="ml-1 text-sm font-bold text-slate-700">Đơn vị tính</label>
+                <div className="relative">
+                  <Package className="absolute left-4 top-1/2 size-5 -translate-y-1/2 text-slate-400" />
+                  <input
+                    name="unit"
+                    value={formData.unit}
+                    onChange={handleChange}
+                    placeholder="VD: Lon, Chai, Giờ..."
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 py-3.5 pl-12 pr-5 text-sm font-medium outline-none transition focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-50"
                   />
                 </div>
-                <p className="text-[11px] text-slate-400 font-medium ml-1">
-                  Mô tả chi tiết giúp khách hàng hiểu rõ hơn về dịch vụ bạn cung cấp.
-                </p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="ml-1 flex items-center gap-2 text-sm font-bold text-slate-700">
+                <Type className="size-4 text-sky-500" />
+                Mô tả chi tiết
+              </label>
+              <div className="rounded-[1.5rem] border border-gray-200 bg-slate-50">
+                <div className="flex flex-wrap items-center gap-2 border-b border-gray-200 px-3 py-3">
+                  <select
+                    value={blockFormat}
+                    onChange={handleBlockFormatChange}
+                    onMouseDown={saveSelection}
+                    className="h-10 rounded-lg border border-gray-200 bg-white px-3 text-sm font-semibold text-slate-700 outline-none"
+                  >
+                    {textFormats.map((item) => (
+                      <option key={item.value} value={item.value}>
+                        {item.label}
+                      </option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={fontFamily}
+                    onChange={handleFontFamilyChange}
+                    onMouseDown={saveSelection}
+                    className="h-10 rounded-lg border border-gray-200 bg-white px-3 text-sm font-semibold text-slate-700 outline-none"
+                  >
+                    {fontFamilies.map((item) => (
+                      <option key={item.value} value={item.value}>
+                        {item.label}
+                      </option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={fontSize}
+                    onChange={handleFontSizeChange}
+                    onMouseDown={saveSelection}
+                    className="h-10 rounded-lg border border-gray-200 bg-white px-3 text-sm font-semibold text-slate-700 outline-none"
+                    title="Cỡ chữ"
+                  >
+                    {fontSizes.map((item) => (
+                      <option key={item.value} value={item.value}>
+                        {item.label}
+                      </option>
+                    ))}
+                  </select>
+
+                  <ToolbarDivider />
+
+                  <ToolbarButton title="Canh trái" onClick={() => applyCommand("justifyLeft")}>
+                    <AlignLeft className="size-4" />
+                  </ToolbarButton>
+                  <ToolbarButton title="Canh giữa" onClick={() => applyCommand("justifyCenter")}>
+                    <AlignCenter className="size-4" />
+                  </ToolbarButton>
+                  <ToolbarButton title="Canh phải" onClick={() => applyCommand("justifyRight")}>
+                    <AlignRight className="size-4" />
+                  </ToolbarButton>
+
+                  <ToolbarDivider />
+
+                  <ToolbarButton title="Chữ đậm" onClick={() => applyCommand("bold")}>
+                    <Bold className="size-4" />
+                  </ToolbarButton>
+                  <ToolbarButton title="Chữ nghiêng" onClick={() => applyCommand("italic")}>
+                    <Italic className="size-4" />
+                  </ToolbarButton>
+                  <ToolbarButton title="Gạch chân" onClick={() => applyCommand("underline")}>
+                    <Underline className="size-4" />
+                  </ToolbarButton>
+                  <ToolbarButton title="Gạch ngang" onClick={() => applyCommand("strikeThrough")}>
+                    <Strikethrough className="size-4" />
+                  </ToolbarButton>
+                  <ToolbarButton title="Màu chữ" onClick={() => applyCommand("foreColor", "#1d4ed8")}>
+                    <span className="text-sm font-black text-blue-700">A</span>
+                  </ToolbarButton>
+                  <ToolbarButton title="Tô nền chữ" onClick={() => applyCommand("hiliteColor", "#fef08a")}>
+                    <Highlighter className="size-4" />
+                  </ToolbarButton>
+
+                  <ToolbarDivider />
+
+                  <ToolbarButton title="Danh sách chấm" onClick={() => applyCommand("insertUnorderedList")}>
+                    <List className="size-4" />
+                  </ToolbarButton>
+                  <ToolbarButton title="Danh sách số" onClick={() => applyCommand("insertOrderedList")}>
+                    <ListOrdered className="size-4" />
+                  </ToolbarButton>
+                  <ToolbarButton title="Chèn link" onClick={handleInsertLink}>
+                    <LinkIcon className="size-4" />
+                  </ToolbarButton>
+                  <ToolbarButton
+                    title="Chèn ảnh vào nội dung"
+                    onClick={() => contentImageInputRef.current?.click()}
+                    disabled={submitting}
+                  >
+                    <ImageIcon className="size-4" />
+                  </ToolbarButton>
+                  <ToolbarButton title="Blockquote" onClick={() => applyCommand("formatBlock", "<blockquote>")}>
+                    <Quote className="size-4" />
+                  </ToolbarButton>
+                  <ToolbarButton title="Đường kẻ ngang" onClick={() => applyCommand("insertHorizontalRule")}>
+                    <Minus className="size-4" />
+                  </ToolbarButton>
+                  <ToolbarButton title="Xóa format" onClick={() => applyCommand("removeFormat")}>
+                    <Eraser className="size-4" />
+                  </ToolbarButton>
+
+                  <input
+                    ref={contentImageInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleContentImageUpload}
+                    className="hidden"
+                  />
+                </div>
+
+                <div
+                  ref={editorRef}
+                  contentEditable
+                  suppressContentEditableWarning
+                  onInput={syncEditorContent}
+                  onMouseUp={() => {
+                    saveSelection();
+                    updateToolbarState();
+                  }}
+                  onKeyUp={() => {
+                    saveSelection();
+                    updateToolbarState();
+                  }}
+                  onFocus={() => {
+                    saveSelection();
+                    updateToolbarState();
+                  }}
+                  className="min-h-[460px] max-w-full overflow-x-hidden px-5 py-4 text-base leading-8 text-slate-700 outline-none [overflow-wrap:anywhere]"
+                  data-placeholder="Nhập mô tả chi tiết dịch vụ..."
+                />
+              </div>
+              <p className="ml-1 text-[11px] font-medium text-slate-400">
+                Mô tả chi tiết giúp khách hàng hiểu rõ hơn về dịch vụ bạn cung cấp.
+              </p>
             </div>
           </div>
 
           <div className="space-y-6">
-              <div className="mb-6 flex items-center justify-between">
+            <div className="mb-6 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="flex size-10 items-center justify-center rounded-2xl bg-amber-50 text-amber-600">
                   <ImageIcon className="size-5" />
@@ -359,9 +608,16 @@ const ReceptionistServiceEditorPage = () => {
 
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
               {formData.images.map((url, index) => (
-                <div key={index} className="group relative aspect-square overflow-hidden rounded-3xl border border-slate-100 ring-4 ring-white shadow-sm">
-                  <img src={url} alt={`Gallery ${index}`} className="h-full w-full object-cover transition duration-500 group-hover:scale-110" />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 transition group-hover:opacity-100 flex items-center justify-center">
+                <div
+                  key={index}
+                  className="group relative aspect-square overflow-hidden rounded-3xl border border-slate-100 ring-4 ring-white shadow-sm"
+                >
+                  <img
+                    src={url}
+                    alt={`Gallery ${index}`}
+                    className="h-full w-full object-cover transition duration-500 group-hover:scale-110"
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition group-hover:opacity-100">
                     <button
                       type="button"
                       onClick={() => handleRemoveImage(index)}
@@ -384,14 +640,13 @@ const ReceptionistServiceEditorPage = () => {
           </div>
         </div>
 
-        {/* Right Column - Sidebar */}
         <div className="space-y-8">
           <div className="rounded-3xl bg-white p-8 shadow-sm ring-1 ring-slate-100">
             <h3 className="mb-6 text-sm font-black uppercase tracking-widest text-slate-400">Thiết lập hiển thị</h3>
-            
+
             <div className="space-y-6">
               <div className="space-y-2">
-                <label className="text-xs font-black uppercase tracking-wider text-slate-500 ml-1">Nhóm dịch vụ</label>
+                <label className="ml-1 text-xs font-black uppercase tracking-wider text-slate-500">Nhóm dịch vụ</label>
                 <div className="relative">
                   <Layers className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
                   <select
@@ -412,24 +667,27 @@ const ReceptionistServiceEditorPage = () => {
             </div>
           </div>
 
-          {/* Thumbnail */}
           <div className="rounded-3xl bg-white p-8 shadow-sm ring-1 ring-slate-100">
             <h3 className="mb-6 text-sm font-black uppercase tracking-widest text-slate-400">Ảnh đại diện</h3>
-            
+
             <div className="space-y-4">
-              <div 
+              <div
                 onClick={() => thumbnailInputRef.current?.click()}
                 className="group relative aspect-[4/3] cursor-pointer overflow-hidden rounded-3xl border-2 border-slate-100 ring-4 ring-white shadow-sm transition hover:border-sky-400"
               >
                 {formData.thumbnailUrl ? (
-                  <img src={formData.thumbnailUrl} alt="Thumbnail" className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
+                  <img
+                    src={formData.thumbnailUrl}
+                    alt="Thumbnail"
+                    className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                  />
                 ) : (
                   <div className="flex h-full w-full flex-col items-center justify-center bg-slate-50 text-slate-300">
                     <ImageIcon className="mb-2 size-10" />
                     <span className="text-xs font-bold text-slate-400">Chưa có ảnh nền</span>
                   </div>
                 )}
-                <div className="absolute inset-0 bg-black/20 opacity-0 transition group-hover:opacity-100 flex items-center justify-center">
+                <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 transition group-hover:opacity-100">
                   <div className="rounded-xl bg-white/80 p-3 text-sky-600 backdrop-blur-sm">
                     <Upload className="size-6" />
                   </div>
@@ -443,51 +701,34 @@ const ReceptionistServiceEditorPage = () => {
                 onChange={handleThumbnailUpload}
                 className="hidden"
               />
-              
+
+              {formData.thumbnailUrl ? (
+                <button
+                  type="button"
+                  onClick={() => setFormData((current) => ({ ...current, thumbnailUrl: "" }))}
+                  className="inline-flex items-center gap-2 rounded-xl bg-rose-50 px-3 py-2 text-xs font-black text-rose-600"
+                >
+                  <X className="size-3.5" />
+                  Xóa ảnh nền
+                </button>
+              ) : null}
             </div>
           </div>
         </div>
       </div>
 
       <style>{`
-        .quill-editor .ql-toolbar {
-          border: none !important;
-          background: #f8fafc !important;
-          padding: 12px !important;
-          border-bottom: 1px solid #e2e8f0 !important;
-          position: sticky !important;
-          top: 0;
-          z-index: 10;
+        [contentEditable]:empty:before {
+          content: attr(data-placeholder);
+          color: #94a3b8;
+          cursor: text;
         }
-        .quill-editor .ql-container {
-          border: none !important;
-          font-family: 'Inter', sans-serif !important;
-          font-size: 15px !important;
-          min-height: 300px;
-        }
-        .quill-editor .ql-editor {
-          min-height: 300px !important;
-          padding: 24px !important;
-        }
-        .quill-editor .ql-editor.ql-blank::before {
-          left: 24px !important;
-          font-style: normal !important;
-          color: #94a3b8 !important;
-          font-weight: 500 !important;
-        }
-
-        /* Custom Font Sizes Labels */
-        .ql-snow .ql-picker.ql-size .ql-picker-label::before,
-        .ql-snow .ql-picker.ql-size .ql-picker-item::before {
-          content: attr(data-value) !important;
-        }
-        .ql-snow .ql-picker.ql-size .ql-picker-label[data-value]::before,
-        .ql-snow .ql-picker.ql-size .ql-picker-item[data-value]::before {
-          content: attr(data-value) !important;
-        }
-        .ql-snow .ql-picker.ql-size .ql-picker-label:not([data-value])::before,
-        .ql-snow .ql-picker.ql-size .ql-picker-item:not([data-value])::before {
-          content: '14px' !important;
+        blockquote {
+          border-left: 4px solid #e2e8f0;
+          padding-left: 1rem;
+          margin-left: 0;
+          font-style: italic;
+          color: #64748b;
         }
       `}</style>
     </div>

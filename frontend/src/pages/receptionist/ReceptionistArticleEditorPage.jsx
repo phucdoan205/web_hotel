@@ -55,6 +55,16 @@ const fontFamilies = [
   { value: "'Times New Roman', serif", label: "Classic" },
 ];
 
+const fontSizes = [
+  { value: "1", label: "10" },
+  { value: "2", label: "12" },
+  { value: "3", label: "14" },
+  { value: "4", label: "16" },
+  { value: "5", label: "18" },
+  { value: "6", label: "24" },
+  { value: "7", label: "32" },
+];
+
 const ToolbarButton = ({ children, onClick, title, disabled = false }) => (
   <button
     type="button"
@@ -94,6 +104,7 @@ const ReceptionistArticleEditorPage = ({ scope = "author", basePath = "/admin/ar
   const [removeThumbnail, setRemoveThumbnail] = useState(false);
   const [blockFormat, setBlockFormat] = useState("p");
   const [fontFamily, setFontFamily] = useState(fontFamilies[0].value);
+  const [fontSize, setFontSize] = useState("4");
 
   const goBack = useCallback(() => {
     if (location.state?.canGoBack) {
@@ -151,9 +162,17 @@ const ReceptionistArticleEditorPage = ({ scope = "author", basePath = "/admin/ar
     const element = anchorNode?.nodeType === Node.ELEMENT_NODE ? anchorNode : anchorNode?.parentElement;
     const block = element?.closest("h1, h2, h3, p, div, blockquote");
     const computed = element ? window.getComputedStyle(element) : null;
+    const currentFontSize = parseFloat(computed?.fontSize || "16");
+    const closestFontSize = fontSizes.reduce((closest, option) => {
+      const optionSize = Number(option.label);
+      return Math.abs(optionSize - currentFontSize) < Math.abs(Number(closest.label) - currentFontSize)
+        ? option
+        : closest;
+    }, fontSizes[3]);
 
     setBlockFormat(block?.tagName?.toLowerCase() === "div" ? "p" : block?.tagName?.toLowerCase() || "p");
     setFontFamily(computed?.fontFamily || fontFamilies[0].value);
+    setFontSize(closestFontSize.value);
   }, []);
 
   const loadEditorData = useCallback(async () => {
@@ -234,6 +253,12 @@ const ReceptionistArticleEditorPage = ({ scope = "author", basePath = "/admin/ar
     const value = event.target.value;
     setFontFamily(value);
     applyCommand("fontName", value);
+  };
+
+  const handleFontSizeChange = (event) => {
+    const value = event.target.value;
+    setFontSize(value);
+    applyCommand("fontSize", value);
   };
 
   const handleCreateCategory = async () => {
@@ -481,6 +506,20 @@ const ReceptionistArticleEditorPage = ({ scope = "author", basePath = "/admin/ar
                       className="h-10 rounded-lg border border-gray-200 bg-white px-3 text-sm font-semibold text-slate-700 outline-none"
                     >
                       {fontFamilies.map((item) => (
+                        <option key={item.value} value={item.value}>
+                          {item.label}
+                        </option>
+                      ))}
+                    </select>
+
+                    <select
+                      value={fontSize}
+                      onChange={handleFontSizeChange}
+                      onMouseDown={saveSelection}
+                      className="h-10 rounded-lg border border-gray-200 bg-white px-3 text-sm font-semibold text-slate-700 outline-none"
+                      title="Cỡ chữ"
+                    >
+                      {fontSizes.map((item) => (
                         <option key={item.value} value={item.value}>
                           {item.label}
                         </option>

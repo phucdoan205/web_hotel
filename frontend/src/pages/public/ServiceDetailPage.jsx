@@ -1,16 +1,16 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
-  BadgeDollarSign,
+  CalendarDays,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
   Clock,
   MessageCircle,
+  Minus,
+  Plus,
   Reply,
   Send,
-  ShieldCheck,
   Star,
-  User,
   X,
 } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
@@ -40,6 +40,35 @@ const extractImageUrlsFromHtml = (html) => {
   return [...html.matchAll(/<img[^>]+src=["']([^"']+)["']/gi)]
     .map((match) => match[1])
     .filter(Boolean);
+};
+
+const getMonthMatrix = (monthDate) => {
+  const year = monthDate.getFullYear();
+  const month = monthDate.getMonth();
+  const firstDay = new Date(year, month, 1);
+  const startDate = new Date(firstDay);
+  const weekDay = (firstDay.getDay() + 6) % 7;
+  startDate.setDate(firstDay.getDate() - weekDay);
+
+  return Array.from({ length: 42 }, (_, index) => {
+    const date = new Date(startDate);
+    date.setDate(startDate.getDate() + index);
+    return date;
+  });
+};
+
+const isSameDate = (left, right) =>
+  left &&
+  right &&
+  left.getFullYear() === right.getFullYear() &&
+  left.getMonth() === right.getMonth() &&
+  left.getDate() === right.getDate();
+
+const formatDateValue = (date) => {
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, "0");
+  const day = `${date.getDate()}`.padStart(2, "0");
+  return `${year}-${month}-${day}`;
 };
 
 const CommentComposer = ({
@@ -236,6 +265,7 @@ const ServiceDetailPage = () => {
   const { id } = useParams();
   const auth = getStoredAuth();
   const contentRef = useRef(null);
+  const bookingBoxRef = useRef(null);
   const [service, setService] = useState(null);
   const [comments, setComments] = useState([]);
   const [commentText, setCommentText] = useState("");
@@ -248,6 +278,13 @@ const ServiceDetailPage = () => {
   const [canExpandContent, setCanExpandContent] = useState(false);
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [bookingDate, setBookingDate] = useState("");
+  const [quantity, setQuantity] = useState(1);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [calendarMonth, setCalendarMonth] = useState(() => {
+    const today = new Date();
+    return new Date(today.getFullYear(), today.getMonth(), 1);
+  });
 
   const canInteract = auth?.role?.toLowerCase() !== "housekeeping";
   const htmlContent = useMemo(() => normalizeServiceContent(service?.description), [service?.description]);
@@ -258,6 +295,19 @@ const ServiceDetailPage = () => {
     const descriptionImages = new Set(descriptionImageUrls);
     return [...new Set([service.thumbnailUrl, ...(service.images || [])].filter((url) => url && !descriptionImages.has(url)))];
   }, [descriptionImageUrls, service]);
+
+  const today = useMemo(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  }, []);
+
+  const selectedBookingDate = useMemo(() => {
+    if (!bookingDate) return null;
+    const [year, month, day] = bookingDate.split("-").map(Number);
+    return new Date(year, month - 1, day);
+  }, [bookingDate]);
+
+  const calendarDays = useMemo(() => getMonthMatrix(calendarMonth), [calendarMonth]);
 
   useEffect(() => {
     if (isGalleryOpen) {
@@ -296,8 +346,19 @@ const ServiceDetailPage = () => {
   useEffect(() => {
     const node = contentRef.current;
     if (!node) return;
-    setCanExpandContent(node.scrollHeight > 720);
+    setCanExpandContent(node.scrollHeight > 800);
   }, [expandedContent, htmlContent]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!bookingBoxRef.current?.contains(event.target)) {
+        setIsCalendarOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const handleReply = (comment) => {
     setReplyTarget(comment);
@@ -332,6 +393,13 @@ const ServiceDetailPage = () => {
   const cancelReply = () => {
     setReplyTarget(null);
     setCommentText("");
+  };
+
+  const handleSelectBookingDate = (date) => {
+    if (date < today) return;
+    setBookingDate(formatDateValue(date));
+    setCalendarMonth(new Date(date.getFullYear(), date.getMonth(), 1));
+    setIsCalendarOpen(false);
   };
 
   if (loading) {
@@ -461,64 +529,154 @@ const ServiceDetailPage = () => {
         )}
 
         <div className="grid gap-12 lg:grid-cols-3">
-          <div className="min-w-0 lg:col-span-2">
-            <h2 className="mb-6 flex items-center gap-3 text-2xl font-black text-slate-900">
-              <div className="flex size-8 items-center justify-center rounded-xl bg-[#0194f3]/10 text-[#0194f3]">
-                <ChevronDown size={20} />
-              </div>
-              Mô tả dịch vụ
-            </h2>
+          <div className="lg:col-span-2">
+            <div className="mb-6">
+              <h2 className="mb-4 text-3xl font-black leading-tight text-slate-900 md:text-4xl">
+                Mô tả dịch vụ
+              </h2>
+              {service.unit && (
+                <p className="mb-4 border-l-4 border-[#0194f3] pl-4 text-base font-medium text-slate-600">
+                  Dịch vụ này được tính theo đơn vị: {service.unit}
+                </p>
+              )}
+            </div>
 
             <div className="relative">
               <div
                 ref={contentRef}
-                className={`prose prose-lg prose-slate max-w-none overflow-hidden break-words [overflow-wrap:anywhere] [&_*]:max-w-full [&_img]:h-auto [&_img]:w-full [&_img]:rounded-3xl [&_img]:object-cover [&_figure]:max-w-full [&_p]:max-w-full [&_p]:break-words [&_li]:break-words [&_table]:block [&_table]:max-w-full [&_table]:overflow-x-auto [&_iframe]:max-w-full prose-headings:font-black prose-a:text-[#0194f3] transition-all duration-500 ${
-                  expandedContent ? "" : "max-h-[720px] overflow-hidden"
+                className={`prose prose-lg prose-slate max-w-none break-words overflow-hidden prose-headings:font-black prose-a:text-[#0194f3] prose-img:rounded-2xl [&_*]:max-w-full [&_*]:break-words [&_p]:whitespace-normal [&_p]:leading-8 [&_li]:whitespace-normal [&_li]:leading-8 [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_code]:break-words [&_table]:block [&_table]:w-full [&_table]:overflow-x-auto [&_img]:my-5 [&_img]:block [&_img]:h-auto [&_img]:max-w-full [&_img]:object-cover transition-all duration-500 ${
+                  expandedContent ? "" : "max-h-[800px] overflow-hidden"
                 }`}
                 dangerouslySetInnerHTML={{ __html: htmlContent }}
               />
               {!expandedContent && canExpandContent && (
-                <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-white via-white/90 to-transparent" />
+                <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-white via-white/80 to-transparent" />
               )}
             </div>
 
             {!expandedContent && canExpandContent && (
-              <div className="mt-5 text-center">
+              <div className="mt-4 text-center">
                 <button
                   type="button"
                   onClick={() => setExpandedContent(true)}
                   className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-8 py-3 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 hover:text-[#0194f3]"
                 >
-                  Xem thêm nội dung <ChevronDown className="size-4" />
+                  Đọc tiếp mô tả <ChevronDown className="size-4" />
                 </button>
               </div>
             )}
           </div>
 
-          <div className="w-full space-y-6">
-            <div className="sticky top-24 space-y-6">
-              <div className="rounded-3xl bg-slate-50 p-8 ring-1 ring-slate-100">
-                <h3 className="mb-6 text-sm font-black uppercase tracking-widest text-slate-500">Tại sao nên chọn?</h3>
-                <ul className="space-y-4">
-                  <li className="flex gap-3 text-sm font-bold text-slate-700">
-                    <ShieldCheck className="size-5 shrink-0 text-[#0194f3]" />
-                    <span>Dịch vụ uy tín, chất lượng đảm bảo</span>
-                  </li>
-                  <li className="flex gap-3 text-sm font-bold text-slate-700">
-                    <BadgeDollarSign className="size-5 shrink-0 text-[#0194f3]" />
-                    <span>Giá cả cạnh tranh, ưu đãi khách lưu trú</span>
-                  </li>
-                  <li className="flex gap-3 text-sm font-bold text-slate-700">
-                    <User className="size-5 shrink-0 text-[#0194f3]" />
-                    <span>Phục vụ tận tâm, chuyên nghiệp 24/7</span>
-                  </li>
-                </ul>
+          <div className="hidden lg:block" />
+        </div>
 
-                <button className="mt-10 w-full rounded-2xl bg-[#0194f3] py-4 text-sm font-black text-white shadow-lg shadow-[#0194f3]/20 transition-all hover:scale-[1.02] hover:bg-[#017bc0] active:scale-95">
-                  Đặt ngay dịch vụ này
+        <div className="mt-10 rounded-3xl bg-slate-50 p-6 ring-1 ring-slate-100 md:p-8">
+          <div className="grid gap-4 md:grid-cols-[minmax(0,1.6fr)_220px_180px] md:items-end">
+            <div ref={bookingBoxRef} className="relative">
+              <label className="mb-2 block text-xs font-black uppercase tracking-wider text-slate-500">
+                Ngày đặt dịch vụ
+              </label>
+              <button
+                type="button"
+                onClick={() => setIsCalendarOpen((prev) => !prev)}
+                className="relative flex w-full items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-left shadow-sm transition hover:border-[#0194f3] hover:shadow-md"
+              >
+                <CalendarDays className="size-5 shrink-0 text-[#0194f3]" />
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm font-bold text-slate-700">
+                    {bookingDate
+                      ? new Date(`${bookingDate}T00:00:00`).toLocaleDateString("vi-VN")
+                      : "Chọn ngày đặt dịch vụ"}
+                  </div>
+                </div>
+                <ChevronDown className={`size-4 text-slate-400 transition ${isCalendarOpen ? "rotate-180" : ""}`} />
+              </button>
+
+              {isCalendarOpen && (
+                <div className="absolute left-0 right-0 top-[calc(100%+0.75rem)] z-20 rounded-3xl border border-slate-200 bg-white p-4 shadow-2xl shadow-slate-200/70 md:right-auto md:w-[360px]">
+                  <div className="mb-4 flex items-center justify-between">
+                    <button
+                      type="button"
+                      onClick={() => setCalendarMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))}
+                      className="flex size-9 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-[#0194f3] hover:text-[#0194f3]"
+                    >
+                      <ChevronLeft className="size-4" />
+                    </button>
+                    <div className="text-sm font-black text-slate-800">
+                      {calendarMonth.toLocaleDateString("vi-VN", { month: "long", year: "numeric" })}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setCalendarMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))}
+                      className="flex size-9 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-[#0194f3] hover:text-[#0194f3]"
+                    >
+                      <ChevronRight className="size-4" />
+                    </button>
+                  </div>
+
+                  <div className="mb-2 grid grid-cols-7 gap-2 text-center text-[11px] font-black uppercase tracking-wide text-slate-400">
+                    {["T2", "T3", "T4", "T5", "T6", "T7", "CN"].map((day) => (
+                      <div key={day}>{day}</div>
+                    ))}
+                  </div>
+
+                  <div className="grid grid-cols-7 gap-2">
+                    {calendarDays.map((date) => {
+                      const isCurrentMonth = date.getMonth() === calendarMonth.getMonth();
+                      const isPast = date < today;
+                      const isSelected = selectedBookingDate && isSameDate(date, selectedBookingDate);
+                      return (
+                        <button
+                          key={date.toISOString()}
+                          type="button"
+                          disabled={isPast}
+                          onClick={() => handleSelectBookingDate(date)}
+                          className={`aspect-square rounded-2xl text-sm font-bold transition ${
+                            isSelected
+                              ? "bg-[#0194f3] text-white shadow-md shadow-[#0194f3]/30"
+                              : isCurrentMonth
+                                ? "text-slate-700 hover:bg-sky-50 hover:text-[#0194f3]"
+                                : "text-slate-300"
+                          } ${isPast ? "cursor-not-allowed bg-slate-50 text-slate-300" : ""}`}
+                        >
+                          {date.getDate()}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label className="mb-2 block text-xs font-black uppercase tracking-wider text-slate-500">
+                Số lượng
+              </label>
+              <div className="flex items-center rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
+                <button
+                  type="button"
+                  onClick={() => setQuantity((prev) => Math.max(1, prev - 1))}
+                  className="flex size-11 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-50 hover:text-[#0194f3]"
+                >
+                  <Minus className="size-4" />
+                </button>
+                <div className="flex-1 text-center">
+                  <div className="text-xs font-bold uppercase tracking-wide text-slate-400">Số lượng</div>
+                  <div className="text-lg font-black text-slate-800">{quantity}</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setQuantity((prev) => prev + 1)}
+                  className="flex size-11 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-50 hover:text-[#0194f3]"
+                >
+                  <Plus className="size-4" />
                 </button>
               </div>
             </div>
+
+            <button className="w-full rounded-2xl bg-[#0194f3] px-6 py-4 text-sm font-black text-white shadow-lg shadow-[#0194f3]/20 transition-all hover:scale-[1.02] hover:bg-[#017bc0] active:scale-95">
+              Đặt dịch vụ
+            </button>
           </div>
         </div>
 
