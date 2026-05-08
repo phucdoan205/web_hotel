@@ -282,7 +282,7 @@ const CommentItem = ({
 };
 
 const ServiceDetailPage = () => {
-  const { id } = useParams();
+  const { slug } = useParams();
   const auth = getStoredAuth();
   const contentRef = useRef(null);
   const bookingBoxRef = useRef(null);
@@ -361,7 +361,7 @@ const ServiceDetailPage = () => {
       setExpandedContent(false);
 
       try {
-        const detail = await publicServicesApi.getPublicServiceDetail(id);
+        const detail = await publicServicesApi.getPublicServiceDetail(slug);
         setService(detail);
         setComments(detail.comments ?? []);
       } catch (fetchError) {
@@ -372,7 +372,7 @@ const ServiceDetailPage = () => {
     };
 
     loadService();
-  }, [id]);
+  }, [slug]);
 
   useEffect(() => {
     const node = contentRef.current;
@@ -677,13 +677,13 @@ const ServiceDetailPage = () => {
           <div className="lg:col-span-4">
             <div className="sticky top-32 space-y-6">
               <div ref={bookingBoxRef} className="overflow-hidden rounded-3xl bg-white p-6 shadow-[0_8px_30px_rgb(0,0,0,0.12)] ring-1 ring-slate-100">
-                <h3 className="mb-6 text-xl font-black text-slate-900">Vé và giá</h3>
+                <h3 className="mb-6 text-xl font-black text-slate-900">Giá cả</h3>
 
                 <div className="space-y-6">
                   {/* Date Selector */}
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-black text-slate-800">Tìm vé theo ngày</span>
+                      <span className="text-sm font-black text-slate-800">Tìm theo ngày</span>
                       <button
                         onClick={() => setShowFullCalendar(!showFullCalendar)}
                         className="text-sm font-bold text-[#0194f3] hover:underline"

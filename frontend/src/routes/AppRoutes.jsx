@@ -61,6 +61,7 @@ import AccountReviewsPage from "../pages/public/AccountReviewsPage";
 import PersonalDetailsPage from "../pages/public/account/PersonalDetailsPage";
 import SecuritySettingsPage from "../pages/public/account/SecuritySettingsPage";
 import GeneralSettingsPage from "../pages/public/account/GeneralSettingsPage";
+import PaymentMethodsPage from "../pages/public/account/PaymentMethodsPage";
 import AccountVouchersPage from "../pages/public/AccountVouchersPage";
 import SupportPage from "../pages/public/SupportPage";
 import ReceptionistServiceEditorPage from "../pages/receptionist/ReceptionistServiceEditorPage";
@@ -94,17 +95,20 @@ const AppRoutes = () => {
         <Route path="booking-history" element={<BookingHistoryPage />} />
         <Route path="booking-history/:id/payment" element={<BookingPaymentPage />} />
         <Route path="room-types/:id" element={<RoomDetailPage />} />
-        <Route path="profile" element={<AccountProfilePage />} />
-        <Route element={<AccountLayout />}>
-          <Route path="profile/personal-info" element={<PersonalDetailsPage />} />
-          <Route path="profile/security" element={<SecuritySettingsPage />} />
-          <Route path="profile/settings" element={<GeneralSettingsPage />} />
+        <Route path="profile">
+          <Route index element={<AccountProfilePage />} />
+          <Route element={<AccountLayout />}>
+            <Route path="personal-info" element={<PersonalDetailsPage />} />
+            <Route path="security" element={<SecuritySettingsPage />} />
+            <Route path="settings" element={<GeneralSettingsPage />} />
+            <Route path="payment-methods" element={<PaymentMethodsPage />} />
+          </Route>
         </Route>
         <Route path="favorites" element={<AccountFavoritesPage />} />
         <Route path="reviews" element={<AccountReviewsPage />} />
         <Route path="vouchers" element={<AccountVouchersPage />} />
         <Route path="services" element={<ServicesPage />} />
-        <Route path="services/:id" element={<ServiceDetailPage />} />
+        <Route path="services/:slug" element={<ServiceDetailPage />} />
         <Route path="articles" element={<BlogPage />} />
         <Route path="articles/:id" element={<PostDetailPage />} />
         <Route path="articles/search" element={<BlogSearchPage />} />

@@ -29,6 +29,7 @@ namespace backend.Controllers
             CategoryId = service.CategoryId,
             CategoryName = service.Category?.Name,
             Name = service.Name,
+            Slug = service.Slug,
             ThumbnailUrl = service.ThumbnailUrl,
             Description = service.Description,
             Price = service.Price,
@@ -274,6 +275,7 @@ namespace backend.Controllers
             {
                 CategoryId = request.CategoryId,
                 Name = request.Name.Trim(),
+                Slug = Slugify(request.Name),
                 ThumbnailUrl = request.ThumbnailUrl,
                 Description = request.Description,
                 Price = request.Price,
@@ -329,6 +331,7 @@ namespace backend.Controllers
 
             service.CategoryId = request.CategoryId;
             service.Name = request.Name.Trim();
+            service.Slug = Slugify(request.Name);
             service.ThumbnailUrl = request.ThumbnailUrl;
             service.Description = request.Description;
             service.Price = request.Price;

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using System.Linq;
 using backend.Data;
 using backend.Mappers;
 using System.Text.Json.Serialization;
@@ -141,7 +142,61 @@ IF COL_LENGTH('Invoices', 'VoucherDiscountValue') IS NULL ALTER TABLE Invoices A
 IF COL_LENGTH('Invoices', 'CreatedAt') IS NULL ALTER TABLE Invoices ADD CreatedAt datetime NULL;
 IF COL_LENGTH('Invoices', 'UpdatedAt') IS NULL ALTER TABLE Invoices ADD UpdatedAt datetime NULL;
 IF COL_LENGTH('Invoices', 'PaidAt') IS NULL ALTER TABLE Invoices ADD PaidAt datetime NULL;
+
+IF OBJECT_ID('UserPaymentMethods', 'U') IS NULL
+BEGIN
+    CREATE TABLE UserPaymentMethods (
+        Id int IDENTITY(1,1) NOT NULL PRIMARY KEY,
+        UserId int NOT NULL,
+        MethodType nvarchar(50) NOT NULL DEFAULT 'Card',
+        Provider nvarchar(100) NOT NULL,
+        Last4Digits nvarchar(4) NOT NULL,
+        ExpiryDate nvarchar(10) NULL,
+        CardHolderName nvarchar(255) NULL,
+        IsDefault bit NOT NULL DEFAULT 0,
+        CreatedAt datetime NOT NULL DEFAULT GETUTCDATE(),
+        CONSTRAINT FK_UserPaymentMethods_Users_UserId FOREIGN KEY (UserId) REFERENCES Users(Id) ON DELETE CASCADE
+    );
+END
 ");
+    await db.Database.ExecuteSqlRawAsync(@"
+IF COL_LENGTH('Services', 'Slug') IS NULL 
+BEGIN
+    ALTER TABLE Services ADD Slug nvarchar(255) NULL;
+END
+ELSE
+BEGIN
+    ALTER TABLE Services ALTER COLUMN Slug nvarchar(255) NULL;
+END
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Services_Slug' AND object_id = OBJECT_ID('Services'))
+BEGIN
+    CREATE INDEX IX_Services_Slug ON Services(Slug);
+END
+");
+
+    // Populate slugs for services if missing
+    var servicesWithNoSlug = await db.Services.Where(s => s.Slug == null || s.Slug == "").ToListAsync();
+    if (servicesWithNoSlug.Any())
+    {
+        foreach (var s in servicesWithNoSlug)
+        {
+            s.Slug = GenerateSlug(s.Name);
+        }
+        await db.SaveChangesAsync();
+    }
+}
+
+static string GenerateSlug(string value)
+{
+    if (string.IsNullOrWhiteSpace(value)) return string.Empty;
+    var builder = new StringBuilder();
+    foreach (var ch in value.Trim().ToLowerInvariant())
+    {
+        if (char.IsLetterOrDigit(ch)) builder.Append(ch);
+        else if (builder.Length > 0 && builder[^1] != '-') builder.Append('-');
+    }
+    return builder.ToString().Trim('-');
 }
 
 if (app.Environment.IsDevelopment())

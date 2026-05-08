@@ -29,6 +29,7 @@ namespace backend.Controllers
                 CategoryId = service.CategoryId,
                 CategoryName = service.Category?.Name,
                 Name = service.Name,
+                Slug = service.Slug,
                 ThumbnailUrl = service.ThumbnailUrl,
                 Description = service.Description,
                 Price = service.Price,
@@ -135,14 +136,26 @@ namespace backend.Controllers
             });
         }
 
-        [HttpGet("{id:int}")]
-        public async Task<ActionResult<ServiceResponseDTO>> GetServiceDetail(int id)
+        [HttpGet("{idOrSlug}")]
+        public async Task<ActionResult<ServiceResponseDTO>> GetServiceDetail(string idOrSlug)
         {
-            var service = await _context.Services
-                .AsNoTracking()
-                .Include(s => s.Category)
-                .Include(s => s.ServiceImages)
-                .FirstOrDefaultAsync(s => s.Id == id);
+            Service? service;
+            if (int.TryParse(idOrSlug, out int id))
+            {
+                service = await _context.Services
+                    .AsNoTracking()
+                    .Include(s => s.Category)
+                    .Include(s => s.ServiceImages)
+                    .FirstOrDefaultAsync(s => s.Id == id);
+            }
+            else
+            {
+                service = await _context.Services
+                    .AsNoTracking()
+                    .Include(s => s.Category)
+                    .Include(s => s.ServiceImages)
+                    .FirstOrDefaultAsync(s => s.Slug == idOrSlug);
+            }
 
             if (service == null)
             {
@@ -153,7 +166,7 @@ namespace backend.Controllers
                 .AsNoTracking()
                 .Include(c => c.User)
                 .Include(c => c.TaggedUser)
-                .Where(c => c.ServiceId == id)
+                .Where(c => c.ServiceId == service.Id)
                 .OrderBy(c => c.CreatedAt)
                 .ToListAsync();
 
@@ -163,9 +176,9 @@ namespace backend.Controllers
             return Ok(response);
         }
 
-        [HttpPost("{id:int}/comments")]
+        [HttpPost("{idOrSlug}/comments")]
         [Permission] // Requires login
-        public async Task<IActionResult> CreateComment(int id, [FromBody] ArticleCommentCreateDTO request)
+        public async Task<IActionResult> CreateComment(string idOrSlug, [FromBody] ArticleCommentCreateDTO request)
         {
             var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value 
                         ?? Request.Headers["X-User-Id"].FirstOrDefault();
@@ -175,11 +188,22 @@ namespace backend.Controllers
                 return Unauthorized("Không xác định được người dùng.");
             }
 
-            var serviceExists = await _context.Services.AnyAsync(s => s.Id == id && s.Status);
-            if (!serviceExists)
+            Service? service;
+            if (int.TryParse(idOrSlug, out int id))
+            {
+                service = await _context.Services.FirstOrDefaultAsync(s => s.Id == id && s.Status);
+            }
+            else
+            {
+                service = await _context.Services.FirstOrDefaultAsync(s => s.Slug == idOrSlug && s.Status);
+            }
+
+            if (service == null)
             {
                 return NotFound("Không tìm thấy dịch vụ.");
             }
+            
+            int serviceId = service.Id;
 
             if (string.IsNullOrWhiteSpace(request.Content))
             {
@@ -188,7 +212,7 @@ namespace backend.Controllers
 
             if (request.ParentCommentId.HasValue)
             {
-                var parentExists = await _context.ServiceComments.AnyAsync(c => c.Id == request.ParentCommentId.Value && c.ServiceId == id);
+                var parentExists = await _context.ServiceComments.AnyAsync(c => c.Id == request.ParentCommentId.Value && c.ServiceId == serviceId);
                 if (!parentExists)
                 {
                     return BadRequest("Không tìm thấy bình luận gốc.");
@@ -197,7 +221,7 @@ namespace backend.Controllers
 
             var comment = new ServiceComment
             {
-                ServiceId = id,
+                ServiceId = serviceId,
                 UserId = userId,
                 ParentCommentId = request.ParentCommentId,
                 TaggedUserId = request.TaggedUserId,
@@ -213,7 +237,7 @@ namespace backend.Controllers
                 .AsNoTracking()
                 .Include(c => c.User)
                 .Include(c => c.TaggedUser)
-                .Where(c => c.ServiceId == id)
+                .Where(c => c.ServiceId == serviceId)
                 .OrderBy(c => c.CreatedAt)
                 .ToListAsync();
 

@@ -53,6 +53,7 @@ namespace backend.Data
         public DbSet<Voucher> Vouchers { get; set; }
         public DbSet<UserVoucher> UserVouchers { get; set; }
         public DbSet<ServiceComment> ServiceComments { get; set; }
+        public DbSet<UserPaymentMethod> UserPaymentMethods { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

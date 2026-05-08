@@ -10,7 +10,7 @@ const ServiceCard = ({ service }) => {
 
   return (
     <Link
-      to={`/services/${service.id}`}
+      to={`/services/${service.slug}`}
       className="group flex flex-col overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-100 transition-all hover:-translate-y-1 hover:shadow-xl"
     >
       <div className="relative aspect-[4/3] overflow-hidden">

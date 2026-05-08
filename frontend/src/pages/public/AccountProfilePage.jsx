@@ -95,7 +95,7 @@ const AccountProfilePage = () => {
     {
       title: "Thông tin thanh toán",
       items: [
-        { label: "Phương thức thanh toán", icon: CreditCard, path: "#" },
+        { label: "Phương thức thanh toán", icon: CreditCard, path: "/profile/payment-methods" },
         { label: "Giao dịch", icon: History, path: "/booking-history" },
       ]
     },

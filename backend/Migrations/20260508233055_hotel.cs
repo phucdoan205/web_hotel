@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace backend.Migrations
 {
     /// <inheritdoc />
-    public partial class _123 : Migration
+    public partial class hotel : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -393,6 +393,7 @@ namespace backend.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     CategoryId = table.Column<int>(type: "int", nullable: true),
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Slug = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     ThumbnailUrl = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Description = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Price = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
@@ -568,6 +569,32 @@ namespace backend.Migrations
                         column: x => x.UserId,
                         principalTable: "Users",
                         principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "UserPaymentMethods",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    UserId = table.Column<int>(type: "int", nullable: false),
+                    MethodType = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Provider = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Last4Digits = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ExpiryDate = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    CardHolderName = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    IsDefault = table.Column<bool>(type: "bit", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_UserPaymentMethods", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_UserPaymentMethods_Users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -1165,6 +1192,11 @@ namespace backend.Migrations
                 column: "CategoryId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_UserPaymentMethods_UserId",
+                table: "UserPaymentMethods",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Users_MembershipId",
                 table: "Users",
                 column: "MembershipId");
@@ -1232,6 +1264,9 @@ namespace backend.Migrations
 
             migrationBuilder.DropTable(
                 name: "ServiceImages");
+
+            migrationBuilder.DropTable(
+                name: "UserPaymentMethods");
 
             migrationBuilder.DropTable(
                 name: "UserVouchers");

@@ -1,11 +1,11 @@
 import React from "react";
-import { 
-  LayoutGrid, 
-  Car, 
-  Utensils, 
-  Sparkles, 
-  CalendarDays, 
-  MapPin, 
+import {
+  LayoutGrid,
+  Car,
+  Utensils,
+  Sparkles,
+  CalendarDays,
+  MapPin,
   Ticket,
   Coffee,
   Waves
@@ -45,13 +45,11 @@ const ServiceCategories = ({ categories, selectedCategoryId, onCategorySelect })
     <div className="flex items-center justify-center gap-10 overflow-x-auto pb-6 no-scrollbar">
       <button
         onClick={() => onCategorySelect(null)}
-        className={`flex flex-col items-center gap-3 min-w-[120px] transition-all ${
-          selectedCategoryId === null ? "text-[#0194f3]" : "text-slate-500 hover:text-slate-900"
-        }`}
+        className={`flex flex-col items-center gap-3 min-w-[120px] transition-all ${selectedCategoryId === null ? "text-[#0194f3]" : "text-slate-500 hover:text-slate-900"
+          }`}
       >
-        <div className={`flex size-20 items-center justify-center rounded-[28px] transition-all ${
-          selectedCategoryId === null ? "bg-[#0194f3]/10 scale-110 shadow-md" : "bg-white shadow-sm ring-1 ring-slate-100"
-        }`}>
+        <div className={`flex size-20 items-center justify-center rounded-[28px] transition-all ${selectedCategoryId === null ? "bg-[#0194f3]/10 scale-110 shadow-md" : "bg-white shadow-sm ring-1 ring-slate-100"
+          }`}>
           <LayoutGrid size={32} />
         </div>
         <span className="text-[13px] font-black uppercase tracking-tight text-center">Tất cả</span>
@@ -61,13 +59,11 @@ const ServiceCategories = ({ categories, selectedCategoryId, onCategorySelect })
         <button
           key={cat.id}
           onClick={() => onCategorySelect(cat.id)}
-          className={`flex flex-col items-center gap-3 min-w-[120px] transition-all ${
-            selectedCategoryId === cat.id ? "text-[#0194f3]" : "text-slate-500 hover:text-slate-900"
-          }`}
+          className={`flex flex-col items-center gap-3 min-w-[120px] transition-all ${selectedCategoryId === cat.id ? "text-[#0194f3]" : "text-slate-500 hover:text-slate-900"
+            }`}
         >
-          <div className={`flex size-20 items-center justify-center rounded-[28px] transition-all overflow-hidden ${
-            selectedCategoryId === cat.id ? "bg-[#0194f3]/10 scale-110 shadow-md" : "bg-white shadow-sm ring-1 ring-slate-100"
-          }`}>
+          <div className={`flex size-20 items-center justify-center rounded-[28px] transition-all overflow-hidden ${selectedCategoryId === cat.id ? "bg-[#0194f3]/10 scale-110 shadow-md" : "bg-white shadow-sm ring-1 ring-slate-100"
+            }`}>
             <CategoryIcon name={cat.name} iconUrl={cat.iconUrl} />
           </div>
           <span className="text-[13px] font-black uppercase tracking-tight text-center truncate w-full px-2">

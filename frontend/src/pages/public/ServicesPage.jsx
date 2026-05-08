@@ -63,28 +63,28 @@ const ServicesPage = () => {
 
   const updateFilters = (newFilters) => {
     const nextParams = new URLSearchParams(searchParams);
-    
+
     if (newFilters.categoryId !== undefined) {
       if (newFilters.categoryId) nextParams.set("category", newFilters.categoryId);
       else nextParams.delete("category");
       nextParams.set("page", 1);
     }
-    
+
     if (newFilters.sort) {
       nextParams.set("sort", newFilters.sort);
       nextParams.set("page", 1);
     }
-    
+
     if (newFilters.minStars !== undefined) {
       if (newFilters.minStars) nextParams.set("stars", newFilters.minStars);
       else nextParams.delete("stars");
       nextParams.set("page", 1);
     }
-    
+
     if (newFilters.page) {
       nextParams.set("page", newFilters.page);
     }
-    
+
     if (newFilters.search !== undefined) {
       if (newFilters.search) nextParams.set("search", newFilters.search);
       else nextParams.delete("search");
@@ -102,10 +102,10 @@ const ServicesPage = () => {
   return (
     <div className="min-h-screen bg-[#F5F7FA] pb-20 pt-24">
       <div className="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8">
-        
+
         {/* Search Bar Section */}
         <div className="mb-10 flex flex-col items-center">
-          <form 
+          <form
             onSubmit={handleSearchSubmit}
             className="relative w-full max-w-2xl overflow-hidden rounded-full bg-white shadow-xl ring-1 ring-slate-100"
           >
@@ -169,7 +169,7 @@ const ServicesPage = () => {
                     >
                       <ChevronLeft size={20} />
                     </button>
-                    
+
                     <div className="text-sm font-black text-slate-700">
                       Trang <span className="text-[#0194f3]">{filters.page}</span> trên <span className="text-slate-900">{totalPages}</span>
                     </div>
@@ -187,7 +187,7 @@ const ServicesPage = () => {
             ) : (
               <div className="flex h-[400px] flex-col items-center justify-center rounded-3xl bg-white shadow-sm ring-1 ring-slate-100 p-10 text-center">
                 <div className="mb-4 flex size-16 items-center justify-center rounded-full bg-slate-50">
-                   <LayoutGrid className="size-8 text-slate-300" />
+                  <LayoutGrid className="size-8 text-slate-300" />
                 </div>
                 <h3 className="text-lg font-black text-slate-900">Không tìm thấy dịch vụ nào</h3>
                 <p className="mt-2 text-sm font-bold text-slate-500 max-w-xs">

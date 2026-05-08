@@ -23,7 +23,7 @@ const SettingsSidebar = () => {
       icon: SettingsIcon, 
       path: "/profile/settings" 
     },
-    { label: "Phương thức thanh toán", icon: CreditCard, path: "#" },
+    { label: "Phương thức thanh toán", icon: CreditCard, path: "/profile/payment-methods" },
   ];
 
   return (
