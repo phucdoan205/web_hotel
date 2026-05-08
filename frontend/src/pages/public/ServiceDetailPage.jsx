@@ -1,8 +1,46 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, MessageCircle, Reply, Send, User, ArrowLeft, ChevronLeft, ChevronRight, X, Star, BadgeDollarSign, ShieldCheck, Clock } from "lucide-react";
-import { useParams, Link } from "react-router-dom";
+import {
+  BadgeDollarSign,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  MessageCircle,
+  Reply,
+  Send,
+  ShieldCheck,
+  Star,
+  User,
+  X,
+} from "lucide-react";
+import { Link, useParams } from "react-router-dom";
 import publicServicesApi from "../../api/public/publicServicesApi";
 import { getStoredAuth } from "../../utils/authStorage";
+
+const normalizeServiceContent = (content) => {
+  if (!content) {
+    return "";
+  }
+
+  if (/<[a-z][\s\S]*>/i.test(content)) {
+    return content;
+  }
+
+  return content
+    .split(/\n{2,}/)
+    .map((paragraph) => `<p>${paragraph.replace(/\n/g, "<br />")}</p>`)
+    .join("");
+};
+
+const extractImageUrlsFromHtml = (html) => {
+  if (!html) {
+    return [];
+  }
+
+  return [...html.matchAll(/<img[^>]+src=["']([^"']+)["']/gi)]
+    .map((match) => match[1])
+    .filter(Boolean);
+};
 
 const CommentComposer = ({
   auth,
@@ -18,7 +56,9 @@ const CommentComposer = ({
   <form onSubmit={onSubmit} className="mt-6 space-y-4 rounded-2xl bg-slate-50 p-4 sm:p-6">
     {replyTarget ? (
       <div className="flex items-center justify-between rounded-xl bg-[#0194f3]/10 px-4 py-3 text-sm font-semibold text-[#017bc0]">
-        <span>Đang trả lời <span className="font-black">{replyTarget.userName}</span></span>
+        <span>
+          Đang trả lời <span className="font-black">{replyTarget.userName}</span>
+        </span>
         <button type="button" onClick={onCancelReply} className="text-[#01539d] hover:underline">
           Hủy
         </button>
@@ -66,7 +106,7 @@ const CommentComposer = ({
           value={value}
           onChange={(event) => onChange(event.target.value)}
           rows={3}
-          placeholder={replyTarget ? `Nhập câu trả lời...` : "Chia sẻ cảm nghĩ của bạn về dịch vụ này..."}
+          placeholder={replyTarget ? "Nhập câu trả lời..." : "Chia sẻ cảm nghĩ của bạn về dịch vụ này..."}
           className="w-full resize-y rounded-2xl border border-slate-200 bg-white p-4 text-sm font-medium text-slate-700 outline-none transition focus:border-[#0194f3] focus:ring-4 focus:ring-[#0194f3]/10"
         />
 
@@ -74,7 +114,7 @@ const CommentComposer = ({
           <button
             type="submit"
             disabled={isSubmitting || !value.trim()}
-            className="inline-flex items-center gap-2 rounded-xl bg-[#0194f3] px-6 py-2.5 text-sm font-black text-white shadow-md transition hover:bg-[#017bc0] disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-2 rounded-xl bg-[#0194f3] px-6 py-2.5 text-sm font-black text-white shadow-md transition hover:bg-[#017bc0] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isSubmitting ? (
               <div className="size-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
@@ -121,7 +161,7 @@ const CommentItem = ({
               {new Date(comment.createdAt).toLocaleString("vi-VN")}
             </span>
             {comment.rating > 0 && (
-              <div className="flex items-center gap-0.5 ml-2">
+              <div className="ml-2 flex items-center gap-0.5">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <Star
                     key={star}
@@ -204,21 +244,41 @@ const ServiceDetailPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [rating, setRating] = useState(0);
   const [error, setError] = useState("");
+  const [expandedContent, setExpandedContent] = useState(false);
+  const [canExpandContent, setCanExpandContent] = useState(false);
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   const canInteract = auth?.role?.toLowerCase() !== "housekeeping";
+  const htmlContent = useMemo(() => normalizeServiceContent(service?.description), [service?.description]);
+  const descriptionImageUrls = useMemo(() => extractImageUrlsFromHtml(htmlContent), [htmlContent]);
 
   const imageUrls = useMemo(() => {
     if (!service) return [];
-    return [...new Set([service.thumbnailUrl, ...(service.images || [])].filter(Boolean))];
-  }, [service]);
+    const descriptionImages = new Set(descriptionImageUrls);
+    return [...new Set([service.thumbnailUrl, ...(service.images || [])].filter((url) => url && !descriptionImages.has(url)))];
+  }, [descriptionImageUrls, service]);
+
+  useEffect(() => {
+    if (isGalleryOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "unset";
+    }
+
+    return () => {
+      document.body.style.overflow = "unset";
+    };
+  }, [isGalleryOpen]);
 
   useEffect(() => {
     window.scrollTo(0, 0);
+
     const loadService = async () => {
       setLoading(true);
       setError("");
+      setExpandedContent(false);
+
       try {
         const detail = await publicServicesApi.getPublicServiceDetail(id);
         setService(detail);
@@ -229,8 +289,15 @@ const ServiceDetailPage = () => {
         setLoading(false);
       }
     };
+
     loadService();
   }, [id]);
+
+  useEffect(() => {
+    const node = contentRef.current;
+    if (!node) return;
+    setCanExpandContent(node.scrollHeight > 720);
+  }, [expandedContent, htmlContent]);
 
   const handleReply = (comment) => {
     setReplyTarget(comment);
@@ -240,14 +307,17 @@ const ServiceDetailPage = () => {
   const handleSubmitComment = async (event) => {
     event.preventDefault();
     if (!commentText.trim() || !service) return;
+
     setSubmitting(true);
+
     try {
       const nextComments = await publicServicesApi.createServiceComment(service.id, {
         content: commentText.trim(),
         parentCommentId: replyTarget?.id ?? null,
         taggedUserId: replyTarget?.userId ?? null,
-        rating: replyTarget ? null : (rating > 0 ? rating : null),
+        rating: replyTarget ? null : rating || null,
       });
+
       setComments(nextComments);
       setCommentText("");
       setReplyTarget(null);
@@ -268,7 +338,7 @@ const ServiceDetailPage = () => {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50">
         <div className="flex flex-col items-center">
-          <div className="mb-4 size-10 animate-spin rounded-full border-4 border-slate-200 border-t-[#0194f3]"></div>
+          <div className="mb-4 size-10 animate-spin rounded-full border-4 border-slate-200 border-t-[#0194f3]" />
           <p className="text-sm font-semibold text-slate-500">Đang tải thông tin dịch vụ...</p>
         </div>
       </div>
@@ -296,25 +366,24 @@ const ServiceDetailPage = () => {
   return (
     <div className="min-h-screen bg-white pb-24 pt-24">
       <div className="mx-auto max-w-6xl px-5 lg:px-8">
-
-        {/* Breadcrumbs */}
         <div className="mb-6 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-400">
-          <Link to="/services" className="hover:text-[#0194f3] transition-colors">Dịch vụ</Link>
+          <Link to="/services" className="transition-colors hover:text-[#0194f3]">
+            Dịch vụ
+          </Link>
           <span className="text-slate-300">/</span>
           <span className="text-[#0194f3]">{service.categoryName || "Chung"}</span>
           <span className="text-slate-300">/</span>
-          <span className="text-slate-900 truncate">{service.name}</span>
+          <span className="truncate text-slate-900">{service.name}</span>
         </div>
 
-        {/* Title Section */}
-        <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div className="mb-8 flex flex-col justify-between gap-6 md:flex-row md:items-end">
           <div className="flex-1">
-            <h1 className="text-3xl font-black leading-tight text-slate-900 md:text-4xl lg:text-5xl mb-4">
+            <h1 className="mb-4 text-3xl font-black leading-tight text-slate-900 md:text-4xl lg:text-5xl">
               {service.name}
             </h1>
             <div className="flex flex-wrap items-center gap-4 text-sm font-bold text-slate-500">
               {service.averageRating > 0 && (
-                <div className="flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-amber-600 border border-amber-100">
+                <div className="flex items-center gap-1.5 rounded-full border border-amber-100 bg-amber-50 px-3 py-1 text-amber-600">
                   <Star size={14} fill="#fbbf24" className="text-amber-400" />
                   <span className="text-slate-900">{service.averageRating.toFixed(1)}</span>
                 </div>
@@ -331,76 +400,102 @@ const ServiceDetailPage = () => {
           </div>
 
           <div className="flex shrink-0 flex-col items-start md:items-end">
-            <span className="text-xs font-black uppercase tracking-widest text-slate-400 mb-1">Giá chỉ từ</span>
+            <span className="mb-1 text-xs font-black uppercase tracking-widest text-slate-400">Giá chỉ từ</span>
             <div className="text-4xl font-black text-[#f12c2c]">{formattedPrice}</div>
           </div>
         </div>
 
-        {/* Gallery Section (Sync with PostDetailPage style) */}
         {imageUrls.length > 0 && (
-          <div 
-            className="mb-12 grid gap-2 overflow-hidden rounded-3xl cursor-pointer group h-[300px] sm:h-[400px] md:h-[480px] shadow-2xl ring-1 ring-slate-200 md:grid-cols-3"
-            onClick={() => { setIsGalleryOpen(true); setCurrentImageIndex(0); }}
+          <div
+            className="group mb-12 grid h-[300px] cursor-pointer gap-2 overflow-hidden rounded-3xl shadow-2xl ring-1 ring-slate-200 sm:h-[400px] md:h-[480px] md:grid-cols-3"
+            onClick={() => {
+              setCurrentImageIndex(0);
+              setIsGalleryOpen(true);
+            }}
           >
-            <div className={`${imageUrls.length >= 2 ? "md:col-span-2" : "md:col-span-3"} h-full overflow-hidden relative`}>
-              <img src={imageUrls[0]} alt="Ảnh chính" className="h-full w-full object-cover transition-transform duration-500 hover:scale-105" />
+            <div className={`${imageUrls.length >= 2 ? "md:col-span-2" : "md:col-span-3"} relative h-full overflow-hidden`}>
+              <img
+                src={imageUrls[0]}
+                alt="Ảnh chính dịch vụ"
+                className="h-full w-full object-cover transition-transform duration-500 hover:scale-105"
+              />
             </div>
 
             {imageUrls.length >= 2 && (
-               <div className={`hidden md:grid gap-2 ${imageUrls.length >= 5 ? "grid-cols-2 grid-rows-2" : imageUrls.length === 4 ? "grid-cols-1 grid-rows-3" : imageUrls.length === 3 ? "grid-cols-1 grid-rows-2" : "grid-cols-1 grid-rows-1"}`}>
-                 {imageUrls.slice(1, 5).map((url, idx) => {
-                   const isLast = idx === 3 || (imageUrls.length < 5 && idx === imageUrls.length - 2);
-                   return (
-                     <div key={idx} className="relative h-full overflow-hidden">
-                       <img src={url} alt="" className="h-full w-full object-cover transition-transform duration-500 hover:scale-105" />
-                       {isLast && imageUrls.length > 5 && (
-                         <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white font-bold flex-col gap-1.5 transition-colors hover:bg-black/40 backdrop-blur-sm">
-                           <div className="flex gap-1 mb-1">
-                             <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
-                             <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
-                             <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
-                           </div>
-                           <span className="text-sm">Hiển thị tất cả hình ảnh</span>
-                         </div>
-                       )}
-                     </div>
-                   );
-                 })}
-               </div>
+              <div
+                className={`hidden gap-2 md:grid ${
+                  imageUrls.length >= 5
+                    ? "grid-cols-2 grid-rows-2"
+                    : imageUrls.length === 4
+                      ? "grid-cols-1 grid-rows-3"
+                      : imageUrls.length === 3
+                        ? "grid-cols-1 grid-rows-2"
+                        : "grid-cols-1 grid-rows-1"
+                }`}
+              >
+                {imageUrls.slice(1, 5).map((url, idx) => {
+                  const isLast = idx === 3 || (imageUrls.length < 5 && idx === imageUrls.length - 2);
+                  return (
+                    <div key={idx} className="relative h-full overflow-hidden">
+                      <img
+                        src={url}
+                        alt=""
+                        className="h-full w-full object-cover transition-transform duration-500 hover:scale-105"
+                      />
+                      {isLast && imageUrls.length > 5 && (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-black/50 text-white backdrop-blur-sm transition-colors hover:bg-black/40">
+                          <div className="mb-1 flex gap-1">
+                            <div className="h-1.5 w-1.5 rounded-full bg-white" />
+                            <div className="h-1.5 w-1.5 rounded-full bg-white" />
+                            <div className="h-1.5 w-1.5 rounded-full bg-white" />
+                          </div>
+                          <span className="text-sm font-bold">Hiển thị tất cả hình ảnh</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </div>
         )}
 
-        {/* Content Section */}
-        <div className="flex flex-col lg:flex-row items-start gap-12">
-          <div className="w-full lg:w-2/3 min-w-0">
-            <h2 className="mb-6 text-2xl font-black text-slate-900 flex items-center gap-3">
-              <div className="size-8 rounded-xl bg-[#0194f3]/10 flex items-center justify-center text-[#0194f3]">
+        <div className="grid gap-12 lg:grid-cols-3">
+          <div className="min-w-0 lg:col-span-2">
+            <h2 className="mb-6 flex items-center gap-3 text-2xl font-black text-slate-900">
+              <div className="flex size-8 items-center justify-center rounded-xl bg-[#0194f3]/10 text-[#0194f3]">
                 <ChevronDown size={20} />
               </div>
               Mô tả dịch vụ
             </h2>
-            <div
-              ref={contentRef}
-              className="prose prose-lg prose-slate max-w-none prose-headings:font-black prose-img:rounded-3xl whitespace-pre-wrap"
-              dangerouslySetInnerHTML={{ __html: service.description }}
-            />
 
-            {/* Extra images if any (> 6 images) */}
-            {imageUrls.length > 6 && (
-              <div className="mt-12">
-                <h3 className="mb-6 text-sm font-black uppercase tracking-widest text-slate-500">+{imageUrls.length - 6} Ảnh khác</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  {imageUrls.slice(6).map((url, i) => (
-                    <img key={i} src={url} alt="" className="rounded-3xl w-full aspect-video object-cover" />
-                  ))}
-                </div>
+            <div className="relative">
+              <div
+                ref={contentRef}
+                className={`prose prose-lg prose-slate max-w-none overflow-hidden break-words [overflow-wrap:anywhere] [&_*]:max-w-full [&_img]:h-auto [&_img]:w-full [&_img]:rounded-3xl [&_img]:object-cover [&_figure]:max-w-full [&_p]:max-w-full [&_p]:break-words [&_li]:break-words [&_table]:block [&_table]:max-w-full [&_table]:overflow-x-auto [&_iframe]:max-w-full prose-headings:font-black prose-a:text-[#0194f3] transition-all duration-500 ${
+                  expandedContent ? "" : "max-h-[720px] overflow-hidden"
+                }`}
+                dangerouslySetInnerHTML={{ __html: htmlContent }}
+              />
+              {!expandedContent && canExpandContent && (
+                <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-white via-white/90 to-transparent" />
+              )}
+            </div>
+
+            {!expandedContent && canExpandContent && (
+              <div className="mt-5 text-center">
+                <button
+                  type="button"
+                  onClick={() => setExpandedContent(true)}
+                  className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-8 py-3 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 hover:text-[#0194f3]"
+                >
+                  Xem thêm nội dung <ChevronDown className="size-4" />
+                </button>
               </div>
             )}
           </div>
 
-          {/* Sidebar Info */}
-          <div className="w-full lg:w-1/3 space-y-6">
+          <div className="w-full space-y-6">
             <div className="sticky top-24 space-y-6">
               <div className="rounded-3xl bg-slate-50 p-8 ring-1 ring-slate-100">
                 <h3 className="mb-6 text-sm font-black uppercase tracking-widest text-slate-500">Tại sao nên chọn?</h3>
@@ -419,7 +514,7 @@ const ServiceDetailPage = () => {
                   </li>
                 </ul>
 
-                <button className="mt-10 w-full rounded-2xl bg-[#0194f3] py-4 text-sm font-black text-white shadow-lg shadow-[#0194f3]/20 transition-all hover:bg-[#017bc0] hover:scale-[1.02] active:scale-95">
+                <button className="mt-10 w-full rounded-2xl bg-[#0194f3] py-4 text-sm font-black text-white shadow-lg shadow-[#0194f3]/20 transition-all hover:scale-[1.02] hover:bg-[#017bc0] active:scale-95">
                   Đặt ngay dịch vụ này
                 </button>
               </div>
@@ -427,22 +522,36 @@ const ServiceDetailPage = () => {
           </div>
         </div>
 
-        {/* Reviews Section */}
-        <div className="mt-20 pt-12 border-t border-slate-100">
-          <div className="flex flex-col items-center justify-between mb-10 sm:flex-row">
-            <h2 className="text-2xl font-black text-slate-900 mb-4 sm:mb-0">Đánh giá & Nhận xét ({comments.length})</h2>
+        <div className="mt-20 border-t border-slate-100 pt-12">
+          <div className="mb-10 flex flex-col items-center justify-between sm:flex-row">
+            <h2 className="mb-4 text-2xl font-black text-slate-900 sm:mb-0">
+              Đánh giá và nhận xét ({comments.length})
+            </h2>
             {service.averageRating > 0 && (
-              <div className="flex items-center gap-3 bg-amber-50 px-5 py-2 rounded-2xl border border-amber-100">
+              <div className="flex items-center gap-3 rounded-2xl border border-amber-100 bg-amber-50 px-5 py-2">
                 <div className="text-3xl font-black text-slate-900">{service.averageRating.toFixed(1)}</div>
                 <div className="flex flex-col">
                   <div className="flex gap-0.5">
-                    {[1, 2, 3, 4, 5].map(s => <Star key={s} size={14} fill={s <= Math.round(service.averageRating) ? "#fbbf24" : "none"} className={s <= Math.round(service.averageRating) ? "text-amber-400" : "text-slate-200"} />)}
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Star
+                        key={star}
+                        size={14}
+                        fill={star <= Math.round(service.averageRating) ? "#fbbf24" : "none"}
+                        className={star <= Math.round(service.averageRating) ? "text-amber-400" : "text-slate-200"}
+                      />
+                    ))}
                   </div>
                   <span className="text-[10px] font-black uppercase text-amber-700">Đánh giá trung bình</span>
                 </div>
               </div>
             )}
           </div>
+
+          {error && (
+            <div className="mb-8 rounded-2xl bg-rose-50 px-5 py-4 text-sm font-semibold text-rose-600">
+              {String(error)}
+            </div>
+          )}
 
           {canInteract && auth && !replyTarget && (
             <CommentComposer
@@ -469,7 +578,7 @@ const ServiceDetailPage = () => {
 
           <div className="space-y-8">
             {comments.length === 0 ? (
-              <div className="py-20 text-center text-sm font-bold text-slate-400 italic">
+              <div className="py-20 text-center text-sm font-bold italic text-slate-400">
                 Chưa có đánh giá nào. Hãy là người đầu tiên chia sẻ trải nghiệm của bạn!
               </div>
             ) : (
@@ -495,57 +604,71 @@ const ServiceDetailPage = () => {
         </div>
       </div>
 
-      {/* GALLERY MODAL OVERLAY */}
       {isGalleryOpen && (
         <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/95 backdrop-blur-sm p-4"
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/95 p-4 backdrop-blur-sm"
           onClick={() => setIsGalleryOpen(false)}
         >
           <div
-            className="relative flex flex-col w-full h-full max-w-5xl max-h-[90vh] bg-white rounded-3xl overflow-hidden shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
+            className="relative flex h-full max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
           >
             <div className="flex h-16 items-center justify-between border-b bg-white px-6">
-              <span className="font-black text-slate-900">{currentImageIndex + 1} / {imageUrls.length}</span>
+              <span className="font-black text-slate-900">
+                {currentImageIndex + 1} / {imageUrls.length}
+              </span>
               <button
                 onClick={() => setIsGalleryOpen(false)}
-                className="flex items-center gap-2 text-slate-500 font-black hover:text-red-500 transition-colors"
+                className="flex items-center gap-2 font-black text-slate-500 transition-colors hover:text-red-500"
               >
                 <span>Đóng</span>
                 <X size={20} />
               </button>
             </div>
 
-            <div className="relative flex flex-1 flex-col items-center justify-center bg-slate-50 p-4 overflow-hidden">
-              <button
-                onClick={(e) => { e.stopPropagation(); setCurrentImageIndex((prev) => (prev > 0 ? prev - 1 : imageUrls.length - 1)); }}
-                className="absolute left-4 z-10 flex h-12 w-12 items-center justify-center rounded-full bg-white/80 text-slate-800 shadow-md backdrop-blur-md transition hover:bg-white hover:scale-105 disabled:opacity-0"
-              >
-                <ChevronLeft size={24} />
-              </button>
+            <div className="relative flex flex-1 flex-col items-center justify-center overflow-hidden bg-slate-50 p-4">
+              {imageUrls.length > 1 && (
+                <button
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setCurrentImageIndex((prev) => (prev > 0 ? prev - 1 : imageUrls.length - 1));
+                  }}
+                  className="absolute left-4 z-10 flex h-12 w-12 items-center justify-center rounded-full bg-white/80 text-slate-800 shadow-md backdrop-blur-md transition hover:scale-105 hover:bg-white"
+                >
+                  <ChevronLeft size={24} />
+                </button>
+              )}
 
               <img
                 src={imageUrls[currentImageIndex]}
                 alt="Service"
-                className="max-h-full max-w-full object-contain rounded-2xl shadow-sm"
+                className="max-h-full max-w-full rounded-2xl object-contain shadow-sm"
               />
 
-              <button
-                onClick={(e) => { e.stopPropagation(); setCurrentImageIndex((prev) => (prev < imageUrls.length - 1 ? prev + 1 : 0)); }}
-                className="absolute right-4 z-10 flex h-12 w-12 items-center justify-center rounded-full bg-white/80 text-slate-800 shadow-md backdrop-blur-md transition hover:bg-white hover:scale-105"
-              >
-                <ChevronRight size={24} />
-              </button>
+              {imageUrls.length > 1 && (
+                <button
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setCurrentImageIndex((prev) => (prev < imageUrls.length - 1 ? prev + 1 : 0));
+                  }}
+                  className="absolute right-4 z-10 flex h-12 w-12 items-center justify-center rounded-full bg-white/80 text-slate-800 shadow-md backdrop-blur-md transition hover:scale-105 hover:bg-white"
+                >
+                  <ChevronRight size={24} />
+                </button>
+              )}
             </div>
 
             {imageUrls.length > 1 && (
-              <div className="h-24 border-t bg-white p-2 flex items-center justify-center gap-2 overflow-x-auto no-scrollbar">
-                {imageUrls.map((url, i) => (
+              <div className="flex h-24 items-center justify-center gap-2 overflow-x-auto border-t bg-white p-2">
+                {imageUrls.map((url, index) => (
                   <button
-                    key={i}
-                    onClick={() => setCurrentImageIndex(i)}
-                    className={`relative h-full aspect-[4/3] flex-shrink-0 overflow-hidden rounded-xl transition-all duration-300 ${i === currentImageIndex ? "ring-4 ring-[#0194f3] scale-105 z-10 shadow-md" : "opacity-40 hover:opacity-100"
-                      }`}
+                    key={index}
+                    onClick={() => setCurrentImageIndex(index)}
+                    className={`relative h-full aspect-[4/3] flex-shrink-0 overflow-hidden rounded-xl transition-all duration-300 ${
+                      index === currentImageIndex
+                        ? "z-10 scale-105 ring-4 ring-[#0194f3] shadow-md"
+                        : "opacity-40 hover:opacity-100"
+                    }`}
                   >
                     <img src={url} alt="" className="h-full w-full object-cover" />
                   </button>
