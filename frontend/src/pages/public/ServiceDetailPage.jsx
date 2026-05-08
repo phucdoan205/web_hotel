@@ -42,13 +42,13 @@ const CommentComposer = ({
             </button>
           ))}
           {rating > 0 && (
-             <button 
-               type="button" 
-               onClick={() => setRating(0)}
-               className="ml-2 text-xs font-bold text-slate-400 hover:text-slate-600"
-             >
-               Xóa
-             </button>
+            <button
+              type="button"
+              onClick={() => setRating(0)}
+              className="ml-2 text-xs font-bold text-slate-400 hover:text-slate-600"
+            >
+              Xóa
+            </button>
           )}
         </div>
       </div>
@@ -123,11 +123,11 @@ const CommentItem = ({
             {comment.rating > 0 && (
               <div className="flex items-center gap-0.5 ml-2">
                 {[1, 2, 3, 4, 5].map((star) => (
-                  <Star 
-                    key={star} 
-                    size={12} 
-                    fill={star <= comment.rating ? "#fbbf24" : "none"} 
-                    className={star <= comment.rating ? "text-amber-400" : "text-slate-200"} 
+                  <Star
+                    key={star}
+                    size={12}
+                    fill={star <= comment.rating ? "#fbbf24" : "none"}
+                    className={star <= comment.rating ? "text-amber-400" : "text-slate-200"}
                   />
                 ))}
               </div>
@@ -296,7 +296,7 @@ const ServiceDetailPage = () => {
   return (
     <div className="min-h-screen bg-white pb-24 pt-24">
       <div className="mx-auto max-w-6xl px-5 lg:px-8">
-        
+
         {/* Breadcrumbs */}
         <div className="mb-6 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-400">
           <Link to="/services" className="hover:text-[#0194f3] transition-colors">Dịch vụ</Link>
@@ -313,103 +313,116 @@ const ServiceDetailPage = () => {
               {service.name}
             </h1>
             <div className="flex flex-wrap items-center gap-4 text-sm font-bold text-slate-500">
-               {service.averageRating > 0 && (
-                 <div className="flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-amber-600 border border-amber-100">
-                   <Star size={14} fill="#fbbf24" className="text-amber-400" />
-                   <span className="text-slate-900">{service.averageRating.toFixed(1)}</span>
-                 </div>
-               )}
-               <span className="flex items-center gap-1.5">
-                 <MessageCircle className="size-4" />
-                 {comments.length} đánh giá
-               </span>
-               <span className="flex items-center gap-1.5">
-                 <Clock className="size-4" />
-                 {service.unit ? `Đơn vị: ${service.unit}` : "Luôn sẵn sàng"}
-               </span>
+              {service.averageRating > 0 && (
+                <div className="flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-amber-600 border border-amber-100">
+                  <Star size={14} fill="#fbbf24" className="text-amber-400" />
+                  <span className="text-slate-900">{service.averageRating.toFixed(1)}</span>
+                </div>
+              )}
+              <span className="flex items-center gap-1.5">
+                <MessageCircle className="size-4" />
+                {comments.length} đánh giá
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Clock className="size-4" />
+                {service.unit ? `Đơn vị: ${service.unit}` : "Luôn sẵn sàng"}
+              </span>
             </div>
           </div>
 
           <div className="flex shrink-0 flex-col items-start md:items-end">
-             <span className="text-xs font-black uppercase tracking-widest text-slate-400 mb-1">Giá chỉ từ</span>
-             <div className="text-4xl font-black text-[#f12c2c]">{formattedPrice}</div>
+            <span className="text-xs font-black uppercase tracking-widest text-slate-400 mb-1">Giá chỉ từ</span>
+            <div className="text-4xl font-black text-[#f12c2c]">{formattedPrice}</div>
           </div>
         </div>
 
-        {/* Gallery Section (Booking.com Style) */}
+        {/* Gallery Section (Sync with PostDetailPage style) */}
         {imageUrls.length > 0 && (
           <div 
-            className="mb-12 grid gap-2 overflow-hidden rounded-3xl cursor-pointer group h-[300px] sm:h-[400px] md:h-[500px] md:grid-cols-4"
+            className="mb-12 grid gap-2 overflow-hidden rounded-3xl cursor-pointer group h-[300px] sm:h-[400px] md:h-[480px] shadow-2xl ring-1 ring-slate-200 md:grid-cols-3"
             onClick={() => { setIsGalleryOpen(true); setCurrentImageIndex(0); }}
           >
-            <div className="md:col-span-2 h-full overflow-hidden">
-              <img src={imageUrls[0]} alt="Main" className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
+            <div className={`${imageUrls.length >= 2 ? "md:col-span-2" : "md:col-span-3"} h-full overflow-hidden relative`}>
+              <img src={imageUrls[0]} alt="Ảnh chính" className="h-full w-full object-cover transition-transform duration-500 hover:scale-105" />
             </div>
-            
-            <div className="hidden md:grid col-span-2 gap-2 grid-cols-2 grid-rows-2">
-               {imageUrls.slice(1, 5).map((url, idx) => (
-                 <div key={idx} className="relative h-full overflow-hidden">
-                   <img src={url} alt={`Gallery ${idx}`} className="h-full w-full object-cover transition-transform duration-700 hover:scale-110" />
-                   {idx === 3 && imageUrls.length > 5 && (
-                     <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white font-black text-sm uppercase tracking-widest backdrop-blur-[2px]">
-                        +{imageUrls.length - 5} Ảnh khác
+
+            {imageUrls.length >= 2 && (
+               <div className={`hidden md:grid gap-2 ${imageUrls.length >= 5 ? "grid-cols-2 grid-rows-2" : imageUrls.length === 4 ? "grid-cols-1 grid-rows-3" : imageUrls.length === 3 ? "grid-cols-1 grid-rows-2" : "grid-cols-1 grid-rows-1"}`}>
+                 {imageUrls.slice(1, 5).map((url, idx) => {
+                   const isLast = idx === 3 || (imageUrls.length < 5 && idx === imageUrls.length - 2);
+                   return (
+                     <div key={idx} className="relative h-full overflow-hidden">
+                       <img src={url} alt="" className="h-full w-full object-cover transition-transform duration-500 hover:scale-105" />
+                       {isLast && imageUrls.length > 5 && (
+                         <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white font-bold flex-col gap-1.5 transition-colors hover:bg-black/40 backdrop-blur-sm">
+                           <div className="flex gap-1 mb-1">
+                             <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
+                             <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
+                             <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
+                           </div>
+                           <span className="text-sm">Hiển thị tất cả hình ảnh</span>
+                         </div>
+                       )}
                      </div>
-                   )}
-                 </div>
-               ))}
-            </div>
+                   );
+                 })}
+               </div>
+            )}
           </div>
         )}
 
         {/* Content Section */}
-        <div className="grid gap-12 lg:grid-cols-3">
-          <div className="lg:col-span-2">
+        <div className="flex flex-col lg:flex-row items-start gap-12">
+          <div className="w-full lg:w-2/3 min-w-0">
             <h2 className="mb-6 text-2xl font-black text-slate-900 flex items-center gap-3">
-               <div className="size-8 rounded-xl bg-[#0194f3]/10 flex items-center justify-center text-[#0194f3]">
-                 <ChevronDown size={20} />
-               </div>
-               Mô tả dịch vụ
+              <div className="size-8 rounded-xl bg-[#0194f3]/10 flex items-center justify-center text-[#0194f3]">
+                <ChevronDown size={20} />
+              </div>
+              Mô tả dịch vụ
             </h2>
-            <div 
+            <div
               ref={contentRef}
-              className="prose prose-lg prose-slate max-w-none prose-headings:font-black prose-img:rounded-3xl"
+              className="prose prose-lg prose-slate max-w-none prose-headings:font-black prose-img:rounded-3xl whitespace-pre-wrap"
               dangerouslySetInnerHTML={{ __html: service.description }}
             />
 
-            {/* Extra images if any */}
-            {imageUrls.length > 5 && (
-               <div className="mt-12 grid grid-cols-2 gap-4">
-                  {imageUrls.slice(5).map((url, i) => (
+            {/* Extra images if any (> 6 images) */}
+            {imageUrls.length > 6 && (
+              <div className="mt-12">
+                <h3 className="mb-6 text-sm font-black uppercase tracking-widest text-slate-500">+{imageUrls.length - 6} Ảnh khác</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  {imageUrls.slice(6).map((url, i) => (
                     <img key={i} src={url} alt="" className="rounded-3xl w-full aspect-video object-cover" />
                   ))}
-               </div>
+                </div>
+              </div>
             )}
           </div>
 
           {/* Sidebar Info */}
-          <div className="space-y-6">
+          <div className="w-full lg:w-1/3 space-y-6">
             <div className="sticky top-24 space-y-6">
-               <div className="rounded-3xl bg-slate-50 p-8 ring-1 ring-slate-100">
-                  <h3 className="mb-6 text-sm font-black uppercase tracking-widest text-slate-500">Tại sao nên chọn?</h3>
-                  <ul className="space-y-4">
-                     <li className="flex gap-3 text-sm font-bold text-slate-700">
-                        <ShieldCheck className="size-5 shrink-0 text-[#0194f3]" />
-                        <span>Dịch vụ uy tín, chất lượng đảm bảo</span>
-                     </li>
-                     <li className="flex gap-3 text-sm font-bold text-slate-700">
-                        <BadgeDollarSign className="size-5 shrink-0 text-[#0194f3]" />
-                        <span>Giá cả cạnh tranh, ưu đãi khách lưu trú</span>
-                     </li>
-                     <li className="flex gap-3 text-sm font-bold text-slate-700">
-                        <User className="size-5 shrink-0 text-[#0194f3]" />
-                        <span>Phục vụ tận tâm, chuyên nghiệp 24/7</span>
-                     </li>
-                  </ul>
-                  
-                  <button className="mt-10 w-full rounded-2xl bg-[#0194f3] py-4 text-sm font-black text-white shadow-lg shadow-[#0194f3]/20 transition-all hover:bg-[#017bc0] hover:scale-[1.02] active:scale-95">
-                     Đặt ngay dịch vụ này
-                  </button>
-               </div>
+              <div className="rounded-3xl bg-slate-50 p-8 ring-1 ring-slate-100">
+                <h3 className="mb-6 text-sm font-black uppercase tracking-widest text-slate-500">Tại sao nên chọn?</h3>
+                <ul className="space-y-4">
+                  <li className="flex gap-3 text-sm font-bold text-slate-700">
+                    <ShieldCheck className="size-5 shrink-0 text-[#0194f3]" />
+                    <span>Dịch vụ uy tín, chất lượng đảm bảo</span>
+                  </li>
+                  <li className="flex gap-3 text-sm font-bold text-slate-700">
+                    <BadgeDollarSign className="size-5 shrink-0 text-[#0194f3]" />
+                    <span>Giá cả cạnh tranh, ưu đãi khách lưu trú</span>
+                  </li>
+                  <li className="flex gap-3 text-sm font-bold text-slate-700">
+                    <User className="size-5 shrink-0 text-[#0194f3]" />
+                    <span>Phục vụ tận tâm, chuyên nghiệp 24/7</span>
+                  </li>
+                </ul>
+
+                <button className="mt-10 w-full rounded-2xl bg-[#0194f3] py-4 text-sm font-black text-white shadow-lg shadow-[#0194f3]/20 transition-all hover:bg-[#017bc0] hover:scale-[1.02] active:scale-95">
+                  Đặt ngay dịch vụ này
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -419,15 +432,15 @@ const ServiceDetailPage = () => {
           <div className="flex flex-col items-center justify-between mb-10 sm:flex-row">
             <h2 className="text-2xl font-black text-slate-900 mb-4 sm:mb-0">Đánh giá & Nhận xét ({comments.length})</h2>
             {service.averageRating > 0 && (
-               <div className="flex items-center gap-3 bg-amber-50 px-5 py-2 rounded-2xl border border-amber-100">
-                  <div className="text-3xl font-black text-slate-900">{service.averageRating.toFixed(1)}</div>
-                  <div className="flex flex-col">
-                     <div className="flex gap-0.5">
-                       {[1,2,3,4,5].map(s => <Star key={s} size={14} fill={s <= Math.round(service.averageRating) ? "#fbbf24" : "none"} className={s <= Math.round(service.averageRating) ? "text-amber-400" : "text-slate-200"} />)}
-                     </div>
-                     <span className="text-[10px] font-black uppercase text-amber-700">Đánh giá trung bình</span>
+              <div className="flex items-center gap-3 bg-amber-50 px-5 py-2 rounded-2xl border border-amber-100">
+                <div className="text-3xl font-black text-slate-900">{service.averageRating.toFixed(1)}</div>
+                <div className="flex flex-col">
+                  <div className="flex gap-0.5">
+                    {[1, 2, 3, 4, 5].map(s => <Star key={s} size={14} fill={s <= Math.round(service.averageRating) ? "#fbbf24" : "none"} className={s <= Math.round(service.averageRating) ? "text-amber-400" : "text-slate-200"} />)}
                   </div>
-               </div>
+                  <span className="text-[10px] font-black uppercase text-amber-700">Đánh giá trung bình</span>
+                </div>
+              </div>
             )}
           </div>
 
@@ -484,11 +497,11 @@ const ServiceDetailPage = () => {
 
       {/* GALLERY MODAL OVERLAY */}
       {isGalleryOpen && (
-        <div 
+        <div
           className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/95 backdrop-blur-sm p-4"
           onClick={() => setIsGalleryOpen(false)}
         >
-          <div 
+          <div
             className="relative flex flex-col w-full h-full max-w-5xl max-h-[90vh] bg-white rounded-3xl overflow-hidden shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
@@ -504,36 +517,35 @@ const ServiceDetailPage = () => {
             </div>
 
             <div className="relative flex flex-1 flex-col items-center justify-center bg-slate-50 p-4 overflow-hidden">
-                <button
-                  onClick={(e) => { e.stopPropagation(); setCurrentImageIndex((prev) => (prev > 0 ? prev - 1 : imageUrls.length - 1)); }}
-                  className="absolute left-4 z-10 flex h-12 w-12 items-center justify-center rounded-full bg-white/80 text-slate-800 shadow-md backdrop-blur-md transition hover:bg-white hover:scale-105 disabled:opacity-0"
-                >
-                  <ChevronLeft size={24} />
-                </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); setCurrentImageIndex((prev) => (prev > 0 ? prev - 1 : imageUrls.length - 1)); }}
+                className="absolute left-4 z-10 flex h-12 w-12 items-center justify-center rounded-full bg-white/80 text-slate-800 shadow-md backdrop-blur-md transition hover:bg-white hover:scale-105 disabled:opacity-0"
+              >
+                <ChevronLeft size={24} />
+              </button>
 
-                <img
-                  src={imageUrls[currentImageIndex]}
-                  alt="Service"
-                  className="max-h-full max-w-full object-contain rounded-2xl shadow-sm"
-                />
+              <img
+                src={imageUrls[currentImageIndex]}
+                alt="Service"
+                className="max-h-full max-w-full object-contain rounded-2xl shadow-sm"
+              />
 
-                <button
-                  onClick={(e) => { e.stopPropagation(); setCurrentImageIndex((prev) => (prev < imageUrls.length - 1 ? prev + 1 : 0)); }}
-                  className="absolute right-4 z-10 flex h-12 w-12 items-center justify-center rounded-full bg-white/80 text-slate-800 shadow-md backdrop-blur-md transition hover:bg-white hover:scale-105"
-                >
-                  <ChevronRight size={24} />
-                </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); setCurrentImageIndex((prev) => (prev < imageUrls.length - 1 ? prev + 1 : 0)); }}
+                className="absolute right-4 z-10 flex h-12 w-12 items-center justify-center rounded-full bg-white/80 text-slate-800 shadow-md backdrop-blur-md transition hover:bg-white hover:scale-105"
+              >
+                <ChevronRight size={24} />
+              </button>
             </div>
-            
+
             {imageUrls.length > 1 && (
               <div className="h-24 border-t bg-white p-2 flex items-center justify-center gap-2 overflow-x-auto no-scrollbar">
                 {imageUrls.map((url, i) => (
                   <button
                     key={i}
                     onClick={() => setCurrentImageIndex(i)}
-                    className={`relative h-full aspect-[4/3] flex-shrink-0 overflow-hidden rounded-xl transition-all duration-300 ${
-                      i === currentImageIndex ? "ring-4 ring-[#0194f3] scale-105 z-10 shadow-md" : "opacity-40 hover:opacity-100"
-                    }`}
+                    className={`relative h-full aspect-[4/3] flex-shrink-0 overflow-hidden rounded-xl transition-all duration-300 ${i === currentImageIndex ? "ring-4 ring-[#0194f3] scale-105 z-10 shadow-md" : "opacity-40 hover:opacity-100"
+                      }`}
                   >
                     <img src={url} alt="" className="h-full w-full object-cover" />
                   </button>
