@@ -71,6 +71,26 @@ const formatDateValue = (date) => {
   return `${year}-${month}-${day}`;
 };
 
+const getNextNDays = (n = 14) => {
+  const days = [];
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  for (let i = 0; i < n; i++) {
+    const date = new Date(today);
+    date.setDate(today.getDate() + i);
+    days.push(date);
+  }
+  return days;
+};
+
+const getDayName = (date) => {
+  const days = ["CN", "Th 2", "Th 3", "Th 4", "Th 5", "Th 6", "Th 7"];
+  const isToday = isSameDate(date, new Date());
+  if (isToday) return "Hôm nay";
+  return days[date.getDay()];
+};
+
 const CommentComposer = ({
   auth,
   value,
@@ -266,6 +286,7 @@ const ServiceDetailPage = () => {
   const auth = getStoredAuth();
   const contentRef = useRef(null);
   const bookingBoxRef = useRef(null);
+  const scrollContainerRef = useRef(null);
   const [service, setService] = useState(null);
   const [comments, setComments] = useState([]);
   const [commentText, setCommentText] = useState("");
@@ -280,7 +301,7 @@ const ServiceDetailPage = () => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [bookingDate, setBookingDate] = useState("");
   const [quantity, setQuantity] = useState(1);
-  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [showFullCalendar, setShowFullCalendar] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(() => {
     const today = new Date();
     return new Date(today.getFullYear(), today.getMonth(), 1);
@@ -307,7 +328,17 @@ const ServiceDetailPage = () => {
     return new Date(year, month - 1, day);
   }, [bookingDate]);
 
+  const quickDates = useMemo(() => getNextNDays(30), []);
   const calendarDays = useMemo(() => getMonthMatrix(calendarMonth), [calendarMonth]);
+
+  useEffect(() => {
+    if (bookingDate && scrollContainerRef.current) {
+      const selectedEl = scrollContainerRef.current.querySelector(`[data-date="${bookingDate}"]`);
+      if (selectedEl) {
+        selectedEl.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+      }
+    }
+  }, [bookingDate]);
 
   useEffect(() => {
     if (isGalleryOpen) {
@@ -352,7 +383,7 @@ const ServiceDetailPage = () => {
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (!bookingBoxRef.current?.contains(event.target)) {
-        setIsCalendarOpen(false);
+        setShowFullCalendar(false);
       }
     };
 
@@ -399,7 +430,7 @@ const ServiceDetailPage = () => {
     if (date < today) return;
     setBookingDate(formatDateValue(date));
     setCalendarMonth(new Date(date.getFullYear(), date.getMonth(), 1));
-    setIsCalendarOpen(false);
+    setShowFullCalendar(false);
   };
 
   if (loading) {
@@ -433,7 +464,7 @@ const ServiceDetailPage = () => {
 
   return (
     <div className="min-h-screen bg-white pb-24 pt-24">
-      <div className="mx-auto max-w-6xl px-5 lg:px-8">
+      <div className="mx-auto max-w-7xl px-5 lg:px-8">
         <div className="mb-6 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-400">
           <Link to="/services" className="transition-colors hover:text-[#0194f3]">
             Dịch vụ
@@ -444,32 +475,32 @@ const ServiceDetailPage = () => {
           <span className="truncate text-slate-900">{service.name}</span>
         </div>
 
-        <div className="mb-8 flex flex-col justify-between gap-6 md:flex-row md:items-end">
-          <div className="flex-1">
-            <h1 className="mb-4 text-3xl font-black leading-tight text-slate-900 md:text-4xl lg:text-5xl">
-              {service.name}
-            </h1>
-            <div className="flex flex-wrap items-center gap-4 text-sm font-bold text-slate-500">
-              {service.averageRating > 0 && (
-                <div className="flex items-center gap-1.5 rounded-full border border-amber-100 bg-amber-50 px-3 py-1 text-amber-600">
-                  <Star size={14} fill="#fbbf24" className="text-amber-400" />
-                  <span className="text-slate-900">{service.averageRating.toFixed(1)}</span>
-                </div>
-              )}
-              <span className="flex items-center gap-1.5">
-                <MessageCircle className="size-4" />
-                {comments.length} đánh giá
-              </span>
-              <span className="flex items-center gap-1.5">
-                <Clock className="size-4" />
-                {service.unit ? `Đơn vị: ${service.unit}` : "Luôn sẵn sàng"}
-              </span>
+        <div className="mb-8">
+          <h1 className="mb-4 text-3xl font-black leading-tight text-slate-900 md:text-4xl lg:text-5xl">
+            {service.name}
+          </h1>
+          <div className="flex flex-wrap items-center gap-4 text-sm font-bold text-slate-500">
+            {service.averageRating > 0 && (
+              <div className="flex items-center gap-1.5 rounded-full border border-amber-100 bg-amber-50 px-3 py-1 text-amber-600">
+                <Star size={14} fill="#fbbf24" className="text-amber-400" />
+                <span className="text-slate-900">{service.averageRating.toFixed(1)}</span>
+              </div>
+            )}
+            <span className="flex items-center gap-1.5">
+              <MessageCircle className="size-4" />
+              {comments.length} đánh giá
+            </span>
+            <div className="flex items-center gap-1">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <Star
+                  key={star}
+                  size={14}
+                  fill={star <= Math.round(service.averageRating || 0) ? "#fbbf24" : "none"}
+                  className={star <= Math.round(service.averageRating || 0) ? "text-amber-400" : "text-slate-200"}
+                />
+              ))}
+              <span className="ml-1 text-slate-900">{service.averageRating > 0 ? service.averageRating.toFixed(1) : "0.0"}</span>
             </div>
-          </div>
-
-          <div className="flex shrink-0 flex-col items-start md:items-end">
-            <span className="mb-1 text-xs font-black uppercase tracking-widest text-slate-400">Giá chỉ từ</span>
-            <div className="text-4xl font-black text-[#f12c2c]">{formattedPrice}</div>
           </div>
         </div>
 
@@ -491,15 +522,14 @@ const ServiceDetailPage = () => {
 
             {imageUrls.length >= 2 && (
               <div
-                className={`hidden gap-2 md:grid ${
-                  imageUrls.length >= 5
-                    ? "grid-cols-2 grid-rows-2"
-                    : imageUrls.length === 4
-                      ? "grid-cols-1 grid-rows-3"
-                      : imageUrls.length === 3
-                        ? "grid-cols-1 grid-rows-2"
-                        : "grid-cols-1 grid-rows-1"
-                }`}
+                className={`hidden gap-2 md:grid ${imageUrls.length >= 5
+                  ? "grid-cols-2 grid-rows-2"
+                  : imageUrls.length === 4
+                    ? "grid-cols-1 grid-rows-3"
+                    : imageUrls.length === 3
+                      ? "grid-cols-1 grid-rows-2"
+                      : "grid-cols-1 grid-rows-1"
+                  }`}
               >
                 {imageUrls.slice(1, 5).map((url, idx) => {
                   const isLast = idx === 3 || (imageUrls.length < 5 && idx === imageUrls.length - 2);
@@ -528,25 +558,20 @@ const ServiceDetailPage = () => {
           </div>
         )}
 
-        <div className="grid gap-12 lg:grid-cols-3">
-          <div className="lg:col-span-2">
+        <div className="grid gap-12 lg:grid-cols-12">
+          {/* Main Content Column */}
+          <div className="lg:col-span-8">
             <div className="mb-6">
               <h2 className="mb-4 text-3xl font-black leading-tight text-slate-900 md:text-4xl">
                 Mô tả dịch vụ
               </h2>
-              {service.unit && (
-                <p className="mb-4 border-l-4 border-[#0194f3] pl-4 text-base font-medium text-slate-600">
-                  Dịch vụ này được tính theo đơn vị: {service.unit}
-                </p>
-              )}
             </div>
 
             <div className="relative">
               <div
                 ref={contentRef}
-                className={`prose prose-lg prose-slate max-w-none break-words overflow-hidden prose-headings:font-black prose-a:text-[#0194f3] prose-img:rounded-2xl [&_*]:max-w-full [&_*]:break-words [&_p]:whitespace-normal [&_p]:leading-8 [&_li]:whitespace-normal [&_li]:leading-8 [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_code]:break-words [&_table]:block [&_table]:w-full [&_table]:overflow-x-auto [&_img]:my-5 [&_img]:block [&_img]:h-auto [&_img]:max-w-full [&_img]:object-cover transition-all duration-500 ${
-                  expandedContent ? "" : "max-h-[800px] overflow-hidden"
-                }`}
+                className={`prose prose-lg prose-slate max-w-none break-words overflow-hidden prose-headings:font-black prose-a:text-[#0194f3] prose-img:rounded-2xl [&_*]:max-w-full [&_*]:break-words [&_p]:whitespace-normal [&_p]:leading-8 [&_li]:whitespace-normal [&_li]:leading-8 [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_code]:break-words [&_table]:block [&_table]:w-full [&_table]:overflow-x-auto [&_img]:my-5 [&_img]:block [&_img]:h-auto [&_img]:max-w-full [&_img]:object-cover transition-all duration-500 ${expandedContent ? "" : "max-h-[800px] overflow-hidden"
+                  }`}
                 dangerouslySetInnerHTML={{ __html: htmlContent }}
               />
               {!expandedContent && canExpandContent && (
@@ -565,199 +590,261 @@ const ServiceDetailPage = () => {
                 </button>
               </div>
             )}
-          </div>
 
-          <div className="hidden lg:block" />
-        </div>
-
-        <div className="mt-10 rounded-3xl bg-slate-50 p-6 ring-1 ring-slate-100 md:p-8">
-          <div className="grid gap-4 md:grid-cols-[minmax(0,1.6fr)_220px_180px] md:items-end">
-            <div ref={bookingBoxRef} className="relative">
-              <label className="mb-2 block text-xs font-black uppercase tracking-wider text-slate-500">
-                Ngày đặt dịch vụ
-              </label>
-              <button
-                type="button"
-                onClick={() => setIsCalendarOpen((prev) => !prev)}
-                className="relative flex w-full items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-left shadow-sm transition hover:border-[#0194f3] hover:shadow-md"
-              >
-                <CalendarDays className="size-5 shrink-0 text-[#0194f3]" />
-                <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm font-bold text-slate-700">
-                    {bookingDate
-                      ? new Date(`${bookingDate}T00:00:00`).toLocaleDateString("vi-VN")
-                      : "Chọn ngày đặt dịch vụ"}
-                  </div>
-                </div>
-                <ChevronDown className={`size-4 text-slate-400 transition ${isCalendarOpen ? "rotate-180" : ""}`} />
-              </button>
-
-              {isCalendarOpen && (
-                <div className="absolute left-0 right-0 top-[calc(100%+0.75rem)] z-20 rounded-3xl border border-slate-200 bg-white p-4 shadow-2xl shadow-slate-200/70 md:right-auto md:w-[360px]">
-                  <div className="mb-4 flex items-center justify-between">
-                    <button
-                      type="button"
-                      onClick={() => setCalendarMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))}
-                      className="flex size-9 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-[#0194f3] hover:text-[#0194f3]"
-                    >
-                      <ChevronLeft className="size-4" />
-                    </button>
-                    <div className="text-sm font-black text-slate-800">
-                      {calendarMonth.toLocaleDateString("vi-VN", { month: "long", year: "numeric" })}
+            <div className="mt-20 border-t border-slate-100 pt-12">
+              <div className="mb-10 flex flex-col items-center justify-between sm:flex-row">
+                <h2 className="mb-4 text-2xl font-black text-slate-900 sm:mb-0">
+                  Đánh giá và nhận xét ({comments.length})
+                </h2>
+                {service.averageRating > 0 && (
+                  <div className="flex items-center gap-3 rounded-2xl border border-amber-100 bg-amber-50 px-5 py-2">
+                    <div className="text-3xl font-black text-slate-900">{service.averageRating.toFixed(1)}</div>
+                    <div className="flex flex-col">
+                      <div className="flex gap-0.5">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star
+                            key={star}
+                            size={14}
+                            fill={star <= Math.round(service.averageRating) ? "#fbbf24" : "none"}
+                            className={star <= Math.round(service.averageRating) ? "text-amber-400" : "text-slate-200"}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-[10px] font-black uppercase text-amber-700">Đánh giá trung bình</span>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setCalendarMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))}
-                      className="flex size-9 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-[#0194f3] hover:text-[#0194f3]"
-                    >
-                      <ChevronRight className="size-4" />
-                    </button>
                   </div>
+                )}
+              </div>
 
-                  <div className="mb-2 grid grid-cols-7 gap-2 text-center text-[11px] font-black uppercase tracking-wide text-slate-400">
-                    {["T2", "T3", "T4", "T5", "T6", "T7", "CN"].map((day) => (
-                      <div key={day}>{day}</div>
-                    ))}
-                  </div>
-
-                  <div className="grid grid-cols-7 gap-2">
-                    {calendarDays.map((date) => {
-                      const isCurrentMonth = date.getMonth() === calendarMonth.getMonth();
-                      const isPast = date < today;
-                      const isSelected = selectedBookingDate && isSameDate(date, selectedBookingDate);
-                      return (
-                        <button
-                          key={date.toISOString()}
-                          type="button"
-                          disabled={isPast}
-                          onClick={() => handleSelectBookingDate(date)}
-                          className={`aspect-square rounded-2xl text-sm font-bold transition ${
-                            isSelected
-                              ? "bg-[#0194f3] text-white shadow-md shadow-[#0194f3]/30"
-                              : isCurrentMonth
-                                ? "text-slate-700 hover:bg-sky-50 hover:text-[#0194f3]"
-                                : "text-slate-300"
-                          } ${isPast ? "cursor-not-allowed bg-slate-50 text-slate-300" : ""}`}
-                        >
-                          {date.getDate()}
-                        </button>
-                      );
-                    })}
-                  </div>
+              {error && (
+                <div className="mb-8 rounded-2xl bg-rose-50 px-5 py-4 text-sm font-semibold text-rose-600">
+                  {String(error)}
                 </div>
               )}
-            </div>
 
-            <div>
-              <label className="mb-2 block text-xs font-black uppercase tracking-wider text-slate-500">
-                Số lượng
-              </label>
-              <div className="flex items-center rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
-                <button
-                  type="button"
-                  onClick={() => setQuantity((prev) => Math.max(1, prev - 1))}
-                  className="flex size-11 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-50 hover:text-[#0194f3]"
-                >
-                  <Minus className="size-4" />
-                </button>
-                <div className="flex-1 text-center">
-                  <div className="text-xs font-bold uppercase tracking-wide text-slate-400">Số lượng</div>
-                  <div className="text-lg font-black text-slate-800">{quantity}</div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setQuantity((prev) => prev + 1)}
-                  className="flex size-11 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-50 hover:text-[#0194f3]"
-                >
-                  <Plus className="size-4" />
-                </button>
-              </div>
-            </div>
-
-            <button className="w-full rounded-2xl bg-[#0194f3] px-6 py-4 text-sm font-black text-white shadow-lg shadow-[#0194f3]/20 transition-all hover:scale-[1.02] hover:bg-[#017bc0] active:scale-95">
-              Đặt dịch vụ
-            </button>
-          </div>
-        </div>
-
-        <div className="mt-20 border-t border-slate-100 pt-12">
-          <div className="mb-10 flex flex-col items-center justify-between sm:flex-row">
-            <h2 className="mb-4 text-2xl font-black text-slate-900 sm:mb-0">
-              Đánh giá và nhận xét ({comments.length})
-            </h2>
-            {service.averageRating > 0 && (
-              <div className="flex items-center gap-3 rounded-2xl border border-amber-100 bg-amber-50 px-5 py-2">
-                <div className="text-3xl font-black text-slate-900">{service.averageRating.toFixed(1)}</div>
-                <div className="flex flex-col">
-                  <div className="flex gap-0.5">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <Star
-                        key={star}
-                        size={14}
-                        fill={star <= Math.round(service.averageRating) ? "#fbbf24" : "none"}
-                        className={star <= Math.round(service.averageRating) ? "text-amber-400" : "text-slate-200"}
-                      />
-                    ))}
-                  </div>
-                  <span className="text-[10px] font-black uppercase text-amber-700">Đánh giá trung bình</span>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {error && (
-            <div className="mb-8 rounded-2xl bg-rose-50 px-5 py-4 text-sm font-semibold text-rose-600">
-              {String(error)}
-            </div>
-          )}
-
-          {canInteract && auth && !replyTarget && (
-            <CommentComposer
-              auth={auth}
-              value={commentText}
-              onChange={setCommentText}
-              onSubmit={handleSubmitComment}
-              isSubmitting={submitting}
-              replyTarget={null}
-              onCancelReply={cancelReply}
-              rating={rating}
-              setRating={setRating}
-            />
-          )}
-
-          {!auth && (
-            <div className="mb-10 rounded-3xl bg-slate-50 p-10 text-center">
-              <p className="mb-4 text-sm font-bold text-slate-500">Vui lòng đăng nhập để gửi đánh giá cho dịch vụ này</p>
-              <Link to="/login" className="inline-block rounded-xl bg-[#0194f3] px-8 py-3 text-sm font-black text-white shadow-md hover:bg-[#017bc0]">
-                Đăng nhập ngay
-              </Link>
-            </div>
-          )}
-
-          <div className="space-y-8">
-            {comments.length === 0 ? (
-              <div className="py-20 text-center text-sm font-bold italic text-slate-400">
-                Chưa có đánh giá nào. Hãy là người đầu tiên chia sẻ trải nghiệm của bạn!
-              </div>
-            ) : (
-              comments.map((comment) => (
-                <CommentItem
-                  key={comment.id}
-                  comment={comment}
-                  onReply={handleReply}
-                  replyTarget={replyTarget}
-                  commentText={commentText}
-                  setCommentText={setCommentText}
-                  handleSubmitComment={handleSubmitComment}
-                  submitting={submitting}
+              {canInteract && auth && !replyTarget && (
+                <CommentComposer
                   auth={auth}
-                  canInteract={canInteract}
-                  cancelReply={cancelReply}
+                  value={commentText}
+                  onChange={setCommentText}
+                  onSubmit={handleSubmitComment}
+                  isSubmitting={submitting}
+                  replyTarget={null}
+                  onCancelReply={cancelReply}
                   rating={rating}
                   setRating={setRating}
                 />
-              ))
-            )}
+              )}
+
+              {!auth && (
+                <div className="mb-10 rounded-3xl bg-slate-50 p-10 text-center">
+                  <p className="mb-4 text-sm font-bold text-slate-500">Vui lòng đăng nhập để gửi đánh giá cho dịch vụ này</p>
+                  <Link to="/login" className="inline-block rounded-xl bg-[#0194f3] px-8 py-3 text-sm font-black text-white shadow-md hover:bg-[#017bc0]">
+                    Đăng nhập ngay
+                  </Link>
+                </div>
+              )}
+
+              <div className="space-y-8">
+                {comments.length === 0 ? (
+                  <div className="py-20 text-center text-sm font-bold italic text-slate-400">
+                    Chưa có đánh giá nào. Hãy là người đầu tiên chia sẻ trải nghiệm của bạn!
+                  </div>
+                ) : (
+                  comments.map((comment) => (
+                    <CommentItem
+                      key={comment.id}
+                      comment={comment}
+                      onReply={handleReply}
+                      replyTarget={replyTarget}
+                      commentText={commentText}
+                      setCommentText={setCommentText}
+                      handleSubmitComment={handleSubmitComment}
+                      submitting={submitting}
+                      auth={auth}
+                      canInteract={canInteract}
+                      cancelReply={cancelReply}
+                      rating={rating}
+                      setRating={setRating}
+                    />
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Sidebar Column */}
+          <div className="lg:col-span-4">
+            <div className="sticky top-32 space-y-6">
+              <div ref={bookingBoxRef} className="overflow-hidden rounded-3xl bg-white p-6 shadow-[0_8px_30px_rgb(0,0,0,0.12)] ring-1 ring-slate-100">
+                <h3 className="mb-6 text-xl font-black text-slate-900">Vé và giá</h3>
+
+                <div className="space-y-6">
+                  {/* Date Selector */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-black text-slate-800">Tìm vé theo ngày</span>
+                      <button
+                        onClick={() => setShowFullCalendar(!showFullCalendar)}
+                        className="text-sm font-bold text-[#0194f3] hover:underline"
+                      >
+                        {showFullCalendar ? "Đóng lịch" : "Hiển thị thêm ngày"}
+                      </button>
+                    </div>
+
+                    {!showFullCalendar ? (
+                      <div className="relative group/scroll">
+                        <button
+                          onClick={() => scrollContainerRef.current?.scrollBy({ left: -200, behavior: "smooth" })}
+                          className="absolute -left-3 top-1/2 z-10 flex size-9 -translate-y-1/2 items-center justify-center rounded-full bg-white shadow-xl ring-1 ring-slate-100 transition-transform hover:scale-110 md:group-hover/scroll:flex"
+                        >
+                          <ChevronLeft className="size-5 text-slate-600" />
+                        </button>
+
+                        <div
+                          ref={scrollContainerRef}
+                          className="flex gap-2 overflow-x-auto pb-2 scroll-smooth"
+                          style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+                        >
+                          <style>{`
+                            div::-webkit-scrollbar {
+                              display: none;
+                            }
+                          `}</style>
+                          {quickDates.map((date) => {
+                            const dateValue = formatDateValue(date);
+                            const isSelected = selectedBookingDate && isSameDate(date, selectedBookingDate);
+                            return (
+                              <button
+                                key={date.toISOString()}
+                                data-date={dateValue}
+                                onClick={() => handleSelectBookingDate(date)}
+                                className={`flex min-w-[85px] flex-col items-center justify-center rounded-2xl border-2 py-5 transition-all ${isSelected
+                                  ? "border-[#0194f3] bg-[#0194f3]/5 shadow-sm"
+                                  : "border-slate-100 bg-white hover:border-[#0194f3]/30"
+                                  }`}
+                              >
+                                <span className={`text-[11px] font-bold uppercase tracking-wider ${isSelected ? "text-[#0194f3]" : "text-slate-400"}`}>
+                                  {getDayName(date)}
+                                </span>
+                                <span className={`mt-1 text-2xl font-black ${isSelected ? "text-[#0194f3]" : "text-slate-800"}`}>
+                                  {date.getDate()}
+                                </span>
+                                <span className={`text-[11px] font-bold ${isSelected ? "text-[#0194f3]" : "text-slate-400"}`}>
+                                  Tháng {date.getMonth() + 1}
+                                </span>
+                                {isSameDate(date, new Date(new Date().setDate(new Date().getDate() + 1))) && (
+                                  <span className="mt-2 rounded-full bg-slate-100 px-2 py-0.5 text-[8px] font-black text-slate-500">Ngày mai</span>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        <button
+                          onClick={() => scrollContainerRef.current?.scrollBy({ left: 200, behavior: "smooth" })}
+                          className="absolute -right-3 top-1/2 z-10 flex size-9 -translate-y-1/2 items-center justify-center rounded-full bg-white shadow-xl ring-1 ring-slate-100 transition-transform hover:scale-110 md:group-hover/scroll:flex"
+                        >
+                          <ChevronRight className="size-5 text-slate-600" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4">
+                        <div className="mb-4 flex items-center justify-between">
+                          <button
+                            type="button"
+                            onClick={() => setCalendarMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))}
+                            className="flex size-8 items-center justify-center rounded-full bg-white text-slate-500 shadow-sm transition hover:text-[#0194f3]"
+                          >
+                            <ChevronLeft className="size-4" />
+                          </button>
+                          <div className="text-sm font-black text-slate-800">
+                            Tháng {calendarMonth.getMonth() + 1} {calendarMonth.getFullYear()}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setCalendarMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))}
+                            className="flex size-8 items-center justify-center rounded-full bg-white text-slate-500 shadow-sm transition hover:text-[#0194f3]"
+                          >
+                            <ChevronRight className="size-4" />
+                          </button>
+                        </div>
+
+                        <div className="mb-2 grid grid-cols-7 gap-1 text-center text-[10px] font-black uppercase text-slate-400">
+                          {["CN", "T2", "T3", "T4", "T5", "T6", "T7"].map((day) => (
+                            <div key={day}>{day}</div>
+                          ))}
+                        </div>
+
+                        <div className="grid grid-cols-7 gap-1">
+                          {calendarDays.map((date) => {
+                            const isCurrentMonth = date.getMonth() === calendarMonth.getMonth();
+                            const isPast = date < today;
+                            const isSelected = selectedBookingDate && isSameDate(date, selectedBookingDate);
+                            return (
+                              <button
+                                key={date.toISOString()}
+                                type="button"
+                                disabled={isPast}
+                                onClick={() => handleSelectBookingDate(date)}
+                                className={`aspect-square rounded-xl text-xs font-bold transition-all ${isSelected
+                                  ? "bg-[#0194f3] text-white shadow-md"
+                                  : isCurrentMonth
+                                    ? "text-slate-700 hover:bg-white hover:text-[#0194f3] hover:shadow-sm"
+                                    : "text-slate-300"
+                                  } ${isPast ? "cursor-not-allowed text-slate-200" : ""}`}
+                              >
+                                {date.getDate()}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Quantity Selector */}
+                  <div className="space-y-4 pt-4">
+                    <h4 className="text-sm font-black text-slate-800">Số lượng</h4>
+                    <div className="flex items-center justify-end rounded-2xl border border-slate-100 bg-slate-50/50 p-4">
+                      <div className="flex items-center gap-3 rounded-xl bg-white p-1 shadow-sm ring-1 ring-slate-100">
+                        <button
+                          type="button"
+                          onClick={() => setQuantity((prev) => Math.max(1, prev - 1))}
+                          className="flex size-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-50 hover:text-[#0194f3]"
+                        >
+                          <Minus className="size-4" />
+                        </button>
+                        <span className="min-w-[20px] text-center text-sm font-black text-slate-900">{quantity}</span>
+                        <button
+                          type="button"
+                          onClick={() => setQuantity((prev) => prev + 1)}
+                          className="flex size-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-50 hover:text-[#0194f3]"
+                        >
+                          <Plus className="size-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Summary & CTA */}
+                  <div className="space-y-4 pt-6 border-t border-slate-100">
+                    <div className="flex items-end justify-between">
+                      <div className="space-y-1">
+                        <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">Tổng cộng</div>
+                        <div className="text-2xl font-black text-[#f12c2c]">
+                          {new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(service.price * quantity)}
+                        </div>
+                      </div>
+                    </div>
+
+                    <button className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#0194f3] py-4 text-sm font-black text-white shadow-lg shadow-[#0194f3]/25 transition-all hover:scale-[1.02] hover:bg-[#017bc0] active:scale-95">
+                      Tiếp tục
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -822,11 +909,10 @@ const ServiceDetailPage = () => {
                   <button
                     key={index}
                     onClick={() => setCurrentImageIndex(index)}
-                    className={`relative h-full aspect-[4/3] flex-shrink-0 overflow-hidden rounded-xl transition-all duration-300 ${
-                      index === currentImageIndex
-                        ? "z-10 scale-105 ring-4 ring-[#0194f3] shadow-md"
-                        : "opacity-40 hover:opacity-100"
-                    }`}
+                    className={`relative h-full aspect-[4/3] flex-shrink-0 overflow-hidden rounded-xl transition-all duration-300 ${index === currentImageIndex
+                      ? "z-10 scale-105 ring-4 ring-[#0194f3] shadow-md"
+                      : "opacity-40 hover:opacity-100"
+                      }`}
                   >
                     <img src={url} alt="" className="h-full w-full object-cover" />
                   </button>

@@ -1,3 +1,6 @@
+using System.Linq;
+using System.Threading.Tasks;
+using backend.Common;
 using backend.Data;
 using backend.DTOs.Review;
 using backend.Models;
@@ -159,18 +162,48 @@ namespace backend.Controllers
         }
 
         [HttpGet("room-type/{roomTypeId:int}")]
-        public async Task<ActionResult<IEnumerable<object>>> GetRoomTypeReviews(int roomTypeId)
+        public async Task<ActionResult<PagedResponse<object>>> GetRoomTypeReviews(
+            int roomTypeId,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 10,
+            [FromQuery] int? minRating = null,
+            [FromQuery] bool? hasComment = null,
+            [FromQuery] string? sort = "newest")
         {
-            var reviews = await _context.Reviews
+            var query = _context.Reviews
                 .AsNoTracking()
                 .Where(item => item.RoomTypeId == roomTypeId && item.Status)
                 .Include(item => item.User)
-                .OrderByDescending(item => item.CreatedAt ?? DateTime.MinValue)
-                .ThenByDescending(item => item.Id)
-                .Take(6)
+                .AsQueryable();
+
+            if (minRating.HasValue)
+            {
+                query = query.Where(item => item.Rating >= minRating.Value);
+            }
+
+            if (hasComment == true)
+            {
+                query = query.Where(item => !string.IsNullOrEmpty(item.Comment));
+            }
+
+            // Sorting logic
+            query = sort switch
+            {
+                "newest" => query.OrderByDescending(r => r.CreatedAt).ThenByDescending(r => r.Id),
+                "oldest" => query.OrderBy(r => r.CreatedAt).ThenBy(r => r.Id),
+                "highest" => query.OrderByDescending(r => r.Rating).ThenByDescending(r => r.CreatedAt),
+                "lowest" => query.OrderBy(r => r.Rating).ThenByDescending(r => r.CreatedAt),
+                _ => query.OrderByDescending(r => r.CreatedAt).ThenByDescending(r => r.Id)
+            };
+
+            var total = await query.CountAsync();
+
+            var reviews = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
                 .ToListAsync();
 
-            var result = reviews.Select(review => new 
+            var result = reviews.Select(review => (object)new 
             {
                 Id = review.Id,
                 RoomTypeId = review.RoomTypeId,
@@ -183,9 +216,9 @@ namespace backend.Controllers
                 LocationRating = review.LocationRating,
                 Comment = review.Comment ?? string.Empty,
                 CreatedAt = review.CreatedAt
-            });
+            }).ToList();
 
-            return Ok(result);
+            return Ok(new PagedResponse<object>(result, total, page, pageSize));
         }
         [HttpGet("public")]
         public async Task<ActionResult<IEnumerable<object>>> GetPublicReviews([FromQuery] string? sort = "newest", [FromQuery] int limit = 6)

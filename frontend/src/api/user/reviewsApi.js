@@ -28,22 +28,29 @@ export const userReviewsApi = {
     return normalizeReview(response.data);
   },
 
-  async getRoomTypeReviews(roomTypeId) {
-    const response = await apiClient.get(`/user-reviews/room-type/${roomTypeId}`);
-    const items = Array.isArray(response.data) ? response.data : [];
-    return items.map(item => ({
-      id: item.id,
-      roomTypeId: item.roomTypeId,
-      user: item.userName || "Khách",
-      avatarUrl: item.avatarUrl || null,
-      rating: Number(item.rating || 0),
-      amenitiesRating: item.amenitiesRating,
-      staffRating: item.staffRating,
-      cleanlinessRating: item.cleanlinessRating,
-      locationRating: item.locationRating,
-      comment: item.comment || "",
-      date: item.createdAt ? new Date(item.createdAt).toLocaleDateString("vi-VN") : "Gần đây",
-    }));
+  async getRoomTypeReviews(roomTypeId, params = { page: 1, pageSize: 10 }) {
+    const response = await apiClient.get(`/user-reviews/room-type/${roomTypeId}`, { params });
+    const { items = [], totalCount = 0, page = 1, pageSize = 10 } = response.data || {};
+    
+    return {
+      items: items.map(item => ({
+        id: item.id,
+        roomTypeId: item.roomTypeId,
+        user: item.userName || "Khách",
+        avatarUrl: item.avatarUrl || null,
+        rating: Number(item.rating || 0),
+        amenitiesRating: item.amenitiesRating,
+        staffRating: item.staffRating,
+        cleanlinessRating: item.cleanlinessRating,
+        locationRating: item.locationRating,
+        comment: item.comment || "",
+        date: item.createdAt ? new Date(item.createdAt).toLocaleDateString("vi-VN") : "Gần đây",
+      })),
+      totalItems: totalCount,
+      page,
+      pageSize,
+      totalPages: Math.ceil(totalCount / pageSize)
+    };
   },
   async getPublicReviews(params) {
     const response = await apiClient.get("/user-reviews/public", { params });

@@ -180,6 +180,9 @@ const RoomDetailPage = () => {
   const [selectedRoomId, setSelectedRoomId] = useState(null);
   const [isFavorite, setIsFavorite] = useState(false);
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
+  const [isReviewDrawerOpen, setIsReviewDrawerOpen] = useState(false);
+  const [reviewPage, setReviewPage] = useState(1);
+  const [reviewSort, setReviewSort] = useState("newest");
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [submitMessage, setSubmitMessage] = useState(null);
   const [activeTab, setActiveTab] = useState("overview");
@@ -201,9 +204,20 @@ const RoomDetailPage = () => {
   });
 
   const reviewsQuery = useQuery({
-    queryKey: ["user-room-type-reviews", id],
-    queryFn: () => userReviewsApi.getRoomTypeReviews(Number(id)),
+    queryKey: ["user-room-type-reviews", id, { page: 1, pageSize: 4 }],
+    queryFn: () => userReviewsApi.getRoomTypeReviews(Number(id), { page: 1, pageSize: 4 }),
     enabled: Boolean(id),
+  });
+
+  const drawerReviewsQuery = useQuery({
+    queryKey: ["user-room-type-reviews-drawer", id, { page: reviewPage, pageSize: 10, sort: reviewSort }],
+    queryFn: () => userReviewsApi.getRoomTypeReviews(Number(id), { 
+      page: reviewPage, 
+      pageSize: 10,
+      sort: reviewSort
+    }),
+    enabled: Boolean(id) && isReviewDrawerOpen,
+    placeholderData: keepPreviousData,
   });
 
   const { data: otherRoomTypesData } = useQuery({
@@ -245,12 +259,15 @@ const RoomDetailPage = () => {
     [availableRooms, id, roomTypeFromState],
   );
 
-  const reviews = reviewsQuery.data || [];
+  const reviews = reviewsQuery.data?.items || [];
+  const totalReviews = reviewsQuery.data?.totalItems || 0;
 
   const avgRating = useMemo(() => {
-    if (reviews.length === 0) return roomType.rating || 0;
-    const sum = reviews.reduce((acc, r) => acc + r.rating, 0);
-    return sum / reviews.length;
+    if (roomType.rating > 0) return roomType.rating;
+    if (reviews.length > 0) {
+      return reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length;
+    }
+    return 0;
   }, [reviews, roomType.rating]);
 
   const stayDays = useMemo(
@@ -608,8 +625,8 @@ const RoomDetailPage = () => {
                   <div className="flex items-center gap-4 border-l border-slate-100 pl-4 pr-2">
                     {selectedRoom && (
                       <div className="text-right hidden sm:block">
-                        <p className="text-[10px] font-black uppercase text-slate-400">Giá cọc (1 đêm)</p>
-                        <p className="text-lg font-black text-blue-600 leading-none">{formatCurrency(roomType.basePrice || 0)}</p>
+                        <p className="text-[10px] font-black uppercase text-slate-400">Giá cho {stayDays} đêm</p>
+                        <p className="text-lg font-black text-blue-600 leading-none">{formatCurrency(totalPrice)}</p>
                       </div>
                     )}
                     <button
@@ -653,7 +670,7 @@ const RoomDetailPage = () => {
                       <tr>
                         <th className="px-4 py-3 font-bold border-r border-[#00224f] w-[35%]">Số phòng cụ thể</th>
                         <th className="px-3 py-3 font-bold border-r border-[#00224f] text-center w-[15%]">Số lượng</th>
-                        <th className="px-4 py-3 font-bold border-r border-[#00224f] bg-[#00224f] w-[25%]">Giá cọc (1 đêm)</th>
+                        <th className="px-4 py-3 font-bold border-r border-[#00224f] bg-[#00224f] w-[25%]">Giá cho {stayDays} đêm</th>
                         <th className="px-4 py-3 font-bold w-[25%]">Tùy chọn cho bạn</th>
                       </tr>
                     </thead>
@@ -696,9 +713,9 @@ const RoomDetailPage = () => {
                               </div>
                             </td>
                             <td className="px-4 py-4 border-r border-slate-300 align-middle">
-                              <div className="text-xl font-bold text-slate-900">{formatCurrency(roomType.basePrice || 0)}</div>
+                              <div className="text-xl font-bold text-slate-900">{formatCurrency(totalPrice)}</div>
                               <div className="mt-1.5 text-[13px] font-semibold text-slate-500">
-                                Tổng <span className="text-slate-700">{formatCurrency(totalPrice)}</span> cho {stayDays} đêm
+                                Tổng cộng cho {stayDays} đêm
                               </div>
                             </td>
                             <td className="px-4 py-4 align-middle">
@@ -815,7 +832,7 @@ const RoomDetailPage = () => {
                   </div>
                   <div>
                     <p className="text-2xl font-black text-slate-900">{avgRating >= 4.5 ? "Tuyệt hảo" : avgRating >= 4 ? "Rất tốt" : avgRating > 0 ? "Tốt" : "Chưa có đánh giá"}</p>
-                    <p className="mt-1 text-base font-bold text-slate-500">{reviews.length} đánh giá đã được xác thực</p>
+                    <p className="mt-1 text-base font-bold text-slate-500">{totalReviews} đánh giá đã được xác thực</p>
                   </div>
                 </div>
 
@@ -848,6 +865,15 @@ const RoomDetailPage = () => {
                       </div>
                     );
                   })}
+                  
+                  {totalReviews > 0 && (
+                    <button 
+                      onClick={() => setIsReviewDrawerOpen(true)}
+                      className="mt-6 w-full rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 hover:border-blue-300 hover:text-blue-600"
+                    >
+                      Đọc tất cả {totalReviews} đánh giá
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -880,7 +906,7 @@ const RoomDetailPage = () => {
                       </div>
                       
                       {review.comment && (
-                        <p className="text-sm font-medium leading-relaxed text-slate-600 italic">"{review.comment}"</p>
+                        <p className="text-sm font-medium leading-relaxed text-slate-600 italic line-clamp-3">"{review.comment}"</p>
                       )}
                     </div>
                   </div>
@@ -974,9 +1000,152 @@ const RoomDetailPage = () => {
               ))}
             </div>
           </div>
-
         </section>
       </div>
+
+      {/* REVIEW DRAWER OVERLAY */}
+      {isReviewDrawerOpen && (
+        <div 
+          className="fixed inset-0 z-[100] flex justify-end bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300"
+          onClick={() => setIsReviewDrawerOpen(false)}
+        >
+          <div 
+            className="relative flex flex-col w-full max-w-2xl bg-white h-full shadow-2xl animate-in slide-in-from-right duration-500"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex h-20 items-center justify-between border-b px-8 bg-white sticky top-0 z-10">
+              <h2 className="text-xl font-black text-slate-900">
+                Đánh giá của khách về {roomType.roomTypeName}
+              </h2>
+              <button
+                onClick={() => setIsReviewDrawerOpen(false)}
+                className="p-2 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-900 transition-all"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-8 space-y-10 no-scrollbar">
+              {/* Summary in drawer */}
+              <div className="flex items-center gap-6 pb-8 border-b border-slate-100">
+                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-600 text-2xl font-black text-white shadow-lg shadow-blue-100">
+                  {avgRating.toFixed(1)}
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-slate-900">
+                    {avgRating >= 4.5 ? "Xuất sắc" : avgRating >= 4 ? "Rất tốt" : avgRating >= 3 ? "Tốt" : avgRating > 0 ? "Hài lòng" : "Chưa có đánh giá"}
+                  </h3>
+                  <p className="text-sm font-bold text-slate-500 mt-1">{totalReviews.toLocaleString()} đánh giá đã xác thực</p>
+                </div>
+              </div>
+
+              {/* Sorting Dropdown */}
+              <div className="flex items-center justify-between pb-4 border-b border-slate-50">
+                <h4 className="text-sm font-bold text-slate-900">Đánh giá</h4>
+                <div className="flex items-center gap-3">
+                  <span className="text-[13px] text-slate-500">Sắp xếp đánh giá theo:</span>
+                  <select 
+                    value={reviewSort}
+                    onChange={(e) => { setReviewSort(e.target.value); setReviewPage(1); }}
+                    className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-[13px] font-bold text-slate-700 outline-none focus:border-blue-500"
+                  >
+                    <option value="newest">Mới nhất</option>
+                    <option value="oldest">Cũ nhất</option>
+                    <option value="highest">Điểm cao nhất</option>
+                    <option value="lowest">Điểm thấp nhất</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Review List */}
+              <div className="space-y-8">
+                {drawerReviewsQuery.isLoading ? (
+                  <div className="py-20 text-center">
+                    <RefreshCw className="mx-auto size-8 animate-spin text-blue-600" />
+                    <p className="mt-4 text-sm font-bold text-slate-500">Đang tải đánh giá...</p>
+                  </div>
+                ) : drawerReviewsQuery.data?.items?.length > 0 ? (
+                  drawerReviewsQuery.data.items.map((review) => (
+                    <div key={review.id} className="space-y-4 pb-8 border-b border-slate-50 last:border-0">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-slate-100 border border-slate-200">
+                            {review.avatarUrl ? (
+                              <img src={review.avatarUrl.startsWith('http') ? review.avatarUrl : `http://localhost:5000${review.avatarUrl}`} alt={review.user} className="h-full w-full object-cover" />
+                            ) : (
+                              <div className="flex h-full w-full items-center justify-center bg-emerald-600 text-[11px] font-black text-white uppercase">
+                                {review.user?.[0] || 'U'}
+                              </div>
+                            )}
+                          </div>
+                          <div>
+                            <p className="text-sm font-black text-slate-900">{review.user}</p>
+                            <div className="flex items-center gap-1.5">
+                               <span className="text-xs">🇻🇳</span>
+                               <span className="text-[11px] font-bold text-slate-400">Việt Nam</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-sm font-black text-white shadow-md">
+                          {review.rating.toFixed(0)}
+                        </div>
+                      </div>
+
+                      <div className="pl-13">
+                        <div className="flex items-center gap-2 mb-2 text-xs font-bold text-slate-400">
+                           <span>Ngày đánh giá: {review.date}</span>
+                        </div>
+                        <p className="text-[15px] leading-relaxed text-slate-700">
+                          {review.comment || "Không có nhận xét chi tiết."}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="py-20 text-center text-slate-400 italic">Chưa có đánh giá nào.</div>
+                )}
+              </div>
+
+              {/* Pagination */}
+              {drawerReviewsQuery.data?.totalPages > 1 && (
+                <div className="flex items-center justify-center gap-2 py-8 border-t border-slate-100">
+                  <button 
+                    disabled={reviewPage === 1}
+                    onClick={() => setReviewPage(p => Math.max(1, p - 1))}
+                    className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 disabled:opacity-30"
+                  >
+                    <ChevronLeft size={20} />
+                  </button>
+                  
+                  {[...Array(drawerReviewsQuery.data.totalPages)].map((_, i) => {
+                    const p = i + 1;
+                    return (
+                      <button 
+                        key={p}
+                        onClick={() => setReviewPage(p)}
+                        className={`flex h-10 w-10 items-center justify-center rounded-xl text-sm font-black transition ${
+                          reviewPage === p ? "bg-blue-600 text-white shadow-lg" : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    );
+                  })}
+
+                  <button 
+                    disabled={reviewPage === drawerReviewsQuery.data.totalPages}
+                    onClick={() => setReviewPage(p => Math.min(drawerReviewsQuery.data.totalPages, p + 1))}
+                    className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 disabled:opacity-30"
+                  >
+                    <ChevronRight size={20} />
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* GALLERY MODAL OVERLAY */}
       {isGalleryOpen && (
@@ -1044,7 +1213,7 @@ const RoomDetailPage = () => {
                     <h2 className="text-xl font-black text-slate-900 leading-tight">
                       {avgRating >= 4.5 ? "Xuất sắc" : avgRating >= 4 ? "Rất tốt" : avgRating >= 3 ? "Tốt" : avgRating > 0 ? "Hài lòng" : "Chưa có đánh giá"}
                     </h2>
-                    <p className="text-xs font-bold text-slate-400 mt-1">{reviews.length.toLocaleString()} đánh giá</p>
+                    <p className="text-xs font-bold text-slate-400 mt-1">{totalReviews.toLocaleString()} đánh giá</p>
                   </div>
                 </div>
 
@@ -1059,7 +1228,7 @@ const RoomDetailPage = () => {
                         <div className="flex items-center gap-3">
                           <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-slate-100 border border-slate-100">
                              {review.avatarUrl ? (
-                               <img src={review.avatarUrl} alt={review.user} className="h-full w-full object-cover" />
+                               <img src={review.avatarUrl.startsWith('http') ? review.avatarUrl : `http://localhost:5000${review.avatarUrl}`} alt={review.user} className="h-full w-full object-cover" />
                              ) : (
                                <div className="flex h-full w-full items-center justify-center bg-green-600 text-[11px] font-black text-white uppercase">
                                  {review.user?.[0] || 'U'}
@@ -1070,7 +1239,7 @@ const RoomDetailPage = () => {
                              <span className="text-[13px] font-bold text-slate-900">{review.user}</span>
                              <div className="flex items-center gap-1.5 opacity-70">
                                 <span className="text-[12px]">🇻🇳</span>
-                                <span className="text-[11px] font-bold text-slate-500">Việt Nam</span>
+                               <span className="text-[11px] font-bold text-slate-500">Việt Nam</span>
                              </div>
                           </div>
                         </div>
