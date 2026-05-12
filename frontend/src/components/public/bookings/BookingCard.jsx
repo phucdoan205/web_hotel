@@ -147,9 +147,6 @@ const BookingCard = ({ roomType, availableCount = 0, numberOfNights, detailLinkS
           ) : null}
 
           <div className="mt-8 text-right">
-            <p className="text-lg font-semibold text-rose-500">
-              Còn {availableCount} phòng trống
-            </p>
             <NavLink
               to={`/room-types/${roomType.roomTypeId}`}
               state={detailLinkState}
