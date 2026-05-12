@@ -1,11 +1,7 @@
-using System.ComponentModel.DataAnnotations.Schema;
-
-namespace backend.Models
+namespace backend.DTOs.Attraction
 {
-   
-    public class Attraction
+    public class AttractionUpsertDTO
     {
-        public int Id { get; set; }
         public string Name { get; set; } = null!;
         public string? Category { get; set; }
         public decimal? DistanceKm { get; set; }
@@ -14,9 +10,8 @@ namespace backend.Models
         public decimal? Latitude { get; set; }
         public decimal? Longitude { get; set; }
         public string? Address { get; set; }
-        public string? ImageUrl { get; set; }
         public bool IsActive { get; set; } = true;
-        public ICollection<AttractionImage> AttractionImages { get; set; } = new List<AttractionImage>();
+        public string? ImageUrl { get; set; }
+        public List<string> Images { get; set; } = new List<string>();
     }
 }
-

@@ -31,6 +31,7 @@ namespace backend.Data
         public DbSet<Article> Articles { get; set; }
         public DbSet<ArticleComment> ArticleComments { get; set; }
         public DbSet<Attraction> Attractions { get; set; }
+        public DbSet<AttractionImage> AttractionImages { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
         public DbSet<AuditLogSetting> AuditLogSettings { get; set; }
         public DbSet<Notification> Notifications { get; set; }
@@ -385,6 +386,14 @@ namespace backend.Data
                 entity.HasOne(si => si.Service)
                     .WithMany(s => s.ServiceImages)
                     .HasForeignKey(si => si.ServiceId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<AttractionImage>(entity =>
+            {
+                entity.HasOne(ai => ai.Attraction)
+                    .WithMany(a => a.AttractionImages)
+                    .HasForeignKey(ai => ai.AttractionId)
                     .OnDelete(DeleteBehavior.Cascade);
             });
 

@@ -148,7 +148,8 @@ namespace backend.Mappers
                 .ForMember(dest => dest.Reviews, opt => opt.Ignore())
                 .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
 
-            CreateMap<Attraction, AttractionDTO>();
+            CreateMap<Attraction, AttractionDTO>()
+                .ForMember(dest => dest.Images, opt => opt.MapFrom(src => src.AttractionImages.Select(ai => ai.ImageUrl).ToList()));
             CreateMap<CreateAttractionDTO, Attraction>();
             CreateMap<UpdateAttractionDTO, Attraction>()
                 .ForAllMembers(opt => opt.Condition((src, dest, srcValue) => srcValue != null));

@@ -46,6 +46,7 @@ import AdminArticlePage from "../pages/admin/AdminArticlePage";
 import AdminArticleEditorPage from "../pages/admin/AdminArticleEditorPage";
 import AdminArticleCategoriesPage from "../pages/admin/AdminArticleCategoriesPage";
 import AdminAttractionsPage from "../pages/admin/AdminAttractionsPage";
+import AdminAttractionEditorPage from "../pages/admin/AdminAttractionEditorPage";
 import AdminVoucherPage from "../pages/admin/AdminVoucherPage";
 import AdminMembershipPage from "../pages/admin/AdminMembershipPage";
 
@@ -333,6 +334,22 @@ const AppRoutes = () => {
           element={
             <RequirePermission permission="VIEW_ATTRACTIONS">
               <AdminAttractionsPage />
+            </RequirePermission>
+          }
+        />
+        <Route
+          path="attractions/new"
+          element={
+            <RequirePermission permission="CREATE_ATTRACTIONS">
+              <AdminAttractionEditorPage />
+            </RequirePermission>
+          }
+        />
+        <Route
+          path="attractions/:id/edit"
+          element={
+            <RequirePermission permission="EDIT_ATTRACTIONS">
+              <AdminAttractionEditorPage />
             </RequirePermission>
           }
         />

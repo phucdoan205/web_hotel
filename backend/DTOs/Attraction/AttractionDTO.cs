@@ -1,4 +1,4 @@
-﻿namespace backend.DTOs.Attraction
+namespace backend.DTOs.Attraction
 {
     public class AttractionDTO
     {
@@ -13,5 +13,6 @@
         public string? Address { get; set; }
         public bool IsActive { get; set; }
         public string? ImageUrl { get; set; }
+        public List<string> Images { get; set; } = new List<string>();
     }
 }

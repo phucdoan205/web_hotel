@@ -1,5 +1,6 @@
 import React, { useDeferredValue, useEffect, useMemo, useState } from "react";
-import { ExternalLink, ImagePlus, MapPin, Pencil, Plus, Search, Trash2, X } from "lucide-react";
+import { ExternalLink, MapPin, Pencil, Plus, Search } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import PermissionGate from "../../components/shared/PermissionGate";
 import {
   createAttraction,
@@ -8,44 +9,6 @@ import {
   updateAttraction,
 } from "../../api/admin/attractionsApi";
 import { hasPermission } from "../../utils/permissions";
-
-const emptyForm = {
-  name: "",
-  category: "",
-  address: "",
-  distanceKm: "",
-  imageFile: null,
-  mapEmbedLink: "",
-  description: "",
-  isActive: true,
-};
-
-const readMessage = (error, fallback) => {
-  const raw = error?.response?.data?.message || error?.response?.data;
-  return typeof raw === "string" && raw.trim() ? raw : fallback;
-};
-
-const normalizePayload = (form) => ({
-  name: form.name.trim(),
-  category: form.category.trim() || null,
-  address: form.address.trim() || null,
-  distanceKm: form.distanceKm === "" ? null : Number(form.distanceKm),
-  imageFile: form.imageFile || null,
-  mapEmbedLink: form.mapEmbedLink.trim() || null,
-  description: form.description.trim() || null,
-  isActive: Boolean(form.isActive),
-});
-
-const mapToForm = (item) => ({
-  name: item?.name ?? "",
-  category: item?.category ?? "",
-  address: item?.address ?? "",
-  distanceKm: item?.distanceKm ?? "",
-  imageFile: null,
-  mapEmbedLink: item?.mapEmbedLink ?? "",
-  description: item?.description ?? "",
-  isActive: item?.isActive ?? true,
-});
 
 const extractMapSrc = (value) => {
   if (!value || typeof value !== "string") return "";
@@ -72,195 +35,7 @@ const formatDistance = (value) =>
 const formatCoord = (value) =>
   value === null || value === undefined || value === "" ? "--" : String(value);
 
-function FieldLabel({ children }) {
-  return (
-    <span className="text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">
-      {children}
-    </span>
-  );
-}
 
-function TextInput(props) {
-  return (
-    <input
-      {...props}
-      className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition focus:border-sky-300 focus:bg-white focus:ring-4 focus:ring-sky-100"
-    />
-  );
-}
-
-function AttractionModal({
-  mode,
-  formData,
-  previewImage,
-  isSubmitting,
-  error,
-  canSubmit,
-  canToggleStatus,
-  canDelete,
-  onClose,
-  onChange,
-  onSubmit,
-  onImageSelect,
-  onDelete,
-}) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm">
-      <div className="flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-[2rem] border border-sky-100 bg-white shadow-2xl shadow-slate-300/30">
-        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-5">
-          <div>
-            <h2 className="text-3xl font-black tracking-tight text-slate-950">
-              {mode === "create" ? "Tạo địa điểm" : "Cập nhật địa điểm"}
-            </h2>
-            <p className="mt-1 text-sm font-medium text-slate-500">
-              Quản lý điểm đến, bản đồ và trạng thái hiển thị trên site map.
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-2xl p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
-          >
-            <X className="size-6" />
-          </button>
-        </div>
-
-        <form onSubmit={onSubmit} className="flex-1 space-y-5 overflow-y-auto p-6">
-          {error ? (
-            <div className="rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-600">
-              {error}
-            </div>
-          ) : null}
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <label className="flex flex-col gap-2">
-              <FieldLabel>Tên địa điểm</FieldLabel>
-              <TextInput name="name" value={formData.name} onChange={onChange} required />
-            </label>
-
-            <label className="flex flex-col gap-2">
-              <FieldLabel>Danh mục</FieldLabel>
-              <TextInput
-                name="category"
-                value={formData.category}
-                onChange={onChange}
-                placeholder="Thiên nhiên, ẩm thực, giải trí..."
-              />
-            </label>
-
-            <label className="flex flex-col gap-2 md:col-span-2">
-              <FieldLabel>Địa chỉ</FieldLabel>
-              <TextInput name="address" value={formData.address} onChange={onChange} />
-            </label>
-
-            <label className="flex flex-col gap-2">
-              <FieldLabel>Khoảng cách (km)</FieldLabel>
-              <TextInput type="number" step="0.1" name="distanceKm" value={formData.distanceKm} onChange={onChange} />
-            </label>
-
-            <div className="flex flex-col gap-2">
-              <FieldLabel>Ảnh địa điểm</FieldLabel>
-              <div className="flex flex-col gap-3 rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-4">
-                <label className="inline-flex w-fit cursor-pointer items-center gap-2 rounded-2xl bg-sky-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-sky-100 transition hover:bg-sky-700">
-                  <ImagePlus className="size-4" />
-                  Chọn ảnh địa điểm
-                  <input type="file" accept="image/*" onChange={onImageSelect} className="hidden" />
-                </label>
-
-                {previewImage ? (
-                  <img src={previewImage} alt="preview" className="h-32 w-full rounded-2xl object-cover ring-1 ring-slate-200" />
-                ) : (
-                  <div className="flex h-32 items-center justify-center rounded-2xl bg-white text-sm font-semibold text-slate-400 ring-1 ring-slate-200">
-                    Chưa có ảnh
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <label className="flex flex-col gap-2 md:col-span-2">
-              <FieldLabel>Google Maps link</FieldLabel>
-              <TextInput
-                name="mapEmbedLink"
-                value={formData.mapEmbedLink}
-                onChange={onChange}
-                placeholder="Dán link Google Maps embed, share link hoặc iframe"
-              />
-              <span className="text-xs font-semibold text-slate-400">
-                Kinh độ và vĩ độ sẽ tự động lấy từ Google Maps link khi lưu.
-              </span>
-            </label>
-
-            <label className="flex flex-col gap-2 md:col-span-2">
-              <FieldLabel>Mô tả</FieldLabel>
-              <textarea
-                name="description"
-                value={formData.description}
-                onChange={onChange}
-                rows={4}
-                className="min-h-32 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition focus:border-sky-300 focus:bg-white focus:ring-4 focus:ring-sky-100"
-              />
-            </label>
-          </div>
-
-          <div className="flex items-center justify-between gap-3 border-t border-slate-100 pt-5">
-            <label className="inline-flex items-center gap-3 text-sm font-bold text-slate-700">
-              <button
-                type="button"
-                role="switch"
-                aria-checked={formData.isActive}
-                onClick={() =>
-                  onChange({
-                    target: { name: "isActive", type: "checkbox", checked: !formData.isActive },
-                  })
-                }
-                className={`relative inline-flex h-8 w-14 items-center rounded-full transition ${
-                  formData.isActive ? "bg-sky-600" : "bg-slate-300"
-                }`}
-              >
-                <span
-                  className={`inline-block size-6 rounded-full bg-white transition ${
-                    formData.isActive ? "translate-x-7" : "translate-x-1"
-                  }`}
-                />
-              </button>
-              {formData.isActive ? "Đang bật hiển thị" : "Đang ẩn khỏi site map"}
-            </label>
-
-            <div className="flex items-center gap-3">
-              {mode === "edit" && canDelete ? (
-                <button
-                  type="button"
-                  onClick={onDelete}
-                  className="inline-flex items-center gap-2 rounded-2xl bg-rose-50 px-4 py-3 text-sm font-bold text-rose-600 transition hover:bg-rose-100"
-                >
-                  <Trash2 className="size-4" />
-                  Xóa địa điểm
-                </button>
-              ) : null}
-
-              <button
-                type="button"
-                onClick={onClose}
-                className="rounded-2xl bg-slate-100 px-5 py-3 text-sm font-bold text-slate-600 transition hover:bg-slate-200"
-              >
-                Đóng
-              </button>
-
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="rounded-2xl bg-sky-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-sky-100 transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {isSubmitting ? "Đang lưu..." : "Lưu địa điểm"}
-              </button>
-            </div>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
 
 function AttractionCard({ item, canEdit, isPending, onToggle, onEdit, onOpenMap }) {
   return (
@@ -344,18 +119,14 @@ function AttractionCard({ item, canEdit, isPending, onToggle, onEdit, onOpenMap 
 }
 
 export default function AdminAttractionsPage() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("list");
   const [searchKeyword, setSearchKeyword] = useState("");
   const [items, setItems] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
-  const [modalState, setModalState] = useState({ open: false, mode: "create", item: null });
-  const [formData, setFormData] = useState(emptyForm);
-  const [previewImage, setPreviewImage] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [pendingToggleId, setPendingToggleId] = useState(null);
   const [message, setMessage] = useState("");
-  const [modalError, setModalError] = useState("");
   const deferredSearch = useDeferredValue(searchKeyword);
 
   const canCreate = hasPermission("CREATE_ATTRACTIONS");
@@ -397,84 +168,12 @@ export default function AdminAttractionsPage() {
 
   const openCreateModal = () => {
     if (!canCreate) return;
-    setModalError("");
-    setFormData(emptyForm);
-    setPreviewImage("");
-    setModalState({ open: true, mode: "create", item: null });
+    navigate("/admin/attractions/new");
   };
 
   const openEditModal = (item) => {
     if (!canEdit) return;
-    setModalError("");
-    setFormData(mapToForm(item));
-    setPreviewImage(item.imageUrl || "");
-    setModalState({ open: true, mode: "edit", item });
-  };
-
-  const closeModal = () => {
-    if (isSubmitting) return;
-    setModalError("");
-    setModalState({ open: false, mode: "create", item: null });
-    setFormData(emptyForm);
-    setPreviewImage("");
-  };
-
-  const handleFormChange = (event) => {
-    const { name, value, type, checked } = event.target;
-    setFormData((current) => ({ ...current, [name]: type === "checkbox" ? checked : value }));
-  };
-
-  const handleImageSelect = (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = typeof reader.result === "string" ? reader.result : "";
-      setPreviewImage(result);
-      setFormData((current) => ({ ...current, imageFile: file }));
-    };
-    reader.readAsDataURL(file);
-    event.target.value = "";
-  };
-
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    if (modalState.mode === "create" && !canCreate) return;
-    if (modalState.mode === "edit" && !canEdit) return;
-    setIsSubmitting(true);
-    setModalError("");
-
-    try {
-      const payload = normalizePayload(formData);
-
-      if (!payload.name) {
-        setModalError("Tên địa điểm là bắt buộc.");
-        setIsSubmitting(false);
-        return;
-      }
-
-      if (!payload.mapEmbedLink) {
-        setModalError("Google Maps link là bắt buộc để hệ thống tự lấy tọa độ.");
-        setIsSubmitting(false);
-        return;
-      }
-
-      if (modalState.mode === "create") {
-        const created = await createAttraction(payload);
-        setSelectedId(created?.id ?? null);
-      } else if (modalState.item?.id) {
-        await updateAttraction(modalState.item.id, payload);
-        setSelectedId(modalState.item.id);
-      }
-
-      closeModal();
-      await loadItems(searchKeyword);
-    } catch (error) {
-      setModalError(readMessage(error, "Không thể lưu địa điểm."));
-    } finally {
-      setIsSubmitting(false);
-    }
+    navigate(`/admin/attractions/${item.id}/edit`);
   };
 
   const handleToggle = async (item) => {
@@ -496,27 +195,7 @@ export default function AdminAttractionsPage() {
     }
   };
 
-  const handleDelete = async () => {
-    if (!canDelete) return;
-    if (!modalState.item?.id) return;
-    const shouldDelete = window.confirm(
-      `Xóa địa điểm "${modalState.item.name}"? Hành động này không thể hoàn tác.`,
-    );
-    if (!shouldDelete) return;
 
-    setIsSubmitting(true);
-    setModalError("");
-
-    try {
-      await deleteAttraction(modalState.item.id);
-      closeModal();
-      await loadItems(searchKeyword);
-    } catch (error) {
-      setModalError(readMessage(error, "Không thể xóa địa điểm."));
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   const activeCount = items.filter((item) => item.isActive).length;
   const mapSrc = selectedItem ? extractMapSrc(selectedItem.mapEmbedLink) : "";
@@ -761,24 +440,6 @@ export default function AdminAttractionsPage() {
           )}
         </div>
       </div>
-
-      {modalState.open ? (
-        <AttractionModal
-          mode={modalState.mode}
-          formData={formData}
-          previewImage={previewImage}
-          isSubmitting={isSubmitting}
-          error={modalError}
-          canSubmit={modalState.mode === "create" ? canCreate : canEdit}
-          canToggleStatus={canEdit}
-          canDelete={canDelete}
-          onClose={closeModal}
-          onChange={handleFormChange}
-          onSubmit={handleSubmit}
-          onImageSelect={handleImageSelect}
-          onDelete={handleDelete}
-        />
-      ) : null}
     </>
   );
 }

@@ -57,7 +57,7 @@ namespace backend.Controllers
             int page,
             int pageSize)
         {
-            var query = _context.Attractions.AsNoTracking();
+            var query = _context.Attractions.Include(a => a.AttractionImages).AsNoTracking();
 
             if (activeOnly == true)
             {
@@ -92,6 +92,7 @@ namespace backend.Controllers
         public async Task<ActionResult<AttractionDTO>> GetAttraction(int id)
         {
             var attraction = await _context.Attractions
+                .Include(a => a.AttractionImages)
                 .AsNoTracking()
                 .FirstOrDefaultAsync(a => a.Id == id);
 
@@ -104,10 +105,8 @@ namespace backend.Controllers
         }
 
         [HttpPost]
-        [Consumes("multipart/form-data")]
-        [RequestSizeLimit(20_000_000)]
         [Permission("CREATE_ATTRACTIONS")]
-        public async Task<IActionResult> Create([FromForm] CreateAttractionDTO dto)
+        public async Task<IActionResult> Create([FromBody] AttractionUpsertDTO dto)
         {
             if (string.IsNullOrWhiteSpace(dto.Name))
             {
@@ -123,26 +122,13 @@ namespace backend.Controllers
                 MapEmbedLink = NormalizeOptional(dto.MapEmbedLink),
                 Address = NormalizeOptional(dto.Address),
                 IsActive = dto.IsActive,
-                ImageUrl = NormalizeOptional(dto.ImageUrl)
+                ImageUrl = NormalizeOptional(dto.ImageUrl),
+                AttractionImages = dto.Images.Select(url => new AttractionImage { ImageUrl = url }).ToList()
             };
 
             if (!TryApplyCoordinates(entity, dto.MapEmbedLink, dto.Latitude, dto.Longitude, out var coordinateError))
             {
                 return BadRequest(coordinateError);
-            }
-
-            if (dto.ImageFile != null)
-            {
-                var uploadedUrl = await _cloudinaryService.UploadImageAsync(
-                    dto.ImageFile,
-                    BuildAttractionFolder(entity.Name));
-
-                if (string.IsNullOrWhiteSpace(uploadedUrl))
-                {
-                    return StatusCode(500, "Upload anh dia diem len Cloudinary that bai.");
-                }
-
-                entity.ImageUrl = uploadedUrl;
             }
 
             _context.Attractions.Add(entity);
@@ -153,18 +139,17 @@ namespace backend.Controllers
         }
 
         [HttpPut("{id}")]
-        [Consumes("multipart/form-data")]
-        [RequestSizeLimit(20_000_000)]
         [Permission("EDIT_ATTRACTIONS")]
-        public async Task<IActionResult> Update(int id, [FromForm] UpdateAttractionDTO dto)
+        public async Task<IActionResult> Update(int id, [FromBody] AttractionUpsertDTO dto)
         {
-            var attraction = await _context.Attractions.FindAsync(id);
+            var attraction = await _context.Attractions
+                .Include(a => a.AttractionImages)
+                .FirstOrDefaultAsync(a => a.Id == id);
+
             if (attraction == null)
             {
                 return NotFound();
             }
-
-            var oldImageUrl = attraction.ImageUrl;
 
             if (dto.Name != null)
             {
@@ -173,72 +158,42 @@ namespace backend.Controllers
                 {
                     return BadRequest("Ten dia diem la bat buoc.");
                 }
-
                 attraction.Name = normalizedName;
             }
 
-            if (dto.Category != null)
+            attraction.Category = NormalizeOptional(dto.Category);
+            attraction.DistanceKm = dto.DistanceKm;
+            attraction.Description = NormalizeOptional(dto.Description);
+            attraction.MapEmbedLink = NormalizeOptional(dto.MapEmbedLink);
+            attraction.Address = NormalizeOptional(dto.Address);
+            attraction.IsActive = dto.IsActive;
+
+            // Delete old images from Cloudinary
+            var currentImageUrls = attraction.AttractionImages.Select(img => img.ImageUrl).ToList();
+            var newImageUrls = dto.Images;
+            var imagesToDelete = currentImageUrls.Except(newImageUrls).ToList();
+
+            if (!string.IsNullOrEmpty(attraction.ImageUrl) && attraction.ImageUrl != dto.ImageUrl)
             {
-                attraction.Category = NormalizeOptional(dto.Category);
+                imagesToDelete.Add(attraction.ImageUrl);
             }
 
-            if (dto.DistanceKm.HasValue)
+            foreach (var imgUrl in imagesToDelete)
             {
-                attraction.DistanceKm = dto.DistanceKm.Value;
+                await _cloudinaryService.DeleteImageByUrlAsync(imgUrl);
             }
 
-            if (dto.Description != null)
-            {
-                attraction.Description = NormalizeOptional(dto.Description);
-            }
-
-            if (dto.MapEmbedLink != null)
-            {
-                attraction.MapEmbedLink = NormalizeOptional(dto.MapEmbedLink);
-            }
-
-            if (dto.Address != null)
-            {
-                attraction.Address = NormalizeOptional(dto.Address);
-            }
-
-            if (dto.IsActive.HasValue)
-            {
-                attraction.IsActive = dto.IsActive.Value;
-            }
-
-            if (dto.ImageUrl != null)
-            {
-                attraction.ImageUrl = NormalizeOptional(dto.ImageUrl);
-            }
+            attraction.ImageUrl = NormalizeOptional(dto.ImageUrl);
 
             if (!TryApplyCoordinates(attraction, dto.MapEmbedLink, dto.Latitude, dto.Longitude, out var coordinateError))
             {
                 return BadRequest(coordinateError);
             }
 
-            if (dto.ImageFile != null)
-            {
-                var uploadedUrl = await _cloudinaryService.UploadImageAsync(
-                    dto.ImageFile,
-                    BuildAttractionFolder(attraction.Name));
-
-                if (string.IsNullOrWhiteSpace(uploadedUrl))
-                {
-                    return StatusCode(500, "Upload anh dia diem len Cloudinary that bai.");
-                }
-
-                attraction.ImageUrl = uploadedUrl;
-            }
+            _context.AttractionImages.RemoveRange(attraction.AttractionImages);
+            attraction.AttractionImages = dto.Images.Select(url => new AttractionImage { ImageUrl = url }).ToList();
 
             await _context.SaveChangesAsync();
-
-            if (dto.ImageFile != null &&
-                !string.IsNullOrWhiteSpace(oldImageUrl) &&
-                oldImageUrl != attraction.ImageUrl)
-            {
-                await _cloudinaryService.DeleteImageByUrlAsync(oldImageUrl);
-            }
 
             return NoContent();
         }
@@ -247,21 +202,61 @@ namespace backend.Controllers
         [Permission("DELETE_ATTRACTIONS")]
         public async Task<IActionResult> Delete(int id)
         {
-            var attraction = await _context.Attractions.FindAsync(id);
+            var attraction = await _context.Attractions
+                .Include(a => a.AttractionImages)
+                .FirstOrDefaultAsync(a => a.Id == id);
+
             if (attraction == null)
             {
                 return NotFound();
             }
-
-            _context.Attractions.Remove(attraction);
-            await _context.SaveChangesAsync();
 
             if (!string.IsNullOrWhiteSpace(attraction.ImageUrl))
             {
                 await _cloudinaryService.DeleteImageByUrlAsync(attraction.ImageUrl);
             }
 
+            foreach (var img in attraction.AttractionImages)
+            {
+                await _cloudinaryService.DeleteImageByUrlAsync(img.ImageUrl);
+            }
+
+            _context.Attractions.Remove(attraction);
+            await _context.SaveChangesAsync();
+
             return NoContent();
+        }
+
+        [HttpPost("upload-images")]
+        [Consumes("multipart/form-data")]
+        [RequestSizeLimit(50_000_000)]
+        [Permission("CREATE_ATTRACTIONS", "EDIT_ATTRACTIONS")]
+        public async Task<ActionResult<object>> UploadAttractionImages([FromForm] List<IFormFile> files, [FromForm] string? attractionName = null)
+        {
+            if (files == null || files.Count == 0)
+            {
+                return BadRequest("Vui lòng chọn ít nhất một hình ảnh.");
+            }
+
+            var folderName = string.IsNullOrWhiteSpace(attractionName) ? "general" : Slugify(attractionName);
+            var folder = $"Home/Attractions/{folderName}";
+
+            var results = new List<string>();
+            foreach (var file in files)
+            {
+                var uploadedUrl = await _cloudinaryService.UploadImageAsync(file, folder);
+                if (!string.IsNullOrWhiteSpace(uploadedUrl))
+                {
+                    results.Add(uploadedUrl);
+                }
+            }
+
+            if (results.Count == 0)
+            {
+                return StatusCode(500, "Upload ảnh lên Cloudinary thất bại.");
+            }
+
+            return Ok(new { urls = results, folder });
         }
 
         private static string? NormalizeOptional(string? value)
