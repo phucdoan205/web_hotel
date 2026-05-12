@@ -91,12 +91,23 @@ namespace backend.Controllers
         [Permission("VIEW_ATTRACTIONS")]
         public async Task<ActionResult<AttractionDTO>> GetAttraction(int id)
         {
+            return await GetAttractionInternal(id);
+        }
+
+        [HttpGet("public/{id}")]
+        public async Task<ActionResult<AttractionDTO>> GetPublicAttraction(int id)
+        {
+            return await GetAttractionInternal(id);
+        }
+
+        private async Task<ActionResult<AttractionDTO>> GetAttractionInternal(int id)
+        {
             var attraction = await _context.Attractions
                 .Include(a => a.AttractionImages)
                 .AsNoTracking()
                 .FirstOrDefaultAsync(a => a.Id == id);
 
-            if (attraction == null)
+            if (attraction == null || !attraction.IsActive)
             {
                 return NotFound();
             }

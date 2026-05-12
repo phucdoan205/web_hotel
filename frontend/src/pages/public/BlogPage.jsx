@@ -116,12 +116,16 @@ const BlogPage = () => {
               <div className="mb-12">
                 <div className="flex items-center justify-between mb-8">
                   <h2 className="text-2xl md:text-3xl font-black text-slate-900">Khám phá các địa điểm xung quanh</h2>
+                  <Link to="/attractions/search" className="hidden sm:flex items-center gap-1 text-sm font-bold text-[#01539d] hover:underline">
+                    Xem tất cả <ArrowRight className="size-4" />
+                  </Link>
                 </div>
                 
                 <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                   {attractions.slice(0, 8).map((item) => (
-                    <div
+                    <Link
                       key={`attraction-${item.id}`}
+                      to={`/attractions/${item.id}`}
                       className="group flex flex-col overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/5 transition-all hover:-translate-y-1 hover:shadow-xl cursor-pointer"
                     >
                       <div className="relative h-48 w-full overflow-hidden">
@@ -157,7 +161,7 @@ const BlogPage = () => {
                           </span>
                         </div>
                       </div>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               </div>

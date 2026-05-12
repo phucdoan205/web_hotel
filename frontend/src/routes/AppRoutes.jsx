@@ -16,6 +16,8 @@ import HotelListPage from "../pages/public/HotelListPage";
 import OffersPage from "../pages/public/OffersPage";
 import ServicesPage from "../pages/public/ServicesPage";
 import ServiceDetailPage from "../pages/public/ServiceDetailPage";
+import AttractionsSearchPage from "../pages/public/AttractionsSearchPage";
+import AttractionDetailPage from "../pages/public/AttractionDetailPage";
 
 import AdminSettingsPage from "../pages/admin/AdminSettingsPage";
 import AdminRolePermissionsPage from "../pages/admin/AdminRolePermissionsPage";
@@ -114,6 +116,8 @@ const AppRoutes = () => {
         <Route path="articles/:id" element={<PostDetailPage />} />
         <Route path="articles/search" element={<BlogSearchPage />} />
         <Route path="activities" element={<BlogPage />} />
+        <Route path="attractions/search" element={<AttractionsSearchPage />} />
+        <Route path="attractions/:id" element={<AttractionDetailPage />} />
         <Route path="hotels/search" element={<HotelListPage />} />
         <Route path="offers" element={<OffersPage />} />
         <Route path="support/:pageId" element={<SupportPage />} />
