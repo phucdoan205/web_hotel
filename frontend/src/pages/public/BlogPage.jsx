@@ -125,7 +125,7 @@ const BlogPage = () => {
                   {attractions.slice(0, 8).map((item) => (
                     <Link
                       key={`attraction-${item.id}`}
-                      to={`/attractions/${item.id}`}
+                      to={`/attractions/${item.slug || item.id}`}
                       className="group flex flex-col overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/5 transition-all hover:-translate-y-1 hover:shadow-xl cursor-pointer"
                     >
                       <div className="relative h-48 w-full overflow-hidden">

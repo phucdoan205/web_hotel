@@ -193,7 +193,7 @@ const AttractionsSearchPage = () => {
                 <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
                   {currentAttractions.map((item) => (
                     <Link
-                      to={`/attractions/${item.id}`}
+                      to={`/attractions/${item.slug || item.id}`}
                       key={`attraction-${item.id}`}
                       className="group flex flex-col overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/5 transition-all hover:-translate-y-1 hover:shadow-xl cursor-pointer"
                     >

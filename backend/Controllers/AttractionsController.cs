@@ -57,6 +57,16 @@ namespace backend.Controllers
             int page,
             int pageSize)
         {
+            var missingSlugs = await _context.Attractions.Where(a => a.Slug == null).ToListAsync();
+            if (missingSlugs.Any())
+            {
+                foreach (var a in missingSlugs)
+                {
+                    a.Slug = Slugify(a.Name);
+                }
+                await _context.SaveChangesAsync();
+            }
+
             var query = _context.Attractions.Include(a => a.AttractionImages).AsNoTracking();
 
             if (activeOnly == true)
@@ -87,25 +97,30 @@ namespace backend.Controllers
             return Ok(new PagedResponse<AttractionDTO>(dtos, totalCount, page, pageSize));
         }
 
-        [HttpGet("{id}")]
+        [HttpGet("{idOrSlug}")]
         [Permission("VIEW_ATTRACTIONS")]
-        public async Task<ActionResult<AttractionDTO>> GetAttraction(int id)
+        public async Task<ActionResult<AttractionDTO>> GetAttraction(string idOrSlug)
         {
-            return await GetAttractionInternal(id);
+            return await GetAttractionInternal(idOrSlug);
         }
 
-        [HttpGet("public/{id}")]
-        public async Task<ActionResult<AttractionDTO>> GetPublicAttraction(int id)
+        [HttpGet("public/{idOrSlug}")]
+        public async Task<ActionResult<AttractionDTO>> GetPublicAttraction(string idOrSlug)
         {
-            return await GetAttractionInternal(id);
+            return await GetAttractionInternal(idOrSlug);
         }
 
-        private async Task<ActionResult<AttractionDTO>> GetAttractionInternal(int id)
+        private async Task<ActionResult<AttractionDTO>> GetAttractionInternal(string idOrSlug)
         {
-            var attraction = await _context.Attractions
+            var isNumeric = int.TryParse(idOrSlug, out var id);
+            
+            var query = _context.Attractions
                 .Include(a => a.AttractionImages)
-                .AsNoTracking()
-                .FirstOrDefaultAsync(a => a.Id == id);
+                .AsNoTracking();
+                
+            var attraction = await (isNumeric 
+                ? query.FirstOrDefaultAsync(a => a.Id == id)
+                : query.FirstOrDefaultAsync(a => a.Slug == idOrSlug));
 
             if (attraction == null || !attraction.IsActive)
             {
@@ -127,6 +142,7 @@ namespace backend.Controllers
             var entity = new Attraction
             {
                 Name = dto.Name.Trim(),
+                Slug = Slugify(dto.Name),
                 Category = NormalizeOptional(dto.Category),
                 DistanceKm = dto.DistanceKm,
                 Description = NormalizeOptional(dto.Description),
@@ -170,6 +186,7 @@ namespace backend.Controllers
                     return BadRequest("Ten dia diem la bat buoc.");
                 }
                 attraction.Name = normalizedName;
+                attraction.Slug = Slugify(normalizedName);
             }
 
             attraction.Category = NormalizeOptional(dto.Category);

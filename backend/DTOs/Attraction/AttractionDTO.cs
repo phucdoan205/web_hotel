@@ -4,6 +4,7 @@ namespace backend.DTOs.Attraction
     {
         public int Id { get; set; }
         public string Name { get; set; } = string.Empty;
+        public string? Slug { get; set; }
         public string? Category { get; set; }
         public decimal? DistanceKm { get; set; }
         public string? Description { get; set; }

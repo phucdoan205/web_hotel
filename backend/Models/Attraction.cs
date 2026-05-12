@@ -7,6 +7,7 @@ namespace backend.Models
     {
         public int Id { get; set; }
         public string Name { get; set; } = null!;
+        public string? Slug { get; set; }
         public string? Category { get; set; }
         public decimal? DistanceKm { get; set; }
         public string? Description { get; set; }
