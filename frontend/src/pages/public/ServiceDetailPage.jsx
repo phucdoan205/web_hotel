@@ -42,6 +42,13 @@ const extractImageUrlsFromHtml = (html) => {
     .filter(Boolean);
 };
 
+const extractMapSrc = (value) => {
+  if (!value || typeof value !== "string") return "";
+  const trimmed = value.trim();
+  const match = trimmed.match(/src=["']([^"']+)["']/i);
+  return match?.[1] || trimmed;
+};
+
 const getMonthMatrix = (monthDate) => {
   const year = monthDate.getFullYear();
   const month = monthDate.getMonth();
@@ -674,7 +681,22 @@ const ServiceDetailPage = () => {
           </div>
 
           {/* Sidebar Column */}
-          <div className="lg:col-span-4">
+          <div className="lg:col-span-4 space-y-6">
+            {service.location && service.mapEmbedLink && (
+              <div className="overflow-hidden rounded-3xl bg-white p-6 shadow-[0_8px_30px_rgb(0,0,0,0.12)] ring-1 ring-slate-100">
+                <h3 className="mb-4 text-sm font-black uppercase tracking-wider text-slate-500">Địa điểm</h3>
+                <div className="overflow-hidden rounded-2xl bg-slate-50 ring-1 ring-slate-100">
+                  <iframe
+                    src={extractMapSrc(service.mapEmbedLink)}
+                    title={`Bản đồ ${service.location}`}
+                    className="h-64 w-full border-0"
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                  />
+                </div>
+              </div>
+            )}
+
             <div className="sticky top-32 space-y-6">
               <div ref={bookingBoxRef} className="overflow-hidden rounded-3xl bg-white p-6 shadow-[0_8px_30px_rgb(0,0,0,0.12)] ring-1 ring-slate-100">
                 <h3 className="mb-6 text-xl font-black text-slate-900">Giá cả</h3>

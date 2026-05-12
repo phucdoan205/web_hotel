@@ -6,6 +6,7 @@ namespace backend.DTOs.Service
         public string Name { get; set; } = string.Empty;
         public string? ThumbnailUrl { get; set; }
         public string? Description { get; set; }
+        public string? Location { get; set; }
         public decimal Price { get; set; }
         public string? Unit { get; set; }
         public bool Status { get; set; } = true;

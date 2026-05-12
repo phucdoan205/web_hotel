@@ -9,6 +9,8 @@ namespace backend.DTOs.Service
         public string? Slug { get; set; }
         public string? ThumbnailUrl { get; set; }
         public string? Description { get; set; }
+        public string? Location { get; set; }
+        public string? MapEmbedLink { get; set; }
         public decimal Price { get; set; }
         public string? Unit { get; set; }
         public bool Status { get; set; }

@@ -28,6 +28,7 @@ import {
 import { useNavigate, useParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import servicesApi from "../../api/admin/servicesApi";
+import { getAttractions } from "../../api/admin/attractionsApi";
 
 const textFormats = [
   { value: "p", label: "Normal" },
@@ -72,6 +73,7 @@ const emptyForm = {
   categoryId: "",
   price: "",
   unit: "",
+  location: "",
   status: true,
   description: "",
   thumbnailUrl: "",
@@ -86,6 +88,7 @@ const ReceptionistServiceEditorPage = () => {
   const [loading, setLoading] = useState(isEditMode);
   const [submitting, setSubmitting] = useState(false);
   const [categories, setCategories] = useState([]);
+  const [attractions, setAttractions] = useState([]);
   const [formData, setFormData] = useState(emptyForm);
   const [blockFormat, setBlockFormat] = useState("p");
   const [fontFamily, setFontFamily] = useState(fontFamilies[0].value);
@@ -164,6 +167,13 @@ const ReceptionistServiceEditorPage = () => {
       const cats = await servicesApi.getServiceCategories();
       setCategories(cats);
 
+      try {
+        const attrRes = await getAttractions({ activeOnly: true, page: 1, pageSize: 100 });
+        setAttractions(attrRes?.items || []);
+      } catch (e) {
+        console.error("Failed to load attractions:", e);
+      }
+
       if (isEditMode) {
         const service = await servicesApi.getServiceDetail(id);
         setFormData({
@@ -171,6 +181,7 @@ const ReceptionistServiceEditorPage = () => {
           categoryId: service.categoryId ? String(service.categoryId) : "",
           price: String(service.price ?? ""),
           unit: service.unit || "",
+          location: service.location || "",
           status: service.status,
           description: service.description || "",
           thumbnailUrl: service.thumbnailUrl || "",
@@ -410,6 +421,26 @@ const ReceptionistServiceEditorPage = () => {
                   className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-5 py-3.5 text-sm font-medium outline-none transition focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-50"
                   required
                 />
+              </div>
+
+              <div className="space-y-2 md:col-span-2">
+                <label className="ml-1 text-sm font-bold text-slate-700">Địa điểm</label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">📍</span>
+                  <select
+                    name="location"
+                    value={formData.location}
+                    onChange={handleChange}
+                    className="w-full appearance-none rounded-2xl border border-slate-200 bg-slate-50/50 py-3.5 pl-12 pr-10 text-sm font-medium outline-none transition focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-50"
+                  >
+                    <option value="">Chọn địa điểm...</option>
+                    {attractions.map((attr) => (
+                      <option key={attr.id} value={attr.name}>
+                        {attr.name} {attr.category ? `(${attr.category})` : ""}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div className="space-y-2">

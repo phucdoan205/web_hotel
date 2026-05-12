@@ -32,6 +32,7 @@ namespace backend.Controllers
             Slug = service.Slug,
             ThumbnailUrl = service.ThumbnailUrl,
             Description = service.Description,
+            Location = service.Location,
             Price = service.Price,
             Unit = service.Unit,
             Status = service.Status,
@@ -278,6 +279,7 @@ namespace backend.Controllers
                 Slug = Slugify(request.Name),
                 ThumbnailUrl = request.ThumbnailUrl,
                 Description = request.Description,
+                Location = request.Location,
                 Price = request.Price,
                 Unit = string.IsNullOrWhiteSpace(request.Unit) ? null : request.Unit.Trim(),
                 Status = request.Status,
@@ -334,6 +336,7 @@ namespace backend.Controllers
             service.Slug = Slugify(request.Name);
             service.ThumbnailUrl = request.ThumbnailUrl;
             service.Description = request.Description;
+            service.Location = request.Location;
             service.Price = request.Price;
             service.Unit = string.IsNullOrWhiteSpace(request.Unit) ? null : request.Unit.Trim();
             service.Status = request.Status;

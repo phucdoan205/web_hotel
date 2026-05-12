@@ -32,6 +32,7 @@ namespace backend.Controllers
                 Slug = service.Slug,
                 ThumbnailUrl = service.ThumbnailUrl,
                 Description = service.Description,
+                Location = service.Location,
                 Price = service.Price,
                 Unit = service.Unit,
                 Status = service.Status,
@@ -171,6 +172,18 @@ namespace backend.Controllers
                 .ToListAsync();
 
             var response = MapService(service, comments);
+            
+            if (!string.IsNullOrEmpty(service.Location))
+            {
+                var attraction = await _context.Attractions
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(a => a.Name == service.Location);
+                if (attraction != null)
+                {
+                    response.MapEmbedLink = attraction.MapEmbedLink;
+                }
+            }
+
             response.Comments = BuildCommentTree(comments);
 
             return Ok(response);
