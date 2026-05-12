@@ -134,7 +134,6 @@ namespace backend.Controllers
                 : "Không yêu cầu";
             if (!string.IsNullOrWhiteSpace(customMessage))
             {
-                // Xóa các thuộc tính style, width, height cũ của thẻ img do Quill tạo ra
                 customMessage = System.Text.RegularExpressions.Regex.Replace(
                     customMessage,
                     @"(<img[^>]*?)\s+style=['""][^'""]*['""]",
@@ -154,7 +153,7 @@ namespace backend.Controllers
                     System.Text.RegularExpressions.RegexOptions.IgnoreCase
                 );
                 
-                // Thêm thuộc tính width="250" và style inline mới để ép kích thước nhỏ gọn cho mọi email client
+                
                 customMessage = System.Text.RegularExpressions.Regex.Replace(
                     customMessage,
                     @"<img\s+",
@@ -229,7 +228,7 @@ namespace backend.Controllers
                     && (v.ValidTo == null || v.ValidTo >= now)
                 )
                 .OrderByDescending(v => v.Id)
-                .Take(12) // Tăng lên 12 để hiển thị được nhiều hơn
+                .Take(12) 
                 .Select(v => new VoucherDTO
                 {
                     Id = v.Id,
