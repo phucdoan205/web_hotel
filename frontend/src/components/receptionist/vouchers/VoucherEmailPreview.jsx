@@ -1,5 +1,6 @@
 import React from "react";
 
+
 const formatDiscount = (voucher) =>
   voucher.discountType === "PERCENT"
     ? `${voucher.discountValue}%`
@@ -17,9 +18,10 @@ const VoucherEmailPreview = ({ voucher, message, recipientsPreview = [] }) => {
         <div className="mt-3 text-3xl font-black tracking-[0.08em]">
           {voucher.code}
         </div>
-        <p className="mt-3 max-w-xl text-sm leading-6 text-white/90">
-          {message?.trim() || "Khách sạn gửi đến bạn một ưu đãi đặc biệt cho kỳ nghỉ tiếp theo."}
-        </p>
+        <div
+          className="prose max-w-none bg-gray-50 p-4 rounded-2xl font-black"
+          dangerouslySetInnerHTML={{ __html: message }}
+        />
       </div>
 
       <div className="grid gap-4 bg-slate-50 px-6 py-6 md:grid-cols-3">

@@ -5,6 +5,8 @@ using backend.DTOs;
 using backend.Models;
 using backend.Security;
 using backend.Services;
+using CloudinaryDotNet;
+using CloudinaryDotNet.Actions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -19,17 +21,21 @@ namespace backend.Controllers
         private readonly NotificationService _notificationService;
         private readonly IEmailService _emailService;
         private readonly ILogger<VouchersController> _logger;
+        private readonly CloudinaryService _cloudinaryService;
 
         public VouchersController(
             AppDbContext context,
             NotificationService notificationService,
             IEmailService emailService,
-            ILogger<VouchersController> logger)
+            ILogger<VouchersController> logger,
+            CloudinaryService cloudinaryService
+        )
         {
             _context = context;
             _notificationService = notificationService;
             _emailService = emailService;
             _logger = logger;
+            _cloudinaryService = cloudinaryService;
         }
 
         private int? ResolveCurrentUserId()
@@ -40,9 +46,10 @@ namespace backend.Controllers
                 return headerUserId;
             }
 
-            var claim = User.FindFirst("sub")?.Value
-                     ?? User.FindFirst("nameid")?.Value
-                     ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            var claim =
+                User.FindFirst("sub")?.Value
+                ?? User.FindFirst("nameid")?.Value
+                ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 
             return int.TryParse(claim, out var claimUserId) ? claimUserId : null;
         }
@@ -51,18 +58,21 @@ namespace backend.Controllers
             Voucher voucher,
             string dispatchType,
             int sentCount,
-            IEnumerable<string>? recipients = null)
+            IEnumerable<string>? recipients = null
+        )
         {
             if (sentCount <= 0)
             {
                 return;
             }
 
-            var recipientList = recipients?
-                .Where(item => !string.IsNullOrWhiteSpace(item))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .Take(10)
-                .ToList() ?? new List<string>();
+            var recipientList =
+                recipients
+                    ?.Where(item => !string.IsNullOrWhiteSpace(item))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .Take(10)
+                    .ToList()
+                ?? new List<string>();
 
             var auditEvent = new AuditEvent
             {
@@ -70,10 +80,7 @@ namespace backend.Controllers
                 Timestamp = DateTime.UtcNow,
                 ActionType = "UPDATE",
                 EntityType = "Voucher",
-                Context = new
-                {
-                    RecordId = voucher.Id
-                },
+                Context = new { RecordId = voucher.Id },
                 Changes = new
                 {
                     NewData = new
@@ -82,29 +89,33 @@ namespace backend.Controllers
                         Code = voucher.Code,
                         DispatchType = dispatchType,
                         SentCount = sentCount,
-                        Recipients = recipientList
-                    }
+                        Recipients = recipientList,
+                    },
                 },
-                Message = $"Voucher {voucher.Code} có id {voucher.Id} đã được gửi đi"
+                Message = $"Voucher {voucher.Code} có id {voucher.Id} đã được gửi đi",
             };
 
-            _context.AuditLogs.Add(new AuditLog
-            {
-                UserId = ResolveCurrentUserId(),
-                LogDate = DateTime.UtcNow,
-                LogData = JsonSerializer.Serialize(new
+            _context.AuditLogs.Add(
+                new AuditLog
                 {
-                    TotalEvents = 1,
-                    Events = new[] { auditEvent }
-                })
-            });
+                    UserId = ResolveCurrentUserId(),
+                    LogDate = DateTime.UtcNow,
+                    LogData = JsonSerializer.Serialize(
+                        new { TotalEvents = 1, Events = new[] { auditEvent } }
+                    ),
+                }
+            );
 
             await _context.SaveChangesAsync();
         }
 
         private static string FormatVoucherValue(Voucher voucher)
         {
-            return string.Equals(voucher.DiscountType, "PERCENT", StringComparison.OrdinalIgnoreCase)
+            return string.Equals(
+                voucher.DiscountType,
+                "PERCENT",
+                StringComparison.OrdinalIgnoreCase
+            )
                 ? $"{voucher.DiscountValue}%"
                 : $"{voucher.DiscountValue:N0} VND";
         }
@@ -113,7 +124,8 @@ namespace backend.Controllers
             Voucher voucher,
             string heading,
             string introText,
-            string? customMessage)
+            string? customMessage
+        )
         {
             var validFrom = voucher.ValidFrom?.ToString("dd/MM/yyyy") ?? "-";
             var validTo = voucher.ValidTo?.ToString("dd/MM/yyyy") ?? "-";
@@ -124,7 +136,7 @@ namespace backend.Controllers
                 ? ""
                 : $@"
       <div style=""margin:0 0 20px;padding:14px 16px;border-radius:14px;background:#eff6ff;color:#0f172a;font-size:14px;line-height:1.7;"">
-        {System.Net.WebUtility.HtmlEncode(customMessage)}
+        {customMessage}
       </div>";
 
             return $@"
@@ -167,8 +179,10 @@ namespace backend.Controllers
         public async Task<ActionResult<IEnumerable<VoucherDTO>>> GetPublicVouchers()
         {
             var now = DateTime.UtcNow;
-            var list = await _context.Vouchers
-                .Where(v => v.IsActive && !v.IsPrivate && (v.ValidTo == null || v.ValidTo >= now))
+            var list = await _context
+                .Vouchers.Where(v =>
+                    v.IsActive && !v.IsPrivate && (v.ValidTo == null || v.ValidTo >= now)
+                )
                 .OrderByDescending(v => v.Id)
                 .Take(6) // Lấy nhiều hơn chút để backup nếu cần, nhưng user yêu cầu 3
                 .Select(v => new VoucherDTO
@@ -181,7 +195,7 @@ namespace backend.Controllers
                     MinBookingValue = v.MinBookingValue,
                     ValidFrom = v.ValidFrom,
                     ValidTo = v.ValidTo,
-                    Description = v.Description
+                    Description = v.Description,
                 })
                 .AsNoTracking()
                 .ToListAsync();
@@ -215,7 +229,7 @@ namespace backend.Controllers
                     IsPrivate = v.IsPrivate,
                     IsActive = v.IsActive,
                     IsDeleted = v.IsDeleted,
-                    DeletedAt = v.DeletedAt
+                    DeletedAt = v.DeletedAt,
                 })
                 .AsNoTracking()
                 .ToListAsync();
@@ -231,8 +245,11 @@ namespace backend.Controllers
                 ? _context.Vouchers.IgnoreQueryFilters().AsNoTracking()
                 : _context.Vouchers.AsNoTracking();
 
-            var voucher = await query.FirstOrDefaultAsync(x => x.Id == id && (includeDeleted || !x.IsDeleted));
-            if (voucher == null) return NotFound();
+            var voucher = await query.FirstOrDefaultAsync(x =>
+                x.Id == id && (includeDeleted || !x.IsDeleted)
+            );
+            if (voucher == null)
+                return NotFound();
 
             var dto = new VoucherDTO
             {
@@ -250,7 +267,7 @@ namespace backend.Controllers
                 IsPrivate = voucher.IsPrivate,
                 IsActive = voucher.IsActive,
                 IsDeleted = voucher.IsDeleted,
-                DeletedAt = voucher.DeletedAt
+                DeletedAt = voucher.DeletedAt,
             };
             return Ok(dto);
         }
@@ -259,9 +276,14 @@ namespace backend.Controllers
         [Permission("CREATE_VOUCHERS")]
         public async Task<IActionResult> Create([FromBody] VoucherDTO dto)
         {
-            if (string.IsNullOrWhiteSpace(dto.Code)) return BadRequest("Code is required");
+            if (string.IsNullOrWhiteSpace(dto.Code))
+                return BadRequest("Code is required");
 
-            if (dto.ValidFrom.HasValue && dto.ValidTo.HasValue && dto.ValidFrom.Value > dto.ValidTo.Value)
+            if (
+                dto.ValidFrom.HasValue
+                && dto.ValidTo.HasValue
+                && dto.ValidFrom.Value > dto.ValidTo.Value
+            )
             {
                 return BadRequest("Invalid date range: ValidFrom must be before ValidTo");
             }
@@ -281,7 +303,7 @@ namespace backend.Controllers
                 IsPrivate = dto.IsPrivate,
                 IsActive = true,
                 IsDeleted = false,
-                DeletedAt = null
+                DeletedAt = null,
             };
 
             _context.Vouchers.Add(voucher);
@@ -295,10 +317,17 @@ namespace backend.Controllers
         [Permission("EDIT_VOUCHERS")]
         public async Task<IActionResult> Update(int id, [FromBody] VoucherDTO dto)
         {
-            var voucher = await _context.Vouchers.FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted);
-            if (voucher == null) return NotFound();
+            var voucher = await _context.Vouchers.FirstOrDefaultAsync(x =>
+                x.Id == id && !x.IsDeleted
+            );
+            if (voucher == null)
+                return NotFound();
 
-            if (dto.ValidFrom.HasValue && dto.ValidTo.HasValue && dto.ValidFrom.Value > dto.ValidTo.Value)
+            if (
+                dto.ValidFrom.HasValue
+                && dto.ValidTo.HasValue
+                && dto.ValidFrom.Value > dto.ValidTo.Value
+            )
             {
                 return BadRequest("Invalid date range: ValidFrom must be before ValidTo");
             }
@@ -323,8 +352,11 @@ namespace backend.Controllers
         [Permission("DELETE_VOUCHERS")]
         public async Task<IActionResult> SoftDelete(int id)
         {
-            var voucher = await _context.Vouchers.FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted);
-            if (voucher == null) return NotFound();
+            var voucher = await _context.Vouchers.FirstOrDefaultAsync(x =>
+                x.Id == id && !x.IsDeleted
+            );
+            if (voucher == null)
+                return NotFound();
 
             voucher.IsDeleted = true;
             voucher.DeletedAt = DateTime.UtcNow;
@@ -343,8 +375,11 @@ namespace backend.Controllers
         [Permission("SEND_VOUCHER")]
         public async Task<IActionResult> SendToUsers([FromBody] SendToUsersRequest request)
         {
-            var voucher = await _context.Vouchers.FirstOrDefaultAsync(x => x.Id == request.VoucherId && !x.IsDeleted);
-            if (voucher == null) return NotFound();
+            var voucher = await _context.Vouchers.FirstOrDefaultAsync(x =>
+                x.Id == request.VoucherId && !x.IsDeleted
+            );
+            if (voucher == null)
+                return NotFound();
 
             var recipients = request.Recipients ?? new List<string>();
             if (recipients.Count > 0)
@@ -359,13 +394,20 @@ namespace backend.Controllers
             {
                 var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
                 var title = $"Bạn nhận được voucher {voucher.Code}";
-                var contentText = $"Mã: {voucher.Code}\nƯu đãi: {FormatVoucherValue(voucher)}\nHạn dùng: {voucher.ValidFrom?.ToShortDateString()} - {voucher.ValidTo?.ToShortDateString()}";
+                var contentText =
+                    $"Mã: {voucher.Code}\nƯu đãi: {FormatVoucherValue(voucher)}\nHạn dùng: {voucher.ValidFrom?.ToShortDateString()} - {voucher.ValidTo?.ToShortDateString()}";
                 if (!string.IsNullOrWhiteSpace(request.Message))
                 {
                     contentText = request.Message + "\n\n" + contentText;
                 }
 
-                await _notificationService.CreateAsync(title, contentText, "Voucher", null, user?.Id);
+                await _notificationService.CreateAsync(
+                    title,
+                    contentText,
+                    "Voucher",
+                    null,
+                    user?.Id
+                );
 
                 try
                 {
@@ -373,14 +415,20 @@ namespace backend.Controllers
                         voucher,
                         "Ưu đãi đặc biệt dành cho bạn",
                         "Cảm ơn bạn đã đồng hành cùng khách sạn. Chúng tôi gửi tặng bạn một voucher ưu đãi để sử dụng cho kỳ nghỉ tiếp theo.",
-                        request.Message);
+                        request.Message
+                    );
                     await _emailService.SendEmailAsync(email, title, html);
                     sent++;
                 }
                 catch (Exception ex)
                 {
                     failed.Add(email);
-                    _logger?.LogError(ex, "Failed to send voucher {VoucherId} to {Email}", voucher.Id, email);
+                    _logger?.LogError(
+                        ex,
+                        "Failed to send voucher {VoucherId} to {Email}",
+                        voucher.Id,
+                        email
+                    );
                 }
             }
 
@@ -400,14 +448,19 @@ namespace backend.Controllers
         [Permission("SEND_VOUCHER")]
         public async Task<IActionResult> SendToBirthdays([FromBody] SendToBirthdaysRequest request)
         {
-            var voucher = await _context.Vouchers.FirstOrDefaultAsync(x => x.Id == request.VoucherId && !x.IsDeleted);
-            if (voucher == null) return NotFound();
+            var voucher = await _context.Vouchers.FirstOrDefaultAsync(x =>
+                x.Id == request.VoucherId && !x.IsDeleted
+            );
+            if (voucher == null)
+                return NotFound();
 
             var targetDate = request.Date?.Date ?? DateTime.Today;
-            var users = await _context.Users
-                .Where(u => u.DateOfBirth.HasValue &&
-                            u.DateOfBirth.Value.Day == targetDate.Day &&
-                            u.DateOfBirth.Value.Month == targetDate.Month)
+            var users = await _context
+                .Users.Where(u =>
+                    u.DateOfBirth.HasValue
+                    && u.DateOfBirth.Value.Day == targetDate.Day
+                    && u.DateOfBirth.Value.Month == targetDate.Month
+                )
                 .ToListAsync();
 
             var sent = 0;
@@ -415,7 +468,8 @@ namespace backend.Controllers
             foreach (var user in users)
             {
                 var title = $"Chúc mừng sinh nhật - {voucher.Code}";
-                var content = $"Chúc mừng sinh nhật {user.FullName}! Tặng bạn mã {voucher.Code} - ưu đãi {FormatVoucherValue(voucher)}. Hạn dùng: {voucher.ValidFrom?.ToShortDateString()} - {voucher.ValidTo?.ToShortDateString()}";
+                var content =
+                    $"Chúc mừng sinh nhật {user.FullName}! Tặng bạn mã {voucher.Code} - ưu đãi {FormatVoucherValue(voucher)}. Hạn dùng: {voucher.ValidFrom?.ToShortDateString()} - {voucher.ValidTo?.ToShortDateString()}";
                 if (!string.IsNullOrWhiteSpace(request.Message))
                 {
                     content = request.Message + "\n\n" + content;
@@ -429,7 +483,8 @@ namespace backend.Controllers
                         voucher,
                         "Quà tặng sinh nhật dành riêng cho bạn",
                         "Khách sạn chúc bạn có một ngày sinh nhật thật trọn vẹn và gửi tặng bạn voucher ưu đãi này.",
-                        request.Message);
+                        request.Message
+                    );
 
                     if (!string.IsNullOrWhiteSpace(user.Email))
                     {
@@ -439,8 +494,14 @@ namespace backend.Controllers
                 }
                 catch (Exception ex)
                 {
-                    if (!string.IsNullOrWhiteSpace(user.Email)) failed.Add(user.Email);
-                    _logger?.LogError(ex, "Failed to send voucher {VoucherId} to birthday user {Email}", voucher.Id, user.Email);
+                    if (!string.IsNullOrWhiteSpace(user.Email))
+                        failed.Add(user.Email);
+                    _logger?.LogError(
+                        ex,
+                        "Failed to send voucher {VoucherId} to birthday user {Email}",
+                        voucher.Id,
+                        user.Email
+                    );
                 }
             }
 
@@ -448,7 +509,10 @@ namespace backend.Controllers
                 voucher,
                 "BirthdayCampaign",
                 sent,
-                users.Where(item => !string.IsNullOrWhiteSpace(item.Email)).Select(item => item.Email!));
+                users
+                    .Where(item => !string.IsNullOrWhiteSpace(item.Email))
+                    .Select(item => item.Email!)
+            );
 
             return Ok(new { sent, failed });
         }
@@ -457,13 +521,27 @@ namespace backend.Controllers
         [Permission("ENABLE_VOUCHER", "DISABLE_VOUCHER")]
         public async Task<IActionResult> ToggleActive(int id)
         {
-            var voucher = await _context.Vouchers.IgnoreQueryFilters().FirstOrDefaultAsync(x => x.Id == id);
-            if (voucher == null) return NotFound();
+            var voucher = await _context
+                .Vouchers.IgnoreQueryFilters()
+                .FirstOrDefaultAsync(x => x.Id == id);
+            if (voucher == null)
+                return NotFound();
 
             voucher.IsActive = !voucher.IsActive;
             await _context.SaveChangesAsync();
 
             return Ok(new { isActive = voucher.IsActive });
+        }
+
+        [HttpPost("upload-image")]
+        public async Task<IActionResult> UploadImage(IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+                return BadRequest("File không hợp lệ");
+
+            var result = await _cloudinaryService.UploadImageAsync(file, "home/Vouchers");
+
+            return Ok(new { url = result.ToString() });
         }
 
         public class TestSmtpRequest
@@ -476,7 +554,8 @@ namespace backend.Controllers
         [HttpPost("test-smtp")]
         public async Task<IActionResult> TestSmtp([FromBody] TestSmtpRequest req)
         {
-            if (string.IsNullOrWhiteSpace(req.To)) return BadRequest("To is required");
+            if (string.IsNullOrWhiteSpace(req.To))
+                return BadRequest("To is required");
             try
             {
                 await _emailService.SendEmailAsync(req.To, req.Subject, req.Body);
