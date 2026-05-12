@@ -102,19 +102,19 @@ const AccountProfilePage = () => {
       ]
     },
     {
-      title: "Cài đặt",
-      items: [
-        { label: "Cài đặt chung", icon: Pencil, path: "/profile/settings" },
-      ]
-    },
-    {
       title: "Hoạt động du lịch",
       items: [
         { label: "Chuyến đi và đơn đặt", icon: Briefcase, path: "/booking-history" },
         { label: "Danh sách đã lưu", icon: Heart, path: "/favorites" },
         { label: "Đánh giá của tôi", icon: MessageSquare, path: "/reviews" },
       ]
-    }
+    },
+    {
+      title: "Cài đặt",
+      items: [
+        { label: "Cài đặt chung", icon: Pencil, path: "/profile/settings" },
+      ]
+    },
   ];
 
   return (

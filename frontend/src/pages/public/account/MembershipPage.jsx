@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { getMyProfile } from "../../../api/admin/profileApi";
 import { getMemberships } from "../../../api/admin/membershipApi";
+import FAQSection from "../../../components/public/FAQSection";
 
 const MembershipPage = () => {
   const navigate = useNavigate();
@@ -252,8 +253,10 @@ const MembershipPage = () => {
             </div>
           </div>
 
+          <FAQSection isDark={isDark} />
+
           {/* Bottom Back Button */}
-          <div className="flex justify-center sm:justify-start">
+          <div className="flex justify-center sm:justify-start mt-12">
             <button
               onClick={() => navigate("/profile")}
               className={`flex items-center gap-3 px-8 py-4 rounded-2xl font-black text-sm transition-all group ${isDark

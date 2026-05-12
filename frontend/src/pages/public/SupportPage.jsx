@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { Search, ChevronRight, ChevronDown, Phone, Mail, MapPin, Calendar, CreditCard, RefreshCw, HelpCircle, FileText, Info, ShieldCheck, User, BookOpen, Ticket } from "lucide-react";
+import { Search, ChevronRight, ChevronDown, Phone, Mail, MapPin, Calendar, CreditCard, RefreshCw, HelpCircle, FileText, Info, ShieldCheck, User, BookOpen, Ticket, Award } from "lucide-react";
+import FAQSection from "../../components/public/FAQSection";
 
 const FAQAccordion = ({ question, answer }) => (
   <details className="group border-b border-slate-100 last:border-0 [&_summary::-webkit-details-marker]:hidden bg-white rounded-2xl">
@@ -19,6 +20,7 @@ const SupportPage = () => {
   const navigate = useNavigate();
   const [openMenus, setOpenMenus] = useState({
     "guide": true,
+    "membership": true,
     "account": true,
     "booking": true,
     "payment": true,
@@ -78,6 +80,13 @@ const SupportPage = () => {
       items: [
         { id: "how-to-book", label: "Hướng dẫn đặt phòng" },
         { id: "promotions-vouchers", label: "Mã ưu đãi & Giảm giá" },
+      ]
+    },
+    {
+      id: "membership",
+      title: "Thành viên",
+      items: [
+        { id: "membership-info", label: "Quyền lợi & Hạng" },
       ]
     },
     {
@@ -166,6 +175,46 @@ const SupportPage = () => {
           <FAQAccordion 
             question="Tôi có thể áp dụng nhiều mã giảm giá cùng lúc không?" 
             answer="Rất tiếc, mỗi đơn đặt phòng chỉ có thể áp dụng một mã ưu đãi (Voucher) duy nhất. Bạn hãy chọn mã mang lại mức giảm giá tốt nhất cho đơn hàng của mình." 
+          />
+        </div>
+      )
+    },
+    "membership-info": {
+      title: "Quyền lợi & Hạng thành viên",
+      breadcrumb: "Thành viên",
+      content: (
+        <div className="bg-white rounded-2xl border border-slate-200">
+          <FAQAccordion 
+            question="Chương trình Thành viên là gì?" 
+            answer="Chương trình Thành viên là hệ thống ưu đãi dành riêng cho khách hàng thân thiết, nơi bạn có thể tích lũy điểm từ mỗi lần lưu trú và đổi lấy các đặc quyền cao cấp như giảm giá phòng, ưu tiên dịch vụ." 
+          />
+          <FAQAccordion 
+            question="Làm thế nào để thăng hạng thành viên?" 
+            answer="Bạn thăng hạng bằng cách tích lũy điểm thông qua việc đặt phòng và sử dụng dịch vụ tại khách sạn. Mỗi hạng (Bronze, Iron, Gold, Diamond) yêu cầu một số điểm tối thiểu nhất định." 
+          />
+          <FAQAccordion 
+            question="Làm thế nào để duy trì hạng hiện tại?" 
+            answer="Hạng thành viên được duy trì dựa trên số điểm bạn tích lũy trong vòng 12 tháng gần nhất. Bạn cần duy trì mức chi tiêu/đặt phòng đều đặn để giữ vững đẳng cấp của mình." 
+          />
+          <FAQAccordion 
+            question="Tôi có thể lên thẳng hạng Diamond nếu hiện tại tôi là thành viên Bronze không?" 
+            answer="Có, chỉ cần bạn tích lũy đủ 10,000 điểm, hệ thống sẽ ngay lập tức nâng hạng của bạn lên Diamond mà không cần qua các hạng trung gian." 
+          />
+          <FAQAccordion 
+            question="Số tiền chi tiêu của tôi được tính như thế nào?" 
+            answer="Mỗi 1,000 VNĐ chi tiêu cho tiền phòng và dịch vụ sẽ được quy đổi thành 1 điểm thưởng trong hệ thống của chúng tôi." 
+          />
+          <FAQAccordion 
+            question="Nếu tôi hủy đơn hàng thì sao?" 
+            answer="Khi hủy đơn hàng, số điểm thưởng dự kiến nhận được từ đơn hàng đó sẽ bị trừ khỏi tài khoản của bạn." 
+          />
+          <FAQAccordion 
+            question="Tôi đã thanh toán nhưng hạng thành viên chưa cập nhật. Vì sao?" 
+            answer="Điểm thưởng thường được cập nhật sau khi bạn hoàn tất thủ tục check-out. Nếu sau 24h kể từ khi trả phòng vẫn chưa thấy điểm, vui lòng liên hệ bộ phận hỗ trợ." 
+          />
+          <FAQAccordion 
+            question="Tiêu chí thành viên mới sẽ ảnh hưởng đến hạng hiện tại như thế nào?" 
+            answer="Các tiêu chí mới luôn được thiết kế để mang lại lợi ích tốt hơn cho khách hàng. Hạng hiện tại của bạn sẽ luôn được bảo lưu hoặc nâng cấp nếu thỏa mãn điều kiện mới." 
           />
         </div>
       )
@@ -578,6 +627,12 @@ const SupportPage = () => {
                   <Calendar className="size-6" />
                 </div>
                 <h3 className="font-bold text-slate-800 text-sm">Đơn đặt phòng</h3>
+              </Link>
+              <Link to="/support/membership-info" className="bg-white p-6 rounded-2xl border border-slate-200 hover:border-orange-500 hover:shadow-md transition-all text-center group cursor-pointer">
+                <div className="w-14 h-14 bg-orange-50 text-orange-600 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                  <Award className="size-6" />
+                </div>
+                <h3 className="font-bold text-slate-800 text-sm">Thành viên</h3>
               </Link>
               
               <Link to="/support/payment-info" className="bg-white p-6 rounded-2xl border border-slate-200 hover:border-emerald-500 hover:shadow-md transition-all text-center group cursor-pointer">
