@@ -224,10 +224,12 @@ namespace backend.Controllers
             var now = DateTime.UtcNow;
             var list = await _context
                 .Vouchers.Where(v =>
-                    v.IsActive && !v.IsPrivate && (v.ValidTo == null || v.ValidTo >= now)
+                    v.IsActive
+                    && (v.ValidFrom == null || v.ValidFrom <= now)
+                    && (v.ValidTo == null || v.ValidTo >= now)
                 )
                 .OrderByDescending(v => v.Id)
-                .Take(6) // Lấy nhiều hơn chút để backup nếu cần, nhưng user yêu cầu 3
+                .Take(12) // Tăng lên 12 để hiển thị được nhiều hơn
                 .Select(v => new VoucherDTO
                 {
                     Id = v.Id,
