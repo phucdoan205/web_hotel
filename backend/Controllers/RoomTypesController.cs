@@ -395,20 +395,34 @@ namespace backend.Controllers
                 return string.Empty;
             }
 
+            var normalized = value.Normalize(NormalizationForm.FormD);
             var builder = new StringBuilder();
-            foreach (var ch in value.Trim().ToLowerInvariant())
+
+            foreach (var ch in normalized)
             {
-                if (char.IsLetterOrDigit(ch))
+                var unicodeCategory = System.Globalization.CharUnicodeInfo.GetUnicodeCategory(ch);
+                if (unicodeCategory != System.Globalization.UnicodeCategory.NonSpacingMark)
                 {
                     builder.Append(ch);
                 }
-                else if (builder.Length > 0 && builder[^1] != '-')
+            }
+
+            var plain = builder.ToString().Normalize(NormalizationForm.FormC).ToLowerInvariant();
+            var slugBuilder = new StringBuilder();
+
+            foreach (var ch in plain)
+            {
+                if (char.IsLetterOrDigit(ch))
                 {
-                    builder.Append('-');
+                    slugBuilder.Append(ch);
+                }
+                else if (slugBuilder.Length > 0 && slugBuilder[^1] != '-')
+                {
+                    slugBuilder.Append('-');
                 }
             }
 
-            return builder.ToString().Trim('-');
+            return slugBuilder.ToString().Trim('-');
         }
     }
 }

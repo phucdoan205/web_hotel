@@ -5,6 +5,8 @@ using backend.Models;
 using backend.Security;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Text;
+using System.Globalization;
 
 namespace backend.Controllers
 {
@@ -70,6 +72,23 @@ namespace backend.Controllers
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 16)
         {
+            // Backfill slugs if needed
+            var servicesWithBadSlugs = await _context.Services.ToListAsync();
+            bool hasChanges = false;
+            foreach (var s in servicesWithBadSlugs)
+            {
+                var newSlug = Slugify(s.Name);
+                if (s.Slug != newSlug)
+                {
+                    s.Slug = newSlug;
+                    hasChanges = true;
+                }
+            }
+            if (hasChanges)
+            {
+                await _context.SaveChangesAsync();
+            }
+
             var query = _context.Services
                 .AsNoTracking()
                 .Include(s => s.Category)
@@ -291,6 +310,42 @@ namespace backend.Controllers
             }
 
             return roots;
+        }
+        private static string Slugify(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return string.Empty;
+            }
+
+            var normalized = value.Normalize(NormalizationForm.FormD);
+            var builder = new StringBuilder();
+
+            foreach (var ch in normalized)
+            {
+                var unicodeCategory = CharUnicodeInfo.GetUnicodeCategory(ch);
+                if (unicodeCategory != UnicodeCategory.NonSpacingMark)
+                {
+                    builder.Append(ch);
+                }
+            }
+
+            var plain = builder.ToString().Normalize(NormalizationForm.FormC).ToLowerInvariant();
+            var slugBuilder = new StringBuilder();
+
+            foreach (var ch in plain)
+            {
+                if (char.IsLetterOrDigit(ch))
+                {
+                    slugBuilder.Append(ch);
+                }
+                else if (slugBuilder.Length > 0 && slugBuilder[^1] != '-')
+                {
+                    slugBuilder.Append('-');
+                }
+            }
+
+            return slugBuilder.ToString().Trim('-');
         }
     }
 }

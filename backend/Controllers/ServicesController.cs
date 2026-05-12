@@ -6,6 +6,7 @@ using backend.Security;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Text;
+using System.Globalization;
 
 namespace backend.Controllers
 {
@@ -64,21 +65,23 @@ namespace backend.Controllers
         [Permission("VIEW_SERVICES")]
         public async Task<ActionResult<IEnumerable<ServiceResponseDTO>>> GetServices([FromQuery] bool includeInactive = true)
         {
-            var query = _context.Services.AsNoTracking().AsQueryable();
-
-            if (!includeInactive)
+            var servicesWithBadSlugs = await _context.Services.ToListAsync();
+            bool hasChanges = false;
+            foreach (var s in servicesWithBadSlugs)
             {
-                query = query.Where(service => service.Status);
+                var newSlug = Slugify(s.Name);
+                if (s.Slug != newSlug)
+                {
+                    s.Slug = newSlug;
+                    hasChanges = true;
+                }
+            }
+            if (hasChanges)
+            {
+                await _context.SaveChangesAsync();
             }
 
-            var services = await query
-                .Include(service => service.Category)
-                .Include(service => service.ServiceImages)
-                .OrderByDescending(service => service.Status)
-                .ThenBy(service => service.Name)
-                .ToListAsync();
-
-            return Ok(services.Select(MapService));
+            return Ok(servicesWithBadSlugs.Select(MapService));
         }
 
         [HttpGet("{id:int}")]
@@ -420,20 +423,34 @@ namespace backend.Controllers
                 return string.Empty;
             }
 
+            var normalized = value.Normalize(NormalizationForm.FormD);
             var builder = new StringBuilder();
-            foreach (var ch in value.Trim().ToLowerInvariant())
+
+            foreach (var ch in normalized)
             {
-                if (char.IsLetterOrDigit(ch))
+                var unicodeCategory = CharUnicodeInfo.GetUnicodeCategory(ch);
+                if (unicodeCategory != UnicodeCategory.NonSpacingMark)
                 {
                     builder.Append(ch);
                 }
-                else if (builder.Length > 0 && builder[^1] != '-')
+            }
+
+            var plain = builder.ToString().Normalize(NormalizationForm.FormC).ToLowerInvariant();
+            var slugBuilder = new StringBuilder();
+
+            foreach (var ch in plain)
+            {
+                if (char.IsLetterOrDigit(ch))
                 {
-                    builder.Append('-');
+                    slugBuilder.Append(ch);
+                }
+                else if (slugBuilder.Length > 0 && slugBuilder[^1] != '-')
+                {
+                    slugBuilder.Append('-');
                 }
             }
 
-            return builder.ToString().Trim('-');
+            return slugBuilder.ToString().Trim('-');
         }
     }
 }
