@@ -132,14 +132,57 @@ namespace backend.Controllers
             var minBookingValue = voucher.MinBookingValue.HasValue
                 ? $"{voucher.MinBookingValue.Value:N0} VND"
                 : "Không yêu cầu";
+            if (!string.IsNullOrWhiteSpace(customMessage))
+            {
+                // Xóa các thuộc tính style, width, height cũ của thẻ img do Quill tạo ra
+                customMessage = System.Text.RegularExpressions.Regex.Replace(
+                    customMessage,
+                    @"(<img[^>]*?)\s+style=['""][^'""]*['""]",
+                    "$1",
+                    System.Text.RegularExpressions.RegexOptions.IgnoreCase
+                );
+                customMessage = System.Text.RegularExpressions.Regex.Replace(
+                    customMessage,
+                    @"(<img[^>]*?)\s+width=['""][^'""]*['""]",
+                    "$1",
+                    System.Text.RegularExpressions.RegexOptions.IgnoreCase
+                );
+                customMessage = System.Text.RegularExpressions.Regex.Replace(
+                    customMessage,
+                    @"(<img[^>]*?)\s+height=['""][^'""]*['""]",
+                    "$1",
+                    System.Text.RegularExpressions.RegexOptions.IgnoreCase
+                );
+                
+                // Thêm thuộc tính width="250" và style inline mới để ép kích thước nhỏ gọn cho mọi email client
+                customMessage = System.Text.RegularExpressions.Regex.Replace(
+                    customMessage,
+                    @"<img\s+",
+                    "<img width=\"250\" style=\"max-width: 100%; height: auto; border-radius: 12px; margin: 16px auto; display: block;\" ",
+                    System.Text.RegularExpressions.RegexOptions.IgnoreCase
+                );
+            }
+
             var messageBlock = string.IsNullOrWhiteSpace(customMessage)
                 ? ""
                 : $@"
-      <div style=""margin:0 0 20px;padding:14px 16px;border-radius:14px;background:#eff6ff;color:#0f172a;font-size:14px;line-height:1.7;"">
+      <div class=""custom-message"" style=""margin:0 0 20px;padding:14px 16px;border-radius:14px;background:#eff6ff;color:#0f172a;font-size:14px;line-height:1.7;"">
         {customMessage}
       </div>";
 
             return $@"
+<style>
+  .custom-message img {{
+    max-width: 100% !important;
+    max-height: 250px !important;
+    width: auto !important;
+    height: auto !important;
+    object-fit: contain !important;
+    border-radius: 12px;
+    margin: 16px auto;
+    display: block;
+  }}
+</style>
 <div style=""margin:0;padding:32px 16px;background:#f8fafc;font-family:Arial,Helvetica,sans-serif;color:#0f172a;"">
   <div style=""max-width:640px;margin:0 auto;background:#ffffff;border-radius:28px;overflow:hidden;border:1px solid #e2e8f0;box-shadow:0 18px 50px rgba(15,23,42,.08);"">
     <div style=""padding:36px 36px 28px;background:linear-gradient(135deg,#0284c7,#2563eb 55%,#06b6d4);color:#ffffff;"">

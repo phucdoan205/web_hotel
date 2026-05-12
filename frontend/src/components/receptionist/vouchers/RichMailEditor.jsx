@@ -85,7 +85,7 @@ const RichEmailEditor = ({ value, onChange }) => {
   ];
 
   return (
-    <div className="rounded-2xl overflow-hidden border bg-white shadow-sm">
+    <div className="rounded-2xl overflow-hidden border bg-white shadow-sm flex flex-col h-[400px]">
       <ReactQuill
         ref={quillRef}
         theme="snow"
@@ -93,8 +93,25 @@ const RichEmailEditor = ({ value, onChange }) => {
         onChange={onChange}
         modules={modules}
         formats={formats}
-        placeholder="Nhập nội dung email..."
+        placeholder="Nhập nội dung email bạn muốn nhắn gửi đến khách hàng..."
+        className="flex-1 flex flex-col overflow-hidden"
       />
+      <style>{`
+        .ql-container {
+          flex: 1;
+          overflow-y: auto;
+          font-size: 14px;
+        }
+        .ql-editor {
+          min-height: 200px;
+        }
+        .ql-toolbar {
+          border-top: none !important;
+          border-left: none !important;
+          border-right: none !important;
+          background: #f8fafc;
+        }
+      `}</style>
     </div>
   );
 };

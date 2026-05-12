@@ -121,75 +121,99 @@ const SendVoucherModal = ({ vouchers = [], initialVoucher = null, onClose, onSen
 
   return (
     <div className="fixed inset-0 z-40 bg-black/30 flex items-center justify-center p-2">
-      <div className="bg-white rounded-2xl p-6 w-full max-w-5xl mx-auto max-h-[95vh] overflow-hidden flex flex-col">
-        <h3 className="text-lg font-black mb-6">Gửi voucher</h3>
+      <div className="bg-white rounded-3xl p-8 w-full max-w-7xl mx-auto max-h-[95vh] shadow-2xl overflow-hidden flex flex-col">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-2xl font-black">Gửi voucher</h3>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+        </div>
 
-        <div className="flex gap-8 flex-1 overflow-hidden">
+        <div className="flex gap-10 flex-1 overflow-hidden">
           {/* ==================== BÊN TRÁI: FORM ==================== */}
-          <div className="flex-[5] overflow-y-auto pr-2">
+          <div className="flex-[6] overflow-y-auto pr-4 scrollbar-hide">
             <div className="space-y-5">
               {error && (
                 <div className="text-sm text-rose-600 font-bold px-2">{error}</div>
               )}
 
-              <div>
-                <label className="text-xs font-bold text-gray-400">Chọn voucher</label>
-                <select
-                  value={selectedId ?? ""}
-                  onChange={(e) => setSelectedId(Number(e.target.value))}
-                  className="w-full p-3 rounded-2xl bg-gray-50 mt-1"
-                >
-                  {vouchers.map((voucher) => (
-                    <option key={voucher.id} value={voucher.id}>
-                      {voucher.code}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-gray-400">Hình thức gửi</label>
-                <div className="flex items-center gap-4 mt-2">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="radio" checked={mode === "email"} onChange={() => setMode("email")} />
-                    Gửi cho email cụ thể
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="radio" checked={mode === "by_date"} onChange={() => setMode("by_date")} />
-                    Gửi theo ngày sinh
-                  </label>
+              <div className="bg-gray-50/50 p-6 rounded-[2rem] border border-gray-100 space-y-6">
+                <div>
+                  <label className="text-[11px] font-black uppercase tracking-widest text-gray-400 mb-2 block ml-1">Chọn voucher</label>
+                  <select
+                    value={selectedId ?? ""}
+                    onChange={(e) => setSelectedId(Number(e.target.value))}
+                    className="w-full p-4 rounded-2xl bg-white border-0 shadow-sm focus:ring-2 focus:ring-blue-500 transition-all font-bold text-gray-700"
+                  >
+                    {vouchers.map((voucher) => (
+                      <option key={voucher.id} value={voucher.id}>
+                        {voucher.code} - {voucher.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-              </div>
 
-              {mode === "email" && (
-                <>
-                  {/* Nhập email thủ công */}
+                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-xs font-bold text-gray-400">Thêm email thủ công</label>
-                    <div className="flex gap-2 mt-1">
-                      <input
-                        type="email"
-                        value={newEmail}
-                        onChange={(e) => setNewEmail(e.target.value)}
-                        onKeyPress={(e) => e.key === "Enter" && addEmail()}
-                        className="flex-1 p-3 rounded-2xl bg-gray-50"
-                        placeholder="example@gmail.com"
-                      />
+                    <label className="text-[11px] font-black uppercase tracking-widest text-gray-400 mb-2 block ml-1">Hình thức gửi</label>
+                    <div className="flex bg-white p-1 rounded-2xl border shadow-sm">
                       <button
-                        onClick={addEmail}
-                        className="px-6 py-3 rounded-2xl bg-gray-800 text-white hover:bg-black"
+                        onClick={() => setMode("email")}
+                        className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all ${mode === "email" ? "bg-blue-600 text-white shadow-md shadow-blue-200" : "text-gray-400 hover:text-gray-600"}`}
                       >
-                        Thêm
+                        Email cụ thể
+                      </button>
+                      <button
+                        onClick={() => setMode("by_date")}
+                        className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all ${mode === "by_date" ? "bg-blue-600 text-white shadow-md shadow-blue-200" : "text-gray-400 hover:text-gray-600"}`}
+                      >
+                        Theo ngày sinh
                       </button>
                     </div>
                   </div>
 
-                  {/* Import Excel */}
-                  <div>
-                    <label className="text-xs font-bold text-gray-400">Import từ file Excel</label>
-                    <div className="mt-1">
-                      <label className="cursor-pointer inline-block px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-2xl transition-colors">
-                        Chọn file Excel
+                  {mode === "by_date" && (
+                    <div className="animate-in fade-in slide-in-from-left-2 duration-300">
+                      <label className="text-[11px] font-black uppercase tracking-widest text-gray-400 mb-2 block ml-1">Ngày sinh</label>
+                      <input
+                        type="date"
+                        value={date}
+                        onChange={(e) => setDate(e.target.value)}
+                        className="w-full p-3 rounded-2xl bg-white border shadow-sm font-bold text-sm"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {mode === "email" && (
+                <div className="bg-white p-6 rounded-[2rem] border border-gray-100 space-y-6 animate-in fade-in duration-500">
+                  <div className="grid grid-cols-2 gap-6">
+                    <div>
+                      <label className="text-[11px] font-black uppercase tracking-widest text-gray-400 mb-2 block ml-1">Thêm email</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="email"
+                          value={newEmail}
+                          onChange={(e) => setNewEmail(e.target.value)}
+                          onKeyPress={(e) => e.key === "Enter" && addEmail()}
+                          className="flex-1 p-3.5 rounded-2xl bg-gray-50 border-0 focus:ring-2 focus:ring-blue-500 transition-all text-sm font-medium"
+                          placeholder="nhập email..."
+                        />
+                        <button
+                          onClick={addEmail}
+                          className="px-6 rounded-2xl bg-gray-900 text-white hover:bg-black font-bold text-xs"
+                        >
+                          Thêm
+                        </button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-black uppercase tracking-widest text-gray-400 mb-2 block ml-1">Import Excel</label>
+                      <label className="cursor-pointer flex items-center justify-center gap-3 w-full p-3.5 bg-blue-50 border-2 border-dashed border-blue-200 hover:bg-blue-100/50 text-blue-600 font-bold rounded-2xl transition-all text-xs">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                        Chọn file .xlsx / .xls
                         <input
                           type="file"
                           accept=".xlsx,.xls"
@@ -199,66 +223,49 @@ const SendVoucherModal = ({ vouchers = [], initialVoucher = null, onClose, onSen
                         />
                       </label>
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">Hỗ trợ .xlsx, .xls - Tự động quét email</p>
                   </div>
 
-                  {/* Danh sách email đã thêm */}
                   {recipients.length > 0 && (
-                    <div>
-                      <label className="text-xs font-bold text-gray-400 mb-2 block">
-                        Danh sách người nhận ({recipients.length})
-                      </label>
-                      <div className="flex flex-wrap gap-2 max-h-52 overflow-y-auto p-3 bg-gray-50 border rounded-2xl">
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center px-1">
+                        <label className="text-[11px] font-black uppercase tracking-widest text-gray-400">Người nhận ({recipients.length})</label>
+                        <button onClick={() => setRecipients([])} className="text-[10px] font-black text-rose-500 hover:underline">Xóa tất cả</button>
+                      </div>
+                      <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-4 bg-gray-50/50 rounded-2xl border border-dashed border-gray-200">
                         {recipients.map((email) => (
-                          <div
-                            key={email}
-                            className="flex items-center bg-white px-3 py-1.5 rounded-xl border text-sm"
-                          >
+                          <div key={email} className="flex items-center bg-white px-3 py-1.5 rounded-xl border border-gray-100 text-[13px] font-medium shadow-sm">
                             {email}
-                            <button
-                              onClick={() => removeEmail(email)}
-                              className="ml-2 text-red-500 hover:text-red-700 text-lg leading-none"
-                            >
-                              ×
+                            <button onClick={() => removeEmail(email)} className="ml-2 text-rose-500 hover:scale-125 transition-transform">
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                             </button>
                           </div>
                         ))}
                       </div>
                     </div>
                   )}
-                </>
-              )}
-
-              {mode === "by_date" && (
-                <div>
-                  <label className="text-xs font-bold text-gray-400">Chọn ngày sinh</label>
-                  <input
-                    type="date"
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                    className="w-full p-3 rounded-2xl bg-gray-50 mt-1"
-                  />
                 </div>
               )}
 
-              <div>
-                <label className="text-xs font-bold text-gray-400">Nội dung email</label>
-                <RichEmailEditor value={message} onChange={setMessage} />
+              <div className="space-y-3">
+                <label className="text-[11px] font-black uppercase tracking-widest text-gray-400 mb-2 block ml-1">Nội dung email tùy chỉnh</label>
+                <div className="min-h-[300px]">
+                  <RichEmailEditor value={message} onChange={setMessage} />
+                </div>
               </div>
 
-              <div className="flex justify-end gap-3 mt-6">
+              <div className="flex justify-end gap-4 pt-6 border-t mt-4">
                 <button
                   onClick={onClose}
-                  className="px-6 py-2.5 rounded-2xl bg-white border font-medium"
+                  className="px-8 py-3 rounded-2xl bg-white border border-gray-200 font-bold text-gray-500 hover:bg-gray-50 transition-colors"
                 >
                   Hủy
                 </button>
                 <button
                   onClick={() => setShowConfirmSend(true)}
                   disabled={mode === "email" && recipients.length === 0}
-                  className="px-6 py-2.5 rounded-2xl bg-[#0085FF] text-white font-black disabled:opacity-50"
+                  className="px-10 py-3 rounded-2xl bg-blue-600 text-white font-black shadow-lg shadow-blue-100 hover:bg-blue-700 disabled:opacity-50 transition-all active:scale-95"
                 >
-                  Gửi
+                  Gửi ngay
                 </button>
               </div>
             </div>
