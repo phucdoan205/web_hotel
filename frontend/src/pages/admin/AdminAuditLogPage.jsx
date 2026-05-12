@@ -118,7 +118,7 @@ const AdminAuditLogPage = () => {
         const roleMap = buildRoleMap(roles);
         const permissionMap = buildPermissionMap(permissions);
 
-        const normalizedLogs = rawLogs.value.map((log) =>
+        const normalizedLogs = (rawLogs.value || []).map((log) =>
           normalizeAuditLog(log, { roomMap, equipmentMap, roleMap, permissionMap }),
         );
 

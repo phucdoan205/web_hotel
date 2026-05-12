@@ -155,7 +155,7 @@ namespace backend.Controllers
                     .ThenInclude(u => u!.Role)
                 .AsQueryable();
 
-            query = query.Where(a => a.User == null || a.User.Role == null || a.User.Role.Name != HiddenUserRoleName);
+            query = query.Where(a => a.User == null || a.User.Role == null || !string.Equals(a.User.Role.Name, HiddenUserRoleName, StringComparison.OrdinalIgnoreCase));
 
             if (!string.IsNullOrWhiteSpace(employeeName))
             {

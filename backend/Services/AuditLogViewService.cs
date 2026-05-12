@@ -266,75 +266,15 @@ namespace backend.Services
                 return BuildLossDamageDetail(auditEvent, roomInventoryLookup);
             }
 
-            var changedFields = DescribeChangedFields(auditEvent.Changes.OldData, auditEvent.Changes.NewData);
-            if (!string.IsNullOrWhiteSpace(changedFields))
-            {
-                return $"{BuildSummary(auditEvent, roomInventoryLookup)} {changedFields}";
-            }
-
-            var snapshot = auditEvent.ActionType == "DELETE"
-                ? DescribeSnapshotFields(auditEvent.Changes.OldData)
-                : DescribeSnapshotFields(auditEvent.Changes.NewData);
-
-            return string.IsNullOrWhiteSpace(snapshot)
-                ? (auditEvent.Message ?? BuildSummary(auditEvent, roomInventoryLookup))
-                : $"{BuildSummary(auditEvent, roomInventoryLookup)} {snapshot}";
+            return auditEvent.Message ?? BuildSummary(auditEvent, roomInventoryLookup);
         }
 
         private static string BuildLossDamageDetail(
             AuditPayloadEvent auditEvent,
             IReadOnlyDictionary<int, RoomInventoryAuditInfo> roomInventoryLookup)
         {
-            var source = auditEvent.ActionType == "DELETE" ? auditEvent.Changes.OldData : auditEvent.Changes.NewData;
-            if (source.ValueKind == JsonValueKind.Undefined || source.ValueKind == JsonValueKind.Null)
-            {
-                source = auditEvent.Changes.OldData;
-            }
-
-            TryGetInt(source, "RoomInventoryId", out var roomInventoryId);
-            roomInventoryLookup.TryGetValue(roomInventoryId, out var inventory);
-
-            var description = GetString(source, "Description");
-            var quantity = GetString(source, "Quantity");
-            var penalty = GetDecimal(source, "PenaltyAmount");
-
-            var parts = new List<string>
-            {
-                BuildSummary(auditEvent, roomInventoryLookup)
-            };
-
-            if (!string.IsNullOrWhiteSpace(inventory?.EquipmentName))
-            {
-                parts.Add($"Thiết bị: {inventory.EquipmentName}.");
-            }
-
-            if (!string.IsNullOrWhiteSpace(inventory?.RoomNumber))
-            {
-                parts.Add($"Phòng: {inventory.RoomNumber}.");
-            }
-
-            if (!string.IsNullOrWhiteSpace(quantity))
-            {
-                parts.Add($"Số lượng: {quantity}.");
-            }
-
-            if (penalty.HasValue)
-            {
-                parts.Add($"Mức đền bù: {penalty.Value.ToString("#,##0.##", CultureInfo.InvariantCulture)}.");
-            }
-
-            if (!string.IsNullOrWhiteSpace(description))
-            {
-                parts.Add($"Mô tả: {description}.");
-            }
-
-            var changedFields = DescribeChangedFields(auditEvent.Changes.OldData, auditEvent.Changes.NewData);
-            if (!string.IsNullOrWhiteSpace(changedFields) && auditEvent.ActionType == "UPDATE")
-            {
-                parts.Add(changedFields);
-            }
-
-            return string.Join(" ", parts.Where(part => !string.IsNullOrWhiteSpace(part)));
+            // Trả về luôn Message đã có hoặc Summary đơn giản
+            return auditEvent.Message ?? BuildSummary(auditEvent, roomInventoryLookup);
         }
 
         private static string DescribeChangedFields(JsonElement oldData, JsonElement newData)

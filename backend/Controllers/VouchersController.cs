@@ -61,18 +61,13 @@ namespace backend.Controllers
             IEnumerable<string>? recipients = null
         )
         {
-            if (sentCount <= 0)
-            {
-                return;
-            }
+            if (sentCount <= 0) return;
 
-            var recipientList =
-                recipients
-                    ?.Where(item => !string.IsNullOrWhiteSpace(item))
-                    .Distinct(StringComparer.OrdinalIgnoreCase)
-                    .Take(10)
-                    .ToList()
-                ?? new List<string>();
+            var recipientList = recipients
+                ?.Where(item => !string.IsNullOrWhiteSpace(item))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Take(10)
+                .ToList() ?? new List<string>();
 
             var auditEvent = new AuditEvent
             {
@@ -92,21 +87,57 @@ namespace backend.Controllers
                         Recipients = recipientList,
                     },
                 },
-                Message = $"Voucher {voucher.Code} có id {voucher.Id} đã được gửi đi",
+                Message = $"Gửi voucher {voucher.Code} cho {sentCount} khách hàng",
             };
 
-            _context.AuditLogs.Add(
-                new AuditLog
+            var userId = ResolveCurrentUserId();
+            var today = DateTime.UtcNow.Date;
+
+            var existingLog = await _context.AuditLogs
+                .FirstOrDefaultAsync(l => l.UserId == userId && l.LogDate >= today);
+
+            var options = new JsonSerializerOptions
+            {
+                Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+                PropertyNameCaseInsensitive = true
+            };
+
+            if (existingLog != null)
+            {
+                try
                 {
-                    UserId = ResolveCurrentUserId(),
-                    LogDate = DateTime.UtcNow,
-                    LogData = JsonSerializer.Serialize(
-                        new { TotalEvents = 1, Events = new[] { auditEvent } }
-                    ),
+                    var payload = JsonSerializer.Deserialize<AuditPayload>(existingLog.LogData, options) ?? new AuditPayload();
+                    payload.Events.Add(auditEvent);
+                    payload.TotalEvents = payload.Events.Count;
+                    existingLog.LogData = JsonSerializer.Serialize(payload, options);
                 }
-            );
+                catch
+                {
+                    await AddNewAuditLog(userId, auditEvent, options);
+                }
+            }
+            else
+            {
+                await AddNewAuditLog(userId, auditEvent, options);
+            }
 
             await _context.SaveChangesAsync();
+        }
+
+        private async Task AddNewAuditLog(int? userId, AuditEvent auditEvent, JsonSerializerOptions options)
+        {
+            _context.AuditLogs.Add(new AuditLog
+            {
+                UserId = userId,
+                LogDate = DateTime.UtcNow,
+                LogData = JsonSerializer.Serialize(new { TotalEvents = 1, Events = new[] { auditEvent } }, options)
+            });
+        }
+
+        private class AuditPayload
+        {
+            public int TotalEvents { get; set; }
+            public List<AuditEvent> Events { get; set; } = new();
         }
 
         private static string FormatVoucherValue(Voucher voucher)

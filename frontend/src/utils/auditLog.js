@@ -1,10 +1,11 @@
-import { getPermissionDisplayName } from "./permissionCatalog";
+import { format } from "date-fns";
+import { vi } from "date-fns/locale";
 
 const ACTION_LABELS = {
-  CREATE: "CREATE",
-  UPDATE: "UPDATE",
-  DELETE: "DELETE",
-  SOFT_DELETE: "SOFT_DELETE",
+  CREATE: "Tạo mới",
+  UPDATE: "Cập nhật",
+  DELETE: "Xóa",
+  SOFT_DELETE: "Xóa",
 };
 
 const HIDDEN_OBJECTS = new Set([
@@ -13,35 +14,32 @@ const HIDDEN_OBJECTS = new Set([
   "Guest",
   "OrderService",
   "OrderServiceDetail",
-  "Room",
+  "ServiceImage",
+  "Membership",
+  "AuditLog",
 ]);
 
 const IGNORED_FIELDS = new Set([
   "Id",
   "CreatedAt",
   "UpdatedAt",
-  "DeletedAt",
+  "CreatedBy",
+  "UpdatedBy",
+  "IsDeleted",
+  "ConcurrencyStamp",
+  "SecurityStamp",
   "PasswordHash",
-  "ImageUrl",
-  "GoogleId",
-  "AvatarUrl",
-  "ThumbnailUrl",
-  "GalleryUrls",
-  "Slug",
-  "Summary",
-  "Tags",
-  "PublishedAt",
-  "ApprovedAt",
+  "NormalizedUserName",
+  "NormalizedEmail",
 ]);
 
-const getValue = (source, ...keys) => {
-  if (!source || typeof source !== "object") return undefined;
-
-  for (const key of keys) {
-    if (key in source) return source[key];
-  }
-
-  return undefined;
+const FIELD_LABEL_OVERRIDES = {
+  InStockQuantity: "Tồn kho",
+  inStockQuantity: "Tồn kho",
+  InUseQuantity: "Đang sử dụng",
+  inUseQuantity: "Đang sử dụng",
+  DamagedQuantity: "Số lượng hư hỏng",
+  damagedQuantity: "Số lượng hư hỏng",
 };
 
 const normalizeText = (value) =>
@@ -58,65 +56,62 @@ const isVisibleAuditActorRole = (roleName) => !HIDDEN_ROLE_NAMES.has(normalizeTe
 const toActionLabel = (actionType) =>
   ACTION_LABELS[actionType] ?? actionType ?? "UNKNOWN";
 
-const formatValue = (value) => {
-  if (value === null || value === undefined || value === "") return "-";
-  if (typeof value === "boolean") return value ? "Có" : "Không";
-  if (typeof value === "number") {
-    return Number.isInteger(value) ? String(value) : value.toLocaleString("vi-VN");
+const getValue = (source, ...keys) => {
+  if (!source || typeof source !== "object") return undefined;
+
+  for (const key of keys) {
+    if (key in source) return source[key];
   }
-  return String(value);
+
+  return undefined;
 };
 
-const mapFieldLabel = (propertyName) => {
+const mapFieldLabel = (fieldName) => {
+  const propertyName = fieldName.split(".").pop();
+
   switch (propertyName) {
-    case "RoomNumber":
-      return "số phòng";
-    case "Floor":
-      return "tầng";
-    case "Status":
-      return "trạng thái";
-    case "CleaningStatus":
-      return "tình trạng dọn phòng";
-    case "Quantity":
-      return "số lượng";
-    case "PenaltyAmount":
-      return "mức đền bù";
-    case "Description":
-      return "mô tả";
-    case "PriceIfLost":
-      return "giá đền bù";
     case "FullName":
+    case "fullName":
       return "họ tên";
     case "Email":
+    case "email":
       return "email";
-    case "Phone":
+    case "PhoneNumber":
+    case "phoneNumber":
       return "số điện thoại";
-    case "Name":
-      return "tên";
-    case "BookingCode":
-      return "mã booking";
-    case "RoleId":
+    case "RoleName":
+    case "roleName":
       return "vai trò";
-    case "Content":
-      return "nội dung";
+    case "Address":
+    case "address":
+      return "địa chỉ";
+    case "Status":
+    case "status":
+      return "trạng thái";
+    case "Price":
+    case "price":
+      return "giá";
+    case "Quantity":
+    case "quantity":
+      return "số lượng";
+    case "Name":
+    case "name":
+      return "tên";
+    case "Description":
+    case "description":
+      return "mô tả";
     case "Title":
+    case "title":
       return "tiêu đề";
     case "IsDeleted":
+    case "isDeleted":
       return "trạng thái hiển thị";
     case "IsActive":
+    case "isActive":
       return "trạng thái hoạt động";
     default:
       return propertyName;
   }
-};
-
-const FIELD_LABEL_OVERRIDES = {
-  InStockQuantity: "Tồn kho",
-  inStockQuantity: "Tồn kho",
-  InUseQuantity: "Đang sử dụng",
-  inUseQuantity: "Đang sử dụng",
-  DamagedQuantity: "Số lượng hư hỏng",
-  damagedQuantity: "Số lượng hư hỏng",
 };
 
 const getFieldLabel = (propertyName) =>
@@ -130,8 +125,8 @@ const parseLogPayload = (logData) => {
   if (!logData) return [];
 
   try {
-    const parsed = JSON.parse(logData);
-    return getValue(parsed, "events", "Events") ?? [];
+    const data = typeof logData === "string" ? JSON.parse(logData) : logData;
+    return getValue(data, "events", "Events") ?? [];
   } catch {
     return [];
   }
@@ -141,130 +136,29 @@ const getEventData = (event, mode = "new") => {
   const changes = getValue(event, "changes", "Changes");
   if (!changes) return {};
 
-  if (mode === "old") {
-    return getValue(changes, "oldData", "OldData") ?? {};
-  }
-
-  return getValue(changes, "newData", "NewData") ?? {};
+  return mode === "old"
+    ? getValue(changes, "oldData", "OldData") || {}
+    : getValue(changes, "newData", "NewData") || {};
 };
 
-const collectChangedKeys = (oldData, newData) =>
-  Array.from(new Set([...Object.keys(oldData || {}), ...Object.keys(newData || {})])).filter(
-    (key) =>
-      !IGNORED_FIELDS.has(key) && formatValue(oldData?.[key]) !== formatValue(newData?.[key]),
-  );
-
-const describeChangedFields = (oldData, newData, preferredKeys = null) => {
-  const changedKeys = collectChangedKeys(oldData, newData);
-  const keys = preferredKeys
-    ? preferredKeys.filter((key) => changedKeys.includes(key))
-    : changedKeys;
-
-  const changes = keys.map((key) => {
-    const oldValue = formatValue(oldData?.[key]);
-    const newValue = formatValue(newData?.[key]);
-    return `${getFieldLabel(key)}: ${oldValue} -> ${newValue}`;
-  });
-
-  return changes.length ? `Thay đổi: ${changes.join("; ")}.` : "";
+const formatValue = (value) => {
+  if (value === null || value === undefined) return "-";
+  if (typeof value === "boolean") return value ? "Bật" : "Tắt";
+  if (typeof value === "string" && !value.trim()) return "-";
+  return String(value);
 };
 
-const buildRoomLabel = (roomId, lookups, fallbackRoomNumber = null) => {
-  const room = roomId ? lookups.roomMap?.get(roomId) : null;
-  if (room?.roomNumber && room?.roomTypeName) {
-    return `${room.roomNumber} - ${room.roomTypeName}`;
-  }
-  if (room?.roomNumber) {
-    return room.roomNumber;
-  }
-  return fallbackRoomNumber ?? (roomId ? `phòng ${roomId}` : "phòng chưa xác định");
+const collectChangedKeys = (oldData, newData) => {
+  const keys = new Set([...Object.keys(oldData), ...Object.keys(newData)]);
+  return Array.from(keys).filter(
+    (key) => !IGNORED_FIELDS.has(key) && oldData[key] !== newData[key],
+  );
 };
 
-const buildEquipmentAndRoomContext = (rawEvents, lookups) => {
-  const roomInventoryEvent = rawEvents.find(
-    (item) => getValue(item, "entityType", "EntityType") === "RoomInventory",
-  );
-  const equipmentEvent = rawEvents.find(
-    (item) => getValue(item, "entityType", "EntityType") === "Equipment",
-  );
-  const bookingDetailEvent = rawEvents.find(
-    (item) => getValue(item, "entityType", "EntityType") === "BookingDetail",
-  );
-
-  const roomInventoryData = getEventData(roomInventoryEvent);
-  const bookingDetailData = getEventData(bookingDetailEvent);
-  const roomId =
-    getValue(roomInventoryData, "roomId", "RoomId") ??
-    getValue(bookingDetailData, "roomId", "RoomId");
-  const equipmentId = getValue(roomInventoryData, "equipmentId", "EquipmentId");
-
-  return {
-    roomId,
-    roomLabel: buildRoomLabel(
-      roomId,
-      lookups,
-      getValue(roomInventoryData, "roomNumber", "RoomNumber"),
-    ),
-    equipmentId,
-    equipmentName:
-      lookups.equipmentMap?.get(equipmentId)?.name ??
-      getValue(getEventData(equipmentEvent), "name", "Name") ??
-      getValue(roomInventoryData, "itemType", "ItemType") ??
-      null,
-    bookingCode: getValue(getEventData(rawEvents.find(
-      (item) => getValue(item, "entityType", "EntityType") === "Booking",
-    )), "bookingCode", "BookingCode"),
-  };
-};
-
-const buildLossAndDamageEvent = (event, rawEvents, lookups, fallbackEventId) => {
-  const actionType = getValue(event, "actionType", "ActionType");
-  const data = actionType === "DELETE" ? getEventData(event, "old") : getEventData(event);
-  const oldData = getEventData(event, "old");
-  const newData = getEventData(event);
-  const context = buildEquipmentAndRoomContext(rawEvents, lookups);
-
-  const equipmentName =
-    context.equipmentName ?? getValue(data, "description", "Description") ?? "thiết bị";
-  const quantity = formatValue(getValue(data, "quantity", "Quantity"));
-  const penalty = getValue(data, "penaltyAmount", "PenaltyAmount");
-  const description = getValue(data, "description", "Description");
-
-  let summary = "";
-  if (actionType === "CREATE") {
-    summary = `Đã báo cáo ${context.roomLabel} bị hư ${equipmentName} số lượng ${quantity}.`;
-  } else if (actionType === "DELETE") {
-    summary = `Đã hủy báo cáo đền bù ${equipmentName} tại ${context.roomLabel}.`;
-  } else {
-    summary = `Đã cập nhật báo cáo hư hỏng ${equipmentName} tại ${context.roomLabel}.`;
-  }
-
-  const parts = [summary];
-  if (penalty !== undefined && penalty !== null) {
-    parts.push(`Mức đền bù: ${formatValue(penalty)}.`);
-  }
-  if (description) {
-    parts.push(`Mô tả: ${description}.`);
-  }
-
-  const changedFields = describeChangedFields(oldData, newData, [
-    "Quantity",
-    "PenaltyAmount",
-    "Description",
-  ]);
-  if (changedFields && actionType === "UPDATE") {
-    parts.push(changedFields);
-  }
-
-  return {
-    eventId: getValue(event, "eventId", "EventId") ?? fallbackEventId,
-    timestamp: getValue(event, "timestamp", "Timestamp"),
-    actionType,
-    actionLabel: toActionLabel(actionType),
-    objectName: "LossAndDamage",
-    summary,
-    detail: parts.join(" "),
-  };
+const describeChangedFields = (oldData, newData, trackedFields = []) => {
+  // Chúng ta không còn hiển thị chi tiết thay đổi giá trị cũ/mới nữa để tránh rối giao diện
+  // Chỉ trả về null để giao diện sạch sẽ
+  return null;
 };
 
 const buildUserEvent = (event, fallbackEventId) => {
@@ -273,40 +167,18 @@ const buildUserEvent = (event, fallbackEventId) => {
   const newData = getEventData(event);
   const activeData = actionType === "DELETE" ? oldData : newData;
   const fullName = formatValue(getValue(activeData, "fullName", "FullName"));
-  const changedKeys = collectChangedKeys(oldData, newData);
+  const roleName = formatValue(getValue(activeData, "roleName", "RoleName"));
 
-  let summary = `Tài khoản ${fullName}`;
   const parts = [];
-
-  if (changedKeys.includes("Status")) {
-    const newStatus = getValue(newData, "status", "Status");
-    summary += newStatus ? " đã được khôi phục." : " đã bị ẩn.";
-    parts.push(summary);
-  } else if (changedKeys.includes("RoleId")) {
-    summary += " đã được cập nhật vai trò.";
-    parts.push(summary);
-  } else if (changedKeys.includes("Email")) {
-    summary += " đã cập nhật email.";
-    parts.push(summary);
-  } else if (changedKeys.includes("Phone")) {
-    summary += " đã cập nhật số điện thoại.";
-    parts.push(summary);
+  if (actionType === "CREATE") {
+    parts.push(`Đã tạo mới nhân viên ${fullName} (${roleName}).`);
+  } else if (actionType === "DELETE" || actionType === "SOFT_DELETE") {
+    parts.push(`Đã xóa nhân viên ${fullName}.`);
   } else {
-    summary += " đã được cập nhật.";
-    parts.push(summary);
+    parts.push(`Sửa nhân viên ${fullName}.`);
   }
 
-  const changedFields = describeChangedFields(oldData, newData, [
-    "Email",
-    "Phone",
-    "DateOfBirth",
-    "RoleId",
-    "Status",
-    "FullName",
-  ]);
-  if (changedFields) {
-    parts.push(changedFields);
-  }
+  const message = getValue(event, "message", "Message");
 
   return {
     eventId: getValue(event, "eventId", "EventId") ?? fallbackEventId,
@@ -315,7 +187,7 @@ const buildUserEvent = (event, fallbackEventId) => {
     actionLabel: toActionLabel(actionType),
     objectName: "User",
     summary: parts[0],
-    detail: parts.join(" "),
+    detail: message || parts.join(" "),
   };
 };
 
@@ -340,12 +212,7 @@ const buildArticleEvent = (event, fallbackEventId) => {
     summary += " đã được chỉnh sửa.";
   }
 
-  const changedFields = describeChangedFields(oldData, newData, [
-    "Title",
-    "Content",
-    "Status",
-    "IsDeleted",
-  ]);
+  const message = getValue(event, "message", "Message");
 
   return {
     eventId: getValue(event, "eventId", "EventId") ?? fallbackEventId,
@@ -354,7 +221,7 @@ const buildArticleEvent = (event, fallbackEventId) => {
     actionLabel: toActionLabel(actionType),
     objectName: "Article",
     summary,
-    detail: changedFields ? `${summary} ${changedFields}` : summary,
+    detail: message || summary,
   };
 };
 
@@ -381,7 +248,7 @@ const buildBookingEvent = (event, rawEvents, lookups, fallbackEventId) => {
     summary = `Booking ${bookingCode} đã bị hủy.`;
   }
 
-  const changedFields = describeChangedFields(oldData, newData, ["Status", "VoucherId"]);
+  const message = getValue(event, "message", "Message");
 
   return {
     eventId: getValue(event, "eventId", "EventId") ?? fallbackEventId,
@@ -390,7 +257,7 @@ const buildBookingEvent = (event, rawEvents, lookups, fallbackEventId) => {
     actionLabel: toActionLabel(actionType),
     objectName: "Booking",
     summary,
-    detail: changedFields ? `${summary} ${changedFields}` : summary,
+    detail: message || summary,
   };
 };
 
@@ -416,12 +283,7 @@ const buildRoomInventoryEvent = (event, rawEvents, lookups, fallbackEventId) => 
       : `${equipmentName} tại ${roomLabel} đã bị ẩn.`;
   }
 
-  const changedFields = describeChangedFields(oldData, newData, [
-    "Quantity",
-    "IsActive",
-    "PriceIfLost",
-    "Note",
-  ]);
+  const message = getValue(event, "message", "Message");
 
   return {
     eventId: getValue(event, "eventId", "EventId") ?? fallbackEventId,
@@ -430,7 +292,7 @@ const buildRoomInventoryEvent = (event, rawEvents, lookups, fallbackEventId) => 
     actionLabel: toActionLabel(actionType),
     objectName: "RoomInventory",
     summary,
-    detail: changedFields ? `${summary} ${changedFields}` : summary,
+    detail: message || summary,
   };
 };
 
@@ -448,14 +310,7 @@ const buildEquipmentEvent = (event, fallbackEventId) => {
     summary = isActive ? `Thiết bị ${name} đã được khôi phục.` : `Thiết bị ${name} đã bị ẩn.`;
   }
 
-  const changedFields = describeChangedFields(oldData, newData, [
-    "Name",
-    "InStockQuantity",
-    "InUseQuantity",
-    "DamagedQuantity",
-    "DefaultPriceIfLost",
-    "IsActive",
-  ]);
+  const message = getValue(event, "message", "Message");
 
   return {
     eventId: getValue(event, "eventId", "EventId") ?? fallbackEventId,
@@ -464,7 +319,7 @@ const buildEquipmentEvent = (event, fallbackEventId) => {
     actionLabel: toActionLabel(actionType),
     objectName: "Equipment",
     summary,
-    detail: changedFields ? `${summary} ${changedFields}` : summary,
+    detail: message || summary,
   };
 };
 
@@ -473,15 +328,16 @@ const buildRoleEvent = (event, fallbackEventId) => {
   const oldData = getEventData(event, "old");
   const newData = getEventData(event);
   const activeData = actionType === "DELETE" ? oldData : newData;
-  const roleName = formatValue(getValue(activeData, "name", "Name"));
-  const summary =
-    actionType === "DELETE"
-      ? `Role "${roleName}" đã bị xóa.`
-      : `Role "${roleName}" đã được cập nhật.`;
-  const changedFields =
-    actionType === "DELETE"
-      ? ""
-      : describeChangedFields(oldData, newData, ["Name", "Description"]);
+  const name = formatValue(getValue(activeData, "name", "Name"));
+
+  let summary = `Vai trò ${name} đã được cập nhật.`;
+  if (actionType === "CREATE") {
+    summary = `Đã tạo mới vai trò ${name}.`;
+  } else if (actionType === "DELETE") {
+    summary = `Đã xóa vai trò ${name}.`;
+  }
+
+  const message = getValue(event, "message", "Message");
 
   return {
     eventId: getValue(event, "eventId", "EventId") ?? fallbackEventId,
@@ -490,91 +346,51 @@ const buildRoleEvent = (event, fallbackEventId) => {
     actionLabel: toActionLabel(actionType),
     objectName: "Role",
     summary,
-    detail: changedFields ? `${summary} ${changedFields}` : summary,
+    detail: message || summary,
   };
 };
 
-const getPermissionIdFromEvent = (event, mode = "new") => {
-  const data = getEventData(event, mode);
-  return getValue(data, "PermissionId", "permissionId");
+const buildPermissionName = (permissionId, lookups) => {
+  const perm = lookups.permissionMap?.get(permissionId);
+  return perm?.name || perm?.code || `Quyền #${permissionId}`;
 };
 
 const getRoleIdFromEvent = (event, mode = "new") => {
   const data = getEventData(event, mode);
-  return getValue(data, "RoleId", "roleId");
+  return getValue(data, "roleId", "RoleId");
 };
 
-const buildPermissionName = (permissionId, lookups) => {
-  const permission = lookups.permissionMap?.get(permissionId);
-  if (permission?.displayName) {
-    return permission.displayName;
-  }
-
-  if (permission?.name) {
-    return getPermissionDisplayName(permission.name);
-  }
-
-  return permissionId ? `quyền ${permissionId}` : null;
-};
-
-const buildRoleLabel = (roleId, lookups) => {
-  const roleName = lookups.roleMap?.get(roleId)?.name;
-  if (roleName) {
-    return `vai trò ${roleName}`;
-  }
-
-  return roleId ? `vai trò ${roleId}` : "vai trò chưa xác định";
+const getPermissionIdFromEvent = (event, mode = "new") => {
+  const data = getEventData(event, mode);
+  return getValue(data, "permissionId", "PermissionId");
 };
 
 const buildRolePermissionAggregateEvent = (events, lookups, fallbackEventId) => {
-  if (!events.length) return null;
+  const roleId = getRoleIdFromEvent(events[0]) ?? getRoleIdFromEvent(events[0], "old");
+  const roleLabel = lookups.roleMap?.get(roleId)?.name || `vai trò #${roleId}`;
 
   const addedPermissionIds = [];
   const removedPermissionIds = [];
 
   events.forEach((event) => {
     const actionType = getValue(event, "actionType", "ActionType");
-
     if (actionType === "CREATE") {
       addedPermissionIds.push(getPermissionIdFromEvent(event));
-      return;
-    }
-
-    if (actionType === "DELETE") {
+    } else if (actionType === "DELETE") {
       removedPermissionIds.push(getPermissionIdFromEvent(event, "old"));
-      return;
-    }
-
-    const oldPermissionId = getPermissionIdFromEvent(event, "old");
-    const newPermissionId = getPermissionIdFromEvent(event);
-
-    if (oldPermissionId && oldPermissionId !== newPermissionId) {
-      removedPermissionIds.push(oldPermissionId);
-    }
-
-    if (newPermissionId) {
-      addedPermissionIds.push(newPermissionId);
     }
   });
 
   const uniqueAddedPermissionIds = unique(addedPermissionIds);
   const uniqueRemovedPermissionIds = unique(removedPermissionIds);
-  const overlapPermissionIds = new Set(
-    uniqueAddedPermissionIds.filter((permissionId) =>
-      uniqueRemovedPermissionIds.includes(permissionId),
-    ),
-  );
+
   const netAddedPermissionIds = uniqueAddedPermissionIds.filter(
-    (permissionId) => !overlapPermissionIds.has(permissionId),
+    (id) => !uniqueRemovedPermissionIds.includes(id),
   );
   const netRemovedPermissionIds = uniqueRemovedPermissionIds.filter(
-    (permissionId) => !overlapPermissionIds.has(permissionId),
+    (id) => !uniqueAddedPermissionIds.includes(id),
   );
 
-  const roleId =
-    getRoleIdFromEvent(events[0]) ??
-    getRoleIdFromEvent(events[0], "old");
-  const roleLabel = buildRoleLabel(roleId, lookups);
   const addedNames = unique(
     netAddedPermissionIds.map((permissionId) => buildPermissionName(permissionId, lookups)),
   );
@@ -582,35 +398,16 @@ const buildRolePermissionAggregateEvent = (events, lookups, fallbackEventId) => 
     netRemovedPermissionIds.map((permissionId) => buildPermissionName(permissionId, lookups)),
   );
 
-  let actionType = "UPDATE";
-  let summary = `Đã cập nhật quyền cho ${roleLabel}.`;
-  const detailParts = [];
-
-  if (addedNames.length > 0 && removedNames.length === 0) {
-    actionType = "CREATE";
-    summary = `Đã thêm quyền cho ${roleLabel}.`;
-    detailParts.push(`Đã thêm quyền ${formatList(addedNames)} cho ${roleLabel}.`);
-  } else if (removedNames.length > 0 && addedNames.length === 0) {
-    actionType = "DELETE";
-    summary = `Đã bỏ quyền của ${roleLabel}.`;
-    detailParts.push(`Đã bỏ quyền ${formatList(removedNames)} cho ${roleLabel}.`);
-  } else {
-    if (addedNames.length > 0) {
-      detailParts.push(`Đã thêm quyền ${formatList(addedNames)} cho ${roleLabel}.`);
-    }
-    if (removedNames.length > 0) {
-      detailParts.push(`Đã bỏ quyền ${formatList(removedNames)} cho ${roleLabel}.`);
-    }
-  }
+  let summary = `Cập nhật quyền cho ${roleLabel}.`;
 
   return {
     eventId: fallbackEventId,
     timestamp: getValue(events[0], "timestamp", "Timestamp"),
-    actionType,
-    actionLabel: toActionLabel(actionType),
+    actionType: "UPDATE",
+    actionLabel: toActionLabel("UPDATE"),
     objectName: "RolePermission",
     summary,
-    detail: detailParts.join(" ") || summary,
+    detail: summary, // Chỉ hiện tóm tắt đơn giản theo ý người dùng
   };
 };
 
@@ -619,34 +416,16 @@ const buildVoucherEvent = (event, fallbackEventId) => {
   const oldData = getEventData(event, "old");
   const newData = getEventData(event);
   const activeData = actionType === "DELETE" ? oldData : newData;
-  const code = formatValue(getValue(activeData, "Code", "code"));
-  const voucherId = formatValue(
-    getValue(activeData, "VoucherId", "voucherId") ?? getValue(activeData, "Id", "id"),
-  );
-  const dispatchType = getValue(activeData, "DispatchType", "dispatchType");
-  const sentCount = getValue(activeData, "SentCount", "sentCount");
-  const recipients = getValue(activeData, "Recipients", "recipients");
+  const code = formatValue(getValue(activeData, "code", "Code"));
+
+  let summary = `Voucher ${code} đã được cập nhật.`;
+  if (actionType === "CREATE") {
+    summary = `Đã tạo mới voucher ${code}.`;
+  } else if (actionType === "DELETE") {
+    summary = `Đã xóa voucher ${code}.`;
+  }
+
   const message = getValue(event, "message", "Message");
-
-  let summary = message || `Voucher ${code} có id ${voucherId} đã được gửi đi.`;
-  const parts = [summary];
-
-  if (dispatchType) {
-    parts.push(`Hình thức gửi: ${dispatchType}.`);
-  }
-
-  if (sentCount !== undefined && sentCount !== null) {
-    parts.push(`Số lượt gửi thành công: ${sentCount}.`);
-  }
-
-  if (Array.isArray(recipients) && recipients.length > 0) {
-    parts.push(`Người nhận: ${recipients.join(", ")}.`);
-  }
-
-  const changedFields = describeChangedFields(oldData, newData);
-  if (changedFields) {
-    parts.push(changedFields);
-  }
 
   return {
     eventId: getValue(event, "eventId", "EventId") ?? fallbackEventId,
@@ -655,8 +434,13 @@ const buildVoucherEvent = (event, fallbackEventId) => {
     actionLabel: toActionLabel(actionType),
     objectName: "Voucher",
     summary,
-    detail: parts.join(" "),
+    detail: message || summary,
   };
+};
+
+const buildRoomLabel = (roomId, lookups) => {
+  const room = lookups.roomMap?.get(roomId);
+  return room ? `phòng ${room.roomNumber}` : `phòng #${roomId}`;
 };
 
 const buildInvoiceEvent = (event, fallbackEventId) => {
@@ -664,15 +448,16 @@ const buildInvoiceEvent = (event, fallbackEventId) => {
   const oldData = getEventData(event, "old");
   const newData = getEventData(event);
   const activeData = actionType === "DELETE" ? oldData : newData;
-  const invoiceId = formatValue(getValue(activeData, "Id", "id", "InvoiceId", "invoiceId"));
-  const roomNumber = formatValue(getValue(activeData, "RoomNumber", "roomNumber"));
+  const roomNumber = getValue(activeData, "roomNumber", "RoomNumber") || "-";
 
-  let summary = `Đã tạo hóa đơn cho phòng ${roomNumber}.`;
-  if (actionType === "UPDATE") {
-    summary = `Hóa đơn của phòng ${roomNumber} đã được cập nhật.`;
+  let summary = `Hóa đơn phòng ${roomNumber} đã được cập nhật.`;
+  if (actionType === "CREATE") {
+    summary = `Đã xuất hóa đơn cho phòng ${roomNumber}.`;
   } else if (actionType === "DELETE") {
     summary = `Hóa đơn của phòng ${roomNumber} đã bị xóa.`;
   }
+
+  const message = getValue(event, "message", "Message");
 
   return {
     eventId: getValue(event, "eventId", "EventId") ?? fallbackEventId,
@@ -681,7 +466,47 @@ const buildInvoiceEvent = (event, fallbackEventId) => {
     actionLabel: toActionLabel(actionType),
     objectName: "Invoice",
     summary,
-    detail: summary,
+    detail: message || summary,
+  };
+};
+
+const buildLossAndDamageEvent = (event, rawEvents, lookups, fallbackEventId) => {
+  const actionType = getValue(event, "actionType", "ActionType");
+  const oldData = getEventData(event, "old");
+  const newData = getEventData(event);
+  const activeData = actionType === "DELETE" ? oldData : newData;
+  const roomInventoryId = getValue(activeData, "roomInventoryId", "RoomInventoryId");
+
+  const inventoryEvent = rawEvents.find(
+    (item) =>
+      getValue(item, "entityType", "EntityType") === "RoomInventory" &&
+      (getValue(getEventData(item), "id", "Id") === roomInventoryId ||
+        getValue(getEventData(item, "old"), "id", "Id") === roomInventoryId),
+  );
+
+  const inventoryData = inventoryEvent ? getEventData(inventoryEvent) : null;
+  const roomId = getValue(inventoryData, "roomId", "RoomId");
+  const roomLabel = buildRoomLabel(roomId, lookups);
+  const equipmentId = getValue(inventoryData, "equipmentId", "EquipmentId");
+  const equipmentName = lookups.equipmentMap?.get(equipmentId)?.name || "vật tư";
+
+  let summary = `Ghi nhận hư hỏng ${equipmentName} tại ${roomLabel}.`;
+  if (actionType === "UPDATE") {
+    summary = `Cập nhật hư hỏng ${equipmentName} tại ${roomLabel}.`;
+  } else if (actionType === "DELETE") {
+    summary = `Xóa ghi nhận hư hỏng ${equipmentName} tại ${roomLabel}.`;
+  }
+
+  const message = getValue(event, "message", "Message");
+
+  return {
+    eventId: getValue(event, "eventId", "EventId") ?? fallbackEventId,
+    timestamp: getValue(event, "timestamp", "Timestamp"),
+    actionType,
+    actionLabel: toActionLabel(actionType),
+    objectName: "LossAndDamage",
+    summary,
+    detail: message || summary,
   };
 };
 
@@ -690,41 +515,17 @@ const buildPaymentEvent = (event, rawEvents, fallbackEventId) => {
   const oldData = getEventData(event, "old");
   const newData = getEventData(event);
   const activeData = actionType === "DELETE" ? oldData : newData;
-  const amountPaid = formatValue(getValue(activeData, "AmountPaid", "amountPaid"));
-  const transactionCode = formatValue(
-    getValue(activeData, "TransactionCode", "transactionCode"),
-  );
-  const status = formatValue(getValue(activeData, "Status", "status"));
-  const invoiceId = formatValue(getValue(activeData, "InvoiceId", "invoiceId"));
-  const relatedInvoiceEvent = rawEvents.find(
-    (item) => getValue(item, "entityType", "EntityType") === "Invoice",
-  );
-  const relatedInvoiceData = getEventData(relatedInvoiceEvent);
-  const roomNumber = formatValue(getValue(relatedInvoiceData, "RoomNumber", "roomNumber"));
+  const amount = getValue(activeData, "amount", "Amount");
+  const formattedAmount = amount ? new Intl.NumberFormat("vi-VN").format(amount) : "-";
 
-  const paymentTarget =
-    roomNumber !== "-"
-      ? `hóa đơn của phòng ${roomNumber}`
-      : invoiceId !== "-"
-        ? `hóa đơn ${invoiceId}`
-        : transactionCode !== "-"
-          ? `mã ${transactionCode}`
-          : "giao dịch";
-
-  let summary = `Thanh toán ${paymentTarget} đã thành công.`;
-
-  if (status !== "-" && status !== "Completed") {
-    summary = `Thanh toán ${paymentTarget} ở trạng thái ${status}.`;
+  let summary = `Thanh toán số tiền ${formattedAmount}đ đã được cập nhật.`;
+  if (actionType === "CREATE") {
+    summary = `Đã ghi nhận thanh toán ${formattedAmount}đ.`;
+  } else if (actionType === "DELETE") {
+    summary = `Đã xóa thanh toán ${formattedAmount}đ.`;
   }
 
-  if (actionType === "DELETE") {
-    summary = `Thanh toán ${paymentTarget} đã bị xóa.`;
-  }
-
-  const detailParts = [summary];
-  if (amountPaid !== "-") {
-    detailParts.push(`Số tiền: ${amountPaid}.`);
-  }
+  const message = getValue(event, "message", "Message");
 
   return {
     eventId: getValue(event, "eventId", "EventId") ?? fallbackEventId,
@@ -733,25 +534,33 @@ const buildPaymentEvent = (event, rawEvents, fallbackEventId) => {
     actionLabel: toActionLabel(actionType),
     objectName: "Payment",
     summary,
-    detail: detailParts.join(" "),
+    detail: message || summary,
   };
 };
 
 const buildGenericEvent = (event, fallbackEventId) => {
   const actionType = getValue(event, "actionType", "ActionType");
-  const entityType = getValue(event, "entityType", "EntityType");
   const oldData = getEventData(event, "old");
   const newData = getEventData(event);
-  const activeData = actionType === "DELETE" ? oldData : newData;
+  const rawEntityType = String(getValue(event, "entityType", "EntityType") || "");
+  const entityType =
+    rawEntityType.charAt(0).toUpperCase() + rawEntityType.slice(1).toLowerCase();
+
   const name =
-    formatValue(getValue(activeData, "name", "Name")) !== "-"
-      ? formatValue(getValue(activeData, "name", "Name"))
-      : formatValue(getValue(activeData, "title", "Title"));
+    getValue(newData, "name", "Name") ||
+    getValue(newData, "title", "Title") ||
+    getValue(oldData, "name", "Name") ||
+    getValue(oldData, "title", "Title") ||
+    "";
 
   const changedKeys = collectChangedKeys(oldData, newData);
-  let summary = `${entityType} ${name !== "-" ? name : ""} đã được cập nhật.`.trim();
 
-  if (changedKeys.includes("IsDeleted")) {
+  let summary = `${entityType} ${name} đã được cập nhật.`;
+  if (actionType === "CREATE") {
+    summary = `Đã tạo mới ${entityType} ${name}.`;
+  } else if (actionType === "DELETE") {
+    summary = `Đã xóa ${entityType} ${name}.`;
+  } else if (changedKeys.includes("IsDeleted")) {
     const isDeleted = getValue(newData, "isDeleted", "IsDeleted");
     summary = isDeleted
       ? `${entityType} ${name} đã bị ẩn.`
@@ -763,7 +572,7 @@ const buildGenericEvent = (event, fallbackEventId) => {
       : `${entityType} ${name} đã bị ẩn.`;
   }
 
-  const changedFields = describeChangedFields(oldData, newData);
+  const message = getValue(event, "message", "Message");
 
   return {
     eventId: getValue(event, "eventId", "EventId") ?? fallbackEventId,
@@ -772,14 +581,20 @@ const buildGenericEvent = (event, fallbackEventId) => {
     actionLabel: toActionLabel(actionType),
     objectName: entityType || "System",
     summary,
-    detail: changedFields ? `${summary} ${changedFields}` : summary,
+    detail: message || summary,
   };
 };
 
 const buildEvent = (event, rawEvents, lookups, fallbackEventId) => {
-  const entityType = getValue(event, "entityType", "EntityType");
+  const rawEntityType = String(getValue(event, "entityType", "EntityType") || "");
+  // Normalize to PascalCase (e.g., "user" -> "User")
+  const entityType =
+    rawEntityType.length > 0
+      ? rawEntityType.charAt(0).toUpperCase() + rawEntityType.slice(1).toLowerCase()
+      : "";
 
   switch (entityType) {
+    case "Lossanddamage":
     case "LossAndDamage":
       return buildLossAndDamageEvent(event, rawEvents, lookups, fallbackEventId);
     case "User":
@@ -788,6 +603,7 @@ const buildEvent = (event, rawEvents, lookups, fallbackEventId) => {
       return buildArticleEvent(event, fallbackEventId);
     case "Booking":
       return buildBookingEvent(event, rawEvents, lookups, fallbackEventId);
+    case "Roominventory":
     case "RoomInventory":
       return buildRoomInventoryEvent(event, rawEvents, lookups, fallbackEventId);
     case "Equipment":
@@ -814,79 +630,98 @@ export const normalizeAuditLog = (
     permissionMap: new Map(),
   },
 ) => {
-  const rawEvents = parseLogPayload(log.logData);
-  const rolePermissionEvents = rawEvents.filter(
-    (event) => getValue(event, "entityType", "EntityType") === "RolePermission",
+  const logData = getValue(log, "logData", "LogData");
+  const rawEvents = parseLogPayload(logData);
+
+  const logId = getValue(log, "id", "Id");
+
+  // Gộp RolePermission theo từng lần lưu (cùng timestamp tính đến giây)
+  const rpGroups = rawEvents
+    .filter((event) => getValue(event, "entityType", "EntityType") === "RolePermission")
+    .reduce((acc, event) => {
+      const fullTs = getValue(event, "timestamp", "Timestamp") || "";
+      // Truncate to seconds (e.g., "2024-05-12T19:56:28.123Z" -> "2024-05-12T19:56:28")
+      const ts = fullTs.split(".")[0];
+      if (!acc[ts]) acc[ts] = [];
+      acc[ts].push(event);
+      return acc;
+    }, {});
+
+  const rolePermissionEvents = Object.values(rpGroups).map((group, index) =>
+    buildRolePermissionAggregateEvent(group, lookups, `${logId}-rp-${index}`),
   );
-  const nonRolePermissionEvents = rawEvents.filter(
-    (event) => getValue(event, "entityType", "EntityType") !== "RolePermission",
-  );
+
+  const nonRolePermissionEvents = rawEvents.filter((event) => {
+    const type = getValue(event, "entityType", "EntityType");
+    return !HIDDEN_OBJECTS.has(type) && type !== "RolePermission";
+  });
 
   const normalizedEvents = [
     ...nonRolePermissionEvents.map((event, index) =>
-      buildEvent(event, rawEvents, lookups, `${log.id}-${index}`),
+      buildEvent(event, rawEvents, lookups, `${logId}-${index}`),
     ),
-    ...(rolePermissionEvents.length > 0
-      ? [
-          buildRolePermissionAggregateEvent(
-            rolePermissionEvents,
-            lookups,
-            `${log.id}-role-permissions`,
-          ),
-        ]
-      : []),
+    ...rolePermissionEvents,
   ].filter((event) => event && !HIDDEN_OBJECTS.has(event.objectName));
 
   return {
-    id: log.id,
-    userId: log.userId,
-    userName: log.userName || "System",
-    roleName: log.roleName || "System",
-    logDate: log.logDate,
-    events: normalizedEvents,
-    summary:
-      normalizedEvents[0]?.summary || "Chưa có nội dung chi tiết cho nhóm nhật ký này.",
+    id: logId || Math.random(),
+    userId: getValue(log, "userId", "UserId"),
+    userName: getValue(log, "userName", "UserName") || "Hệ thống",
+    roleName: getValue(log, "roleName", "RoleName") || "Hệ thống",
+    logDate: getValue(log, "logDate", "LogDate"),
+    events: normalizedEvents || [],
+    summary: normalizedEvents?.[0]?.summary || "Nhật ký hoạt động hệ thống.",
   };
 };
 
 export const groupAuditLogs = (logs, formatDate) => {
   const grouped = new Map();
 
-  logs.forEach((log) => {
-    if (!log.events?.length) return;
+  if (!Array.isArray(logs)) return [];
 
-    const dateLabel = formatDate(log.logDate);
-    const key = `${dateLabel}-${log.userId ?? log.userName}`;
+  logs.forEach((log) => {
+    const events = log.events || [];
+    if (events.length === 0) return;
+
+    const dateLabel = log.logDate ? formatDate(log.logDate) : "Không rõ ngày";
+    const userId = log.userId || "0";
+    const userName = log.userName || "Hệ thống";
+    const roleName = log.roleName || "Hệ thống";
+
+    const key = `${dateLabel}-${userId}-${userName}`;
 
     if (!grouped.has(key)) {
       grouped.set(key, {
         key,
         dateLabel,
-        userName: log.userName,
-        roleName: log.roleName,
+        userName,
+        roleName,
         events: [],
       });
     }
 
-    grouped.get(key).events.push(...log.events);
+    grouped.get(key).events.push(...events);
   });
 
   return Array.from(grouped.values()).map((group) => {
-    const events = [...group.events].sort(
-      (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
-    );
+    const events = [...group.events].sort((a, b) => {
+      const timeA = new Date(a.timestamp).getTime();
+      const timeB = new Date(b.timestamp).getTime();
+      return timeA - timeB;
+    });
 
     return {
       ...group,
       events,
-      summary:
-        events[0]?.summary || "Chưa có nội dung chi tiết cho nhóm nhật ký này.",
+      summary: events[0]?.summary || "Nhật ký hoạt động hệ thống.",
     };
   });
 };
 
-export const filterAuditLogs = (logs, filters) =>
-  logs.filter((log) => {
+export const filterAuditLogs = (logs, filters) => {
+  if (!Array.isArray(logs)) return [];
+
+  return logs.filter((log) => {
     if (!isVisibleAuditActorRole(log.roleName)) {
       return false;
     }
@@ -898,14 +733,15 @@ export const filterAuditLogs = (logs, filters) =>
     const roleMatch =
       !filters.roleName || normalizeText(log.roleName) === normalizeText(filters.roleName);
 
+    if (!log.logDate) return nameMatch && roleMatch;
+
     const logDate = new Date(log.logDate);
-    const fromMatch =
-      !filters.fromDate || logDate >= new Date(`${filters.fromDate}T00:00:00`);
-    const toMatch =
-      !filters.toDate || logDate < new Date(`${filters.toDate}T23:59:59.999`);
+    const fromMatch = !filters.fromDate || logDate >= new Date(`${filters.fromDate}T00:00:00`);
+    const toMatch = !filters.toDate || logDate < new Date(`${filters.toDate}T23:59:59.999`);
 
     return nameMatch && roleMatch && fromMatch && toMatch;
   });
+};
 
 const escapeXml = (value) =>
   String(value ?? "")

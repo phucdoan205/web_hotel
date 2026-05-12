@@ -48,21 +48,51 @@ namespace backend.Data.Interceptors
 
             if (events.Any())
             {
-                var logEntry = new AuditLog
-                {
-                    UserId = GetCurrentUserId(),
-                    LogDate = DateTime.UtcNow,
-                    LogData = JsonSerializer.Serialize(new
-                    {
-                        TotalEvents = events.Count,
-                        Events = events
-                    }, JsonOptions)
-                };
+                var userId = GetCurrentUserId();
+                var today = DateTime.UtcNow.Date;
 
-                context.AuditLogs.Add(logEntry);
+                // Tìm log của user này trong ngày hôm nay
+                var existingLog = await context.AuditLogs
+                    .FirstOrDefaultAsync(l => l.UserId == userId && l.LogDate >= today, cancellationToken);
+
+                if (existingLog != null)
+                {
+                    try
+                    {
+                        var payload = JsonSerializer.Deserialize<AuditPayload>(existingLog.LogData, JsonOptions) ?? new AuditPayload();
+                        payload.Events.AddRange(events);
+                        payload.TotalEvents = payload.Events.Count;
+                        existingLog.LogData = JsonSerializer.Serialize(payload, JsonOptions);
+                        // existingLog đã được track bởi context, không cần context.Update
+                    }
+                    catch
+                    {
+                        // Nếu parse lỗi, tạo log mới cho an toàn
+                        await CreateNewLog(context, userId, events);
+                    }
+                }
+                else
+                {
+                    await CreateNewLog(context, userId, events);
+                }
             }
 
             return await base.SavingChangesAsync(eventData, result, cancellationToken);
+        }
+
+        private async Task CreateNewLog(AppDbContext context, int? userId, List<AuditEvent> events)
+        {
+            var logEntry = new AuditLog
+            {
+                UserId = userId,
+                LogDate = DateTime.UtcNow,
+                LogData = JsonSerializer.Serialize(new AuditPayload
+                {
+                    TotalEvents = events.Count,
+                    Events = events
+                }, JsonOptions)
+            };
+            await context.AuditLogs.AddAsync(logEntry);
         }
 
         private AuditEvent? CreateAuditEvent(EntityEntry entry)
@@ -96,14 +126,14 @@ namespace backend.Data.Interceptors
                 ? GetValues(entry.CurrentValues)
                 : null;
 
-            // Message tiếng Việt (có thể mở rộng sau)
+            // Message tiếng Việt rút gọn
             var message = actionType switch
             {
-                "CREATE" => $"Tạo mới {entityType} #{recordId}",
-                "UPDATE" => $"Cập nhật {entityType} #{recordId}",
-                "DELETE" => $"Xóa {entityType} #{recordId}",
-                "SOFT_DELETE" => $"Soft delete {entityType} #{recordId}",
-                _ => $"Thay đổi {entityType} #{recordId}"
+                "CREATE" => $"Thêm {MapEntityName(entityType, entry)}",
+                "UPDATE" => $"Sửa {MapEntityName(entityType, entry)}",
+                "DELETE" => $"Xóa {MapEntityName(entityType, entry)}",
+                "SOFT_DELETE" => $"Xóa {MapEntityName(entityType, entry)}",
+                _ => $"Thay đổi {MapEntityName(entityType, entry)}"
             };
 
             return new AuditEvent
@@ -116,6 +146,57 @@ namespace backend.Data.Interceptors
                 Changes = new { OldData = oldData, NewData = newData },
                 Message = message
             };
+        }
+
+        private string MapEntityName(string entityType, EntityEntry entry)
+        {
+            var name = entityType switch
+            {
+                "LossAndDamage" => "báo cáo hư hỏng",
+                "Room" => "phòng",
+                "RoomInventory" => "vật tư phòng",
+                "Equipment" => "thiết bị",
+                "Booking" => "đặt phòng",
+                "BookingDetail" => "chi tiết đặt phòng",
+                "Invoice" => "hóa đơn",
+                "User" => "nhân viên",
+                "Role" => "phân quyền",
+                "Article" => "bài viết",
+                "Voucher" => "voucher",
+                "Notification" => "thông báo",
+                "Membership" => "hạng thành viên",
+                _ => entityType
+            };
+
+            var identifier = GetEntityIdentifier(entry);
+            return string.IsNullOrEmpty(identifier) ? name : $"{name} {identifier}";
+        }
+
+        private string GetEntityIdentifier(EntityEntry entry)
+        {
+            try
+            {
+                var values = (entry.State == EntityState.Deleted || entry.State == EntityState.Detached) 
+                    ? entry.OriginalValues 
+                    : entry.CurrentValues;
+
+                var idProp = entry.Metadata.GetProperties()
+                    .FirstOrDefault(p => p.Name == "RoomNumber")
+                             ?? entry.Metadata.GetProperties().FirstOrDefault(p => p.Name == "Name")
+                             ?? entry.Metadata.GetProperties().FirstOrDefault(p => p.Name == "Code")
+                             ?? entry.Metadata.GetProperties().FirstOrDefault(p => p.Name == "FullName")
+                             ?? entry.Metadata.GetProperties().FirstOrDefault(p => p.Name == "Title")
+                             ?? entry.Metadata.GetProperties().FirstOrDefault(p => p.Name == "TierName");
+
+                if (idProp != null)
+                {
+                    var val = values[idProp.Name];
+                    return val?.ToString() ?? "";
+                }
+            }
+            catch { }
+
+            return $"#{GetPrimaryKeyValue(entry)}";
         }
 
         private int GetPrimaryKeyValue(EntityEntry entry)
@@ -152,5 +233,12 @@ namespace backend.Data.Interceptors
 
             return int.TryParse(claim, out var claimId) ? claimId : null;
         }
+
+        private class AuditPayload
+        {
+            public int TotalEvents { get; set; }
+            public List<AuditEvent> Events { get; set; } = new();
+        }
     }
+
 }
