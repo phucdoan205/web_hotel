@@ -65,6 +65,7 @@ import PersonalDetailsPage from "../pages/public/account/PersonalDetailsPage";
 import SecuritySettingsPage from "../pages/public/account/SecuritySettingsPage";
 import GeneralSettingsPage from "../pages/public/account/GeneralSettingsPage";
 import PaymentMethodsPage from "../pages/public/account/PaymentMethodsPage";
+import MembershipPage from "../pages/public/account/MembershipPage";
 import AccountVouchersPage from "../pages/public/AccountVouchersPage";
 import SupportPage from "../pages/public/SupportPage";
 import ReceptionistServiceEditorPage from "../pages/receptionist/ReceptionistServiceEditorPage";
@@ -100,6 +101,7 @@ const AppRoutes = () => {
         <Route path="room-types/:id" element={<RoomDetailPage />} />
         <Route path="profile">
           <Route index element={<AccountProfilePage />} />
+          <Route path="membership" element={<MembershipPage />} />
           <Route element={<AccountLayout />}>
             <Route path="personal-info" element={<PersonalDetailsPage />} />
             <Route path="security" element={<SecuritySettingsPage />} />

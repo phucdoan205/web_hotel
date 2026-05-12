@@ -88,6 +88,8 @@ namespace backend.Controllers
                 RoleName = user.Role?.Name,
                 Points = user.Points,
                 MembershipName = currentMembership?.TierName ?? "Bronze",
+                MembershipDescription = currentMembership?.Description,
+                CurrentMembershipMinPoints = currentMembership?.MinPoints ?? 0,
                 NextMembershipName = nextMembership?.TierName,
                 NextMembershipMinPoints = nextMembership?.MinPoints,
                 Status = user.Status

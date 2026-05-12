@@ -25,6 +25,7 @@ const AccountLayout = () => {
   const getPageTitle = () => {
     switch (location.pathname) {
       case "/profile/personal-info": return "Thông tin cá nhân";
+      case "/profile/membership": return "Thành viên";
       case "/profile/security": return "Cài đặt bảo mật";
       case "/profile/settings": return "Cài đặt chung";
       case "/profile/payment-methods": return "Phương thức thanh toán";

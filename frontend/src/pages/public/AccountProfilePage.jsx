@@ -20,7 +20,8 @@ import {
   History,
   Briefcase,
   Heart,
-  MessageSquare
+  MessageSquare,
+  Shield
 } from "lucide-react";
 import {
   getMyProfile,
@@ -89,6 +90,7 @@ const AccountProfilePage = () => {
       title: "Quản lý tài khoản",
       items: [
         { label: "Thông tin cá nhân", icon: User, path: "/profile/personal-info" },
+        { label: "Thành viên", icon: Shield, path: "/profile/membership" },
         { label: "Cài đặt bảo mật", icon: Lock, path: "/profile/security" },
       ]
     },

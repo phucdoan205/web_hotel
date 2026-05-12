@@ -13,6 +13,8 @@ namespace backend.DTOs.User
         public string? RoleName { get; set; }
         public int Points { get; set; }
         public string? MembershipName { get; set; }
+        public string? MembershipDescription { get; set; }
+        public int? CurrentMembershipMinPoints { get; set; }
         public string? NextMembershipName { get; set; }
         public int? NextMembershipMinPoints { get; set; }
         public bool? Status { get; set; }

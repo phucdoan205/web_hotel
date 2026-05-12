@@ -40,12 +40,7 @@ namespace backend.Controllers
             var isPublicScope = !isAdminScope && !isAuthorScope;
             var includeDeleted = (isAdminScope || isAuthorScope) && normalizedApproval == "deleted";
 
-            if (isAdminScope && !IsAdmin(currentUser))
-            {
-                return Forbid();
-            }
-
-            if (isAuthorScope && !IsReceptionist(currentUser))
+            if (isAdminScope && currentUser == null)
             {
                 return Forbid();
             }
@@ -131,12 +126,7 @@ namespace backend.Controllers
                 return Forbid();
             }
 
-            if (isAdminScope && !IsAdmin(currentUser))
-            {
-                return Forbid();
-            }
-
-            if (isAuthorScope && !IsReceptionist(currentUser))
+            if (isAdminScope && currentUser == null)
             {
                 return Forbid();
             }

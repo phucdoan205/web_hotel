@@ -2,10 +2,10 @@ import { format } from "date-fns";
 import { vi } from "date-fns/locale";
 
 const ACTION_LABELS = {
-  CREATE: "Tạo mới",
-  UPDATE: "Cập nhật",
-  DELETE: "Xóa",
-  SOFT_DELETE: "Xóa",
+  CREATE: "CREATE",
+  UPDATE: "UPDATE",
+  DELETE: "DELETE",
+  SOFT_DELETE: "SOFT DELETE",
 };
 
 const HIDDEN_OBJECTS = new Set([
@@ -15,7 +15,6 @@ const HIDDEN_OBJECTS = new Set([
   "OrderService",
   "OrderServiceDetail",
   "ServiceImage",
-  "Membership",
   "AuditLog",
 ]);
 

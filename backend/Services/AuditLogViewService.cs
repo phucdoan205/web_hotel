@@ -26,7 +26,8 @@ namespace backend.Services
                 .ToList();
 
             var roomInventoryIds = parsedLogs
-                .SelectMany(item => item.Payload.Events)
+                .SelectMany(item => item.Payload?.Events ?? new List<AuditPayloadEvent>())
+                .Where(e => e != null)
                 .SelectMany(GetRoomInventoryIds)
                 .Distinct()
                 .ToList();
@@ -47,7 +48,8 @@ namespace backend.Services
 
             return parsedLogs.Select(item =>
             {
-                var events = item.Payload.Events
+                var events = (item.Payload?.Events ?? new List<AuditPayloadEvent>())
+                    .Where(e => e != null)
                     .Select(eventItem => MapEvent(eventItem, roomInventoryLookup))
                     .ToList();
 
@@ -200,11 +202,14 @@ namespace backend.Services
                 values.Add(ownId);
             }
 
-            foreach (var source in new[] { auditEvent.Changes.OldData, auditEvent.Changes.NewData })
+            if (auditEvent.Changes != null)
             {
-                if (TryGetInt(source, "RoomInventoryId", out var roomInventoryId))
+                foreach (var source in new[] { auditEvent.Changes.OldData, auditEvent.Changes.NewData })
                 {
-                    values.Add(roomInventoryId);
+                    if (TryGetInt(source, "RoomInventoryId", out var roomInventoryId))
+                    {
+                        values.Add(roomInventoryId);
+                    }
                 }
             }
 
@@ -215,13 +220,14 @@ namespace backend.Services
             AuditPayloadEvent auditEvent,
             IReadOnlyDictionary<int, RoomInventoryAuditInfo> roomInventoryLookup)
         {
-            var actionLabel = auditEvent.ActionType switch
+            var actionType = auditEvent.ActionType ?? "UNKNOWN";
+            var actionLabel = actionType switch
             {
-                "CREATE" => "Tạo mới",
-                "UPDATE" => "Cập nhật",
-                "DELETE" => "Xóa",
-                "SOFT_DELETE" => "Xóa mềm",
-                _ => auditEvent.ActionType
+                "CREATE" => "CREATE",
+                "UPDATE" => "UPDATE",
+                "DELETE" => "DELETE",
+                "SOFT_DELETE" => "SOFT DELETE",
+                _ => actionType
             };
 
             return new AuditLogEventResponseDTO
@@ -340,12 +346,15 @@ namespace backend.Services
                 return $"vật tư {inventory.EquipmentName ?? "phòng"}";
             }
 
+            if (auditEvent.Changes == null) return $"{auditEvent.EntityType} #{GetRecordId(auditEvent)}";
+
             return auditEvent.EntityType switch
             {
                 "Room" => $"phòng {GetString(auditEvent.Changes.NewData, "RoomNumber") ?? GetString(auditEvent.Changes.OldData, "RoomNumber") ?? GetRecordId(auditEvent)}",
                 "Equipment" => $"thiết bị {GetString(auditEvent.Changes.NewData, "Name") ?? GetString(auditEvent.Changes.OldData, "Name") ?? GetRecordId(auditEvent)}",
                 "Booking" => $"đặt phòng {GetString(auditEvent.Changes.NewData, "BookingCode") ?? GetString(auditEvent.Changes.OldData, "BookingCode") ?? GetRecordId(auditEvent)}",
                 "User" => $"nhân viên {GetString(auditEvent.Changes.NewData, "FullName") ?? GetString(auditEvent.Changes.OldData, "FullName") ?? GetRecordId(auditEvent)}",
+                "Membership" => $"hạng thành viên {GetString(auditEvent.Changes.NewData, "TierName") ?? GetString(auditEvent.Changes.OldData, "TierName") ?? GetRecordId(auditEvent)}",
                 _ => $"{auditEvent.EntityType} #{GetRecordId(auditEvent)}"
             };
         }
@@ -354,10 +363,13 @@ namespace backend.Services
             AuditPayloadEvent auditEvent,
             IReadOnlyDictionary<int, RoomInventoryAuditInfo> roomInventoryLookup)
         {
-            var source = auditEvent.ActionType == "DELETE" ? auditEvent.Changes.OldData : auditEvent.Changes.NewData;
+            var source = auditEvent.ActionType == "DELETE" 
+                ? (auditEvent.Changes?.OldData ?? default) 
+                : (auditEvent.Changes?.NewData ?? default);
+
             if (source.ValueKind == JsonValueKind.Undefined || source.ValueKind == JsonValueKind.Null)
             {
-                source = auditEvent.Changes.OldData;
+                source = auditEvent.Changes?.OldData ?? default;
             }
 
             TryGetInt(source, "RoomInventoryId", out var roomInventoryId);
@@ -399,6 +411,11 @@ namespace backend.Services
                 "Article" => "Trang bài viết",
                 "Voucher" => "Trang voucher",
                 "Notification" => "Trang thông báo",
+                "Membership" => "Trang hạng thành viên",
+                "Service" => "Trang dịch vụ",
+                "ServiceCategory" => "Trang danh mục dịch vụ",
+                "ArticleCategory" => "Trang danh mục bài viết",
+                "Amenity" => "Trang tiện nghi",
                 _ => $"Trang {entityType}"
             };
         }
@@ -485,6 +502,9 @@ namespace backend.Services
                 "BookingCode" => "Mã đặt phòng",
                 "CheckInDate" => "Ngày nhận phòng",
                 "CheckOutDate" => "Ngày trả phòng",
+                "TierName" => "Tên hạng",
+                "MinPoints" => "Điểm tối thiểu",
+                "DiscountPercent" => "Phần trăm giảm giá",
                 _ => propertyName
             };
         }
