@@ -12,6 +12,7 @@ export const useRegister = () => {
     fullName: "",
     email: "",
     phoneNumber: "",
+    dateOfBirth: "",
     password: "",
     confirmPassword: "",
     agreeTerms: false,
@@ -60,6 +61,10 @@ export const useRegister = () => {
       newErrors.phoneNumber = "Vui lòng nhập số điện thoại.";
     }
 
+    if (!formData.dateOfBirth) {
+      newErrors.dateOfBirth = "Vui lòng chọn ngày sinh.";
+    }
+
     if (!formData.password) {
       newErrors.password = "Vui lòng nhập mật khẩu.";
     }
@@ -105,6 +110,7 @@ export const useRegister = () => {
         fullName: formData.fullName.trim(),
         email: formData.email.trim(),
         phoneNumber: formData.phoneNumber.trim(),
+        dateOfBirth: formData.dateOfBirth,
         password: formData.password,
         agreeTerms: formData.agreeTerms,
       });

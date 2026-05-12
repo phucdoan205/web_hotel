@@ -65,21 +65,39 @@ const RegisterForm = () => {
             ) : null}
           </div>
 
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1">
-              Số điện thoại
-            </label>
-            <input
-              name="phoneNumber"
-              value={formData.phoneNumber}
-              onChange={handleChange}
-              type="text"
-              placeholder="Nhập số điện thoại"
-              className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-            />
-            {errors.phoneNumber ? (
-              <p className="mt-2 text-sm text-red-600">{errors.phoneNumber}</p>
-            ) : null}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-1">
+                Số điện thoại
+              </label>
+              <input
+                name="phoneNumber"
+                value={formData.phoneNumber}
+                onChange={handleChange}
+                type="text"
+                placeholder="Nhập số điện thoại"
+                className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+              />
+              {errors.phoneNumber ? (
+                <p className="mt-2 text-sm text-red-600">{errors.phoneNumber}</p>
+              ) : null}
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-1">
+                Ngày sinh
+              </label>
+              <input
+                name="dateOfBirth"
+                value={formData.dateOfBirth}
+                onChange={handleChange}
+                type="date"
+                className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all text-slate-700"
+              />
+              {errors.dateOfBirth ? (
+                <p className="mt-2 text-sm text-red-600">{errors.dateOfBirth}</p>
+              ) : null}
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

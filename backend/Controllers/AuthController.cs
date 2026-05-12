@@ -183,6 +183,7 @@ namespace backend.Controllers
                 Phone = string.IsNullOrWhiteSpace(registerDto.PhoneNumber)
                     ? null
                     : registerDto.PhoneNumber.Trim(),
+                DateOfBirth = registerDto.DateOfBirth,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(registerDto.Password),
                 Status = true
             };
