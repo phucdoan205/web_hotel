@@ -56,10 +56,15 @@ namespace backend.Controllers
             var userId = ResolveCurrentUserId();
             if (!userId.HasValue) return Unauthorized();
 
-            // Simple validation (mock for real card validation)
-            if (string.IsNullOrWhiteSpace(method.Last4Digits) || method.Last4Digits.Length != 4)
+            // Validation
+            if (string.IsNullOrWhiteSpace(method.Last4Digits))
             {
-                return BadRequest(new { message = "Số thẻ không hợp lệ." });
+                return BadRequest(new { message = "Số tài khoản/thẻ không được để trống." });
+            }
+
+            if (method.MethodType == "Card" && method.Last4Digits.Length != 4)
+            {
+                return BadRequest(new { message = "Số thẻ không hợp lệ (phải có 4 số cuối)." });
             }
 
             method.UserId = userId.Value;
@@ -84,6 +89,53 @@ namespace backend.Controllers
             await _context.SaveChangesAsync();
 
             return Ok(method);
+        }
+
+        [HttpPut("{id}")]
+        [Permission]
+        public async Task<ActionResult<UserPaymentMethod>> UpdateMethod(int id, [FromBody] UserPaymentMethod method)
+        {
+            var userId = ResolveCurrentUserId();
+            if (!userId.HasValue) return Unauthorized();
+
+            var existing = await _context.UserPaymentMethods
+                .FirstOrDefaultAsync(m => m.Id == id && m.UserId == userId.Value);
+
+            if (existing == null) return NotFound();
+
+            // Validation
+            if (string.IsNullOrWhiteSpace(method.Last4Digits))
+            {
+                return BadRequest(new { message = "Số tài khoản/thẻ không được để trống." });
+            }
+
+            if (method.MethodType == "Card" && method.Last4Digits.Length != 4)
+            {
+                return BadRequest(new { message = "Số thẻ không hợp lệ (phải có 4 số cuối)." });
+            }
+
+            existing.Provider = method.Provider;
+            existing.Last4Digits = method.Last4Digits;
+            existing.ExpiryDate = method.ExpiryDate;
+            existing.CardHolderName = method.CardHolderName;
+            existing.MethodType = method.MethodType;
+
+            if (method.IsDefault && !existing.IsDefault)
+            {
+                var otherDefaults = await _context.UserPaymentMethods
+                    .Where(m => m.UserId == userId.Value && m.IsDefault && m.Id != id)
+                    .ToListAsync();
+                foreach (var m in otherDefaults) m.IsDefault = false;
+                existing.IsDefault = true;
+            }
+            else if (!method.IsDefault && existing.IsDefault)
+            {
+                // Cannot unset default if it's the only one, but here we just follow logic
+                existing.IsDefault = false;
+            }
+
+            await _context.SaveChangesAsync();
+            return Ok(existing);
         }
 
         [HttpDelete("{id}")]

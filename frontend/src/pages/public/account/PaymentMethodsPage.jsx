@@ -4,10 +4,11 @@ import {
   ArrowLeft,
   Plus,
   Trash2,
-  CreditCard,
-  MoreVertical,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Building2,
+  Landmark,
+  CreditCard as CardIcon
 } from "lucide-react";
 import paymentMethodsApi from "../../../api/user/paymentMethodsApi";
 import { toast } from "react-hot-toast";
@@ -18,14 +19,75 @@ const PaymentMethodsPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
 
   const [formData, setFormData] = useState({
+    methodType: "Card",
     provider: "Visa",
+    cardNumber: "",
     last4Digits: "",
     expiryDate: "",
     cardHolderName: "",
     isDefault: false
   });
+
+  const getProviderLogo = (provider, type) => {
+    const logos = {
+      Visa: "https://raw.githubusercontent.com/aaronfagan/svg-credit-card-payment-icons/master/flat/visa.svg",
+      MasterCard: "https://raw.githubusercontent.com/aaronfagan/svg-credit-card-payment-icons/master/flat/mastercard.svg",
+      JCB: "https://raw.githubusercontent.com/aaronfagan/svg-credit-card-payment-icons/master/flat/jcb.svg",
+      "American Express": "https://raw.githubusercontent.com/aaronfagan/svg-credit-card-payment-icons/master/flat/amex.svg"
+    };
+
+    if (type === "Card" && logos[provider]) {
+      return (
+        <div className={`relative w-14 h-9 rounded-lg flex items-center justify-center overflow-hidden shadow-sm border transition-all ${
+          provider === "Visa" ? "bg-[#1a1f71]" :
+          provider === "MasterCard" ? "bg-[#212121]" :
+          provider === "American Express" ? "bg-[#016fd0]" :
+          "bg-slate-800"
+        }`}>
+          <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none" />
+          <img 
+            src={logos[provider]} 
+            alt={provider} 
+            className="h-6 w-10 object-contain brightness-110 contrast-125"
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.src = "https://cdn-icons-png.flaticon.com/512/179/179457.png";
+            }}
+          />
+        </div>
+      );
+    }
+    
+    if (type === "Bank") {
+      return (
+        <div className="w-14 h-9 rounded-lg bg-emerald-600 flex items-center justify-center shadow-sm border border-emerald-500/50 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent" />
+          <Building2 className="size-5 text-white" />
+        </div>
+      );
+    }
+
+    return (
+      <div className="w-14 h-9 rounded-lg bg-slate-200 flex items-center justify-center border border-slate-300">
+        <CardIcon className="size-5 text-slate-500" />
+      </div>
+    );
+  };
+
+  const getProviderColor = (provider, type) => {
+    if (type === "Bank") return "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400";
+    
+    const colors = {
+      Visa: "bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400",
+      MasterCard: "bg-orange-50 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400",
+      JCB: "bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400",
+      "American Express": "bg-sky-50 text-sky-600 dark:bg-sky-900/30 dark:text-sky-400"
+    };
+    return colors[provider] || "bg-slate-50 text-slate-600 dark:bg-slate-800 dark:text-slate-400";
+  };
 
   const isDark = document.documentElement.classList.contains('dark-theme');
 
@@ -45,24 +107,40 @@ const PaymentMethodsPage = () => {
     loadMethods();
   }, []);
 
+  const resetForm = () => {
+    setFormData({
+      methodType: "Card",
+      provider: "Visa",
+      cardNumber: "",
+      last4Digits: "",
+      expiryDate: "",
+      cardHolderName: "",
+      isDefault: false
+    });
+  };
+
   const handleCreate = async (e) => {
     e.preventDefault();
-    if (formData.last4Digits.length !== 4) {
-      toast.error("Vui lòng nhập 4 số cuối của thẻ.");
+    if (formData.methodType === "Card" && formData.cardNumber.length < 12) {
+      toast.error("Vui lòng nhập đầy đủ số thẻ.");
       return;
     }
+    
+    const submissionData = {
+      ...formData,
+      last4Digits: formData.methodType === "Card" 
+        ? formData.cardNumber.slice(-4) 
+        : formData.last4Digits
+    };
+
+    console.log("Submitting payment method:", submissionData);
+
     setIsSaving(true);
     try {
-      await paymentMethodsApi.createMethod(formData);
+      await paymentMethodsApi.createMethod(submissionData);
       toast.success("Đã thêm phương thức thanh toán.");
       setIsAdding(false);
-      setFormData({
-        provider: "Visa",
-        last4Digits: "",
-        expiryDate: "",
-        cardHolderName: "",
-        isDefault: false
-      });
+      resetForm();
       loadMethods();
     } catch (err) {
       toast.error(err.response?.data?.message || "Lỗi khi thêm phương thức thanh toán.");
@@ -72,13 +150,31 @@ const PaymentMethodsPage = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Bạn có chắc chắn muốn xóa phương thức thanh toán này?")) return;
+    if (deletingId !== id) {
+      setDeletingId(id);
+      // Auto-reset after 3 seconds
+      setTimeout(() => setDeletingId(null), 3000);
+      return;
+    }
+
     try {
       await paymentMethodsApi.deleteMethod(id);
       toast.success("Đã xóa phương thức thanh toán.");
+      setDeletingId(null);
       loadMethods();
     } catch (err) {
       toast.error("Không thể xóa phương thức thanh toán.");
+      setDeletingId(null);
+    }
+  };
+
+  const handleSetDefault = async (method) => {
+    try {
+      await paymentMethodsApi.updateMethod(method.id, { ...method, isDefault: true });
+      toast.success("Đã thay đổi phương thức mặc định.");
+      loadMethods();
+    } catch (err) {
+      toast.error("Không thể thay đổi phương thức mặc định.");
     }
   };
 
@@ -103,33 +199,53 @@ const PaymentMethodsPage = () => {
             >
               <div className="flex justify-between items-start mb-6">
                 <div className="flex items-center gap-4">
-                  <div className={`size-12 rounded-xl flex items-center justify-center ${
-                    isDark ? 'bg-slate-800 text-blue-400' : 'bg-blue-50 text-blue-600'
-                  }`}>
-                    <CreditCard className="size-6" />
+                  <div className="flex items-center justify-center transition-all">
+                    {getProviderLogo(method.provider, method.methodType)}
                   </div>
                   <div>
-                    <p className={`font-black uppercase tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                      {method.provider} •••• {method.last4Digits}
+                    <p className={`font-black uppercase tracking-tight text-sm ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                      {method.methodType === "Bank" ? method.provider : `${method.provider} •••• ${method.last4Digits}`}
                     </p>
-                    <p className="text-xs font-bold text-slate-500">Hết hạn: {method.expiryDate || "--/--"}</p>
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                      {method.methodType === "Bank" ? `STK: ${method.last4Digits}` : `Hết hạn: ${method.expiryDate || "--/--"}`}
+                    </p>
                   </div>
                 </div>
-                <button 
-                  onClick={() => handleDelete(method.id)}
-                  className="p-2 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all opacity-0 group-hover:opacity-100"
-                >
-                  <Trash2 className="size-5" />
-                </button>
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => handleDelete(method.id)}
+                    className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase transition-all flex items-center gap-1.5 ${
+                      deletingId === method.id 
+                        ? 'bg-red-600 text-white animate-pulse' 
+                        : 'bg-red-50 text-red-500 hover:bg-red-500 hover:text-white dark:bg-red-900/20 dark:text-red-400'
+                    }`}
+                  >
+                    {deletingId === method.id ? (
+                      <>Xác nhận xóa</>
+                    ) : (
+                      <>
+                        <Trash2 className="size-3.5" />
+                        Xóa
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
 
               <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-100/10">
                 <p className={`text-sm font-bold ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{method.cardHolderName || "CHỦ THẺ"}</p>
-                {method.isDefault && (
-                  <div className="flex items-center gap-1.5 text-xs font-black text-green-500 uppercase">
+                {method.isDefault ? (
+                  <div className="flex items-center gap-1.5 text-xs font-black text-green-500 uppercase bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded-lg">
                     <CheckCircle2 className="size-3.5" />
                     Mặc định
                   </div>
+                ) : (
+                  <button
+                    onClick={() => handleSetDefault(method)}
+                    className="text-[10px] font-black uppercase text-blue-600 hover:text-blue-700 transition-colors"
+                  >
+                    Đặt làm mặc định
+                  </button>
                 )}
               </div>
             </div>
@@ -138,7 +254,10 @@ const PaymentMethodsPage = () => {
           {/* Add New Button */}
           {!isAdding && (
             <button 
-              onClick={() => setIsAdding(true)}
+              onClick={() => {
+                resetForm();
+                setIsAdding(true);
+              }}
               className={`flex flex-col items-center justify-center border-2 border-dashed p-8 rounded-2xl transition-all group ${
                 isDark 
                   ? 'border-slate-800 hover:border-blue-500/50 hover:bg-slate-800/50' 
@@ -150,7 +269,7 @@ const PaymentMethodsPage = () => {
               }`}>
                 <Plus className="size-6" />
               </div>
-              <p className={`font-bold text-sm ${isDark ? 'text-slate-400 group-hover:text-slate-200' : 'text-slate-500 group-hover:text-slate-900'}`}>Thêm thẻ mới</p>
+              <p className={`font-bold text-sm ${isDark ? 'text-slate-400 group-hover:text-slate-200' : 'text-slate-500 group-hover:text-slate-900'}`}>Thêm mới</p>
             </button>
           )}
         </div>
@@ -167,62 +286,141 @@ const PaymentMethodsPage = () => {
               <div className="size-10 rounded-xl bg-blue-500 flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
                 <Plus className="size-5" />
               </div>
-              <h3 className={`text-xl font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>Thông tin thẻ mới</h3>
+              <h3 className={`text-xl font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                {formData.methodType === "Card" ? "Thông tin thẻ mới" : "Thông tin tài khoản ngân hàng"}
+              </h3>
+            </div>
+
+            <div className="flex p-1.5 rounded-2xl bg-[#1F649C] w-full max-w-md mb-10 shadow-lg shadow-blue-900/20">
+              <button
+                type="button"
+                onClick={() => setFormData({...formData, methodType: "Card", provider: "Visa"})}
+                className={`flex-1 flex items-center justify-center gap-3 py-3 rounded-xl text-sm font-black transition-all duration-300 ${
+                  formData.methodType === "Card" 
+                    ? 'bg-white text-[#1F649C] shadow-sm scale-[1.02]' 
+                    : 'text-white/70 hover:text-white hover:bg-white/10'
+                }`}
+              >
+                <CardIcon size={18} className={formData.methodType === "Card" ? "text-[#1F649C]" : "text-white/70"} />
+                <span>Thẻ tín dụng/Ghi nợ</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setFormData({...formData, methodType: "Bank", provider: "MB Bank"})}
+                className={`flex-1 flex items-center justify-center gap-3 py-3 rounded-xl text-sm font-black transition-all duration-300 ${
+                  formData.methodType === "Bank" 
+                    ? 'bg-white text-[#1F649C] shadow-sm scale-[1.02]' 
+                    : 'text-white/70 hover:text-white hover:bg-white/10'
+                }`}
+              >
+                <Building2 size={18} className={formData.methodType === "Bank" ? "text-[#1F649C]" : "text-white/70"} />
+                <span>Tài khoản ngân hàng</span>
+              </button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className={`block text-xs font-black uppercase tracking-widest mb-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Loại thẻ</label>
-                <select 
-                  value={formData.provider}
-                  onChange={(e) => setFormData({...formData, provider: e.target.value})}
-                  className={`w-full p-3 rounded-xl border font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all ${
-                    isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-                  }`}
-                >
-                  <option value="Visa">Visa</option>
-                  <option value="MasterCard">MasterCard</option>
-                  <option value="JCB">JCB</option>
-                  <option value="American Express">Amex</option>
-                </select>
-              </div>
-              <div>
-                <label className={`block text-xs font-black uppercase tracking-widest mb-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>4 số cuối</label>
-                <input 
-                  type="text" 
-                  maxLength={4}
-                  placeholder="1234"
-                  value={formData.last4Digits}
-                  onChange={(e) => setFormData({...formData, last4Digits: e.target.value})}
-                  className={`w-full p-3 rounded-xl border font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all ${
-                    isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-                  }`} 
-                />
-              </div>
-              <div>
-                <label className={`block text-xs font-black uppercase tracking-widest mb-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Ngày hết hạn (MM/YY)</label>
-                <input 
-                  type="text" 
-                  placeholder="12/28"
-                  value={formData.expiryDate}
-                  onChange={(e) => setFormData({...formData, expiryDate: e.target.value})}
-                  className={`w-full p-3 rounded-xl border font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all ${
-                    isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-                  }`} 
-                />
-              </div>
-              <div>
-                <label className={`block text-xs font-black uppercase tracking-widest mb-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Tên trên thẻ</label>
-                <input 
-                  type="text" 
-                  placeholder="NGUYEN VAN A"
-                  value={formData.cardHolderName}
-                  onChange={(e) => setFormData({...formData, cardHolderName: e.target.value.toUpperCase()})}
-                  className={`w-full p-3 rounded-xl border font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all ${
-                    isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-                  }`} 
-                />
-              </div>
+              {formData.methodType === "Card" ? (
+                <>
+                  <div>
+                    <label className={`block text-xs font-black uppercase tracking-widest mb-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Loại thẻ</label>
+                    <select 
+                      value={formData.provider}
+                      onChange={(e) => setFormData({...formData, provider: e.target.value})}
+                      className={`w-full p-3 rounded-xl border font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all ${
+                        isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+                      }`}
+                    >
+                      <option value="Visa">Visa</option>
+                      <option value="MasterCard">MasterCard</option>
+                      <option value="JCB">JCB</option>
+                      <option value="American Express">Amex</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className={`block text-xs font-black uppercase tracking-widest mb-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Số thẻ</label>
+                    <input 
+                      type="text" 
+                      placeholder="XXXX XXXX XXXX XXXX"
+                      value={formData.cardNumber}
+                      onChange={(e) => setFormData({...formData, cardNumber: e.target.value.replace(/\s/g, '')})}
+                      className={`w-full p-3 rounded-xl border font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all ${
+                        isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+                      }`} 
+                    />
+                  </div>
+                  <div>
+                    <label className={`block text-xs font-black uppercase tracking-widest mb-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Ngày hết hạn (MM/YY)</label>
+                    <input 
+                      type="text" 
+                      placeholder="12/28"
+                      value={formData.expiryDate}
+                      onChange={(e) => setFormData({...formData, expiryDate: e.target.value})}
+                      className={`w-full p-3 rounded-xl border font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all ${
+                        isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+                      }`} 
+                    />
+                  </div>
+                  <div>
+                    <label className={`block text-xs font-black uppercase tracking-widest mb-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Tên trên thẻ</label>
+                    <input 
+                      type="text" 
+                      placeholder="NGUYEN VAN A"
+                      value={formData.cardHolderName}
+                      onChange={(e) => setFormData({...formData, cardHolderName: e.target.value.toUpperCase()})}
+                      className={`w-full p-3 rounded-xl border font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all ${
+                        isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+                      }`} 
+                    />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <label className={`block text-xs font-black uppercase tracking-widest mb-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Ngân hàng</label>
+                    <select 
+                      value={formData.provider}
+                      onChange={(e) => setFormData({...formData, provider: e.target.value})}
+                      className={`w-full p-3 rounded-xl border font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all ${
+                        isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+                      }`}
+                    >
+                      <option value="MB Bank">MB Bank</option>
+                      <option value="Vietcombank">Vietcombank</option>
+                      <option value="Techcombank">Techcombank</option>
+                      <option value="Agribank">Agribank</option>
+                      <option value="BIDV">BIDV</option>
+                      <option value="Vietinbank">Vietinbank</option>
+                      <option value="ACB">ACB</option>
+                      <option value="Sacombank">Sacombank</option>
+                      <option value="TPBank">TPBank</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className={`block text-xs font-black uppercase tracking-widest mb-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Số tài khoản</label>
+                    <input 
+                      type="text" 
+                      placeholder="Số tài khoản ngân hàng"
+                      value={formData.last4Digits}
+                      onChange={(e) => setFormData({...formData, last4Digits: e.target.value})}
+                      className={`w-full p-3 rounded-xl border font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all ${
+                        isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+                      }`} 
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className={`block text-xs font-black uppercase tracking-widest mb-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Tên chủ tài khoản</label>
+                    <input 
+                      type="text" 
+                      placeholder="NGUYEN VAN A"
+                      value={formData.cardHolderName}
+                      onChange={(e) => setFormData({...formData, cardHolderName: e.target.value.toUpperCase()})}
+                      className={`w-full p-3 rounded-xl border font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all ${
+                        isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+                      }`} 
+                    />
+                  </div>
+                </>
+              )}
             </div>
 
             <div className="flex items-center gap-3 mt-6">
@@ -239,7 +437,10 @@ const PaymentMethodsPage = () => {
             <div className="flex justify-end gap-4 mt-8">
               <button 
                 type="button"
-                onClick={() => setIsAdding(false)}
+                onClick={() => {
+                  setIsAdding(false);
+                  resetForm();
+                }}
                 className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all ${
                   isDark ? 'text-slate-400 hover:bg-slate-800' : 'text-slate-500 hover:bg-slate-200'
                 }`}

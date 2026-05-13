@@ -11,6 +11,11 @@ const paymentMethodsApi = {
     return response.data;
   },
 
+  updateMethod: async (id, data) => {
+    const response = await apiClient.put(`/user-payment-methods/${id}`, data);
+    return response.data;
+  },
+
   deleteMethod: async (id) => {
     const response = await apiClient.delete(`/user-payment-methods/${id}`);
     return response.data;

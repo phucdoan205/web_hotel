@@ -11,6 +11,8 @@ import {
   Star,
   WalletCards,
   XCircle,
+  Building2,
+  Landmark,
 } from "lucide-react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { userBookingsApi } from "../../api/user/bookingsApi";
@@ -346,6 +348,26 @@ const BookingPaymentPage = () => {
                 </div>
               </div>
             </button>
+
+            <button
+              type="button"
+              onClick={() => setPaymentMethod("bank")}
+              className={`w-full rounded-3xl border px-4 py-4 text-left transition ${
+                paymentMethod === "bank"
+                  ? "border-emerald-300 bg-emerald-50 shadow-sm"
+                  : "border-slate-200 bg-white hover:border-emerald-200"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <div className="rounded-2xl bg-emerald-100 p-3 text-emerald-600">
+                  <Landmark size={20} />
+                </div>
+                <div>
+                  <p className="font-black text-slate-900">Tài khoản ngân hàng</p>
+                  <p className="text-sm text-slate-500">Chuyển khoản trực tiếp qua ngân hàng</p>
+                </div>
+              </div>
+            </button>
           </div>
         </div>
 
@@ -468,6 +490,95 @@ const BookingPaymentPage = () => {
                 </>
               ) : null}
             </>
+          ) : paymentMethod === "bank" ? (
+            <div className="mx-auto max-w-xl">
+              <div className="flex items-center justify-between gap-4 mb-8">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.25em] text-emerald-500">Bank Transfer</p>
+                  <p className="mt-2 text-2xl font-black text-slate-900">Thông tin chuyển khoản</p>
+                </div>
+                <div className="rounded-2xl bg-emerald-100 p-3 text-emerald-600">
+                  <Building2 size={24} />
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+                  <div className="space-y-6">
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Ngân hàng</p>
+                      <p className="mt-1 text-lg font-black text-slate-900">MB BANK - NGÂN HÀNG QUÂN ĐỘI</p>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Số tài khoản</p>
+                        <div className="mt-1 flex items-center gap-2">
+                          <p className="text-lg font-black text-slate-900">1234567890</p>
+                          <button 
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText("1234567890");
+                              setCopied(true);
+                              setTimeout(() => setCopied(false), 2000);
+                            }}
+                            className="p-1.5 rounded-lg bg-slate-100 text-slate-500 hover:bg-slate-200"
+                          >
+                            <Copy size={14} />
+                          </button>
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Chủ tài khoản</p>
+                        <p className="mt-1 text-lg font-black text-slate-900 uppercase">HPT HOTEL GROUP</p>
+                      </div>
+                    </div>
+
+                    <div className="pt-4 border-t border-slate-100">
+                      <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Nội dung chuyển khoản</p>
+                      <div className="mt-2 flex items-center justify-between gap-4 p-4 rounded-2xl bg-emerald-50 border border-emerald-100">
+                        <p className="font-bold text-emerald-900 break-all">{transferContent}</p>
+                        <button 
+                          type="button"
+                          onClick={handleCopy}
+                          className="shrink-0 p-2 rounded-xl bg-white text-emerald-600 shadow-sm hover:bg-emerald-50"
+                        >
+                          <Copy size={16} />
+                        </button>
+                      </div>
+                      {copied && <p className="mt-2 text-center text-[10px] font-black text-emerald-500 uppercase">Đã sao chép!</p>}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-[2rem] bg-slate-900 p-6 text-white">
+                  <p className="text-xs font-bold text-slate-400 mb-4 uppercase tracking-widest">Hướng dẫn</p>
+                  <ul className="space-y-3 text-sm font-medium">
+                    <li className="flex gap-3">
+                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-[10px] font-black">1</span>
+                      <span>Mở ứng dụng ngân hàng của bạn và chọn chuyển khoản.</span>
+                    </li>
+                    <li className="flex gap-3">
+                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-[10px] font-black">2</span>
+                      <span>Nhập số tài khoản và số tiền chính xác như trên.</span>
+                    </li>
+                    <li className="flex gap-3">
+                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-[10px] font-black">3</span>
+                      <span>Bấm nút xác nhận bên dưới sau khi đã chuyển thành công.</span>
+                    </li>
+                  </ul>
+                  
+                  <button
+                    type="button"
+                    onClick={() => confirmPaymentMutation.mutate()}
+                    disabled={isAlreadyPaid || confirmPaymentMutation.isPending}
+                    className="mt-8 w-full rounded-2xl bg-emerald-500 py-4 text-sm font-black text-white transition hover:bg-emerald-600 disabled:opacity-50"
+                  >
+                    {isAlreadyPaid ? "ĐÃ THANH TOÁN" : confirmPaymentMutation.isPending ? "ĐANG XÁC NHẬN..." : "XÁC NHẬN ĐÃ CHUYỂN KHOẢN"}
+                  </button>
+                </div>
+              </div>
+            </div>
           ) : (
             <div className="mx-auto max-w-xl rounded-[34px] border border-sky-100 bg-white p-5 shadow-xl">
               <div className="rounded-[28px] bg-gradient-to-r from-white to-sky-50 px-4 py-4">
