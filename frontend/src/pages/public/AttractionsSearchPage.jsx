@@ -220,11 +220,11 @@ const AttractionsSearchPage = () => {
                         </div>
                       </div>
                       
-                      <div className="flex flex-col p-4">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-md">
-                            {item.distanceKm ? `Cách ${item.distanceKm} km` : "Gần bạn"}
-                          </span>
+                      <div className="flex flex-col p-4 flex-1">
+                        <p className="text-sm font-medium text-slate-500 line-clamp-2 mb-4 flex-1">
+                          {item.description || "Khám phá địa điểm thú vị xung quanh khách sạn."}
+                        </p>
+                        <div className="flex items-center justify-end border-t border-slate-50 pt-3">
                           <span className="flex items-center gap-1 text-[13px] font-bold text-rose-600 group-hover:underline">
                             Xem thêm <ArrowRight className="size-3.5" />
                           </span>

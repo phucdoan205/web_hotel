@@ -111,7 +111,23 @@ namespace backend.Mappers
                     src.RoomType != null ? src.RoomType.Reviews.Average(r => r.Rating) ?? 0 : 0))
 
                 .ForMember(dest => dest.ReviewCount, opt => opt.MapFrom(src =>
-                    src.RoomType != null ? src.RoomType.Reviews.Count : 0));
+                    src.RoomType != null ? src.RoomType.Reviews.Count : 0))
+                .ForMember(dest => dest.AmenitiesRatingAvg, opt => opt.MapFrom(src =>
+                    src.RoomType != null && src.RoomType.Reviews.Any(r => r.AmenitiesRating.HasValue)
+                        ? src.RoomType.Reviews.Where(r => r.AmenitiesRating.HasValue).Average(r => r.AmenitiesRating.Value)
+                        : 0))
+                .ForMember(dest => dest.StaffRatingAvg, opt => opt.MapFrom(src =>
+                    src.RoomType != null && src.RoomType.Reviews.Any(r => r.StaffRating.HasValue)
+                        ? src.RoomType.Reviews.Where(r => r.StaffRating.HasValue).Average(r => r.StaffRating.Value)
+                        : 0))
+                .ForMember(dest => dest.CleanlinessRatingAvg, opt => opt.MapFrom(src =>
+                    src.RoomType != null && src.RoomType.Reviews.Any(r => r.CleanlinessRating.HasValue)
+                        ? src.RoomType.Reviews.Where(r => r.CleanlinessRating.HasValue).Average(r => r.CleanlinessRating.Value)
+                        : 0))
+                .ForMember(dest => dest.LocationRatingAvg, opt => opt.MapFrom(src =>
+                    src.RoomType != null && src.RoomType.Reviews.Any(r => r.LocationRating.HasValue)
+                        ? src.RoomType.Reviews.Where(r => r.LocationRating.HasValue).Average(r => r.LocationRating.Value)
+                        : 0));
 
             CreateMap<CreateRoomDTO, Room>()
                 .ForMember(dest => dest.RoomInventory, opt => opt.Ignore())

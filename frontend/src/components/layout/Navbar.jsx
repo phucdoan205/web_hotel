@@ -43,7 +43,7 @@ const Navbar = () => {
           <NavItem label="Khách sạn" to="/" icon={Hotel} />
           <NavItem label="Tìm phòng" to="/booking" icon={Calendar} />
           <NavItem label="Hoạt động" to="/services" icon={Utensils} />
-          <NavItem label="Bài viết" to="/articles" icon={FileText} />
+          <NavItem label="Khám phá" to="/articles" icon={FileText} />
           <NavItem label="Ưu đãi" to="/offers" icon={BadgePercent} />
           <NavItem label="Trợ giúp" to="/support/help-center" icon={HelpCircle} />
         </div>

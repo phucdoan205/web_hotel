@@ -30,6 +30,10 @@ namespace backend.DTOs.Room
         public List<RoomInventoryDTO> Inventory { get; set; } = new();
         public double Rating { get; set; }
         public int ReviewCount { get; set; }
+        public double AmenitiesRatingAvg { get; set; }
+        public double StaffRatingAvg { get; set; }
+        public double CleanlinessRatingAvg { get; set; }
+        public double LocationRatingAvg { get; set; }
     }
 }
 

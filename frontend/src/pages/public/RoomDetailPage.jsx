@@ -167,6 +167,12 @@ const buildRoomTypeFromRooms = (rooms, fallbackRoomType, id) => {
     amenities: firstRoom?.amenities ?? fallbackRoomType?.amenities ?? [],
     imageUrls: normalizeImageUrls(allImages.length > 0 ? allImages : (fallbackRoomType?.imageUrls ?? [])),
     description: firstRoom?.description ?? fallbackRoomType?.description ?? "Chưa có mô tả cho loại phòng này.",
+    rating: firstRoom?.rating ?? fallbackRoomType?.rating ?? 0,
+    reviewCount: firstRoom?.reviewCount ?? fallbackRoomType?.reviewCount ?? 0,
+    amenitiesRatingAvg: firstRoom?.amenitiesRatingAvg ?? fallbackRoomType?.amenitiesRatingAvg ?? 0,
+    staffRatingAvg: firstRoom?.staffRatingAvg ?? fallbackRoomType?.staffRatingAvg ?? 0,
+    cleanlinessRatingAvg: firstRoom?.cleanlinessRatingAvg ?? fallbackRoomType?.cleanlinessRatingAvg ?? 0,
+    locationRatingAvg: firstRoom?.locationRatingAvg ?? fallbackRoomType?.locationRatingAvg ?? 0,
   };
 };
 
@@ -260,10 +266,10 @@ const RoomDetailPage = () => {
   );
 
   const reviews = reviewsQuery.data?.items || [];
-  const totalReviews = reviewsQuery.data?.totalItems || 0;
+  const totalReviews = reviewsQuery.data?.totalItems || roomType.reviewCount || 0;
 
   const avgRating = useMemo(() => {
-    if (roomType.rating > 0) return roomType.rating;
+    if (roomType.rating > 0) return Number(roomType.rating);
     if (reviews.length > 0) {
       return reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length;
     }
@@ -843,9 +849,11 @@ const RoomDetailPage = () => {
                     { label: "Sạch sẽ", key: "cleanlinessRating" },
                     { label: "Vị trí", key: "locationRating" },
                   ].map((cat) => {
-                    const catAvg = reviews.length > 0 
-                      ? reviews.reduce((acc, r) => acc + (r[cat.key] || 0), 0) / reviews.filter(r => r[cat.key]).length || 0
-                      : 0;
+                    const catAvg = roomType[`${cat.key}Avg`] > 0 
+                      ? roomType[`${cat.key}Avg`]
+                      : (reviews.length > 0 
+                          ? reviews.reduce((acc, r) => acc + (r[cat.key] || 0), 0) / reviews.filter(r => r[cat.key]).length || 0
+                          : 0);
                     
                     return (
                       <div key={cat.key} className="space-y-2">
@@ -1029,8 +1037,9 @@ const RoomDetailPage = () => {
             <div className="flex-1 overflow-y-auto p-8 space-y-10 no-scrollbar">
               {/* Summary in drawer */}
               <div className="flex items-center gap-6 pb-8 border-b border-slate-100">
-                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-600 text-2xl font-black text-white shadow-lg shadow-blue-100">
+                <div className="flex h-16 w-16 items-center justify-center gap-1 rounded-2xl bg-amber-400 text-2xl font-black text-white shadow-lg shadow-amber-100">
                   {avgRating.toFixed(1)}
+                  <Star size={18} fill="currentColor" />
                 </div>
                 <div>
                   <h3 className="text-lg font-black text-slate-900">
@@ -1038,6 +1047,37 @@ const RoomDetailPage = () => {
                   </h3>
                   <p className="text-sm font-bold text-slate-500 mt-1">{totalReviews.toLocaleString()} đánh giá đã xác thực</p>
                 </div>
+              </div>
+
+              {/* Added Sub-ratings summary in drawer */}
+              <div className="grid grid-cols-2 gap-x-8 gap-y-4 rounded-2xl border border-slate-100 bg-slate-50/50 p-6">
+                {[
+                  { label: "Tiện nghi", key: "amenitiesRating" },
+                  { label: "Nhân viên", key: "staffRating" },
+                  { label: "Sạch sẽ", key: "cleanlinessRating" },
+                  { label: "Vị trí", key: "locationRating" },
+                ].map((cat) => {
+                  const catAvg = roomType[`${cat.key}Avg`] > 0 
+                    ? roomType[`${cat.key}Avg`]
+                    : (reviews.length > 0 
+                        ? reviews.reduce((acc, r) => acc + (r[cat.key] || 0), 0) / reviews.filter(r => r[cat.key]).length || 0
+                        : 0);
+                  
+                  return (
+                    <div key={cat.key} className="space-y-1.5">
+                      <div className="flex justify-between text-[11px] font-black uppercase tracking-wider text-slate-500">
+                        <span>{cat.label}</span>
+                        <span className="text-amber-500">{catAvg > 0 ? catAvg.toFixed(1) : "0.0"}</span>
+                      </div>
+                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
+                        <div 
+                          className="h-full bg-amber-400 transition-all duration-1000"
+                          style={{ width: `${(catAvg / 5) * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
 
               {/* Sorting Dropdown */}
@@ -1048,7 +1088,7 @@ const RoomDetailPage = () => {
                   <select 
                     value={reviewSort}
                     onChange={(e) => { setReviewSort(e.target.value); setReviewPage(1); }}
-                    className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-[13px] font-bold text-slate-700 outline-none focus:border-blue-500"
+                    className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-[13px] font-bold text-slate-700 outline-none focus:border-amber-400"
                   >
                     <option value="newest">Mới nhất</option>
                     <option value="oldest">Cũ nhất</option>
@@ -1062,7 +1102,7 @@ const RoomDetailPage = () => {
               <div className="space-y-8">
                 {drawerReviewsQuery.isLoading ? (
                   <div className="py-20 text-center">
-                    <RefreshCw className="mx-auto size-8 animate-spin text-blue-600" />
+                    <RefreshCw className="mx-auto size-8 animate-spin text-amber-400" />
                     <p className="mt-4 text-sm font-bold text-slate-500">Đang tải đánh giá...</p>
                   </div>
                 ) : drawerReviewsQuery.data?.items?.length > 0 ? (
@@ -1087,8 +1127,9 @@ const RoomDetailPage = () => {
                             </div>
                           </div>
                         </div>
-                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-sm font-black text-white shadow-md">
+                        <div className="flex h-10 w-10 items-center justify-center gap-0.5 rounded-xl bg-amber-400 text-sm font-black text-white shadow-md">
                           {review.rating.toFixed(0)}
+                          <Star size={10} fill="currentColor" />
                         </div>
                       </div>
 
@@ -1099,6 +1140,26 @@ const RoomDetailPage = () => {
                         <p className="text-[15px] leading-relaxed text-slate-700">
                           {review.comment || "Không có nhận xét chi tiết."}
                         </p>
+
+                        {/* Individual Review Sub-ratings */}
+                        <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-4">
+                          {[
+                            { label: "Tiện nghi", value: review.amenitiesRating },
+                            { label: "Nhân viên", value: review.staffRating },
+                            { label: "Sạch sẽ", value: review.cleanlinessRating },
+                            { label: "Vị trí", value: review.locationRating },
+                          ].map((sub, idx) => sub.value > 0 && (
+                            <div key={idx} className="flex flex-col gap-1">
+                              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">{sub.label}</span>
+                              <div className="flex items-center gap-1">
+                                <div className="h-1 flex-1 bg-slate-100 rounded-full overflow-hidden">
+                                  <div className="h-full bg-amber-400" style={{ width: `${(sub.value / 5) * 100}%` }} />
+                                </div>
+                                <span className="text-[11px] font-black text-amber-500">{sub.value.toFixed(1)}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   ))
@@ -1125,7 +1186,7 @@ const RoomDetailPage = () => {
                         key={p}
                         onClick={() => setReviewPage(p)}
                         className={`flex h-10 w-10 items-center justify-center rounded-xl text-sm font-black transition ${
-                          reviewPage === p ? "bg-blue-600 text-white shadow-lg" : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
+                          reviewPage === p ? "bg-amber-400 text-white shadow-lg" : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
                         }`}
                       >
                         {p}
@@ -1206,8 +1267,9 @@ const RoomDetailPage = () => {
                 style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
               >
                 <div className="flex items-start gap-4 mb-10 pb-8 border-b border-slate-100">
-                  <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg bg-blue-600 font-black text-sm text-white shadow-lg shadow-blue-100">
+                  <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center gap-0.5 rounded-lg bg-amber-400 font-black text-sm text-white shadow-lg shadow-amber-100">
                     {avgRating > 0 ? avgRating.toFixed(1).replace('.', ',') : "0,0"}
+                    <Star size={12} fill="currentColor" />
                   </div>
                   <div>
                     <h2 className="text-xl font-black text-slate-900 leading-tight">
@@ -1266,7 +1328,7 @@ const RoomDetailPage = () => {
                     key={i}
                     onClick={() => setCurrentImageIndex(i)}
                     className={`relative h-full aspect-[4/3] flex-shrink-0 overflow-hidden rounded-md transition-all duration-300 ${
-                      i === currentImageIndex ? "ring-2 ring-blue-600 scale-105 z-10 shadow-lg" : "opacity-40 hover:opacity-100"
+                      i === currentImageIndex ? "ring-2 ring-amber-400 scale-105 z-10 shadow-lg" : "opacity-40 hover:opacity-100"
                     }`}
                   >
                     <img src={url} alt="" className="h-full w-full object-cover" />
