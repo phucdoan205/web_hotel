@@ -255,14 +255,14 @@ const RoomDetailPage = () => {
     },
   });
 
-  const availableRooms = useMemo(
-    () => (availableRoomsQuery.data?.items ?? []).filter((room) => room.status === "Available"),
+  const roomList = useMemo(
+    () => (availableRoomsQuery.data?.items ?? []),
     [availableRoomsQuery.data?.items],
   );
 
   const roomType = useMemo(
-    () => buildRoomTypeFromRooms(availableRooms, roomTypeFromState, id),
-    [availableRooms, id, roomTypeFromState],
+    () => buildRoomTypeFromRooms(roomList, roomTypeFromState, id),
+    [roomList, id, roomTypeFromState],
   );
 
   const reviews = reviewsQuery.data?.items || [];
@@ -314,18 +314,24 @@ const RoomDetailPage = () => {
   }, [currentImageIndex, isGalleryOpen]);
 
   useEffect(() => {
-    if (availableRooms.length === 0) {
+    if (roomList.length === 0) {
       setSelectedRoomId(null);
       return;
     }
 
-    setSelectedRoomId((current) =>
-      availableRooms.some((room) => room.id === current) ? current : availableRooms[0].id,
-    );
-  }, [availableRooms]);
+    setSelectedRoomId((current) => {
+      // If current is still in list and available, keep it
+      const currentInList = roomList.find((room) => room.id === current);
+      if (currentInList && currentInList.isTrulyAvailable) return current;
+
+      // Otherwise, find first available room
+      const firstAvailable = roomList.find(r => r.isTrulyAvailable);
+      return firstAvailable ? firstAvailable.id : roomList[0].id;
+    });
+  }, [roomList]);
 
   const selectedRoom =
-    availableRooms.find((room) => room.id === selectedRoomId) ?? availableRooms[0] ?? null;
+    roomList.find((room) => room.id === selectedRoomId) ?? roomList[0] ?? null;
 
   const allAmenities = useMemo(() => {
     const baseList = selectedRoom
@@ -349,7 +355,7 @@ const RoomDetailPage = () => {
     }, {});
 
     return Object.values(grouped);
-  }, [selectedRoom, availableRooms]);
+  }, [selectedRoom, roomList]);
 
   useEffect(() => {
     if (!roomType.roomTypeId) return;
@@ -660,7 +666,7 @@ const RoomDetailPage = () => {
               </div>
             )}
 
-            {availableRooms.length ? (
+            {roomList.length ? (
               <div className="space-y-6 relative">
                 {availableRoomsQuery.isFetching && (
                   <div className="absolute inset-0 z-10 bg-white/50 backdrop-blur-[1px] flex items-center justify-center rounded-xl">
@@ -681,11 +687,12 @@ const RoomDetailPage = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-300 bg-white">
-                      {availableRooms.map((room) => {
+                      {roomList.map((room) => {
                         const isSelected = room.id === selectedRoomId;
+                        const isTrulyAvailable = room.isTrulyAvailable;
 
                         return (
-                          <tr key={room.id} className={isSelected ? "bg-blue-50/50" : "hover:bg-slate-50"}>
+                          <tr key={room.id} className={`${isSelected ? "bg-blue-50/50" : "hover:bg-slate-50"} ${!isTrulyAvailable ? "opacity-75" : ""}`}>
                             <td className="px-4 py-4 border-r border-slate-300 align-top">
                               <div className="text-lg font-bold text-blue-700 hover:underline cursor-pointer">
                                 Phòng {room.roomNumber}
@@ -725,7 +732,20 @@ const RoomDetailPage = () => {
                               </div>
                             </td>
                             <td className="px-4 py-4 align-middle">
-                              {isSelected ? (
+                              {!isTrulyAvailable ? (
+                                <div className="space-y-2">
+                                  <div className="text-center text-xs font-black uppercase tracking-wider text-rose-600 bg-rose-50 py-2 rounded-lg border border-rose-100">
+                                    Phòng đã có người đặt
+                                  </div>
+                                  <button 
+                                    type="button"
+                                    disabled
+                                    className="w-full rounded border border-slate-200 bg-slate-100 py-2.5 font-bold text-slate-400 cursor-not-allowed"
+                                  >
+                                    Không thể chọn
+                                  </button>
+                                </div>
+                              ) : isSelected ? (
                                 <button 
                                   type="button"
                                   className="w-full rounded bg-emerald-600 py-2.5 font-bold text-white shadow-sm flex justify-center items-center gap-2 ring-2 ring-emerald-600 ring-offset-2 transition"

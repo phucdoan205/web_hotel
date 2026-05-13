@@ -9,6 +9,7 @@ namespace backend.DTOs.Room
         public string RoomNumber { get; set; } = string.Empty;
         public int? Floor { get; set; }
         public string? Status { get; set; }  // Available, Occupied, Maintenance, Cleaning, OutOfOrder
+        public bool IsTrulyAvailable { get; set; } = true;
 
         public int? RoomTypeId { get; set; }
         public string RoomTypeName { get; set; } = string.Empty;

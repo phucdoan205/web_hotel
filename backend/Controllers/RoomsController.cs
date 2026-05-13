@@ -293,7 +293,6 @@ namespace backend.Controllers
         [HttpGet("available")]
         public async Task<ActionResult<PagedResult<RoomDetailDTO>>> GetAvailableRooms([FromQuery] GetAvailableRoomsQuery query)
         {
-
             if (query.CheckIn.HasValue && query.CheckOut.HasValue)
             {
                 if (query.CheckIn >= query.CheckOut)
@@ -316,22 +315,12 @@ namespace backend.Controllers
                 .Include(r => r.RoomAmenities)
                     .ThenInclude(ra => ra.Amenity)
                     .ThenInclude(a => a.AmenityDetails)
+                .Include(r => r.BookingDetails)
+                    .ThenInclude(bd => bd.Booking)
                 .AsSplitQuery()
-                .Where(r => !r.IsDeleted && r.Status == RoomStatuses.Available);
+                .Where(r => !r.IsDeleted);
 
-
-            // Lọc theo ngày chỉ khi CẢ HAI tham số đều có
-            if (query.CheckIn.HasValue && query.CheckOut.HasValue)
-            {
-                // Logic kiểm tra phòng trống trong khoảng ngày
-                // (tránh overlap booking)
-                q = q.Where(r => !r.BookingDetails.Any(bd =>
-                    (string.IsNullOrWhiteSpace(bd.Status) || BlockingBookingStatuses.Contains(bd.Status)) &&
-                    bd.CheckInDate < query.CheckOut &&
-                    bd.CheckOutDate > query.CheckIn));
-            }
-
-            // Lọc theo loại phòng (nếu có)
+            // Lọc theo loại phòng (bắt buộc trong context này để lấy đúng danh sách phòng của loại đó)
             if (query.RoomTypeId.HasValue)
             {
                 q = q.Where(r => r.RoomTypeId == query.RoomTypeId.Value);
@@ -357,6 +346,46 @@ namespace backend.Controllers
                 .ToListAsync();
 
             var dtos = _mapper.Map<List<RoomDetailDTO>>(items);
+
+            // Tính toán IsTrulyAvailable cho từng phòng
+            var now = DateTime.Now;
+            var timeoutLimit = now.AddMinutes(-10);
+
+            foreach (var dto in dtos)
+            {
+                var room = items.First(r => r.Id == dto.Id);
+
+                // 1. Nếu phòng đang bảo trì/dọn dẹp/hỏng hóc -> Không khả dụng
+                if (room.Status != RoomStatuses.Available)
+                {
+                    dto.IsTrulyAvailable = false;
+                    continue;
+                }
+
+                // 2. Kiểm tra booking overlap
+                if (query.CheckIn.HasValue && query.CheckOut.HasValue)
+                {
+                    var hasBlockingBooking = room.BookingDetails.Any(bd =>
+                        // Coi là bị chiếm nếu:
+                        // - Trạng thái đã xác nhận hoặc đã check-in
+                        (bd.Status == "Confirmed" || bd.Status == "CheckedIn") &&
+                        bd.CheckInDate < query.CheckOut &&
+                        bd.CheckOutDate > query.CheckIn
+                        ||
+                        // - Hoặc đang Pending nhưng chưa quá 10 phút
+                        (bd.Status == "Pending" && bd.Booking != null && bd.Booking.CreatedAt > timeoutLimit) &&
+                        bd.CheckInDate < query.CheckOut &&
+                        bd.CheckOutDate > query.CheckIn
+                    );
+
+                    dto.IsTrulyAvailable = !hasBlockingBooking;
+                }
+                else
+                {
+                    // Nếu không có ngày chọn, coi như khả dụng nếu Status là Available
+                    dto.IsTrulyAvailable = true;
+                }
+            }
 
             var result = new PagedResponse<RoomDetailDTO>(dtos, total, query.Page, query.PageSize);
 
