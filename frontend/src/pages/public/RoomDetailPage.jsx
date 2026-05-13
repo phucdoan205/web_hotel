@@ -336,7 +336,7 @@ const RoomDetailPage = () => {
   const allAmenities = useMemo(() => {
     const baseList = selectedRoom
       ? [...(selectedRoom.roomSpecificAmenities || []), ...(selectedRoom.roomTypeAmenities || [])]
-      : (availableRooms[0]?.roomTypeAmenities || []);
+      : (roomList[0]?.roomTypeAmenities || []);
 
     const grouped = baseList.reduce((acc, current) => {
       const key = current.name;

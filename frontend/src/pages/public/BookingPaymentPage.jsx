@@ -50,6 +50,7 @@ const BookingPaymentPage = () => {
   const [locationRating, setLocationRating] = useState(5);
   const [comment, setComment] = useState("");
   const completedRef = useRef(false);
+  const autoOpenedMomoRef = useRef(false);
 
   const resultCode = searchParams.get("resultCode");
   const momoMessage = searchParams.get("message");
@@ -180,6 +181,19 @@ const BookingPaymentPage = () => {
   }, [bookingStatus, confirmPaymentMutation, isCheckoutPayment, isReturnedFromMomo, paymentSucceeded, selectedDetail]);
 
   const momoPayment = momoPaymentQuery.data;
+
+  // Tự động mở tab MoMo khi có payUrl
+  useEffect(() => {
+    if (paymentMethod !== "momo") {
+      autoOpenedMomoRef.current = false;
+      return;
+    }
+    if (momoPayment?.payUrl && !autoOpenedMomoRef.current) {
+      autoOpenedMomoRef.current = true;
+      window.open(momoPayment.payUrl, "_blank", "noopener,noreferrer");
+    }
+  }, [paymentMethod, momoPayment?.payUrl]);
+
   const momoQrImageUrl = useMemo(
     () => buildQuickChartQrUrl(momoPayment?.qrCodeUrl),
     [momoPayment?.qrCodeUrl],
@@ -230,11 +244,11 @@ const BookingPaymentPage = () => {
         <div>
         <button
           type="button"
-          onClick={() => navigate(`/booking/${id}`)}
+          onClick={() => navigate("/booking-history")}
           className="inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm ring-1 ring-slate-200 transition hover:bg-slate-50"
         >
           <ArrowLeft size={16} />
-          Quay lại booking
+          Quay lại lịch sử
         </button>
         <h1 className="mt-4 text-3xl font-black text-slate-900">Thanh toán booking</h1>
         <p className="mt-2 text-sm font-medium text-slate-500">

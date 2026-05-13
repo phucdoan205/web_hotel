@@ -60,7 +60,7 @@ namespace backend.Data.Interceptors
                     try
                     {
                         var payload = JsonSerializer.Deserialize<AuditPayload>(existingLog.LogData, JsonOptions) ?? new AuditPayload();
-                        payload.Events.AddRange(events);
+                        payload.Events.InsertRange(0, events);
                         payload.TotalEvents = payload.Events.Count;
                         existingLog.LogData = JsonSerializer.Serialize(payload, JsonOptions);
                         // existingLog đã được track bởi context, không cần context.Update
@@ -126,14 +126,27 @@ namespace backend.Data.Interceptors
                 ? GetValues(entry.CurrentValues)
                 : null;
 
-            // Message tiếng Việt rút gọn
+            // Message tiếng Việt rút gọn và thông minh hơn
+            var entityName = MapEntityName(entityType, entry);
             var message = actionType switch
             {
-                "CREATE" => $"Thêm {MapEntityName(entityType, entry)}",
-                "UPDATE" => $"Sửa {MapEntityName(entityType, entry)}",
-                "DELETE" => $"Xóa {MapEntityName(entityType, entry)}",
-                "SOFT_DELETE" => $"Xóa {MapEntityName(entityType, entry)}",
-                _ => $"Thay đổi {MapEntityName(entityType, entry)}"
+                "CREATE" => entityType switch
+                {
+                    "Booking" => $"Đặt phòng {GetEntityIdentifier(entry)}",
+                    "Invoice" => $"Tạo {entityName}",
+                    "Payment" => $"Thanh toán {GetPaymentRoomIdentifier(entry)}",
+                    _ => $"Thêm {entityName}"
+                },
+                "UPDATE" => entityType switch
+                {
+                    "BookingDetail" => ResolveBookingDetailUpdateMessage(entry, entityName),
+                    "Invoice" => ResolveInvoiceUpdateMessage(entry, entityName),
+                    "Room" => ResolveRoomUpdateMessage(entry, entityName),
+                    _ => $"Sửa {entityName}"
+                },
+                "DELETE" => $"Xóa {entityName}",
+                "SOFT_DELETE" => $"Xóa {entityName}",
+                _ => $"Thay đổi {entityName}"
             };
 
             return new AuditEvent
@@ -165,8 +178,26 @@ namespace backend.Data.Interceptors
                 "Voucher" => "voucher",
                 "Notification" => "thông báo",
                 "Membership" => "hạng thành viên",
+                "Payment" => "thanh toán",
+                "PaymentMethod" => "phương thức thanh toán",
+                "Service" => "dịch vụ",
                 _ => entityType
             };
+
+            // Đặc biệt cho Invoice
+            if (entityType == "Invoice")
+            {
+                var roomNumber = entry.State == EntityState.Deleted 
+                    ? entry.OriginalValues["RoomNumber"]?.ToString() 
+                    : entry.CurrentValues["RoomNumber"]?.ToString();
+                var code = entry.State == EntityState.Deleted
+                    ? entry.OriginalValues["Code"]?.ToString()
+                    : entry.CurrentValues["Code"]?.ToString();
+                
+                if (string.IsNullOrEmpty(code)) code = $"#{GetPrimaryKeyValue(entry)}";
+                
+                return $"hóa đơn phòng {roomNumber} mã {code}";
+            }
 
             var identifier = GetEntityIdentifier(entry);
             return string.IsNullOrEmpty(identifier) ? name : $"{name} {identifier}";
@@ -183,7 +214,9 @@ namespace backend.Data.Interceptors
                 var idProp = entry.Metadata.GetProperties()
                     .FirstOrDefault(p => p.Name == "RoomNumber")
                              ?? entry.Metadata.GetProperties().FirstOrDefault(p => p.Name == "Name")
+                             ?? entry.Metadata.GetProperties().FirstOrDefault(p => p.Name == "BookingCode")
                              ?? entry.Metadata.GetProperties().FirstOrDefault(p => p.Name == "Code")
+                             ?? entry.Metadata.GetProperties().FirstOrDefault(p => p.Name == "TransactionCode")
                              ?? entry.Metadata.GetProperties().FirstOrDefault(p => p.Name == "FullName")
                              ?? entry.Metadata.GetProperties().FirstOrDefault(p => p.Name == "Title")
                              ?? entry.Metadata.GetProperties().FirstOrDefault(p => p.Name == "TierName");
@@ -232,6 +265,68 @@ namespace backend.Data.Interceptors
                      ?? httpContext.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 
             return int.TryParse(claim, out var claimId) ? claimId : null;
+        }
+
+        private string ResolveBookingDetailUpdateMessage(EntityEntry entry, string defaultName)
+        {
+            var statusProp = entry.Property("Status");
+            if (statusProp.IsModified)
+            {
+                var oldStatus = statusProp.OriginalValue?.ToString();
+                var newStatus = statusProp.CurrentValue?.ToString();
+
+                if (newStatus == "CheckedIn") return $"Check in cho phòng {GetEntityIdentifier(entry)}";
+                if (newStatus == "CheckedOut") return $"Check out cho phòng {GetEntityIdentifier(entry)}";
+                if (newStatus == "Confirmed" && oldStatus == "Pending") return $"Xác nhận đặt phòng {GetEntityIdentifier(entry)}";
+                if (newStatus == "Cancelled") return $"Hủy đặt phòng {GetEntityIdentifier(entry)}";
+            }
+            return $"Sửa {defaultName}";
+        }
+
+        private string ResolveRoomUpdateMessage(EntityEntry entry, string defaultName)
+        {
+            var statusProp = entry.Property("Status");
+            if (statusProp.IsModified)
+            {
+                var newStatus = statusProp.CurrentValue?.ToString();
+                if (newStatus == "Occupied") return $"Đã check in {defaultName}";
+                if (newStatus == "Available") return $"Đã check out {defaultName}";
+            }
+            return $"Sửa {defaultName}";
+        }
+
+        private string ResolveInvoiceUpdateMessage(EntityEntry entry, string defaultName)
+        {
+            var statusProp = entry.Property("Status");
+            if (statusProp.IsModified)
+            {
+                var newStatus = statusProp.CurrentValue?.ToString();
+                if (newStatus == "Paid") return $"Thanh toán {defaultName}";
+            }
+            return $"Sửa {defaultName}";
+        }
+
+        private string GetPaymentRoomIdentifier(EntityEntry entry)
+        {
+            try
+            {
+                // Nếu là Payment, thử lấy RoomNumber từ Invoice liên quan nếu nó cũng đang được track
+                if (entry.Entity is Payment payment && entry.Context is AppDbContext context)
+                {
+                    var invoice = context.ChangeTracker.Entries<Invoice>()
+                        .FirstOrDefault(e => e.Entity.Id == payment.InvoiceId)?.Entity;
+
+                    if (invoice == null)
+                    {
+                        invoice = context.Invoices.Find(payment.InvoiceId);
+                    }
+
+                    if (invoice != null) 
+                        return $"hóa đơn phòng {invoice.RoomNumber} mã {invoice.Code ?? $"#{invoice.Id}"}";
+                }
+            }
+            catch { }
+            return GetEntityIdentifier(entry);
         }
 
         private class AuditPayload

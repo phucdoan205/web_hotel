@@ -51,6 +51,7 @@ namespace backend.Services
                 var events = (item.Payload?.Events ?? new List<AuditPayloadEvent>())
                     .Where(e => e != null)
                     .Select(eventItem => MapEvent(eventItem, roomInventoryLookup))
+                    .Reverse()
                     .ToList();
 
                 return new AuditLogResponseDTO

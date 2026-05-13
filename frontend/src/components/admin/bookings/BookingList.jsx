@@ -181,12 +181,7 @@ const BookingList = ({ filters, onPageChange }) => {
                         >
                           {getStatusLabel(booking.status)}
                         </span>
-                        {paymentState.hasDeposit ? (
-                          <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-bold text-emerald-700">
-                            <CircleCheckBig size={12} />
-                            Đã có đặt cọc
-                          </div>
-                        ) : null}
+
                       </td>
                       <td className="px-4 py-3 align-top">
                         <div className="flex justify-end gap-2">

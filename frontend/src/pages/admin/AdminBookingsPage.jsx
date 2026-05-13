@@ -13,7 +13,7 @@ const initialFilters = {
   checkInFrom: "",
   checkInTo: "",
   page: 1,
-  pageSize: 5,
+  pageSize: 10,
 };
 
 const AdminBookingsPage = () => {

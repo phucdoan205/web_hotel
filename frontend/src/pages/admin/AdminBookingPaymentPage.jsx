@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   CircleCheckBig,
@@ -43,6 +43,7 @@ const AdminBookingPaymentPage = () => {
   const [momoView, setMomoView] = useState("hosted");
   const [copied, setCopied] = useState(false);
   const [confirmMessage, setConfirmMessage] = useState("");
+  const autoOpenedMomoRef = useRef(false);
   const checkInReturnPath = "/admin/check-in?tab=in";
 
   const { data: booking, isLoading } = useQuery({
@@ -179,6 +180,19 @@ const AdminBookingPaymentPage = () => {
   });
 
   const momoPayment = momoPaymentQuery.data;
+
+  // Tự động mở tab MoMo khi có payUrl
+  useEffect(() => {
+    if (paymentMethod !== "momo") {
+      autoOpenedMomoRef.current = false;
+      return;
+    }
+    if (momoPayment?.payUrl && !autoOpenedMomoRef.current) {
+      autoOpenedMomoRef.current = true;
+      window.open(momoPayment.payUrl, "_blank", "noopener,noreferrer");
+    }
+  }, [paymentMethod, momoPayment?.payUrl]);
+
   const momoQrImageUrl = useMemo(
     () => buildQuickChartQrUrl(momoPayment?.qrCodeUrl),
     [momoPayment?.qrCodeUrl],

@@ -240,7 +240,7 @@ const buildBookingEvent = (event, rawEvents, lookups, fallbackEventId) => {
   const roomId = getValue(bookingDetailData, "roomId", "RoomId");
   const roomLabel = buildRoomLabel(roomId, lookups);
 
-  let summary = `Đã đặt phòng ${roomLabel} có mã booking là ${bookingCode}.`;
+  let summary = `Đặt ${roomLabel} có mã booking là ${bookingCode}.`;
   if (actionType === "UPDATE") {
     summary = `Booking ${bookingCode} đã được cập nhật.`;
   } else if (actionType === "DELETE") {
@@ -706,7 +706,7 @@ export const groupAuditLogs = (logs, formatDate) => {
     const events = [...group.events].sort((a, b) => {
       const timeA = new Date(a.timestamp).getTime();
       const timeB = new Date(b.timestamp).getTime();
-      return timeA - timeB;
+      return timeB - timeA;
     });
 
     return {

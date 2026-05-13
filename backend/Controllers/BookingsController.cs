@@ -122,6 +122,33 @@ namespace backend.Controllers
             }
         }
 
+        // Tự động hủy các Pending booking đã hết thời gian giữ phòng (>10 phút)
+        private async Task CancelExpiredPendingBookingsAsync()
+        {
+            var cutoff = DateTime.Now.AddMinutes(-10);
+
+            var expiredBookings = await _context.Bookings
+                .Include(b => b.BookingDetails)
+                .Where(b =>
+                    b.Status == "Pending" &&
+                    b.CreatedAt < cutoff &&
+                    b.BookingDetails.Any(bd => bd.Status == "Pending"))
+                .ToListAsync();
+
+            if (!expiredBookings.Any()) return;
+
+            foreach (var booking in expiredBookings)
+            {
+                foreach (var detail in booking.BookingDetails.Where(bd => bd.Status == "Pending"))
+                {
+                    detail.Status = "Cancelled";
+                }
+                booking.Status = "Cancelled";
+            }
+
+            await _context.SaveChangesAsync();
+        }
+
         // GET: api/Bookings
         [HttpGet]
         [Permission("VIEW_BOOKINGS", "VIEW_DASHBOARD")]
@@ -276,6 +303,9 @@ namespace backend.Controllers
                 Status = "Pending"
             };
 
+            // Chuẩn hóa ngày trước để dùng trong conflict check
+            var detailsToCreate = new List<(BookingDetailCreateDTO dto, RoomType roomType, BookingDetail detail)>();
+
             foreach (var detailDto in dto.BookingDetails)
             {
                 var roomType = await _context.RoomTypes
@@ -295,11 +325,52 @@ namespace backend.Controllers
                     Status = "Pending"
                 };
 
-                booking.BookingDetails.Add(detail);
+                detailsToCreate.Add((detailDto, roomType, detail));
             }
 
-            _context.Bookings.Add(booking);
-            await _context.SaveChangesAsync();
+            // Dùng transaction để tránh race condition khi 2 user đặt cùng phòng cùng lúc
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                var holdCutoff = DateTime.Now.AddMinutes(-10);
+
+                foreach (var (detailDto, roomType, detail) in detailsToCreate)
+                {
+                    if (detailDto.RoomId.HasValue)
+                    {
+                        // Kiểm tra lại lần cuối TRONG transaction — tránh TOCTOU race condition
+                        var conflict = await _context.BookingDetails
+                            .AnyAsync(bd =>
+                                bd.RoomId == detailDto.RoomId &&
+                                bd.Status != "Cancelled" &&
+                                bd.Status != "CheckedOut" &&
+                                bd.Status != "Completed" &&
+                                // Confirmed/CheckedIn luôn chiếm phòng
+                                (bd.Status == "Confirmed" || bd.Status == "CheckedIn"
+                                // Pending chỉ chiếm nếu còn trong 10 phút hold
+                                || (bd.Status == "Pending" && bd.Booking != null && bd.Booking.CreatedAt > holdCutoff)) &&
+                                bd.CheckInDate < detail.CheckOutDate &&
+                                bd.CheckOutDate > detail.CheckInDate);
+
+                        if (conflict)
+                        {
+                            await transaction.RollbackAsync();
+                            return Conflict(new { message = $"Phòng {detailDto.RoomId} vừa được người khác đặt. Vui lòng chọn phòng khác." });
+                        }
+                    }
+
+                    booking.BookingDetails.Add(detail);
+                }
+
+                _context.Bookings.Add(booking);
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
 
             // Load đầy đủ để trả về (bao gồm Guest.Name)
             var created = await _context.Bookings
@@ -636,7 +707,11 @@ namespace backend.Controllers
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 20)
         {
+            // Hủy các Pending booking hết hạn trước khi query
+            await CancelExpiredPendingBookingsAsync();
+
             var targetDate = date?.Date ?? DateTime.Today;
+            var holdCutoff = DateTime.Now.AddMinutes(-10);
 
             var query = _context.Bookings
                 .Include(b => b.Guest)
@@ -646,7 +721,9 @@ namespace backend.Controllers
                     .ThenInclude(bd => bd.RoomType)
                 .Where(b => b.Status != "Cancelled" && b.Status != "Completed" && b.BookingDetails.Any(bd =>
                     (bd.CheckInDate.Date == targetDate || bd.CheckInDate.AddHours(VietnamUtcOffsetHours).Date == targetDate) &&
-                    (bd.Status == "Confirmed" || bd.Status == "Pending") &&
+                    (bd.Status == "Confirmed" ||
+                     // Chỉ cho Pending nếu chưa hết 10 phút
+                     (bd.Status == "Pending" && b.CreatedAt > holdCutoff)) &&
                     !_context.Invoices.Any(invoice =>
                         invoice.BookingDetailId == bd.Id &&
                         invoice.Status == "Paying")))
