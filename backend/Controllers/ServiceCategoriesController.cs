@@ -40,6 +40,22 @@ namespace backend.Controllers
             return Ok(categories.Select(MapCategory));
         }
 
+        [HttpGet("{id:int}")]
+        [Permission("VIEW_SERVICES")]
+        public async Task<ActionResult<ServiceCategoryResponseDTO>> GetCategory(int id)
+        {
+            var category = await _context.ServiceCategories
+                .AsNoTracking()
+                .FirstOrDefaultAsync(c => c.Id == id);
+
+            if (category == null)
+            {
+                return NotFound("Không tìm thấy nhóm dịch vụ.");
+            }
+
+            return Ok(MapCategory(category));
+        }
+
         [HttpPost]
         [Permission("CREATE_SERVICES")]
         public async Task<ActionResult<ServiceCategoryResponseDTO>> CreateCategory([FromBody] ServiceCategoryUpsertDTO request)
@@ -54,7 +70,7 @@ namespace backend.Controllers
             _context.ServiceCategories.Add(category);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction(nameof(GetCategories), new { id = category.Id }, MapCategory(category));
+            return CreatedAtAction(nameof(GetCategory), new { id = category.Id }, MapCategory(category));
         }
 
         [HttpPut("{id:int}")]

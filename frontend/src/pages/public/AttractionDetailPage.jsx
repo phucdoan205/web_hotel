@@ -5,8 +5,30 @@ import apiClient from "../../api/client";
 
 const normalizeContent = (content) => {
   if (!content) return "";
-  if (/<[a-z][\s\S]*>/i.test(content)) return content;
-  return content.split(/\n{2,}/).map((p) => `<p>${p.replace(/\n/g, "<br />")}</p>`).join("");
+
+  let processed = content;
+
+  // 1. Handle escaped HTML if detected (e.g., &lt;p&gt; instead of <p>)
+  if (processed.includes("&lt;") && (processed.includes("&lt;p") || processed.includes("&lt;div") || processed.includes("&lt;br"))) {
+    const doc = new DOMParser().parseFromString(processed, "text/html");
+    processed = doc.documentElement.textContent || processed;
+  }
+
+  // 2. Detect if it's HTML content
+  const isHtml = /<[a-z][\s\S]*>/i.test(processed);
+
+  if (isHtml) {
+    // Clean up unwanted attributes often found in pasted content (like data-start, data-end from AI tools)
+    processed = processed.replace(/\sdata-(?:start|end|state)=["'][^"']*["']/g, "");
+    return processed;
+  }
+
+  // 3. If plain text, convert double newlines to paragraphs and single to br
+  return processed
+    .trim()
+    .split(/\n{2,}/)
+    .map((p) => `<p>${p.replace(/\n/g, "<br />")}</p>`)
+    .join("");
 };
 
 const AttractionDetailPage = () => {

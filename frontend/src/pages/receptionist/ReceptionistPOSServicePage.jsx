@@ -30,14 +30,12 @@ const StatusToggle = ({ status, onToggle, isPending }) => (
     type="button"
     onClick={onToggle}
     disabled={isPending}
-    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-      status ? "bg-sky-600" : "bg-slate-200"
-    } ${isPending ? "opacity-50 cursor-not-allowed" : ""}`}
+    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${status ? "bg-sky-600" : "bg-slate-200"
+      } ${isPending ? "opacity-50 cursor-not-allowed" : ""}`}
   >
     <span
-      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-        status ? "translate-x-5" : "translate-x-0"
-      }`}
+      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${status ? "translate-x-5" : "translate-x-0"
+        }`}
     />
   </button>
 );
@@ -50,11 +48,10 @@ const Notice = ({ type, message, onBlur }) => {
 
   return (
     <div
-      className={`fixed top-8 left-1/2 -translate-x-1/2 z-[200] min-w-[320px] max-w-md rounded-[1.5rem] px-6 py-4 text-center text-sm font-bold shadow-2xl backdrop-blur-xl animate-in fade-in slide-in-from-top-8 duration-500 ${
-        type === "success" 
-          ? "bg-white/95 text-emerald-600 ring-1 ring-emerald-100" 
+      className={`fixed top-8 left-1/2 -translate-x-1/2 z-[200] min-w-[320px] max-w-md rounded-[1.5rem] px-6 py-4 text-center text-sm font-bold shadow-2xl backdrop-blur-xl animate-in fade-in slide-in-from-top-8 duration-500 ${type === "success"
+          ? "bg-white/95 text-emerald-600 ring-1 ring-emerald-100"
           : "bg-white/95 text-rose-600 ring-1 ring-rose-100"
-      }`}
+        }`}
     >
       <div className="flex items-center justify-center gap-3">
         {type === "success" ? (
@@ -473,9 +470,8 @@ const ReceptionistPOSServicePage = () => {
                     setActiveTab(tab.id);
                     setSearchParams({ tab: tab.id });
                   }}
-                  className={`inline-flex items-center gap-2 rounded-[1.25rem] px-4 py-3 text-sm font-bold transition ${
-                    active ? "bg-sky-600 text-white shadow-sm" : "bg-slate-50 text-slate-600 hover:bg-sky-50 hover:text-sky-700"
-                  }`}
+                  className={`inline-flex items-center gap-2 rounded-[1.25rem] px-4 py-3 text-sm font-bold transition ${active ? "bg-sky-600 text-white shadow-sm" : "bg-slate-50 text-slate-600 hover:bg-sky-50 hover:text-sky-700"
+                    }`}
                 >
                   <Icon size={16} />
                   {tab.label}
@@ -909,11 +905,10 @@ const ReceptionistPOSServicePage = () => {
                         </td>
                         <td className="px-4 py-4">
                           <span
-                            className={`inline-flex rounded-full px-3 py-1 text-xs font-black ${
-                              item.paymentStatus === "Paid"
+                            className={`inline-flex rounded-full px-3 py-1 text-xs font-black ${item.paymentStatus === "Paid"
                                 ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"
                                 : "bg-amber-50 text-amber-700 ring-1 ring-amber-200"
-                            }`}
+                              }`}
                           >
                             {item.paymentStatus === "Paid" ? "Đã thanh toán" : "Chưa thanh toán"}
                           </span>

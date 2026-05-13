@@ -162,7 +162,7 @@ namespace backend.Controllers
             await _context.SaveChangesAsync();
 
             var result = _mapper.Map<AttractionDTO>(entity);
-            return CreatedAtAction(nameof(GetAttraction), new { id = entity.Id }, result);
+            return CreatedAtAction(nameof(GetAttraction), new { idOrSlug = entity.Id }, result);
         }
 
         [HttpPut("{id}")]

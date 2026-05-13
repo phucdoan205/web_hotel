@@ -384,7 +384,7 @@ namespace backend.Controllers
 
             var responseDto = _mapper.Map<BookingResponseDTO>(created);
 
-            return CreatedAtAction(nameof(CreateBooking), new { id = booking.Id }, responseDto);
+            return CreatedAtAction(nameof(GetBooking), new { id = booking.Id }, responseDto);
         }
         // PATCH: api/Bookings/{id}/status - Cập nhật status
         [HttpPatch("{id:int}/status")]

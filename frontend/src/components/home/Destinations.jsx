@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { getPublicAttractions } from "../../api/admin/attractionsApi";
@@ -30,7 +31,11 @@ const Destinations = () => {
 
       <div className="grid gap-6 md:grid-cols-2">
         {destinations.slice(0, 2).map((city) => (
-          <article key={city.name} className="group relative h-[400px] cursor-pointer overflow-hidden rounded-[2.5rem] shadow-xl">
+          <Link 
+            key={city.id} 
+            to={`/attractions/${city.id}`}
+            className="group relative h-[400px] cursor-pointer overflow-hidden rounded-[2.5rem] shadow-xl"
+          >
             <img
               src={city.image}
               alt={city.name}
@@ -44,13 +49,17 @@ const Destinations = () => {
               <h3 className="text-4xl font-black">{city.name}</h3>
               <p className="mt-2 text-sm font-semibold text-white/70">{city.properties}</p>
             </div>
-          </article>
+          </Link>
         ))}
       </div>
 
       <div className="mt-8 grid gap-6 md:grid-cols-3">
         {destinations.slice(2).map((city) => (
-          <article key={city.name} className="group relative h-72 cursor-pointer overflow-hidden rounded-[2rem] shadow-lg">
+          <Link 
+            key={city.id} 
+            to={`/attractions/${city.id}`}
+            className="group relative h-72 cursor-pointer overflow-hidden rounded-[2rem] shadow-lg"
+          >
             <img
               src={city.image}
               alt={city.name}
@@ -61,17 +70,20 @@ const Destinations = () => {
               <h3 className="text-2xl font-black">{city.name}</h3>
               <p className="mt-1 text-xs font-semibold text-white/70">{city.properties}</p>
             </div>
-          </article>
+          </Link>
         ))}
-        <article className="flex flex-col justify-center rounded-[2rem] border-2 border-dashed border-slate-200 bg-slate-50 p-8 transition-colors hover:bg-white hover:border-[#1F649C]/30">
+        <Link 
+          to="/attractions/search"
+          className="flex flex-col justify-center rounded-[2rem] border-2 border-dashed border-slate-200 bg-slate-50 p-8 transition-colors hover:bg-white hover:border-[#1F649C]/30"
+        >
           <h3 className="text-2xl font-black text-slate-900 leading-tight">Khám phá <br /> thêm điểm đến</h3>
           <p className="mt-4 text-sm font-medium leading-relaxed text-slate-500">
             Hơn 2000+ địa điểm tuyệt vời khác đang chờ đợi bạn trải nghiệm.
           </p>
-          <button className="mt-6 flex w-fit items-center gap-2 text-sm font-bold text-[#1F649C]">
+          <div className="mt-6 flex w-fit items-center gap-2 text-sm font-bold text-[#1F649C]">
             Xem tất cả <ArrowRight size={16} />
-          </button>
-        </article>
+          </div>
+        </Link>
       </div>
     </section>
   );

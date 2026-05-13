@@ -118,10 +118,16 @@ const AdminAttractionEditorPage = () => {
     selection.addRange(savedSelectionRef.current);
   };
 
+  const sanitizeHtml = (html) => {
+    if (!html) return "";
+    // Remove data-start, data-end, data-state attributes often found in pasted content
+    return html.replace(/\sdata-(?:start|end|state)=["'][^"']*["']/g, "");
+  };
+
   const syncEditorContent = useCallback(() => {
     setFormData((current) => ({
       ...current,
-      description: editorRef.current?.innerHTML ?? "",
+      description: sanitizeHtml(editorRef.current?.innerHTML ?? ""),
     }));
   }, []);
 
@@ -324,7 +330,7 @@ const AdminAttractionEditorPage = () => {
 
     const payload = {
       ...formData,
-      description: editorRef.current?.innerHTML?.trim() || "",
+      description: sanitizeHtml(editorRef.current?.innerHTML?.trim() || ""),
       distanceKm: formData.distanceKm ? Number(formData.distanceKm) : null,
       latitude: formData.latitude ? Number(formData.latitude) : null,
       longitude: formData.longitude ? Number(formData.longitude) : null,
