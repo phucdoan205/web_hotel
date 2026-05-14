@@ -149,6 +149,7 @@ namespace backend.Data.Interceptors
                     "BookingDetail" => ResolveBookingDetailUpdateMessage(entry, entityName),
                     "Invoice" => ResolveInvoiceUpdateMessage(entry, entityName),
                     "Room" => ResolveRoomUpdateMessage(entry, entityName),
+                    "Equipment" => ResolveEquipmentUpdateMessage(entry, entityName),
                     _ => $"Sửa {entityName}"
                 },
                 "DELETE" => $"Xóa {entityName}",
@@ -330,6 +331,46 @@ namespace backend.Data.Interceptors
             }
             return $"Sửa {defaultName}";
         }
+
+        private string ResolveEquipmentUpdateMessage(EntityEntry entry, string defaultName)
+        {
+            var totalProp = entry.Property("TotalQuantity");
+            var liqProp = entry.Property("LiquidatedQuantity");
+            var name = entry.CurrentValues["Name"]?.ToString() ?? "vật tư";
+
+            if (totalProp.IsModified)
+            {
+                var oldTotal = (int)totalProp.OriginalValue!;
+                var newTotal = (int)totalProp.CurrentValue!;
+                if (newTotal > oldTotal)
+                {
+                    return $"Đã thêm {newTotal - oldTotal} sản phẩm {name} (Tổng {oldTotal} -> {newTotal})";
+                }
+            }
+
+            if (liqProp.IsModified)
+            {
+                var oldLiq = (int)liqProp.OriginalValue!;
+                var newLiq = (int)liqProp.CurrentValue!;
+                if (newLiq > oldLiq)
+                {
+                    var addedLiq = newLiq - oldLiq;
+                    
+                    // Lấy các giá trị cũ để tính tồn kho cũ
+                    var oldTotal = (int)entry.OriginalValues["TotalQuantity"]!;
+                    var oldInUse = (int)entry.OriginalValues["InUseQuantity"]!;
+                    var oldDamaged = (int)entry.OriginalValues["DamagedQuantity"]!;
+                    var oldStock = Math.Max(0, oldTotal - oldInUse - oldDamaged);
+                    
+                    var newStock = Math.Max(0, oldStock - addedLiq);
+
+                    return $"Tồn kho hiện tại: {oldStock} Thanh lý: {addedLiq} => Tồn còn lại: {newStock} {name}";
+                }
+            }
+
+            return $"Sửa {defaultName}";
+        }
+
 
         private string GetPaymentRoomIdentifier(EntityEntry entry)
         {

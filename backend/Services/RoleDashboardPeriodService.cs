@@ -536,9 +536,37 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
                 InStockQuantity = g.Sum(x => x.InStockQuantity ?? 0),
                 InUseQuantity = g.Sum(x => x.InUseQuantity),
                 CurrentDamagedQuantity = g.Sum(x => x.DamagedQuantity),
-                LowStockItems = g.Count(x => (x.InStockQuantity ?? 0) <= 10)
+                LiquidatedQuantity = g.Sum(x => x.LiquidatedQuantity),
+                LowStockItems = g.Count(x => (x.InStockQuantity ?? 0) < 30)
             })
             .FirstOrDefaultAsync(cancellationToken);
+
+        var lowStockItemsListRaw = await _context.Equipments
+            .AsNoTracking()
+            .Where(x => x.IsActive && (x.InStockQuantity ?? 0) < 30)
+            .Select(x => new { x.Name, Quantity = x.InStockQuantity ?? 0 })
+            .OrderBy(x => x.Quantity)
+            .ToListAsync(cancellationToken);
+
+        var recentDamageReportsRaw = await _context.LossAndDamages
+            .AsNoTracking()
+            .Include(x => x.RoomInventory)
+                .ThenInclude(ri => ri!.Equipment)
+            .Include(x => x.RoomInventory)
+                .ThenInclude(ri => ri!.Room)
+            .Where(x => x.CreatedAt >= start && x.CreatedAt <= end)
+            .OrderByDescending(x => x.CreatedAt)
+            .Take(10)
+            .Select(x => new
+            {
+                ItemName = x.RoomInventory!.Equipment!.Name,
+                RoomNumber = x.RoomInventory!.Room!.RoomNumber,
+                x.Quantity,
+                x.PenaltyAmount,
+                x.Description,
+                Time = x.CreatedAt ?? DateTime.UtcNow
+            })
+            .ToListAsync(cancellationToken);
 
         var reviewMetrics = await _context.Reviews
             .Where(x => x.CreatedAt >= start && x.CreatedAt <= end)
@@ -830,6 +858,7 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
             InStockQuantity = equipmentMetrics?.InStockQuantity ?? 0,
             InUseQuantity = equipmentMetrics?.InUseQuantity ?? 0,
             CurrentDamagedQuantity = equipmentMetrics?.CurrentDamagedQuantity ?? 0,
+            LiquidatedQuantity = equipmentMetrics?.LiquidatedQuantity ?? 0,
             LowStockItems = equipmentMetrics?.LowStockItems ?? 0,
             NewReviews = reviewMetrics?.NewReviews ?? 0,
             AverageRating = Math.Round(reviewMetrics?.AverageRating ?? 0m, 2),
@@ -845,7 +874,9 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
             PendingPayments = pendingPaymentsRaw.Select(x => new DashboardTaskItem(x.Id, x.Title, x.Subtitle, x.Status, "PAYMENT", x.Time, x.RefCode, x.Amount)).ToList(),
             BookingsToConfirm = bookingsToConfirmRaw.Select(x => new DashboardTaskItem(x.Id, x.Title, x.Subtitle, x.Status, "BOOKING", x.Time, x.RefCode)).ToList(),
             RecentServices = recentServicesRaw.Select(x => new DashboardTaskItem(x.Id, x.Title, x.Subtitle, x.Status, "SERVICE", x.Time, x.RefCode, x.Amount)).ToList(),
-            Notifications = notifications
+            Notifications = notifications,
+            LowStockItemsList = lowStockItemsListRaw.Select(x => new LowStockItem(x.Name, x.Quantity)).ToList(),
+            RecentDamageReports = recentDamageReportsRaw.Select(x => new DamageReportItem(x.ItemName, x.RoomNumber, x.Quantity, x.PenaltyAmount, x.Description, x.Time)).ToList()
         };
     }
 
@@ -1010,7 +1041,10 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
                     inStockQuantity = metrics.InStockQuantity,
                     inUseQuantity = metrics.InUseQuantity,
                     currentDamagedQuantity = metrics.CurrentDamagedQuantity,
+                    liquidatedQuantity = metrics.LiquidatedQuantity,
                     lowStockItems = metrics.LowStockItems,
+                    lowStockItemsList = metrics.LowStockItemsList,
+                    recentDamageReports = metrics.RecentDamageReports,
                     damageReports = metrics.DamageReports,
                     damagedQuantityInPeriod = metrics.DamagedQuantityInPeriod,
                     penaltyAmount = metrics.PenaltyAmount
@@ -1148,7 +1182,7 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
             "WarehouseStaff" or "Warehouse" => new object[]
             {
                 new { code = "inStockQuantity", title = "Tổng sản phẩm trong kho", value = metrics.InStockQuantity, unit = "món" },
-                new { code = "lowStockItems", title = "Hàng sắp hết (<10)", value = metrics.LowStockItems, unit = "loại" },
+                new { code = "lowStockItems", title = "Hàng sắp hết (<30)", value = metrics.LowStockItems, unit = "loại" },
                 new { code = "currentDamagedQuantity", title = "Hàng hư hỏng", value = metrics.CurrentDamagedQuantity, unit = "món" },
                 new { code = "damageReports", title = "Phiếu nhập/xuất", value = metrics.DamageReports, unit = "phiếu" }
             },
@@ -1313,6 +1347,7 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
         public int InStockQuantity { get; init; }
         public int InUseQuantity { get; init; }
         public int CurrentDamagedQuantity { get; init; }
+        public int LiquidatedQuantity { get; init; }
         public int LowStockItems { get; init; }
         public int NewReviews { get; init; }
         public decimal AverageRating { get; init; }
@@ -1330,6 +1365,8 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
         public IReadOnlyList<DashboardTaskItem> BookingsToConfirm { get; init; } = Array.Empty<DashboardTaskItem>();
         public IReadOnlyList<DashboardTaskItem> Notifications { get; init; } = Array.Empty<DashboardTaskItem>();
         public IReadOnlyList<DashboardTaskItem> RecentServices { get; init; } = Array.Empty<DashboardTaskItem>();
+        public IReadOnlyList<LowStockItem> LowStockItemsList { get; init; } = Array.Empty<LowStockItem>();
+        public IReadOnlyList<DamageReportItem> RecentDamageReports { get; init; } = Array.Empty<DamageReportItem>();
     }
 
     private sealed record RoleUserCount(
@@ -1365,6 +1402,8 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
 
     public record TopServiceItem(string Name, int Count, decimal TotalAmount);
     public record RecentBookingItem(string Code, string CustomerName, string Status, decimal Amount, DateTime CreatedAt);
+    public record LowStockItem(string Name, int Quantity);
+    public record DamageReportItem(string ItemName, string RoomNumber, int Quantity, decimal Penalty, string? Description, DateTime Time);
     
     public sealed record DashboardTaskItem(
         string Id,

@@ -46,8 +46,7 @@ namespace backend.Controllers
                 InStockQuantity = summarySource.Sum(e => CalculateInStockQuantity(
                     e.TotalQuantity,
                     e.InUseQuantity,
-                    e.DamagedQuantity,
-                    e.LiquidatedQuantity))
+                    e.DamagedQuantity))
             });
         }
 
@@ -187,8 +186,7 @@ namespace backend.Controllers
                 InStockQuantity = CalculateInStockQuantity(
                     request.TotalQuantity,
                     request.InUseQuantity,
-                    request.DamagedQuantity,
-                    request.LiquidatedQuantity),
+                    request.DamagedQuantity),
                 BasePrice = request.BasePrice,
                 DefaultPriceIfLost = request.DefaultPriceIfLost,
                 Supplier = normalizedSupplier,
@@ -277,8 +275,7 @@ namespace backend.Controllers
             equipment.InStockQuantity = CalculateInStockQuantity(
                 request.TotalQuantity,
                 request.InUseQuantity,
-                request.DamagedQuantity,
-                request.LiquidatedQuantity);
+                request.DamagedQuantity);
             equipment.BasePrice = request.BasePrice;
             equipment.DefaultPriceIfLost = request.DefaultPriceIfLost;
             equipment.Supplier = normalizedSupplier;
@@ -324,8 +321,7 @@ namespace backend.Controllers
                 InStockQuantity = CalculateInStockQuantity(
                     equipment.TotalQuantity,
                     equipment.InUseQuantity,
-                    equipment.DamagedQuantity,
-                    equipment.LiquidatedQuantity),
+                    equipment.DamagedQuantity),
                 BasePrice = equipment.BasePrice,
                 DefaultPriceIfLost = equipment.DefaultPriceIfLost,
                 Supplier = equipment.Supplier,
@@ -353,18 +349,18 @@ namespace backend.Controllers
                 return "Gia khong duoc am.";
             }
 
-            var remainingQuantity = totalQuantity - inUseQuantity - damagedQuantity - liquidatedQuantity;
+            var remainingQuantity = totalQuantity - inUseQuantity - damagedQuantity;
             if (remainingQuantity < 0)
             {
-                return "Tong so luong phai lon hon hoac bang tong dang su dung, hong va thanh ly.";
+                return "Tong so luong phai lon hon hoac bang tong dang su dung va hong.";
             }
 
             return null;
         }
 
-        private static int CalculateInStockQuantity(int totalQuantity, int inUseQuantity, int damagedQuantity, int liquidatedQuantity)
+        private static int CalculateInStockQuantity(int totalQuantity, int inUseQuantity, int damagedQuantity)
         {
-            return Math.Max(0, totalQuantity - inUseQuantity - damagedQuantity - liquidatedQuantity);
+            return Math.Max(0, totalQuantity - inUseQuantity - damagedQuantity);
         }
 
         private static string NormalizeRequired(string? value)

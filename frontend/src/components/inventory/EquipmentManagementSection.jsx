@@ -146,8 +146,21 @@ const normalizeQuantityFields = (currentFormData, fieldName, nextValue) => {
   }
 
   if (fieldName === "liquidatedQuantity") {
-    const maxAllowed = Math.max(0, normalizedTotal - inUseQuantity - damagedQuantity);
-    normalizedLiquidated = Math.min(liquidatedQuantity, maxAllowed);
+    const nextLiq = parseNonNegativeInteger(nextValue);
+    const prevLiq = parseNonNegativeInteger(currentFormData.liquidatedQuantity);
+    const diff = nextLiq - prevLiq;
+    
+    if (diff > 0) {
+      // Khi thanh lý, giảm tổng số lượng (Total Active)
+      // Nhưng không được giảm quá số lượng đang có trong kho
+      const currentInStock = Math.max(0, totalQuantity - inUseQuantity - damagedQuantity);
+      const actualDiff = Math.min(diff, currentInStock);
+      normalizedTotal = Math.max(0, totalQuantity - actualDiff);
+      normalizedLiquidated = prevLiq + actualDiff;
+    } else {
+      // Nếu giảm số lượng thanh lý (hiếm), cứ để nguyên
+      normalizedLiquidated = nextLiq;
+    }
   }
 
   return {
@@ -368,8 +381,8 @@ export default function EquipmentManagementSection({
       return;
     }
 
-    if (totalQuantity < inUseQuantity + damagedQuantity + liquidatedQuantity) {
-      setError("Tổng số lượng phải lớn hơn hoặc bằng tổng đang sử dụng, hỏng và thanh lý.");
+    if (totalQuantity < inUseQuantity + damagedQuantity) {
+      setError("Tổng số lượng phải lớn hơn hoặc bằng tổng đang sử dụng và hỏng.");
       return;
     }
 
@@ -396,8 +409,7 @@ export default function EquipmentManagementSection({
   const modalInStock =
     (Number(formData.totalQuantity) || 0) -
     (Number(formData.inUseQuantity) || 0) -
-    (Number(formData.damagedQuantity) || 0) -
-    (Number(formData.liquidatedQuantity) || 0);
+    (Number(formData.damagedQuantity) || 0);
 
   return (
     <>

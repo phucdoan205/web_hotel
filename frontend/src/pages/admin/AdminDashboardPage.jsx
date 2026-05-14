@@ -197,6 +197,40 @@ function RoomPieChart({ roomsSummary, role }) {
   );
 }
 
+// ─── Warehouse Status Pie Chart ─────────────────────────────────────────────
+function WarehouseStatusChart({ summary }) {
+  if (!summary) return null;
+
+  const data = [
+    { name: "Tồn kho", value: summary.inStockQuantity || 0, color: "#22c55e" }, // green
+    { name: "Đang sử dụng", value: summary.inUseQuantity || 0, color: "#eab308" }, // yellow
+    { name: "Hư hỏng", value: summary.currentDamagedQuantity || 0, color: "#ef4444" }, // red
+    { name: "Thanh lý", value: summary.liquidatedQuantity || 0, color: "#3b82f6" }, // blue
+  ].filter(d => d.value > 0);
+
+  if (data.length === 0) return null;
+
+  return (
+    <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm h-full">
+      <h3 className="mb-4 text-base font-bold text-gray-900">Phân bổ vật tư</h3>
+      <ResponsiveContainer width="100%" height={220}>
+        <PieChart>
+          <Pie data={data} cx="50%" cy="50%" innerRadius={55} outerRadius={85}
+            paddingAngle={3} dataKey="value">
+            {data.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+          </Pie>
+          <Tooltip formatter={(v, name) => [v + " món", name]} />
+          <Legend iconType="circle" iconSize={10}
+            formatter={(value) => <span className="text-xs font-medium text-gray-600">{value}</span>} />
+        </PieChart>
+      </ResponsiveContainer>
+      <div className="mt-2 text-center text-xs text-gray-400">
+        Tổng: {fmtNum((summary.inStockQuantity || 0) + (summary.inUseQuantity || 0) + (summary.currentDamagedQuantity || 0))} sản phẩm
+      </div>
+    </div>
+  );
+}
+
 // ─── Booking Summary Table ───────────────────────────────────────────────────
 function BookingSummary({ bookingSummary }) {
   if (!bookingSummary) return null;
@@ -406,26 +440,167 @@ function WarehouseSummary({ warehouseSummary }) {
     { label: "Tồn kho", val: warehouseSummary.inStockQuantity },
     { label: "Đang sử dụng", val: warehouseSummary.inUseQuantity },
     { label: "Hư hỏng hiện tại", val: warehouseSummary.currentDamagedQuantity, alert: true },
-    { label: "Vật tư sắp hết (≤10)", val: warehouseSummary.lowStockItems, alert: true },
+    { label: "Thanh lý", val: warehouseSummary.liquidatedQuantity, info: true },
+    { label: "Vật tư sắp hết (<30)", val: warehouseSummary.lowStockItems, alert: true },
     { label: "Báo cáo hư hỏng", val: warehouseSummary.damageReports, alert: true },
     { label: "Tiền đền bù", val: warehouseSummary.penaltyAmount, vnd: true },
   ].filter(r => r.val != null);
 
   return (
-    <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+    <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm h-full">
       <h3 className="mb-4 text-base font-bold text-gray-900">Tình trạng kho</h3>
       <div className="space-y-2">
         {rows.map((r, i) => (
           <div key={i} className="flex items-center justify-between">
             <span className="text-sm text-gray-500">{r.label}</span>
             <span className={`text-sm font-bold
-              ${r.alert && r.val > 0 ? "text-rose-600" : "text-gray-800"}`}>
+              ${r.alert && r.val > 0 ? "text-rose-600" : r.info ? "text-blue-600" : "text-gray-800"}`}>
               {r.vnd ? fmtVND(r.val) : fmtNum(r.val)}
             </span>
           </div>
         ))}
       </div>
     </div>
+  );
+}
+
+// ─── Low Stock List ──────────────────────────────────────────────────────────
+function LowStockList({ items = [] }) {
+  return (
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm h-full"
+    >
+      <div className="mb-4 flex items-center gap-2">
+        <div className="flex size-8 items-center justify-center rounded-xl bg-amber-100 text-amber-600">
+          <AlertTriangle className="size-4" />
+        </div>
+        <h3 className="font-black text-slate-800">Vật tư sắp hết {"(<30)"}</h3>
+      </div>
+      
+      <div className="space-y-3">
+        {items.length > 0 ? items.map((item, i) => (
+          <div key={i} className="flex items-center justify-between group py-1">
+             <div className="flex-1 min-w-0">
+                <p className="text-base font-bold text-slate-700 truncate">{item.name}</p>
+             </div>
+             <div className="text-right ml-4">
+                <span className="text-sm font-black bg-rose-50 px-3 py-1 rounded-lg text-rose-600">
+                  {item.quantity} tồn
+                </span>
+             </div>
+          </div>
+        )) : (
+          <div className="py-8 text-center">
+            <p className="text-sm font-bold text-slate-400 italic">Kho hàng đầy đủ</p>
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
+// ─── Warehouse History ────────────────────────────────────────────────────────
+function WarehouseHistory({ audits = [] }) {
+  // Filter for equipment-related audits or custom messages
+  const history = audits.filter(a => 
+    a.entityType === "Equipment" || 
+    a.message?.includes("sản phẩm") || 
+    a.message?.includes("Tồn kho hiện tại")
+  );
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.1 }}
+      className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm h-full"
+    >
+      <div className="mb-4 flex items-center gap-2">
+        <div className="flex size-8 items-center justify-center rounded-xl bg-blue-100 text-blue-600">
+          <Clock className="size-4" />
+        </div>
+        <h3 className="font-black text-slate-800">Lịch sử nhập/xuất</h3>
+      </div>
+      
+      <div className="space-y-3 max-h-[350px] overflow-y-auto pr-2 no-scrollbar">
+        {history.length > 0 ? history.map((h, i) => (
+          <div key={i} className="flex flex-col gap-1 border-b border-slate-50 pb-3 last:border-0 last:pb-0">
+             <p className="text-sm font-bold text-slate-700 leading-snug">{h.message}</p>
+             <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{h.userName}</span>
+                <span className="text-[10px] font-bold text-slate-400">
+                   {new Date(h.timestamp).toLocaleString('vi-VN', {hour:'2-digit', minute:'2-digit', day:'2-digit', month:'2-digit'})}
+                </span>
+             </div>
+          </div>
+        )) : (
+          <div className="py-8 text-center">
+            <p className="text-sm font-bold text-slate-400 italic">Chưa có lịch sử</p>
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
+// ─── Damage Report List ──────────────────────────────────────────────────────
+function DamageReportList({ reports = [] }) {
+  return (
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm h-full"
+    >
+      <div className="mb-4 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="flex size-8 items-center justify-center rounded-xl bg-rose-100 text-rose-600">
+            <Hammer className="size-4" />
+          </div>
+          <h3 className="font-black text-slate-800">Danh sách báo cáo hư hỏng</h3>
+        </div>
+        <span className="text-xs font-bold text-slate-400 bg-slate-50 px-3 py-1 rounded-full">
+          Gần đây
+        </span>
+      </div>
+      
+      <div className="overflow-x-auto no-scrollbar">
+        <table className="w-full text-left">
+          <thead>
+            <tr className="border-b border-slate-50">
+              <th className="pb-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Vật tư / Phòng</th>
+              <th className="pb-3 text-[10px] font-black uppercase tracking-widest text-slate-400">SL</th>
+              <th className="pb-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Phạt (VND)</th>
+              <th className="pb-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Thời gian</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-50">
+            {reports.length > 0 ? reports.map((r, i) => (
+              <tr key={i} className="group">
+                <td className="py-3">
+                  <div className="flex flex-col">
+                    <span className="text-sm font-bold text-slate-700">{r.itemName}</span>
+                    <span className="text-xs font-medium text-slate-400">Phòng {r.roomNumber}</span>
+                  </div>
+                </td>
+                <td className="py-3 text-sm font-black text-rose-600">{r.quantity}</td>
+                <td className="py-3 text-sm font-black text-slate-700">{fmtVND(r.penalty)}</td>
+                <td className="py-3 text-[11px] font-bold text-slate-400 italic">
+                  {new Date(r.time).toLocaleDateString('vi-VN')}
+                </td>
+              </tr>
+            )) : (
+              <tr>
+                <td colSpan={4} className="py-8 text-center">
+                  <p className="text-sm font-bold text-slate-400 italic">Không có báo cáo hư hỏng</p>
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </motion.div>
   );
 }
 
@@ -1088,6 +1263,9 @@ export default function AdminDashboardPage() {
                 </div>
                 <div>
                   {hasRooms && <RoomPieChart roomsSummary={summary.rooms} role={role} />}
+                  <div className="mt-6">
+                    {hasWh && <WarehouseStatusChart summary={summary.warehouse} />}
+                  </div>
                 </div>
               </div>
 
@@ -1112,10 +1290,17 @@ export default function AdminDashboardPage() {
                   <RecentAudits audits={tables.recentAudits} />
                 </div>
               )}
-               {/* Row 4: Service Management Center */}
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                <div className="lg:col-span-2">
+                   <DamageReportList reports={summary.warehouse?.recentDamageReports} />
+                </div>
+                <div className="space-y-6">
+                   <PendingServicesList items={summary.services?.pendingServices} />
+                </div>
+              </div>
+
                <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
                   <PopularServicesList items={summary.services?.topServices} />
-                  <PendingServicesList items={summary.services?.pendingServices} />
                   <ServiceHistoryList items={summary.services?.recentHistory} />
                </div>
             </div>
@@ -1196,9 +1381,20 @@ export default function AdminDashboardPage() {
               <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
                 {enrichedCards.map((card, i) => <StatCard key={i} {...card} />)}
               </div>
-              <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                <div>
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                  <LowStockList items={summary.warehouse?.lowStockItemsList} />
+                  {hasWh && <WarehouseStatusChart summary={summary.warehouse} />}
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                  <WarehouseHistory audits={tables.recentAudits} />
                   {hasWh && <WarehouseSummary warehouseSummary={summary.warehouse} />}
+                </div>
+
+                {/* Row 3: Damage Reports at bottom */}
+                <div className="w-full">
+                  <DamageReportList reports={summary.warehouse?.recentDamageReports} />
                 </div>
               </div>
             </div>
