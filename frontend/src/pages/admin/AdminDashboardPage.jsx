@@ -807,26 +807,7 @@ function TodayBookingsList({ items = [] }) {
   );
 }
 
-function OccupancyRateCard({ rate }) {
-  return (
-    <motion.div 
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      className="rounded-3xl bg-indigo-600 p-6 text-white shadow-xl shadow-indigo-100 h-full flex flex-col justify-center"
-    >
-      <p className="text-[10px] font-black uppercase tracking-widest opacity-80">Công suất phòng</p>
-      <h3 className="mt-1 text-3xl font-black">{rate}%</h3>
-      <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-indigo-400/30">
-        <motion.div 
-          initial={{ width: 0 }}
-          animate={{ width: `${rate}%` }}
-          className="h-full bg-white"
-        />
-      </div>
-      <p className="mt-4 text-[10px] font-medium opacity-70">Dựa trên tình trạng phòng thực tế.</p>
-    </motion.div>
-  );
-}
+
 
 
 // ─── Skeleton ────────────────────────────────────────────────────────────────
@@ -1025,29 +1006,12 @@ export default function AdminDashboardPage() {
 
           {role === "Receptionist" && (
             <div className="space-y-6">
-              {/* Row 1: KPI + Live Status */}
-              <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
-                <div className="lg:col-span-3">
-                   <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-                      {enrichedCards.map((card, i) => <StatCard key={i} {...card} />)}
-                   </div>
-                </div>
-                <div className="lg:col-span-1">
-                   <div className="flex h-full flex-col justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 p-6 text-white shadow-lg shadow-emerald-200">
-                      <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest opacity-80">
-                        <span className="relative flex h-2 w-2">
-                          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white opacity-75"></span>
-                          <span className="relative inline-flex h-2 w-2 rounded-full bg-white"></span>
-                        </span>
-                        Trực tuyến
-                      </div>
-                      <h2 className="mt-2 text-xl font-black">Lễ tân trực ca</h2>
-                      <p className="mt-1 text-xs font-medium opacity-90">Sẵn sàng phục vụ khách hàng {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.</p>
-                   </div>
-                </div>
+              {/* Row 1: KPI Cards */}
+              <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+                {enrichedCards.map((card, i) => <StatCard key={i} {...card} />)}
               </div>
 
-              {/* Row 2: Operational Center (Moves Check-in/out UP) */}
+              {/* Row 2: Operational Center */}
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
                  <CheckInList items={summary.tasks?.upcomingCheckIns} />
                  <CheckOutList items={summary.tasks?.upcomingCheckOuts} />
@@ -1056,11 +1020,12 @@ export default function AdminDashboardPage() {
                  </div>
               </div>
 
-              {/* Row 3: Status & Notifications */}
+              {/* Row 3: Updates & Notifications */}
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-                 <TodayBookingsList items={summary.tasks?.todayBookings} />
+                 <div className="lg:col-span-2">
+                    <TodayBookingsList items={summary.tasks?.todayBookings} />
+                 </div>
                  <NotificationCenter items={summary.tasks?.notifications} />
-                 <OccupancyRateCard rate={summary.rooms?.occupancyRate || 0} />
               </div>
             </div>
           )}

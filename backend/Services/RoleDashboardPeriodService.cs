@@ -732,24 +732,22 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
             })
             .ToListAsync(cancellationToken);
 
-        var recentLogs = await _context.AuditLogs
-            .Include(x => x.User)
-            .OrderByDescending(x => x.LogDate)
+        var recentNotifications = await _context.Notifications
+            .AsNoTracking()
+            .Where(x => x.CreatedAt.HasValue && x.CreatedAt.Value >= start && x.CreatedAt.Value <= end)
+            .OrderByDescending(x => x.CreatedAt)
             .Take(10)
             .ToListAsync(cancellationToken);
 
-        var notifications = recentLogs
-            .SelectMany(ExtractAuditEvents)
-            .OrderByDescending(x => x.Timestamp)
-            .Take(10)
+        var notifications = recentNotifications
             .Select(x => new DashboardTaskItem(
-                Guid.NewGuid().ToString(),
-                x.Action ?? "Thông báo",
-                x.Message ?? "",
-                "Info",
+                x.Id.ToString(),
+                x.Title ?? "Thông báo",
+                x.Content ?? "",
+                x.Type ?? "Info",
                 "NOTIFICATION",
-                x.Timestamp,
-                null,
+                x.CreatedAt ?? DateTime.UtcNow,
+                x.ReferenceLink,
                 null
             ))
             .ToList();
