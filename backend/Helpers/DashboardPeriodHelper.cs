@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace QuanTriKhachSan.Helpers;
+namespace backend.Helpers;
 
 public sealed record DashboardPeriodInfo(
     string PeriodType,

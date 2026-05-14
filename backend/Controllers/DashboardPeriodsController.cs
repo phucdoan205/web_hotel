@@ -1,10 +1,10 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using QuanTriKhachSan.Dtos.Dashboard;
-using QuanTriKhachSan.Services;
+using backend.DTOs.Dashboard;
+using backend.Services;
 
-namespace QuanTriKhachSan.Controllers.Dashboard;
+namespace backend.Controllers;
 
 [Route("api/dashboard-periods")]
 [ApiController]

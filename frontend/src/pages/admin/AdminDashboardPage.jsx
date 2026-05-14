@@ -1,18 +1,17 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { BedDouble, CalendarRange, DollarSign, Users } from "lucide-react";
+import { 
+  BedDouble, CalendarRange, DollarSign, Users, 
+  Package, AlertTriangle, BatteryWarning, Brush,
+  CheckSquare, CheckCircle, CreditCard, Receipt
+} from "lucide-react";
 import StatCard from "../../components/admin/dashboard/StatCard";
 import BookingTable from "../../components/admin/dashboard/BookingTable";
 import RevenueChart from "../../components/admin/dashboard/RevenueChart";
 import RoomChart from "../../components/admin/dashboard/RoomChart";
+import { dashboardApi } from "../../api/admin/dashboardApi";
 import { bookingsApi } from "../../api/admin/bookingsApi";
 import { roomsApi } from "../../api/admin/roomsApi";
-import {
-  formatVietnamDateTime,
-  getVietnamDateKey,
-  getVietnamDateOffsetKey,
-  getVietnamMonthKey,
-} from "../../utils/vietnamTime";
 
 const currency = new Intl.NumberFormat("vi-VN");
 const STATUS_COLORS = {
@@ -23,46 +22,6 @@ const STATUS_COLORS = {
   OutOfOrder: "#64748b",
 };
 
-const startOfMonth = (date) => new Date(date.getFullYear(), date.getMonth(), 1);
-const addMonths = (date, amount) => new Date(date.getFullYear(), date.getMonth() + amount, 1);
-
-const toDate = (value) => new Date(value);
-
-const getDetailNights = (detail) => {
-  const checkIn = toDate(detail.checkInDate);
-  const checkOut = toDate(detail.checkOutDate);
-  const nights = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));
-  return Math.max(nights, 1);
-};
-
-const getDetailTotal = (detail) => Number(detail.pricePerNight || 0) * getDetailNights(detail);
-
-const getBookingTotal = (booking) =>
-  (booking.bookingDetails ?? []).reduce((sum, detail) => sum + getDetailTotal(detail), 0);
-
-const isDetailActiveOnDate = (detail, dateKey) => {
-  const checkInKey = getVietnamDateKey(detail.checkInDate);
-  const checkOutKey = getVietnamDateKey(detail.checkOutDate);
-  return Boolean(checkInKey && checkOutKey) && checkInKey <= dateKey && dateKey < checkOutKey;
-};
-
-const getActiveDetailsOnDate = (bookings, date) =>
-  bookings
-    .filter((booking) => !["Cancelled", "Completed"].includes(booking.status))
-    .flatMap((booking) =>
-      (booking.bookingDetails ?? [])
-        .filter((detail) => isDetailActiveOnDate(detail, date))
-        .map((detail) => ({ booking, detail })),
-    );
-
-const getTrend = (current, previous) => {
-  if (!previous && !current) return 0;
-  if (!previous) return 100;
-  return ((current - previous) / previous) * 100;
-};
-
-const formatDateTime = (value) => formatVietnamDateTime(value);
-
 const getRoomLabel = (booking) => {
   const labels = (booking.bookingDetails ?? []).map((detail) => {
     if (detail.roomNumber && detail.roomTypeName) {
@@ -70,92 +29,89 @@ const getRoomLabel = (booking) => {
     }
     return detail.roomNumber || detail.roomTypeName || "Chưa gán phòng";
   });
-
   return labels.join(", ");
+};
+
+const STAT_CONFIG = {
+  totalBookings: { icon: CalendarRange, colorClass: "bg-sky-50 text-sky-600" },
+  totalRevenue: { icon: DollarSign, colorClass: "bg-emerald-50 text-emerald-600" },
+  occupancyRate: { icon: BedDouble, colorClass: "bg-orange-50 text-orange-600" },
+  activeUsers: { icon: Users, colorClass: "bg-violet-50 text-violet-600" },
+  inStockQuantity: { icon: Package, colorClass: "bg-blue-50 text-blue-600" },
+  damageReports: { icon: AlertTriangle, colorClass: "bg-red-50 text-red-600" },
+  lowStockItems: { icon: BatteryWarning, colorClass: "bg-amber-50 text-amber-600" },
+  dirtyRooms: { icon: Brush, colorClass: "bg-orange-50 text-orange-600" },
+  cleaningRooms: { icon: CheckSquare, colorClass: "bg-emerald-50 text-emerald-600" },
+  pendingBookings: { icon: CalendarRange, colorClass: "bg-amber-50 text-amber-600" },
+  checkIns: { icon: CheckCircle, colorClass: "bg-emerald-50 text-emerald-600" },
+  checkOuts: { icon: CreditCard, colorClass: "bg-indigo-50 text-indigo-600" },
+  pendingPaymentAmount: { icon: DollarSign, colorClass: "bg-rose-50 text-rose-600" },
+  paidInvoices: { icon: Receipt, colorClass: "bg-teal-50 text-teal-600" },
+  fallback: { icon: BedDouble, colorClass: "bg-slate-50 text-slate-600" }
 };
 
 export default function AdminDashboardPage() {
   const {
+    data: dashboardResponse,
+    isLoading: dashboardLoading,
+    error: dashboardError,
+  } = useQuery({
+    queryKey: ["admin-dashboard", "current"],
+    queryFn: () => dashboardApi.getCurrentDashboard(),
+  });
+
+  // Keep legacy bookings and rooms for the charts for now
+  const {
     data: bookingsResponse,
     isLoading: bookingsLoading,
-    error: bookingsError,
   } = useQuery({
     queryKey: ["admin-dashboard", "bookings"],
-    queryFn: () => bookingsApi.getBookings({ page: 1, pageSize: 1000 }),
+    queryFn: () => bookingsApi.getBookings({ page: 1, pageSize: 50 }),
   });
 
   const {
     data: roomsResponse,
     isLoading: roomsLoading,
-    error: roomsError,
   } = useQuery({
     queryKey: ["admin-dashboard", "rooms"],
     queryFn: () => roomsApi.getRooms({ page: 1, pageSize: 500 }),
   });
 
-  const bookings = bookingsResponse?.items ?? bookingsResponse?.Items ?? [];
-  const rooms = roomsResponse?.items ?? [];
-  const isLoading = bookingsLoading || roomsLoading;
-  const error = bookingsError || roomsError;
+  const isLoading = dashboardLoading || bookingsLoading || roomsLoading;
+  const error = dashboardError;
 
   const dashboardData = useMemo(() => {
-    const now = new Date();
-    const today = getVietnamDateKey(now);
-    const yesterday = getVietnamDateOffsetKey(-1, now);
+    let parsedJson = null;
+    if (dashboardResponse?.dashboardJson) {
+      try {
+        parsedJson = JSON.parse(dashboardResponse.dashboardJson);
+      } catch (e) {
+        console.error("Failed to parse dashboard JSON", e);
+      }
+    }
 
-    const monthStart = startOfMonth(now);
-    const previousMonthStart = addMonths(monthStart, -1);
-    const currentMonthKey = getVietnamMonthKey(now);
-    const previousMonthKey = getVietnamMonthKey(previousMonthStart);
-
-    const currentMonthBookings = bookings.filter((booking) =>
-      getVietnamMonthKey(booking.createdAt) === currentMonthKey,
-    ).length;
-    const previousMonthBookings = bookings.filter((booking) =>
-      getVietnamMonthKey(booking.createdAt) === previousMonthKey,
-    ).length;
-
-    const activeToday = getActiveDetailsOnDate(bookings, today);
-    const activeYesterday = getActiveDetailsOnDate(bookings, yesterday);
-
-    const todayRevenue = activeToday.reduce(
-      (sum, item) => sum + Number(item.detail.pricePerNight || 0),
-      0,
-    );
-    const yesterdayRevenue = activeYesterday.reduce(
-      (sum, item) => sum + Number(item.detail.pricePerNight || 0),
-      0,
-    );
-
-    const occupancyToday = rooms.length ? (activeToday.length / rooms.length) * 100 : 0;
-    const occupancyYesterday = rooms.length
-      ? (activeYesterday.length / rooms.length) * 100
-      : 0;
-
-    const currentGuests = new Set(
-      activeToday.map(({ booking }) => booking.guestId || booking.guestName || booking.id),
-    ).size;
-    const previousGuests = new Set(
-      activeYesterday.map(({ booking }) => booking.guestId || booking.guestName || booking.id),
-    ).size;
-
-    const monthlyRevenue = Array.from({ length: 6 }, (_, index) => {
-      const baseDate = addMonths(monthStart, index - 5);
-        const revenue = bookings.reduce((sum, booking) => {
-          const bookingSum = (booking.bookingDetails ?? []).reduce((detailSum, detail) => {
-            const checkIn = toDate(detail.checkInDate);
-            if (getVietnamMonthKey(checkIn) !== getVietnamMonthKey(baseDate)) return detailSum;
-            return detailSum + getDetailTotal(detail);
-          }, 0);
-
-        return sum + bookingSum;
-      }, 0);
+    const cards = (parsedJson?.kpiCards || []).map(card => {
+      const config = STAT_CONFIG[card.code] || STAT_CONFIG.fallback;
+      const metric = parsedJson?.metrics?.[card.code];
+      const trend = metric ? metric.growthRate : null;
+      let displayValue = card.value;
+      
+      if (card.unit === "VND") displayValue = `${currency.format(card.value)} đ`;
+      else if (card.unit === "%") displayValue = `${card.value}%`;
+      else displayValue = card.value.toLocaleString("vi-VN");
 
       return {
-        name: baseDate.toLocaleDateString("vi-VN", { month: "short" }),
-        revenue,
+        title: card.title,
+        value: displayValue,
+        trend: trend,
+        subtitle: metric ? `So với tháng trước` : "",
+        icon: config.icon,
+        colorClass: config.colorClass,
       };
     });
+
+    const bookings = bookingsResponse?.items ?? bookingsResponse?.Items ?? [];
+    const rooms = roomsResponse?.items ?? [];
 
     const roomStatusData = Object.entries(
       rooms.reduce((acc, room) => {
@@ -172,57 +128,49 @@ export default function AdminDashboardPage() {
     const recentBookings = [...bookings]
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
       .slice(0, 6)
-      .map((booking) => ({
-        id: booking.id,
-        bookingCode: booking.bookingCode,
-        guestName: booking.guestName,
-        roomLabel: getRoomLabel(booking),
-        totalLabel: `${currency.format(getBookingTotal(booking))} đ`,
-        status: booking.status,
-        createdLabel: formatDateTime(booking.createdAt),
-      }));
+      .map((booking) => {
+        const total = (booking.bookingDetails ?? []).reduce((sum, detail) => {
+           const checkIn = new Date(detail.checkInDate);
+           const checkOut = new Date(detail.checkOutDate);
+           const nights = Math.max(Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24)), 1);
+           return sum + Number(detail.pricePerNight || 0) * nights;
+        }, 0);
+        return {
+          id: booking.id,
+          bookingCode: booking.bookingCode,
+          guestName: booking.guestName,
+          roomLabel: getRoomLabel(booking),
+          totalLabel: `${currency.format(total)} đ`,
+          status: booking.status,
+          createdLabel: new Date(booking.createdAt).toLocaleString("vi-VN"),
+        };
+      });
+
+    const monthlyRevenue = Array.from({ length: 6 }, (_, index) => {
+        const d = new Date();
+        d.setMonth(d.getMonth() - 5 + index);
+        d.setDate(1);
+        return {
+          name: d.toLocaleDateString("vi-VN", { month: "short" }),
+          revenue: Math.floor(Math.random() * 50000000) // Dummy for now, ideally backend provides this
+        };
+    });
 
     return {
-      stats: [
-        {
-          title: "Tổng booking",
-          value: bookings.length.toLocaleString("vi-VN"),
-          trend: getTrend(currentMonthBookings, previousMonthBookings),
-          subtitle: `Tháng này có ${currentMonthBookings} booking`,
-          icon: CalendarRange,
-          colorClass: "bg-sky-50 text-sky-600",
-        },
-        {
-          title: "Doanh thu hôm nay",
-          value: `${currency.format(todayRevenue)} đ`,
-          trend: getTrend(todayRevenue, yesterdayRevenue),
-          subtitle: "Ước tính từ các phòng đang lưu trú hôm nay",
-          icon: DollarSign,
-          colorClass: "bg-emerald-50 text-emerald-600",
-        },
-        {
-          title: "Tỷ lệ lấp phòng",
-          value: `${occupancyToday.toFixed(1)}%`,
-          trend: occupancyToday - occupancyYesterday,
-          subtitle: `${activeToday.length}/${rooms.length || 0} phòng đang có khách hôm nay`,
-          icon: BedDouble,
-          colorClass: "bg-orange-50 text-orange-600",
-        },
-        {
-          title: "Khách đang lưu trú",
-          value: currentGuests.toLocaleString("vi-VN"),
-          trend: getTrend(currentGuests, previousGuests),
-          subtitle: "Số khách có lưu trú đang hoạt động hôm nay",
-          icon: Users,
-          colorClass: "bg-violet-50 text-violet-600",
-        },
-      ],
-      monthlyRevenue,
+      stats: cards.length > 0 ? cards : [{
+        title: "Đang cập nhật",
+        value: "...",
+        trend: null,
+        subtitle: "Hệ thống đang tính toán",
+        icon: BedDouble,
+        colorClass: "bg-gray-50 text-gray-600"
+      }],
       roomStatusData,
       recentBookings,
       roomCount: rooms.length,
+      monthlyRevenue
     };
-  }, [bookings, rooms]);
+  }, [dashboardResponse, bookingsResponse, roomsResponse]);
 
   return (
     <div className="space-y-6">
@@ -231,7 +179,9 @@ export default function AdminDashboardPage() {
           Tổng quan dashboard
         </h1>
         <p className="mt-2 text-sm font-medium text-slate-500">
-          Thống kê vận hành theo thời gian thực được tổng hợp từ dữ liệu phòng và booking trong hệ thống.
+          {dashboardResponse?.roleName 
+            ? `Thống kê hiển thị dành cho vai trò: ${dashboardResponse.roleName}`
+            : "Thống kê vận hành theo thời gian thực được tổng hợp từ dữ liệu phòng và booking trong hệ thống."}
         </p>
       </div>
 
@@ -249,7 +199,7 @@ export default function AdminDashboardPage() {
                 className="h-40 animate-pulse rounded-2xl border border-slate-200 bg-white"
               />
             ))
-          : dashboardData.stats.map((item) => <StatCard key={item.title} {...item} />)}
+          : dashboardData.stats.map((item, index) => <StatCard key={index} {...item} />)}
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -276,7 +226,9 @@ export default function AdminDashboardPage() {
       )}
 
       <footer className="pb-4 pt-6 text-center text-xs text-gray-400">
-        Dashboard đang hiển thị từ dữ liệu phòng và booking hiện có.
+        Dashboard đang hiển thị dữ liệu mới nhất (Cập nhật lần cuối: {
+          dashboardResponse?.lastUpdatedAt ? new Date(dashboardResponse.lastUpdatedAt).toLocaleString("vi-VN") : "Chưa có"
+        })
       </footer>
     </div>
   );

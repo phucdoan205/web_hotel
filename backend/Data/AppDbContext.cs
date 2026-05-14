@@ -56,6 +56,8 @@ namespace backend.Data
         public DbSet<ServiceComment> ServiceComments { get; set; }
         public DbSet<UserPaymentMethod> UserPaymentMethods { get; set; }
 
+        public DbSet<RoleDashboardPeriodState> RoleDashboardPeriodStates { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<RolePermission>()
@@ -422,6 +424,14 @@ namespace backend.Data
                     .WithMany(c => c.Replies)
                     .HasForeignKey(c => c.ParentCommentId)
                     .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<RoleDashboardPeriodState>(entity =>
+            {
+                entity.HasIndex(e => new { e.RoleId, e.DashboardCode, e.PeriodType, e.PeriodKey }).IsUnique();
+                entity.HasIndex(e => new { e.DashboardCode, e.RoleName, e.PeriodType, e.PeriodStart, e.PeriodEnd });
+                entity.HasIndex(e => new { e.RoleId, e.DashboardCode, e.PeriodType, e.IsCurrent }).HasFilter("[is_current] = 1");
+                entity.HasIndex(e => e.UpdatedAt);
             });
 
             base.OnModelCreating(modelBuilder);

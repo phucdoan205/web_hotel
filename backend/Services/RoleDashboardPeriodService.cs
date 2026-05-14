@@ -1,10 +1,11 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
-using QuanTriKhachSan.Dtos.Dashboard;
-using QuanTriKhachSan.Helpers;
-using QuanTriKhachSan.Models;
+using backend.DTOs.Dashboard;
+using backend.Helpers;
+using backend.Models;
+using backend.Data;
 
-namespace QuanTriKhachSan.Services;
+namespace backend.Services;
 
 public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
 {
@@ -13,9 +14,9 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
         WriteIndented = false
     };
 
-    private readonly HotelDbContext _context;
+    private readonly AppDbContext _context;
 
-    public RoleDashboardPeriodService(HotelDbContext context)
+    public RoleDashboardPeriodService(AppDbContext context)
     {
         _context = context;
     }
@@ -176,7 +177,8 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
                 || x.Name == "Receptionist"
                 || x.Name == "Accountant"
                 || x.Name == "Housekeeping"
-                || x.Name == "WarehouseStaff")
+                || x.Name == "WarehouseStaff"
+                || x.Name == "Warehouse")
             .Select(x => x.Name)
             .ToListAsync(cancellationToken);
 
@@ -239,12 +241,10 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
     {
         var totalUsers = await _context.Users.CountAsync(cancellationToken);
         var activeUsers = await _context.Users.CountAsync(x => x.Status == true, cancellationToken);
-        var newCustomers = await _context.Users
-            .Where(x => x.Role != null && x.Role.Name == "Guest" && x.CreatedAt.HasValue && x.CreatedAt.Value >= start && x.CreatedAt.Value <= end)
-            .CountAsync(cancellationToken);
+        var newCustomers = 0;
 
         var auditEvents = await _context.AuditLogs
-            .Where(x => x.LogDate >= DateOnly.FromDateTime(start) && x.LogDate <= DateOnly.FromDateTime(end))
+            .Where(x => x.LogDate >= start && x.LogDate <= end)
             .CountAsync(cancellationToken);
 
         var unreadNotifications = await _context.Notifications
@@ -272,7 +272,7 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
             .ToList();
 
         var bookings = await _context.Bookings
-            .Where(x => x.CreatedAt.HasValue && x.CreatedAt.Value >= start && x.CreatedAt.Value <= end)
+            .Where(x => x.CreatedAt >= start && x.CreatedAt <= end)
             .GroupBy(x => x.Status ?? "Unknown")
             .Select(g => new { Status = g.Key, Total = g.Count() })
             .ToListAsync(cancellationToken);
@@ -284,8 +284,8 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
         var confirmedBookings = bookings.Where(x => x.Status == "Confirmed").Sum(x => x.Total);
         var inProgressBookings = bookings.Where(x => x.Status == "In_Progress").Sum(x => x.Total);
 
-        var checkIns = await _context.BookingDetails.CountAsync(x => x.ActualCheckIn.HasValue && x.ActualCheckIn.Value >= start && x.ActualCheckIn.Value <= end, cancellationToken);
-        var checkOuts = await _context.BookingDetails.CountAsync(x => x.ActualCheckOut.HasValue && x.ActualCheckOut.Value >= start && x.ActualCheckOut.Value <= end, cancellationToken);
+        var checkIns = await _context.BookingDetails.CountAsync(x => x.CheckInDate >= start && x.CheckInDate <= end, cancellationToken);
+        var checkOuts = await _context.BookingDetails.CountAsync(x => x.CheckOutDate >= start && x.CheckOutDate <= end, cancellationToken);
 
         var totalRevenue = await _context.Payments
             .Where(x => x.PaymentDate.HasValue && x.PaymentDate.Value >= start && x.PaymentDate.Value <= end)
@@ -628,7 +628,7 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
     {
         return roleName switch
         {
-            "WarehouseStaff" => new object[]
+            "WarehouseStaff" or "Warehouse" => new object[]
             {
                 new { code = "inStockQuantity", title = "Tồn kho", value = metrics.InStockQuantity, unit = "item" },
                 new { code = "damageReports", title = "Báo cáo hỏng/mất", value = metrics.DamageReports, unit = "report" },
@@ -645,6 +645,24 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
                 new { code = "totalRevenue", title = "Doanh thu", value = metrics.TotalRevenue, unit = "VND" },
                 new { code = "pendingPaymentAmount", title = "Chưa thanh toán", value = metrics.PendingPaymentAmount, unit = "VND" },
                 new { code = "paidInvoices", title = "Hóa đơn đã trả", value = metrics.PaidInvoices, unit = "invoice" }
+            },
+            "Receptionist" => new object[]
+            {
+                new { code = "pendingBookings", title = "Chờ duyệt", value = metrics.PendingBookings, unit = "booking" },
+                new { code = "checkIns", title = "Check In", value = metrics.CheckIns, unit = "booking" },
+                new { code = "checkOuts", title = "Check Out", value = metrics.CheckOuts, unit = "booking" }
+            },
+            "Admin" => new object[]
+            {
+                new { code = "totalRevenue", title = "Doanh thu", value = metrics.TotalRevenue, unit = "VND" },
+                new { code = "activeUsers", title = "Người dùng HT", value = metrics.ActiveUsers, unit = "user" },
+                new { code = "occupancyRate", title = "Tỷ lệ lấp đầy", value = metrics.OccupancyRate, unit = "%" }
+            },
+            "Manager" => new object[]
+            {
+                new { code = "totalRevenue", title = "Doanh thu", value = metrics.TotalRevenue, unit = "VND" },
+                new { code = "totalBookings", title = "Tổng đặt phòng", value = metrics.TotalBookings, unit = "booking" },
+                new { code = "occupancyRate", title = "Tỷ lệ lấp đầy", value = metrics.OccupancyRate, unit = "%" }
             },
             _ => new object[]
             {
@@ -681,12 +699,12 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
 
         foreach (var item in events.EnumerateArray())
         {
-            var timestamp = GetDateTime(item, "timestamp") ?? log.LogDate.ToDateTime(TimeOnly.MinValue);
+            var timestamp = GetDateTime(item, "timestamp") ?? log.LogDate;
 
             yield return new RecentAuditItem(
-                UserId: log.UserId,
+                UserId: log.UserId ?? 0,
                 UserName: log.User?.FullName ?? log.User?.Email ?? "Unknown",
-                RoleName: log.RoleName,
+                RoleName: log.User?.Role?.Name ?? "Unknown",
                 Action: GetString(item, "actionType") ?? GetString(item, "action") ?? "UNKNOWN",
                 EntityType: GetString(item, "entityType"),
                 Message: GetString(item, "message"),

@@ -1,4 +1,4 @@
-﻿using backend.Data;
+using backend.Data;
 using backend.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,6 +17,10 @@ namespace backend.Services
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
+            // Chờ 15 giây trước khi bắt đầu để đảm bảo DB đã sẵn sàng và tránh xung đột khởi động
+            try { await Task.Delay(TimeSpan.FromSeconds(15), stoppingToken); }
+            catch (OperationCanceledException) { return; }
+
             while (!stoppingToken.IsCancellationRequested)
             {
                 var delay = await CalculateNextDelayAsync(stoppingToken);
@@ -87,7 +91,8 @@ namespace backend.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Lỗi khi tính delay cho AuditLogCleanup");
+                try { _logger.LogError(ex, "Lỗi khi tính delay cho AuditLogCleanup"); }
+                catch { Console.WriteLine($"[CRITICAL ERROR] Logging failed: {ex.Message}"); }
                 return TimeSpan.FromMinutes(5);
             }
         }
@@ -153,7 +158,8 @@ namespace backend.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Lỗi khi dọn dẹp AuditLog");
+                try { _logger.LogError(ex, "Lỗi khi dọn dẹp AuditLog"); }
+                catch { Console.WriteLine($"[CRITICAL ERROR] Logging failed: {ex.Message}"); }
                 await Task.Delay(TimeSpan.FromMinutes(5), cancellationToken);
             }
         }

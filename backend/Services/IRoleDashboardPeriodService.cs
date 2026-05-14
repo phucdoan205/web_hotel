@@ -1,6 +1,6 @@
-using QuanTriKhachSan.Dtos.Dashboard;
+using backend.DTOs.Dashboard;
 
-namespace QuanTriKhachSan.Services;
+namespace backend.Services;
 
 public interface IRoleDashboardPeriodService
 {

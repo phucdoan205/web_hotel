@@ -61,12 +61,14 @@ builder.Services.AddSingleton<NotificationRealtimeService>();
 builder.Services.AddScoped<NotificationService>();
 builder.Services.AddScoped<IEmailService, SmtpEmailService>();
 builder.Services.AddScoped<AuditLogViewService>();
+builder.Services.AddScoped<IRoleDashboardPeriodService, RoleDashboardPeriodService>();
 
 //Dùng cho AuditLog, không được xoá
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<AuditSaveChangesInterceptor>();
 builder.Services.AddSingleton<AuditLogCleanupService>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<AuditLogCleanupService>());
+builder.Services.AddHostedService<DashboardRebuildBackgroundService>();
 
 builder.Services.AddDbContext<AppDbContext>((sp, options) =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
