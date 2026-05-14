@@ -313,41 +313,28 @@ function WarehouseStatusChart({ summary }) {
 function BookingSummary({ bookingSummary }) {
   if (!bookingSummary) return null;
   const rows = [
-    { label: "Tổng đặt phòng", val: bookingSummary.totalBookings, icon: Calendar },
-    { label: "Đang chờ duyệt", val: bookingSummary.pendingBookings, alert: true, icon: Clock },
-    { label: "Đang lưu trú", val: bookingSummary.inProgressBookings, icon: Activity },
-    { label: "Hoàn tất", val: bookingSummary.completedBookings, icon: CheckSquare },
-    { label: "Đã hủy", val: bookingSummary.cancelledBookings, icon: AlertTriangle },
-    { label: "Check-in kỳ này", val: bookingSummary.checkIns, icon: LogIn },
-    { label: "Check-out kỳ này", val: bookingSummary.checkOuts, icon: LogOut },
+    { label: "Tổng đặt phòng", val: bookingSummary.totalBookings },
+    { label: "Đang chờ duyệt", val: bookingSummary.pendingBookings, alert: true },
+    { label: "Đang lưu trú", val: bookingSummary.inProgressBookings, info: true },
+    { label: "Hoàn tất", val: bookingSummary.completedBookings },
+    { label: "Đã hủy", val: bookingSummary.cancelledBookings },
+    { label: "Check-in kỳ này", val: bookingSummary.checkIns },
+    { label: "Check-out kỳ này", val: bookingSummary.checkOuts },
   ].filter(r => r.val != null);
 
   return (
-    <div className="rounded-[2rem] border border-slate-100 bg-white p-6 shadow-sm">
-      <div className="mb-6 flex items-center gap-3">
-        <div className="flex size-10 items-center justify-center rounded-2xl bg-slate-50 text-slate-400 ring-1 ring-slate-100">
-           <Layers className="size-5" />
-        </div>
-        <h3 className="text-base font-black text-slate-800 tracking-tight">Thống kê đặt phòng</h3>
-      </div>
-      
-      <div className="grid grid-cols-1 gap-1">
-        {rows.map((r, i) => {
-          const Icon = r.icon;
-          return (
-            <div key={i} className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 transition-colors">
-              <div className="flex items-center gap-3">
-                <div className={`flex size-7 items-center justify-center rounded-lg ${r.alert && r.val > 0 ? "bg-amber-100 text-amber-600" : "bg-slate-100 text-slate-400"}`}>
-                   <Icon className="size-3.5" />
-                </div>
-                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-tight">{r.label}</span>
-              </div>
-              <span className={`text-sm font-black ${r.alert && r.val > 0 ? "text-amber-600" : "text-slate-800"}`}>
-                {fmtNum(r.val)}
-              </span>
-            </div>
-          );
-        })}
+    <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm h-full">
+      <h3 className="mb-4 text-base font-bold text-gray-900">Thống kê đặt phòng</h3>
+      <div className="space-y-2">
+        {rows.map((r, i) => (
+          <div key={i} className="flex items-center justify-between">
+            <span className="text-sm text-gray-500">{r.label}</span>
+            <span className={`text-sm font-bold
+              ${r.alert && r.val > 0 ? "text-amber-600" : r.info && r.val > 0 ? "text-blue-600" : "text-gray-800"}`}>
+              {fmtNum(r.val)}
+            </span>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -790,40 +777,27 @@ function RecentAudits({ audits }) {
 function SystemSummary({ systemSummary }) {
   if (!systemSummary) return null;
   const rows = [
-    { label: "Tổng tài khoản", val: systemSummary.totalUsers, icon: Users },
-    { label: "Nhân viên", val: systemSummary.staffCount, highlight: true, icon: Activity },
-    { label: "Đang hoạt động", val: systemSummary.activeUsers, icon: CheckCircle },
-    { label: "Bị khóa", val: systemSummary.lockedUsers, alert: true, icon: AlertTriangle },
-    { label: "Số khách hàng", val: systemSummary.totalGuests, icon: Users },
-    { label: "Số người dùng", val: systemSummary.userRoleCount, icon: UserCircle },
+    { label: "Tổng tài khoản", val: systemSummary.totalUsers },
+    { label: "Nhân viên", val: systemSummary.staffCount, info: true },
+    { label: "Đang hoạt động", val: systemSummary.activeUsers },
+    { label: "Bị khóa", val: systemSummary.lockedUsers, alert: true },
+    { label: "Số khách hàng", val: systemSummary.totalGuests },
+    { label: "Số người dùng", val: systemSummary.userRoleCount },
   ].filter(r => r.val != null);
 
   return (
-    <div className="rounded-[2rem] border border-slate-100 bg-white p-6 shadow-sm">
-      <div className="mb-6 flex items-center gap-3">
-        <div className="flex size-10 items-center justify-center rounded-2xl bg-slate-50 text-slate-400 ring-1 ring-slate-100">
-           <Activity className="size-5" />
-        </div>
-        <h3 className="text-base font-black text-slate-800 tracking-tight">Hệ thống</h3>
-      </div>
-      
-      <div className="grid grid-cols-1 gap-1">
-        {rows.map((r, i) => {
-          const Icon = r.icon;
-          return (
-            <div key={i} className="flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 transition-colors group">
-              <div className="flex items-center gap-3">
-                <div className={`flex size-7 items-center justify-center rounded-lg ${r.alert && r.val > 0 ? "bg-rose-100 text-rose-600" : r.highlight && r.val > 0 ? "bg-blue-100 text-blue-600" : "bg-slate-100 text-slate-400 group-hover:bg-white transition-colors"}`}>
-                   <Icon className="size-3.5" />
-                </div>
-                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-tight">{r.label}</span>
-              </div>
-              <span className={`text-sm font-black ${r.alert && r.val > 0 ? "text-rose-600" : r.highlight && r.val > 0 ? "text-blue-600" : "text-slate-800"}`}>
-                {fmtNum(r.val)}
-              </span>
-            </div>
-          );
-        })}
+    <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm h-full">
+      <h3 className="mb-4 text-base font-bold text-gray-900">Hệ thống</h3>
+      <div className="space-y-2">
+        {rows.map((r, i) => (
+          <div key={i} className="flex items-center justify-between">
+            <span className="text-sm text-gray-500">{r.label}</span>
+            <span className={`text-sm font-bold
+              ${r.alert && r.val > 0 ? "text-rose-600" : r.info && r.val > 0 ? "text-blue-600" : "text-gray-800"}`}>
+              {fmtNum(r.val)}
+            </span>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -1485,34 +1459,27 @@ export default function AdminDashboardPage() {
                 </div>
                 <div className="lg:col-span-1 space-y-6">
                    {hasRooms && <RoomStatusOverview roomsSummary={summary.rooms} role={role} />}
-                   {hasWh && <WarehouseStatusChart summary={summary.warehouse} />}
                 </div>
               </div>
 
-              {/* Detailed Lists */}
-              <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-                {/* Bookings & Services */}
-                <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-                   <RecentBookings bookings={summary.booking?.recentBookings} />
-                   <TopServices services={summary.revenue?.topServices} />
-                </div>
-
-                {/* System Stats */}
-                <div className="space-y-6">
-                   <SystemSummary systemSummary={summary.system} />
-                </div>
-              </div>
-
-              {/* Bottom Row: Stats & Audits */}
+              {/* Stats Row (Dòng 3) */}
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 items-start">
-                 <div>
-                    <BookingSummary bookingSummary={summary.booking} />
-                 </div>
-                 <div className="lg:col-span-2">
-                    {tables.recentAudits?.length > 0 && (
-                      <RecentAudits audits={tables.recentAudits} />
-                    )}
-                 </div>
+                 <BookingSummary bookingSummary={summary.booking} />
+                 {hasWh && <WarehouseSummary warehouseSummary={summary.warehouse} />}
+                 <SystemSummary systemSummary={summary.system} />
+              </div>
+
+              {/* Detailed Lists (Dòng 4) */}
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 items-start">
+                 <RecentBookings bookings={summary.booking?.recentBookings} />
+                 <TopServices services={summary.revenue?.topServices} />
+              </div>
+
+              {/* Bottom Row: Audits */}
+              <div>
+                 {tables.recentAudits?.length > 0 && (
+                   <RecentAudits audits={tables.recentAudits} />
+                 )}
               </div>
             </div>
           )}
