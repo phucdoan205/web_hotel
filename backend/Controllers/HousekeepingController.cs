@@ -50,6 +50,7 @@ namespace backend.Controllers
                 .Include(r => r.RoomType)
                     .ThenInclude(rt => rt!.RoomImages)
                 .Include(r => r.RoomInventory)
+                .Include(r => r.AssignedUser)
                 .Where(r =>
                     trackedStatuses.Contains(r.CleaningStatus!) &&
                     r.Status != RoomStatuses.OutOfOrder);
@@ -72,7 +73,7 @@ namespace backend.Controllers
                 .ThenBy(r => r.RoomNumber)
                 .ToListAsync();
 
-            var items = rooms.Select(room => MapTaskItem(room, currentUserId, _taskLockService.GetAssignedUserId(room.Id))).ToList();
+            var items = rooms.Select(room => MapTaskItem(room, currentUserId, room.AssignedUserId, room.AssignedUser?.FullName)).ToList();
 
             return Ok(new HousekeepingTaskListResponseDTO
             {
@@ -96,6 +97,7 @@ namespace backend.Controllers
                     .ThenInclude(rt => rt!.RoomImages)
                 .Include(r => r.RoomInventory)
                     .ThenInclude(ri => ri.Equipment)
+                .Include(r => r.AssignedUser)
                 .FirstOrDefaultAsync(r => r.Id == roomId);
 
             if (room == null)
@@ -103,16 +105,10 @@ namespace backend.Controllers
                 return NotFound("Khong tim thay phong.");
             }
 
-            var assignedUserId = _taskLockService.GetAssignedUserId(room.Id);
-            if (room.CleaningStatus == RoomCleaningStatuses.InProgress &&
-                assignedUserId.HasValue &&
-                currentUserId.HasValue &&
-                assignedUserId.Value != currentUserId.Value)
-            {
-                return StatusCode(403, "Phong nay da duoc nguoi khac nhan nhiem vu.");
-            }
+            var assignedUserId = room.AssignedUserId;
+            // Removed 403 check to allow viewing details even if locked by others
 
-            return Ok(MapTaskDetail(room, currentUserId, assignedUserId));
+            return Ok(MapTaskDetail(room, currentUserId, assignedUserId, room.AssignedUser?.FullName));
         }
 
         [HttpPost("tasks/{roomId:int}/accept")]
@@ -140,7 +136,7 @@ namespace backend.Controllers
                 return BadRequest("Phong dang o trang thai OutOfOrder.");
             }
 
-            var assignedUserId = _taskLockService.GetAssignedUserId(room.Id);
+            var assignedUserId = room.AssignedUserId;
             if (assignedUserId.HasValue && assignedUserId.Value != currentUserId.Value)
             {
                 return Conflict("Phong nay da duoc nguoi khac nhan va dang don.");
@@ -150,7 +146,7 @@ namespace backend.Controllers
             {
                 if (assignedUserId == currentUserId.Value)
                 {
-                    return Ok(MapTaskDetail(room, currentUserId.Value, assignedUserId));
+                    return Ok(MapTaskDetail(room, currentUserId.Value, assignedUserId, room.AssignedUser?.FullName));
                 }
 
                 return Conflict("Phong nay da duoc nguoi khac nhan va dang don.");
@@ -165,10 +161,13 @@ namespace backend.Controllers
             room.CleaningStatus = RoomCleaningStatuses.InProgress;
             room.Status = RoomStatuses.Cleaning;
             room.LastCleaningUpdatedAt = DateTime.UtcNow;
-            _taskLockService.ForceAssign(room.Id, currentUserId.Value);
+            room.AssignedUserId = currentUserId.Value;
             await _context.SaveChangesAsync();
+            
+            // Still fetching user for the response
+            var user = await _context.Users.FindAsync(currentUserId.Value);
 
-            return Ok(MapTaskDetail(room, currentUserId.Value, currentUserId.Value));
+            return Ok(MapTaskDetail(room, currentUserId.Value, currentUserId.Value, user?.FullName));
         }
 
         [HttpPost("tasks/{roomId:int}/complete")]
@@ -185,7 +184,7 @@ namespace backend.Controllers
                 return NotFound("Khong tim thay phong.");
             }
 
-            if (!_taskLockService.IsAssignedTo(roomId, currentUserId.Value))
+            if (room.AssignedUserId != currentUserId.Value)
             {
                 return StatusCode(403, "Ban khong the hoan tat phong do nguoi khac da nhan.");
             }
@@ -202,8 +201,8 @@ namespace backend.Controllers
             }
 
             room.LastCleaningUpdatedAt = DateTime.UtcNow;
+            room.AssignedUserId = null;
             await _context.SaveChangesAsync();
-            _taskLockService.Release(roomId);
             return NoContent();
         }
 
@@ -217,7 +216,7 @@ namespace backend.Controllers
                 request.Quantity,
                 request.Description,
                 request.ImageFile,
-                requireTaskAssignment: true);
+                requireTaskAssignment: false);
         }
 
         [HttpPost("inventory-issues/manual")]
@@ -762,7 +761,7 @@ namespace backend.Controllers
                 equipment.LiquidatedQuantity));
         }
 
-        private HousekeepingTaskItemDTO MapTaskItem(Room room, int? currentUserId, int? assignedUserId)
+        private HousekeepingTaskItemDTO MapTaskItem(Room room, int? currentUserId, int? assignedUserId, string? assignedToName)
         {
             return new HousekeepingTaskItemDTO
             {
@@ -774,6 +773,7 @@ namespace backend.Controllers
                 Status = room.Status ?? string.Empty,
                 CleaningStatus = room.CleaningStatus ?? string.Empty,
                 AssignedUserId = assignedUserId,
+                AssignedToName = assignedToName,
                 IsAssignedToCurrentUser = currentUserId.HasValue && assignedUserId == currentUserId.Value,
                 IsLockedByOther = assignedUserId.HasValue && (!currentUserId.HasValue || assignedUserId != currentUserId.Value),
                 Priority = room.CleaningStatus == RoomCleaningStatuses.Dirty ? "High" :
@@ -789,7 +789,7 @@ namespace backend.Controllers
             };
         }
 
-        private HousekeepingTaskDetailDTO MapTaskDetail(Room room, int? currentUserId, int? assignedUserId)
+        private HousekeepingTaskDetailDTO MapTaskDetail(Room room, int? currentUserId, int? assignedUserId, string? assignedToName)
         {
             return new HousekeepingTaskDetailDTO
             {
@@ -800,6 +800,7 @@ namespace backend.Controllers
                 Status = room.Status ?? string.Empty,
                 CleaningStatus = room.CleaningStatus ?? string.Empty,
                 AssignedUserId = assignedUserId,
+                AssignedToName = assignedToName,
                 IsAssignedToCurrentUser = currentUserId.HasValue && assignedUserId == currentUserId.Value,
                 IsLockedByOther = assignedUserId.HasValue && (!currentUserId.HasValue || assignedUserId != currentUserId.Value),
                 TaskType = GetTaskType(room.CleaningStatus),

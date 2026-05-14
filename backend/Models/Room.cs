@@ -18,6 +18,9 @@ namespace backend.Models
         public ICollection<BookingDetail> BookingDetails { get; set; } = new List<BookingDetail>();
         public ICollection<RoomInventory> RoomInventory { get; set; } = new List<RoomInventory>();
         public ICollection<RoomAmenity> RoomAmenities { get; set; } = new List<RoomAmenity>();
+        public int? AssignedUserId { get; set; }
+        [ForeignKey("AssignedUserId")]
+        public User? AssignedUser { get; set; }
         public DateTime? LastCleaningUpdatedAt { get; set; }
     }
 }

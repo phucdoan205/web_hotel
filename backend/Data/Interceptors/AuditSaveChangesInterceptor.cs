@@ -305,6 +305,7 @@ namespace backend.Data.Interceptors
                 {
                     var newStatus = cleaningProp.CurrentValue?.ToString();
                     if (newStatus == "Clean") return $"Phòng {GetEntityIdentifier(entry)} đã dọn xong";
+                    if (newStatus == "InProgress") return $"Đã nhận nhiệm vụ dọn phòng {GetEntityIdentifier(entry)}";
                 }
             } catch {}
 

@@ -10,6 +10,7 @@ namespace backend.DTOs.Housekeeping
         public string Status { get; set; } = string.Empty;
         public string CleaningStatus { get; set; } = string.Empty;
         public int? AssignedUserId { get; set; }
+        public string? AssignedToName { get; set; }
         public bool IsAssignedToCurrentUser { get; set; }
         public bool IsLockedByOther { get; set; }
         public string Priority { get; set; } = string.Empty;

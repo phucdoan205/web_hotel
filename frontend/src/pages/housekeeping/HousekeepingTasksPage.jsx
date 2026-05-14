@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { housekeepingApi } from "../../api/admin/housekeepingApi";
 import { hasPermission } from "../../utils/permissions";
+import { motion } from "framer-motion";
 
 const STATUS_OPTIONS = [
   { value: "", label: "Tất cả trạng thái" },
@@ -83,7 +84,7 @@ const getPriorityLabel = (priority) => {
     case "Working":
       return "Đang xử lý";
     default:
-      return priority || "Thông thường";
+      return "Bình thường";
   }
 };
 
@@ -104,108 +105,117 @@ function TaskCard({ task, onAccept, onOpenChecklist, isAccepting }) {
   const canViewHousekeeping = hasPermission("VIEW_HOUSEKEEPING");
   const canAssignHousekeeping = hasPermission("ASSIGN_HOUSEKEEPING");
 
+  const status = getStatusLabel(task.cleaningStatus);
+  const priority = getPriorityLabel(task.priority);
+
   return (
-    <article className="rounded-[2rem] border border-sky-100 bg-white/95 p-6 shadow-sm shadow-sky-100/70 transition hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-md">
-      <div className="flex flex-col gap-5 xl:flex-row xl:items-start">
-        <div className="flex flex-1 items-start gap-5">
+    <motion.article 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -4 }}
+      className="group relative overflow-hidden rounded-[2.5rem] border border-slate-100 bg-white p-6 shadow-sm transition-all hover:shadow-xl hover:shadow-sky-100/50"
+    >
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-center">
+        {/* Room Preview */}
+        <div className="relative shrink-0">
           {task.previewImageUrl ? (
             <img
               src={task.previewImageUrl}
               alt={`Phòng ${task.roomNumber}`}
-              className="h-28 w-32 rounded-[1.75rem] object-cover ring-1 ring-sky-100"
+              className="h-32 w-40 rounded-[2rem] object-cover ring-1 ring-slate-100 shadow-sm"
             />
           ) : (
-            <div className="flex h-28 w-32 items-center justify-center rounded-[1.75rem] bg-sky-50 text-sky-300">
-              <BedDouble className="size-9" />
+            <div className="flex h-32 w-40 items-center justify-center rounded-[2rem] bg-slate-50 text-slate-300 ring-1 ring-slate-100">
+              <BedDouble className="size-10" />
             </div>
           )}
+          <div className="absolute -right-2 -top-2 flex h-10 w-10 items-center justify-center rounded-2xl bg-white font-black text-slate-900 shadow-lg ring-1 ring-slate-100">
+             {task.floor ?? "?"}
+          </div>
+        </div>
 
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2.5">
-              <p className="text-[2rem] font-black leading-none tracking-[-0.03em] text-slate-900">
-                {task.roomNumber}
-              </p>
-              <span
-                className={`rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.24em] ring-1 ${getStatusClass(task.cleaningStatus)}`}
-              >
-                {getStatusLabel(task.cleaningStatus)}
+        {/* Content */}
+        <div className="flex-1 min-w-0">
+          <div className="flex flex-wrap items-center gap-3">
+            <h3 className="text-4xl font-black tracking-tighter text-slate-900">{task.roomNumber}</h3>
+            <div className="flex flex-wrap gap-2">
+              <span className={`rounded-full px-4 py-1 text-[10px] font-black uppercase tracking-widest ring-1 ${getStatusClass(task.cleaningStatus)}`}>
+                {status}
               </span>
-              <span
-                className={`rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.24em] ring-1 ${getPriorityClass(task.priority)}`}
-              >
-                {getPriorityLabel(task.priority)}
+              <span className={`rounded-full px-4 py-1 text-[10px] font-black uppercase tracking-widest ring-1 ${getPriorityClass(task.priority)}`}>
+                {priority}
               </span>
             </div>
+          </div>
+          
+          <p className="mt-1 text-sm font-bold text-slate-400 uppercase tracking-wider">
+            {task.roomTypeName || "Phòng tiêu chuẩn"}
+          </p>
 
-            <p className="mt-2 text-[15px] font-semibold tracking-[0.01em] text-slate-500">
-              {task.roomTypeName || "Phòng tiêu chuẩn"} • Tầng {task.floor ?? "-"}
-            </p>
-
-            <div className="mt-5 grid gap-3 lg:grid-cols-3">
-              <div className="rounded-[1.4rem] border border-sky-100 bg-gradient-to-br from-sky-50 to-white px-4 py-3.5">
-                <p className="text-[11px] font-black uppercase tracking-[0.24em] text-sky-500/70">
-                  Loại nhiệm vụ
-                </p>
-                <p className="mt-2 text-[15px] font-bold tracking-[0.01em] text-slate-900">
-                  {getTaskTypeLabel(task.taskType)}
-                </p>
+          <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div className="rounded-2xl border border-slate-50 bg-slate-50/50 p-4 transition-colors group-hover:bg-white group-hover:border-sky-100">
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Loại nhiệm vụ</p>
+              <div className="mt-2 flex items-center gap-2">
+                 <WandSparkles className="size-4 text-sky-500" />
+                 <p className="text-sm font-extrabold text-slate-700">{getTaskTypeLabel(task.taskType)}</p>
               </div>
+            </div>
 
-              <div className="rounded-[1.4rem] border border-sky-100 bg-gradient-to-br from-sky-50 to-white px-4 py-3.5">
-                <p className="text-[11px] font-black uppercase tracking-[0.24em] text-sky-500/70">
-                  Vật tư cần kiểm
-                </p>
-                <p className="mt-2 text-[15px] font-bold tracking-[0.01em] text-slate-900">
-                  {task.inventoryCount ?? 0} mục
-                </p>
+            <div className="rounded-2xl border border-slate-50 bg-slate-50/50 p-4 transition-colors group-hover:bg-white group-hover:border-sky-100">
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Vật tư cần kiểm</p>
+              <div className="mt-2 flex items-center gap-2">
+                 <SprayCan className="size-4 text-amber-500" />
+                 <p className="text-sm font-extrabold text-slate-700">{task.inventoryCount ?? 0} mục</p>
               </div>
+            </div>
 
-              <div className="rounded-[1.4rem] border border-sky-100 bg-gradient-to-br from-sky-50 to-white px-4 py-3.5">
-                <p className="text-[11px] font-black uppercase tracking-[0.24em] text-sky-500/70">
-                  Phụ trách
-                </p>
-                <p className="mt-2 text-[15px] font-bold tracking-[0.01em] text-slate-900">
-                  {task.isAssignedToCurrentUser
-                    ? "Bạn đang xử lý"
-                    : task.isLockedByOther
-                      ? "Nhân viên khác đã nhận"
-                      : "Chưa có người nhận"}
-                </p>
+            <div className="rounded-2xl border border-slate-50 bg-slate-50/50 p-4 transition-colors group-hover:bg-white group-hover:border-sky-100">
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Phụ trách</p>
+              <div className="mt-2 flex items-center gap-2">
+                 <UserRoundCheck className={`size-4 ${task.isAssignedToCurrentUser ? 'text-emerald-500' : 'text-slate-400'}`} />
+                  <p className={`text-sm font-extrabold ${task.isAssignedToCurrentUser ? 'text-emerald-600' : 'text-slate-700'}`}>
+                    {task.isAssignedToCurrentUser 
+                      ? "Bạn đang dọn" 
+                      : task.isLockedByOther 
+                        ? (task.assignedToName || "Đã có người nhận") 
+                        : "Chưa có người nhận"}
+                  </p>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="flex w-full shrink-0 flex-col gap-3 xl:w-56">
-          {canAccept && canAssignHousekeeping ? (
-            <button
-              type="button"
+        {/* Actions */}
+        <div className="flex shrink-0 flex-col gap-3 lg:w-48">
+          {canAccept && canAssignHousekeeping && (
+            <motion.button
+              whileTap={{ scale: 0.95 }}
               onClick={() => onAccept(task.roomId)}
               disabled={isAccepting}
-              className="rounded-2xl bg-sky-600 px-4 py-3.5 text-sm font-black text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
+              className="flex h-14 items-center justify-center rounded-2xl bg-sky-600 px-6 text-sm font-black text-white shadow-lg shadow-sky-200 transition hover:bg-sky-700 disabled:opacity-50"
             >
-              {canContinue ? "Tiếp tục checklist" : "Nhận nhiệm vụ"}
-            </button>
-          ) : null}
+              {isAccepting ? <div className="size-4 animate-spin rounded-full border-2 border-white border-t-transparent" /> : (canContinue ? "Tiếp tục" : "Nhận nhiệm vụ")}
+            </motion.button>
+          )}
 
-          {canViewHousekeeping && (!actionable || task.isAssignedToCurrentUser) ? (
-            <button
-              type="button"
+          {canViewHousekeeping && (
+            <motion.button
+              whileTap={{ scale: 0.95 }}
               onClick={() => onOpenChecklist(task.roomId)}
-              className="rounded-2xl bg-emerald-500 px-4 py-3.5 text-sm font-black text-white transition hover:bg-emerald-600"
+              className="flex h-14 items-center justify-center rounded-2xl bg-white border-2 border-emerald-500 px-6 text-sm font-black text-emerald-600 transition hover:bg-emerald-50"
             >
-              Mở checklist
-            </button>
-          ) : null}
+              Xem chi tiết
+            </motion.button>
+          )}
 
-          {actionable && task.isLockedByOther && !task.isAssignedToCurrentUser ? (
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-500">
-              Phòng này đã có người nhận.
-            </div>
-          ) : null}
+          {actionable && task.isLockedByOther && !task.isAssignedToCurrentUser && (
+             <div className="flex h-14 items-center justify-center rounded-2xl bg-slate-100 px-6 text-center text-xs font-bold text-slate-400">
+                Đang được dọn bởi nhân viên khác
+             </div>
+          )}
         </div>
       </div>
-    </article>
+    </motion.article>
   );
 }
 
@@ -262,25 +272,25 @@ export default function HousekeepingTasksPage() {
       label: "Tổng nhiệm vụ",
       value: data?.totalCount ?? 0,
       icon: Sparkles,
-      color: "bg-sky-50 text-sky-600",
+      color: "bg-sky-50 text-sky-600 ring-sky-100",
     },
     {
       label: "Chờ nhận",
       value: data?.pendingCount ?? 0,
       icon: SprayCan,
-      color: "bg-rose-50 text-rose-600",
+      color: "bg-rose-50 text-rose-600 ring-rose-100",
     },
     {
       label: "Đang dọn",
       value: data?.inProgressCount ?? 0,
       icon: Clock3,
-      color: "bg-amber-50 text-amber-600",
+      color: "bg-amber-50 text-amber-600 ring-amber-100",
     },
     {
-      label: "Phòng tôi nhận",
+      label: "Phòng của tôi",
       value: myTasksCount,
       icon: UserRoundCheck,
-      color: "bg-emerald-50 text-emerald-600",
+      color: "bg-emerald-50 text-emerald-600 ring-emerald-100",
     },
   ];
 
@@ -299,12 +309,12 @@ export default function HousekeepingTasksPage() {
               <span className="inline-flex rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-[11px] font-black uppercase tracking-[0.28em] text-sky-700">
                 Housekeeping task board
               </span>
-              <h1 className="mt-4 text-3xl font-black tracking-tight text-slate-900 sm:text-5xl">
+              <h1 className="mt-4 text-4xl font-black tracking-tighter text-slate-900 sm:text-6xl">
                 Nhiệm vụ dọn phòng
               </h1>
-              <p className="mt-3 max-w-3xl text-[15px] font-medium leading-7 text-slate-600 sm:text-base">
-                Giao diện mới gom nhiệm vụ theo mức ưu tiên, người phụ trách và trạng thái xử lý
-                để bạn nhìn nhanh hơn, nhận việc đúng phòng và tiếp tục checklist thuận tiện hơn.
+              <p className="mt-4 max-w-2xl text-[16px] font-bold leading-relaxed text-slate-500">
+                Giao diện tối ưu hóa giúp bạn theo dõi nhanh các phòng cần dọn dẹp, 
+                tiếp tục checklist dang dở và quản lý công việc hiệu quả hơn trong ca làm việc.
               </p>
             </div>
 
@@ -335,25 +345,7 @@ export default function HousekeepingTasksPage() {
         </div>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-2 2xl:grid-cols-4">
-        {summaryCards.map((card) => (
-          <div
-            key={card.label}
-            className="rounded-[2rem] border border-sky-100 bg-white p-5 shadow-sm shadow-sky-100/60"
-          >
-            <div className="flex items-center justify-between">
-              <div className={`flex size-12 items-center justify-center rounded-2xl ${card.color}`}>
-                <card.icon className="size-5" />
-              </div>
-              <span className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-300">
-                Summary
-              </span>
-            </div>
-            <p className="mt-5 text-sm font-bold text-slate-500">{card.label}</p>
-            <p className="mt-1 text-3xl font-black text-slate-900">{card.value}</p>
-          </div>
-        ))}
-      </section>
+      {/* Section summary cards removed per request */}
 
       <section className="rounded-[2rem] border border-sky-100 bg-white p-3 shadow-sm shadow-sky-100/60">
         <div className="grid gap-3 md:grid-cols-2">
@@ -412,9 +404,9 @@ export default function HousekeepingTasksPage() {
             </p>
           </div>
 
-          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-100 bg-emerald-50 px-4 py-2 text-sm font-bold text-emerald-700">
+          <div className="inline-flex items-center gap-3 rounded-2xl border border-emerald-100 bg-emerald-50/50 px-5 py-2.5 text-xs font-black text-emerald-700 shadow-sm shadow-emerald-50">
             <CheckCircle2 className="size-4 text-emerald-500" />
-            Hiển thị {visibleTasks.length} phòng
+            <span className="uppercase tracking-widest">Hiển thị {visibleTasks.length} phòng</span>
           </div>
         </div>
 
