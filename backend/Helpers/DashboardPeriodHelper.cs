@@ -19,7 +19,7 @@ public static class DashboardPeriodHelper
     public const string Quarterly = "QUARTERLY";
     public const string Yearly = "YEARLY";
 
-    public static IReadOnlyList<string> DefaultEventPeriods { get; } = new[] { Daily, Weekly, Monthly };
+    public static IReadOnlyList<string> DefaultEventPeriods { get; } = new[] { Daily, Weekly, Monthly, Yearly };
 
     public static DashboardPeriodInfo Resolve(string periodType, DateTime occurredAtUtc, DateTime? nowUtc = null)
     {

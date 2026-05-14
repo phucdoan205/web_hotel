@@ -31,4 +31,18 @@ body {
 .sidebar-hide-scrollbar::-webkit-scrollbar, .no-scrollbar::-webkit-scrollbar {
   display: none;
   /* Chrome, Safari, Opera */
-}
+}
+
+/* Fix: Bỏ khung đen (outline/border) khi bấm vào biểu đồ */
+.recharts-wrapper, .recharts-surface {
+  outline: none !important;
+  border: none !important;
+}
+
+.recharts-cartesian-grid-rect {
+  stroke: none !important;
+}
+
+.recharts-sector:focus, .recharts-bar-rectangle:focus, .recharts-curve:focus {
+  outline: none !important;
+}

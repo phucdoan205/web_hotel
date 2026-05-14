@@ -1,11 +1,13 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   TrendingUp, TrendingDown, RefreshCw, LayoutDashboard,
   BedDouble, DollarSign, Users, Activity, Package, AlertTriangle,
   BatteryWarning, Brush, CheckSquare, CheckCircle, CreditCard,
-  Receipt, LogIn, LogOut, CalendarRange, Layers, Hammer, BarChart3
+  Receipt, LogIn, LogOut, CalendarRange, Layers, Hammer, BarChart3,
+  Calendar
 } from "lucide-react";
+import { motion } from "framer-motion";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Cell, PieChart, Pie, Legend,
@@ -256,31 +258,60 @@ function RevenueSummary({ revenueSummary }) {
 }
 
 // ─── Revenue Line Chart ────────────────────────────────────────────────────────
-function RevenueChart({ revenueSummary, role }) {
+function RevenueChart({ revenueSummary, role, periodType }) {
+  const [showMonthly, setShowMonthly] = useState(false);
+
+  useEffect(() => {
+    setShowMonthly(false);
+  }, [periodType]);
+
   if (!revenueSummary || (role !== "Admin" && role !== "Manager" && role !== "Accountant")) return null;
 
-  // Xử lý dữ liệu thô từ backend (hỗ trợ cả camelCase và PascalCase)
+  const isYearly = periodType === "YEARLY";
   const rawTrends = revenueSummary.revenueTrends || revenueSummary.RevenueTrends || [];
+  const monthlyTrends = revenueSummary.monthlyTrends || revenueSummary.MonthlyTrends || [];
   
-  const data = rawTrends.map(x => ({
+  const dataToUse = (isYearly && showMonthly && monthlyTrends.length > 0) ? monthlyTrends : rawTrends;
+
+  const data = dataToUse.map(x => ({
     name: x.date || x.Date || "—",
     value: Number(x.value ?? x.Value ?? 0),
     room: Number(x.roomValue ?? x.RoomValue ?? 0),
     service: Number(x.serviceValue ?? x.ServiceValue ?? 0)
   }));
 
+  const handleBarClick = (entry) => {
+    if (isYearly) {
+      setShowMonthly(prev => !prev);
+    }
+  };
+
   return (
     <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm h-full w-full flex flex-col">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h3 className="text-lg font-extrabold text-slate-800 tracking-tight">Biểu đồ doanh thu</h3>
-          <p className="text-xs text-slate-400 mt-0.5">Thống kê thực tế từ hệ thống</p>
+          <h3 className="text-lg font-extrabold text-slate-800 tracking-tight">
+            {isYearly 
+              ? (showMonthly ? "Chi tiết doanh thu năm (Tháng)" : "Doanh thu năm (Quý)") 
+              : "Biểu đồ doanh thu"}
+          </h3>
+          <p className="text-xs text-slate-400 mt-0.5">
+            {isYearly && showMonthly ? (
+              <button onClick={() => setShowMonthly(false)} className="text-blue-500 font-bold hover:underline flex items-center gap-1">
+                ← Quay lại xem Quý
+              </button>
+            ) : "Thống kê thực tế từ hệ thống"}
+          </p>
         </div>
       </div>
       
-      <div className="flex-1 min-h-[300px]">
+      <div className="flex-1 min-h-[300px] outline-none">
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+          <ComposedChart 
+            data={data} 
+            margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+            style={{ outline: 'none', border: 'none' }}
+          >
             <defs>
               <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="#10b981" stopOpacity={0.15}/>
@@ -328,6 +359,8 @@ function RevenueChart({ revenueSummary, role }) {
               radius={[0, 0, 0, 0]}
               barSize={data.length > 20 ? 6 : 12}
               name="room"
+              onClick={handleBarClick}
+              style={{ cursor: isYearly && !showMonthly ? 'pointer' : 'default' }}
             />
             <Bar 
               dataKey="service" 
@@ -336,6 +369,8 @@ function RevenueChart({ revenueSummary, role }) {
               radius={[4, 4, 0, 0]}
               barSize={data.length > 20 ? 6 : 12}
               name="service"
+              onClick={handleBarClick}
+              style={{ cursor: isYearly && !showMonthly ? 'pointer' : 'default' }}
             />
             <Area 
               type="monotone" 
@@ -550,6 +585,250 @@ function QuickActions({ role }) {
   );
 }
 
+// ─── Real-time Action List ───────────────────────────────────────────────────
+function ActionList({ title, items, type, icon: Icon, color = "blue" }) {
+  if (!items?.length) return (
+    <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50/30 p-8 text-center">
+      <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">{title}</p>
+      <p className="mt-2 text-xs text-gray-400">Không có mục nào</p>
+    </div>
+  );
+
+  const colors = {
+    green: "bg-emerald-50 text-emerald-600 ring-emerald-100",
+    red: "bg-rose-50 text-rose-600 ring-rose-100",
+    amber: "bg-amber-50 text-amber-600 ring-amber-100",
+    blue: "bg-blue-50 text-blue-600 ring-blue-100",
+    indigo: "bg-indigo-50 text-indigo-600 ring-indigo-100",
+  };
+
+  const c = colors[color] || colors.blue;
+
+  return (
+    <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm h-full flex flex-col">
+      <div className="mb-4 flex items-center justify-between">
+        <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-tight flex items-center gap-2">
+          <div className={`rounded-lg p-1.5 ring-1 ${c}`}>
+            <Icon className="size-3.5" />
+          </div>
+          {title}
+        </h3>
+        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-black text-slate-500">
+          {items.length}
+        </span>
+      </div>
+      <div className="space-y-2.5 overflow-y-auto max-h-[320px] pr-1 custom-scrollbar">
+        {items.map((item, i) => (
+          <div key={i} className="group relative flex items-center gap-3 rounded-xl border border-transparent bg-slate-50/50 p-2.5 transition-all hover:border-slate-200 hover:bg-white hover:shadow-sm">
+             <div className="min-w-0 flex-1">
+               <div className="flex items-center justify-between gap-2">
+                 <p className="truncate text-xs font-black text-slate-900 group-hover:text-blue-600">{item.title}</p>
+                 <p className="whitespace-nowrap text-[10px] font-bold text-slate-400">
+                    {new Date(item.time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                 </p>
+               </div>
+               <div className="mt-0.5 flex items-center justify-between">
+                 <p className="truncate text-[10px] font-medium text-slate-500 uppercase tracking-tight">{item.subtitle}</p>
+                 {item.amount != null && (
+                   <p className="text-[10px] font-black text-emerald-600">{fmtVND(item.amount)}</p>
+                 )}
+               </div>
+             </div>
+             <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                <button className="rounded-lg bg-white p-1.5 text-slate-400 shadow-sm ring-1 ring-slate-100 hover:text-blue-600">
+                   <RefreshCw className="size-3" />
+                </button>
+             </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── Receptionist Operation Center ──────────────────────────────────────────
+// ─── Receptionist Components ───────────────────────────────────────────────
+function CheckInList({ items = [] }) {
+  return (
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm h-full"
+    >
+      <div className="mb-4 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="flex size-8 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600">
+            <LogIn className="size-4" />
+          </div>
+          <h3 className="font-black text-slate-800">Sắp Check-in</h3>
+        </div>
+        <span className="rounded-lg bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Ưu tiên</span>
+      </div>
+      
+      <div className="space-y-3">
+        {items.length > 0 ? items.map((item, i) => (
+          <div key={i} className="group relative rounded-2xl border border-slate-50 bg-slate-50/50 p-3 transition-all hover:bg-white hover:shadow-md hover:shadow-slate-100">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black text-slate-900 line-clamp-1">{item.title}</span>
+              <span className="text-[10px] font-bold text-emerald-500">{new Date(item.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+            </div>
+            <div className="mt-1 flex items-center justify-between">
+              <span className="text-[10px] font-medium text-slate-500">{item.subtitle}</span>
+              <span className={`rounded-md px-1.5 py-0.5 text-[9px] font-bold ${
+                item.extra === 'Đã thanh toán' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+              }`}>
+                {item.extra}
+              </span>
+            </div>
+          </div>
+        )) : (
+          <div className="flex flex-col items-center justify-center py-8 text-center">
+            <div className="mb-2 size-10 rounded-full bg-slate-50 flex items-center justify-center">
+              <Calendar className="size-5 text-slate-300" />
+            </div>
+            <p className="text-xs font-bold text-slate-400">Không có khách đến</p>
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
+function CheckOutList({ items = [] }) {
+  return (
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.1 }}
+      className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm h-full"
+    >
+      <div className="mb-4 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="flex size-8 items-center justify-center rounded-xl bg-rose-100 text-rose-600">
+            <LogOut className="size-4" />
+          </div>
+          <h3 className="font-black text-slate-800">Sắp Check-out</h3>
+        </div>
+        <span className="rounded-lg bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-500 uppercase">Hôm nay</span>
+      </div>
+
+      <div className="space-y-3">
+        {items.length > 0 ? items.map((item, i) => (
+          <div key={i} className="group relative rounded-2xl border border-slate-50 bg-slate-50/50 p-3 transition-all hover:bg-white hover:shadow-md hover:shadow-slate-100">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black text-slate-900 line-clamp-1">{item.title}</span>
+              <span className="text-[10px] font-bold text-rose-500">{new Date(item.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+            </div>
+            <div className="mt-1 flex items-center justify-between">
+              <span className="text-[10px] font-medium text-slate-500">{item.subtitle}</span>
+              <span className="text-[10px] font-black text-slate-800">
+                {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(item.amount || 0)}
+              </span>
+            </div>
+          </div>
+        )) : (
+          <div className="flex flex-col items-center justify-center py-8 text-center">
+            <div className="mb-2 size-10 rounded-full bg-slate-50 flex items-center justify-center">
+              <Package className="size-5 text-slate-300" />
+            </div>
+            <p className="text-xs font-bold text-slate-400">Không có khách đi</p>
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
+function NotificationCenter({ items = [] }) {
+  return (
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.2 }}
+      className="rounded-3xl border border-slate-100 bg-slate-900 p-6 text-white shadow-xl shadow-slate-200 h-full"
+    >
+      <div className="mb-4 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Activity className="size-4 text-emerald-400" />
+          <h3 className="font-black text-sm uppercase tracking-wider">Thông báo mới</h3>
+        </div>
+        <div className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+      </div>
+      
+      <div className="space-y-4 max-h-[160px] overflow-y-auto pr-2 custom-scrollbar">
+        {items.length > 0 ? items.map((item, i) => (
+          <div key={i} className="flex gap-3">
+            <div className="mt-1 size-1.5 shrink-0 rounded-full bg-slate-700" />
+            <div className="overflow-hidden">
+              <p className="text-xs font-bold text-slate-200 truncate">{item.title}</p>
+              <p className="mt-0.5 text-[10px] text-slate-400 line-clamp-2">{item.subtitle}</p>
+            </div>
+          </div>
+        )) : (
+          <p className="py-4 text-center text-[10px] font-medium text-slate-500 italic">Hệ thống đang yên tĩnh...</p>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
+function TodayBookingsList({ items = [] }) {
+  return (
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.3 }}
+      className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm h-full"
+    >
+      <div className="mb-4 flex items-center gap-2">
+        <Layers className="size-4 text-indigo-500" />
+        <h3 className="font-black text-slate-800">Booking hôm nay</h3>
+      </div>
+      <div className="space-y-2">
+        {items.slice(0, 4).map((item, i) => (
+          <div key={i} className="flex items-center justify-between border-b border-slate-50 pb-2 last:border-0 last:pb-0">
+            <div className="overflow-hidden">
+              <p className="text-[11px] font-black text-slate-900 truncate">{item.title}</p>
+              <p className="text-[9px] text-slate-400">{item.subtitle}</p>
+            </div>
+            <div className="text-right shrink-0 ml-2">
+              <p className="text-[9px] font-bold text-slate-700">{new Date(item.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+              <span className={`text-[8px] font-black ${
+                item.status === 'Confirmed' ? 'text-emerald-500' : 'text-amber-500'
+              }`}>{item.status}</span>
+            </div>
+          </div>
+        ))}
+        {items.length === 0 && (
+           <p className="py-4 text-center text-[10px] font-medium text-slate-400 italic">Không có đơn đặt phòng mới</p>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
+function OccupancyRateCard({ rate }) {
+  return (
+    <motion.div 
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      className="rounded-3xl bg-indigo-600 p-6 text-white shadow-xl shadow-indigo-100 h-full flex flex-col justify-center"
+    >
+      <p className="text-[10px] font-black uppercase tracking-widest opacity-80">Công suất phòng</p>
+      <h3 className="mt-1 text-3xl font-black">{rate}%</h3>
+      <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-indigo-400/30">
+        <motion.div 
+          initial={{ width: 0 }}
+          animate={{ width: `${rate}%` }}
+          className="h-full bg-white"
+        />
+      </div>
+      <p className="mt-4 text-[10px] font-medium opacity-70">Dựa trên tình trạng phòng thực tế.</p>
+    </motion.div>
+  );
+}
+
+
 // ─── Skeleton ────────────────────────────────────────────────────────────────
 function Skeleton() {
   return (
@@ -633,6 +912,7 @@ export default function AdminDashboardPage() {
             { id: "DAILY", label: "Ngày" },
             { id: "WEEKLY", label: "Tuần" },
             { id: "MONTHLY", label: "Tháng" },
+            { id: "YEARLY", label: "Năm" },
           ].map((p) => (
             <button
               key={p.id}
@@ -661,15 +941,17 @@ export default function AdminDashboardPage() {
       {error && !isLoading && (
         <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 shadow-sm">
           <p className="text-sm font-semibold text-amber-800">
-            ⚠ Chưa có dữ liệu dashboard. Nhấn <strong>"Làm mới"</strong> để tạo dữ liệu cho vai trò <strong>{role}</strong>.
+            Có lỗi xảy ra khi tải dữ liệu dashboard. Vui lòng thử lại sau.
           </p>
         </div>
       )}
 
-      {isLoading ? <Skeleton /> : !dash ? (
-        <div className="flex flex-col items-center justify-center rounded-[32px] border border-dashed border-slate-200 bg-slate-50/50 py-24 text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white shadow-sm mb-4">
-             <LayoutDashboard className="size-8 text-slate-300" />
+      {isLoading ? (
+        <Skeleton />
+      ) : !dash ? (
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <div className="mb-4 rounded-3xl bg-slate-50 p-8">
+            <Activity className="size-12 text-slate-200" />
           </div>
           <p className="text-xl font-black text-slate-800">Bảng điều khiển trống</p>
           <p className="mt-2 text-sm text-slate-500 max-w-xs">Hệ thống chưa ghi nhận dữ liệu cho vai trò {role} trong kỳ này.</p>
@@ -687,7 +969,7 @@ export default function AdminDashboardPage() {
               {/* Chart & Rooms */}
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
                 <div className="lg:col-span-2">
-                  {hasRev && <RevenueChart revenueSummary={summary.revenue} role={role} />}
+                  {hasRev && <RevenueChart revenueSummary={summary.revenue} role={role} periodType={periodType} />}
                 </div>
                 <div>
                   {hasRooms && <RoomPieChart roomsSummary={summary.rooms} role={role} />}
@@ -731,7 +1013,7 @@ export default function AdminDashboardPage() {
               )}
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
                 <div className="space-y-6 lg:col-span-2">
-                  {hasRev && <RevenueChart revenueSummary={summary.revenue} role={role} />}
+                  {hasRev && <RevenueChart revenueSummary={summary.revenue} role={role} periodType={periodType} />}
                   {hasBk && <BookingSummary bookingSummary={summary.booking} />}
                 </div>
                 <div className="space-y-6">
@@ -743,22 +1025,46 @@ export default function AdminDashboardPage() {
 
           {role === "Receptionist" && (
             <div className="space-y-6">
-              <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-                {enrichedCards.map((card, i) => <StatCard key={i} {...card} />)}
+              {/* Row 1: KPI + Live Status */}
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
+                <div className="lg:col-span-3">
+                   <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+                      {enrichedCards.map((card, i) => <StatCard key={i} {...card} />)}
+                   </div>
+                </div>
+                <div className="lg:col-span-1">
+                   <div className="flex h-full flex-col justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 p-6 text-white shadow-lg shadow-emerald-200">
+                      <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest opacity-80">
+                        <span className="relative flex h-2 w-2">
+                          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white opacity-75"></span>
+                          <span className="relative inline-flex h-2 w-2 rounded-full bg-white"></span>
+                        </span>
+                        Trực tuyến
+                      </div>
+                      <h2 className="mt-2 text-xl font-black">Lễ tân trực ca</h2>
+                      <p className="mt-1 text-xs font-medium opacity-90">Sẵn sàng phục vụ khách hàng {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.</p>
+                   </div>
+                </div>
               </div>
+
+              {/* Row 2: Operational Center (Moves Check-in/out UP) */}
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-                <div className="space-y-6 lg:col-span-2">
-                  <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                    {hasBk && <BookingSummary bookingSummary={summary.booking} />}
-                    {hasRev && <RevenueSummary revenueSummary={summary.revenue} />}
-                  </div>
-                </div>
-                <div className="space-y-6">
-                  {hasRooms && <RoomPieChart roomsSummary={summary.rooms} role={role} />}
-                </div>
+                 <CheckInList items={summary.tasks?.upcomingCheckIns} />
+                 <CheckOutList items={summary.tasks?.upcomingCheckOuts} />
+                 <div className="space-y-6">
+                    {hasRooms && <RoomPieChart roomsSummary={summary.rooms} role={role} />}
+                 </div>
+              </div>
+
+              {/* Row 3: Status & Notifications */}
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                 <TodayBookingsList items={summary.tasks?.todayBookings} />
+                 <NotificationCenter items={summary.tasks?.notifications} />
+                 <OccupancyRateCard rate={summary.rooms?.occupancyRate || 0} />
               </div>
             </div>
           )}
+
 
           {(role === "Housekeeping" || role === "HouseKeeping") && (
             <div className="space-y-6">
@@ -794,6 +1100,7 @@ export default function AdminDashboardPage() {
               </div>
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
                 <div className="space-y-6 lg:col-span-2">
+                  {hasRev && <RevenueChart revenueSummary={summary.revenue} role={role} periodType={periodType} />}
                   {hasBk && <BookingSummary bookingSummary={summary.booking} />}
                   {hasRev && <RevenueSummary revenueSummary={summary.revenue} />}
                 </div>

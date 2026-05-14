@@ -100,8 +100,8 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
         var dashboardCode = DashboardPeriodHelper.GetDashboardCode(role.Name);
         var dashboardTitle = role.Name + " Dashboard";
 
-        var periodMetrics = await BuildMetricsAsync(period.PeriodStart, period.PeriodEnd, cancellationToken);
-        var previousMetrics = await BuildMetricsAsync(period.PreviousPeriodStart, period.PreviousPeriodEnd, cancellationToken);
+        var periodMetrics = await BuildMetricsAsync(periodType, period.PeriodStart, period.PeriodEnd, cancellationToken);
+        var previousMetrics = await BuildMetricsAsync(periodType, period.PreviousPeriodStart, period.PreviousPeriodEnd, cancellationToken);
 
         var dashboardJson = BuildDashboardJson(role.Name, dashboardCode, period, periodMetrics);
         var comparisonJson = BuildComparisonJson(role.Name, period, periodMetrics, previousMetrics);
@@ -237,7 +237,7 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
             .ToListAsync(cancellationToken);
     }
 
-    private async Task<DashboardMetrics> BuildMetricsAsync(DateTime start, DateTime end, CancellationToken cancellationToken)
+    private async Task<DashboardMetrics> BuildMetricsAsync(string periodType, DateTime start, DateTime end, CancellationToken cancellationToken)
     {
         var totalUsers = await _context.Users.CountAsync(cancellationToken);
         var activeUsers = await _context.Users.CountAsync(x => x.Status == true, cancellationToken);
@@ -284,8 +284,17 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
         var confirmedBookings = bookings.Where(x => x.Status == "Confirmed").Sum(x => x.Total);
         var inProgressBookings = bookings.Where(x => x.Status == "In_Progress").Sum(x => x.Total);
 
-        var checkIns = await _context.BookingDetails.CountAsync(x => x.CheckInDate >= start && x.CheckInDate <= end, cancellationToken);
-        var checkOuts = await _context.BookingDetails.CountAsync(x => x.CheckOutDate >= start && x.CheckOutDate <= end, cancellationToken);
+        var checkIns = await _context.BookingDetails
+            .Where(x => x.CheckInDate >= start && x.CheckInDate <= end && x.Booking!.Status != "Cancelled")
+            .Select(x => x.BookingId)
+            .Distinct()
+            .CountAsync(cancellationToken);
+
+        var checkOuts = await _context.BookingDetails
+            .Where(x => x.CheckOutDate >= start && x.CheckOutDate <= end && x.Booking!.Status != "Cancelled")
+            .Select(x => x.BookingId)
+            .Distinct()
+            .CountAsync(cancellationToken);
 
         var payments = await _context.Payments
             .Where(x => x.PaymentDate.HasValue && x.PaymentDate.Value >= start && x.PaymentDate.Value <= end)
@@ -314,15 +323,48 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
             })
             .ToListAsync(cancellationToken);
 
+        var checkInTrendsRaw = await _context.BookingDetails
+            .Where(x => x.CheckInDate >= start && x.CheckInDate <= end && x.Booking!.Status != "Cancelled")
+            .GroupBy(x => x.CheckInDate.Date)
+            .Select(g => new { Date = g.Key, Count = g.Select(bd => bd.BookingId).Distinct().Count() })
+            .ToListAsync(cancellationToken);
+
+        var checkOutTrendsRaw = await _context.BookingDetails
+            .Where(x => x.CheckOutDate >= start && x.CheckOutDate <= end && x.Booking!.Status != "Cancelled")
+            .GroupBy(x => x.CheckOutDate.Date)
+            .Select(g => new { Date = g.Key, Count = g.Select(bd => bd.BookingId).Distinct().Count() })
+            .ToListAsync(cancellationToken);
+
+        var allActiveBookings = await _context.BookingDetails
+            .Include(x => x.Booking)
+                .ThenInclude(b => b!.User)
+            .Include(x => x.Room)
+            .Where(x => x.Booking!.Status != "Cancelled" &&
+                        ((x.CheckInDate >= start && x.CheckInDate <= end) ||
+                         (x.CheckOutDate >= start && x.CheckOutDate <= end) ||
+                         (x.CheckInDate <= start && x.CheckOutDate >= end)))
+            .Select(x => new 
+            { 
+                x.BookingId, 
+                x.CheckInDate, 
+                x.CheckOutDate,
+                GuestName = x.Booking!.User!.FullName ?? "Khách vãng lai",
+                RoomNumber = x.Room!.RoomNumber ?? "—",
+                BookingStatus = x.Booking.Status
+            })
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
         var revenueTrends = new List<RevenueTrendItem>();
+        List<RevenueTrendItem>? monthlyTrendsResult = null;
         var totalDays = (end.Date - start.Date).TotalDays;
 
         if (totalDays > 32)
         {
             // Group by Month for Yearly/Quarterly views
             var monthlyRaw = await _context.Invoices
-                .Where(x => x.CreatedAt.HasValue && x.CreatedAt.Value >= start && x.CreatedAt.Value <= end && x.Status != "Cancelled")
-                .GroupBy(x => new { x.CreatedAt.Value.Year, x.CreatedAt.Value.Month })
+                .Where(x => x.CreatedAt >= start && x.CreatedAt <= end && x.Status != "Cancelled")
+                .GroupBy(x => new { x.CreatedAt!.Value.Year, x.CreatedAt.Value.Month })
                 .Select(g => new
                 {
                     Year = g.Key.Year,
@@ -333,8 +375,8 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
                 .ToListAsync(cancellationToken);
 
             var serviceMonthlyRaw = await _context.OrderServices
-                .Where(x => x.OrderDate.HasValue && x.OrderDate.Value >= start && x.OrderDate.Value <= end && x.Status != "Cancelled")
-                .GroupBy(x => new { x.OrderDate.Value.Year, x.OrderDate.Value.Month })
+                .Where(x => x.OrderDate >= start && x.OrderDate <= end && x.Status != "Cancelled")
+                .GroupBy(x => new { x.OrderDate!.Value.Year, x.OrderDate.Value.Month })
                 .Select(g => new
                 {
                     Year = g.Key.Year,
@@ -343,6 +385,7 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
                 })
                 .ToListAsync(cancellationToken);
 
+            var monthlyTrends = new List<RevenueTrendItem>();
             for (var date = start.Date; date <= end.Date; date = date.AddMonths(1))
             {
                 var raw = monthlyRaw.FirstOrDefault(x => x.Year == date.Year && x.Month == date.Month);
@@ -353,12 +396,53 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
                 var discount = raw?.Discount ?? 0m;
                 var total = room + service - discount;
                 
-                revenueTrends.Add(new RevenueTrendItem(
+                var cinCount = allActiveBookings.Count(x => x.CheckInDate.Year == date.Year && x.CheckInDate.Month == date.Month);
+                var coutCount = allActiveBookings.Count(x => x.CheckOutDate.Year == date.Year && x.CheckOutDate.Month == date.Month);
+                var occCount = allActiveBookings.Count(x => x.CheckInDate <= date && x.CheckOutDate >= date.AddMonths(1).AddDays(-1));
+
+                var dayBookings = new List<BookingPreview>();
+                foreach(var b in allActiveBookings.Where(x => x.CheckInDate.Year == date.Year && x.CheckInDate.Month == date.Month))
+                    dayBookings.Add(new BookingPreview(b.GuestName, b.RoomNumber, b.BookingStatus!, "CHECK_IN", b.CheckInDate.ToString("HH:mm")));
+                
+                monthlyTrends.Add(new RevenueTrendItem(
                     Date: $"T{date.Month}",
                     Value: total < 0 ? 0 : total,
                     RoomValue: room,
-                    ServiceValue: service
+                    ServiceValue: service,
+                    CheckInCount: cinCount,
+                    CheckOutCount: coutCount,
+                    OccupiedCount: occCount,
+                    Bookings: dayBookings
                 ));
+            }
+
+            if (periodType == "YEARLY")
+            {
+                // Group into 4 Quarters
+                for (int q = 1; q <= 4; q++)
+                {
+                    var qMonths = monthlyTrends.Where(x => {
+                        int month = int.Parse(x.Date.Substring(1));
+                        return ((month - 1) / 3) + 1 == q;
+                    }).ToList();
+
+                    revenueTrends.Add(new RevenueTrendItem(
+                        Date: $"Q{q}",
+                        Value: qMonths.Sum(x => x.Value),
+                        RoomValue: qMonths.Sum(x => x.RoomValue),
+                        ServiceValue: qMonths.Sum(x => x.ServiceValue),
+                        CheckInCount: qMonths.Sum(x => x.CheckInCount),
+                        CheckOutCount: qMonths.Sum(x => x.CheckOutCount),
+                        OccupiedCount: qMonths.Count > 0 ? (int)qMonths.Average(x => x.OccupiedCount) : 0,
+                        Bookings: qMonths.SelectMany(m => m.Bookings).ToList()
+                    ));
+                }
+                // Store monthly trends for YEARLY view
+                monthlyTrendsResult = monthlyTrends;
+            }
+            else
+            {
+                revenueTrends = monthlyTrends;
             }
         }
         else
@@ -374,21 +458,37 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
                 var discount = raw?.Discount ?? 0m;
                 var total = room + service - discount;
 
+                var cinCount = allActiveBookings.Count(x => x.CheckInDate.Date == date.Date);
+                var coutCount = allActiveBookings.Count(x => x.CheckOutDate.Date == date.Date);
+                var occCount = allActiveBookings.Count(x => x.CheckInDate.Date <= date.Date && x.CheckOutDate.Date >= date.Date);
+
+                var dayBookings = new List<BookingPreview>();
+                foreach(var b in allActiveBookings.Where(x => x.CheckInDate.Date == date.Date))
+                    dayBookings.Add(new BookingPreview(b.GuestName, b.RoomNumber, b.BookingStatus!, "CHECK_IN", b.CheckInDate.ToString("HH:mm")));
+                foreach(var b in allActiveBookings.Where(x => x.CheckOutDate.Date == date.Date))
+                    dayBookings.Add(new BookingPreview(b.GuestName, b.RoomNumber, b.BookingStatus!, "CHECK_OUT", b.CheckOutDate.ToString("HH:mm")));
+                foreach(var b in allActiveBookings.Where(x => x.CheckInDate.Date < date.Date && x.CheckOutDate.Date > date.Date))
+                    dayBookings.Add(new BookingPreview(b.GuestName, b.RoomNumber, b.BookingStatus!, "STAYING", ""));
+
                 revenueTrends.Add(new RevenueTrendItem(
                     Date: date.ToString("dd/MM"),
                     Value: total < 0 ? 0 : total,
                     RoomValue: room,
-                    ServiceValue: service
+                    ServiceValue: service,
+                    CheckInCount: cinCount,
+                    CheckOutCount: coutCount,
+                    OccupiedCount: occCount,
+                    Bookings: dayBookings
                 ));
             }
         }
 
         var trueServiceRevenue = await _context.OrderServices
-            .Where(x => x.OrderDate.HasValue && x.OrderDate.Value >= start && x.OrderDate.Value <= end && x.Status != "Cancelled")
+            .Where(x => x.OrderDate >= start && x.OrderDate <= end && x.Status != "Cancelled")
             .SumAsync(x => x.TotalAmount ?? 0m, cancellationToken);
 
         var invoiceMetrics = await _context.Invoices
-            .Where(x => x.CreatedAt.HasValue && x.CreatedAt.Value >= start && x.CreatedAt.Value <= end)
+            .Where(x => x.CreatedAt >= start && x.CreatedAt <= end)
             .GroupBy(_ => 1)
             .Select(g => new
             {
@@ -417,7 +517,7 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
         var occupancyRate = totalRooms == 0 ? 0m : Math.Round((decimal)occupiedRooms / totalRooms * 100m, 2);
 
         var damageMetrics = await _context.LossAndDamages
-            .Where(x => x.CreatedAt.HasValue && x.CreatedAt.Value >= start && x.CreatedAt.Value <= end)
+            .Where(x => x.CreatedAt >= start && x.CreatedAt <= end)
             .GroupBy(_ => 1)
             .Select(g => new
             {
@@ -441,7 +541,7 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
             .FirstOrDefaultAsync(cancellationToken);
 
         var reviewMetrics = await _context.Reviews
-            .Where(x => x.CreatedAt.HasValue && x.CreatedAt.Value >= start && x.CreatedAt.Value <= end)
+            .Where(x => x.CreatedAt >= start && x.CreatedAt <= end)
             .GroupBy(_ => 1)
             .Select(g => new
             {
@@ -512,6 +612,148 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
 
         var newStaffAccounts = 0;
 
+        // --- Receptionist Real-time Action Lists ---
+        var today = DateTime.UtcNow.Date;
+        var tomorrow = today.AddDays(1);
+
+        var upcomingCheckInsRaw = await _context.BookingDetails
+            .Include(x => x.Booking)
+                .ThenInclude(b => b!.User)
+            .Include(x => x.Booking)
+                .ThenInclude(b => b!.Invoices)
+            .Include(x => x.Room)
+                .ThenInclude(r => r!.RoomType)
+            .Where(x => x.CheckInDate >= today && x.CheckInDate <= tomorrow 
+                && (x.Booking!.Status == "Confirmed" || x.Booking.Status == "Pending"))
+            .OrderBy(x => x.CheckInDate)
+            .Take(10)
+            .Select(x => new
+            {
+                Id = x.Id.ToString(),
+                Title = x.Booking!.User!.FullName ?? "Khách vãng lai",
+                Subtitle = $"Phòng {x.Room!.RoomNumber} - {x.Room.RoomType!.Name}",
+                Status = x.Booking.Status!,
+                Time = x.CheckInDate,
+                RefCode = x.Booking.BookingCode,
+                PaymentStatus = x.Booking.Invoices.Any(i => i.Status == "Paid") ? "Đã thanh toán" : "Chưa thanh toán"
+            })
+            .ToListAsync(cancellationToken);
+
+        var upcomingCheckOutsRaw = await _context.BookingDetails
+            .Include(x => x.Booking)
+                .ThenInclude(b => b!.User)
+            .Include(x => x.Booking)
+                .ThenInclude(b => b!.Invoices)
+            .Include(x => x.Room)
+            .Where(x => x.CheckOutDate >= today && x.CheckOutDate <= tomorrow 
+                && x.Booking!.Status == "In_Progress")
+            .OrderBy(x => x.CheckOutDate)
+            .Take(10)
+            .Select(x => new
+            {
+                Id = x.Id.ToString(),
+                Title = x.Booking!.User!.FullName ?? "Khách vãng lai",
+                Subtitle = $"Phòng {x.Room!.RoomNumber}",
+                Status = "Đang ở",
+                Time = x.CheckOutDate,
+                RefCode = x.Booking.BookingCode,
+                TotalBill = x.Booking.Invoices.Sum(i => i.FinalTotal ?? 0m)
+            })
+            .ToListAsync(cancellationToken);
+
+        var todayBookingsRaw = await _context.Bookings
+            .Include(x => x.User)
+            .Where(x => x.CreatedAt >= today)
+            .OrderByDescending(x => x.CreatedAt)
+            .Take(10)
+            .Select(x => new
+            {
+                Id = x.Id.ToString(),
+                Title = x.User!.FullName ?? "Khách vãng lai",
+                Subtitle = x.BookingCode,
+                Status = x.Status!,
+                Time = x.CreatedAt,
+                RefCode = x.BookingCode
+            })
+            .ToListAsync(cancellationToken);
+
+        var pendingServicesRaw = await _context.OrderServices
+            .Include(x => x.BookingDetail)
+                .ThenInclude(bd => bd!.Booking)
+                    .ThenInclude(b => b!.User)
+            .Include(x => x.BookingDetail)
+                .ThenInclude(bd => bd!.Room)
+            .Where(x => x.Status == "Pending")
+            .OrderByDescending(x => x.OrderDate)
+            .Take(10)
+            .Select(x => new
+            {
+                Id = x.Id.ToString(),
+                Title = $"Yêu cầu từ Phòng {x.BookingDetail!.Room!.RoomNumber}",
+                Subtitle = x.BookingDetail!.Booking!.User!.FullName ?? "Khách vãng lai",
+                Status = "Chờ xử lý",
+                Time = x.OrderDate ?? DateTime.UtcNow,
+                RefCode = $"SRV-{x.Id}",
+                Amount = x.TotalAmount
+            })
+            .ToListAsync(cancellationToken);
+
+        var pendingPaymentsRaw = await _context.Invoices
+            .Include(x => x.Booking)
+                .ThenInclude(b => b!.User)
+            .Where(x => x.Status == "Unpaid")
+            .OrderByDescending(x => x.CreatedAt)
+            .Take(10)
+            .Select(x => new
+            {
+                Id = x.Id.ToString(),
+                Title = x.Booking!.User!.FullName ?? "Khách vãng lai",
+                Subtitle = x.Code,
+                Status = "Chưa thanh toán",
+                Time = x.CreatedAt ?? DateTime.UtcNow,
+                RefCode = x.Code,
+                Amount = x.FinalTotal
+            })
+            .ToListAsync(cancellationToken);
+
+        var bookingsToConfirmRaw = await _context.Bookings
+            .Include(x => x.User)
+            .Where(x => x.Status == "Pending")
+            .OrderByDescending(x => x.CreatedAt)
+            .Take(10)
+            .Select(x => new
+            {
+                Id = x.Id.ToString(),
+                Title = x.User!.FullName ?? "Khách vãng lai",
+                Subtitle = "Cần xác nhận",
+                Status = "Chờ duyệt",
+                Time = x.CreatedAt,
+                RefCode = x.BookingCode
+            })
+            .ToListAsync(cancellationToken);
+
+        var recentLogs = await _context.AuditLogs
+            .Include(x => x.User)
+            .OrderByDescending(x => x.LogDate)
+            .Take(10)
+            .ToListAsync(cancellationToken);
+
+        var notifications = recentLogs
+            .SelectMany(ExtractAuditEvents)
+            .OrderByDescending(x => x.Timestamp)
+            .Take(10)
+            .Select(x => new DashboardTaskItem(
+                Guid.NewGuid().ToString(),
+                x.Action ?? "Thông báo",
+                x.Message ?? "",
+                "Info",
+                "NOTIFICATION",
+                x.Timestamp,
+                null,
+                null
+            ))
+            .ToList();
+
         return new DashboardMetrics
         {
             TotalUsers = totalUsers,
@@ -533,6 +775,7 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
             CheckOuts = checkOuts,
             TotalRevenue = totalRevenue,
             RevenueTrends = revenueTrends,
+            MonthlyTrends = monthlyTrendsResult,
             RoomRevenue = invoiceMetricsResult.RoomRevenue,
             ServiceRevenue = invoiceMetricsResult.ServiceRevenue,
             PendingPaymentAmount = invoiceMetricsResult.PendingPaymentAmount,
@@ -558,7 +801,15 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
             TotalGuests = totalGuests,
             TopServices = topServices,
             RecentBookings = recentBookings,
-            NewStaffAccounts = newStaffAccounts
+            NewStaffAccounts = newStaffAccounts,
+            
+            UpcomingCheckIns = upcomingCheckInsRaw.Select(x => new DashboardTaskItem(x.Id, x.Title, x.Subtitle, x.Status, "CHECK_IN", x.Time, x.RefCode, null, x.PaymentStatus)).ToList(),
+            UpcomingCheckOuts = upcomingCheckOutsRaw.Select(x => new DashboardTaskItem(x.Id, x.Title, x.Subtitle, x.Status, "CHECK_OUT", x.Time, x.RefCode, x.TotalBill)).ToList(),
+            TodayBookings = todayBookingsRaw.Select(x => new DashboardTaskItem(x.Id, x.Title, x.Subtitle, x.Status, "BOOKING", x.Time, x.RefCode)).ToList(),
+            PendingServiceRequests = pendingServicesRaw.Select(x => new DashboardTaskItem(x.Id, x.Title, x.Subtitle, x.Status, "SERVICE", x.Time, x.RefCode, x.Amount)).ToList(),
+            PendingPayments = pendingPaymentsRaw.Select(x => new DashboardTaskItem(x.Id, x.Title, x.Subtitle, x.Status, "PAYMENT", x.Time, x.RefCode, x.Amount)).ToList(),
+            BookingsToConfirm = bookingsToConfirmRaw.Select(x => new DashboardTaskItem(x.Id, x.Title, x.Subtitle, x.Status, "BOOKING", x.Time, x.RefCode)).ToList(),
+            Notifications = notifications
         };
     }
 
@@ -594,6 +845,7 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
                 {
                     totalRevenue = metrics.TotalRevenue,
                     revenueTrends = metrics.RevenueTrends,
+                    monthlyTrends = metrics.MonthlyTrends,
                     roomRevenue = metrics.RoomRevenue,
                     serviceRevenue = metrics.ServiceRevenue,
                     pendingPaymentAmount = metrics.PendingPaymentAmount,
@@ -626,6 +878,7 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
                 {
                     totalRevenue = metrics.TotalRevenue,
                     revenueTrends = metrics.RevenueTrends,
+                    monthlyTrends = metrics.MonthlyTrends,
                     roomRevenue = metrics.RoomRevenue,
                     serviceRevenue = metrics.ServiceRevenue,
                     pendingPaymentAmount = metrics.PendingPaymentAmount,
@@ -683,13 +936,25 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
                     pendingPaymentAmount = metrics.PendingPaymentAmount,
                     unpaidInvoices = metrics.UnpaidInvoices,
                     paidInvoices = metrics.PaidInvoices,
-                    revenueTrends = metrics.RevenueTrends
+                    revenueTrends = metrics.RevenueTrends,
+                    monthlyTrends = metrics.MonthlyTrends
                 },
                 rooms = new
                 {
                     totalRooms = metrics.TotalRooms,
                     availableRooms = metrics.AvailableRooms,
-                    occupiedRooms = metrics.OccupiedRooms
+                    occupiedRooms = metrics.OccupiedRooms,
+                    occupancyRate = metrics.OccupancyRate
+                },
+                tasks = new
+                {
+                    upcomingCheckIns = metrics.UpcomingCheckIns,
+                    upcomingCheckOuts = metrics.UpcomingCheckOuts,
+                    todayBookings = metrics.TodayBookings,
+                    pendingPayments = metrics.PendingPayments,
+                    pendingServices = metrics.PendingServiceRequests,
+                    bookingsToConfirm = metrics.BookingsToConfirm,
+                    notifications = metrics.Notifications
                 }
             },
             "WarehouseStaff" or "Warehouse" => (object)new
@@ -709,7 +974,7 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
             _ => (object)new
             {
                 booking = new { totalBookings = metrics.TotalBookings },
-                revenue = new { totalRevenue = metrics.TotalRevenue, revenueTrends = metrics.RevenueTrends },
+                revenue = new { totalRevenue = metrics.TotalRevenue, revenueTrends = metrics.RevenueTrends, monthlyTrends = metrics.MonthlyTrends },
                 rooms = new { occupancyRate = metrics.OccupancyRate }
             }
         };
@@ -729,7 +994,7 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
                 generatedAt = DateTime.UtcNow
             },
             summary = summary,
-            kpiCards = BuildKpiCards(roleName, metrics),
+            kpiCards = BuildKpiCards(roleName, metrics, period.PeriodType),
             departmentOverview = BuildDepartmentOverview(metrics),
             tables = new
             {
@@ -803,7 +1068,7 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
         return CompareMetric((decimal)current, previous, directionMeaning);
     }
 
-    private static IReadOnlyList<object> BuildKpiCards(string roleName, DashboardMetrics metrics)
+    private static IReadOnlyList<object> BuildKpiCards(string roleName, DashboardMetrics metrics, string periodType)
     {
         return roleName switch
         {
@@ -830,9 +1095,9 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
             },
             "Receptionist" => new object[]
             {
-                new { code = "pendingBookings", title = "Booking chờ duyệt", value = metrics.PendingBookings, unit = "đặt phòng" },
-                new { code = "checkIns", title = "Khách sắp Check-in", value = metrics.CheckIns, unit = "lượt" },
-                new { code = "checkOuts", title = "Khách sắp Check-out", value = metrics.CheckOuts, unit = "lượt" },
+                new { code = "totalBookings", title = $"Tổng Booking {GetPeriodLabel(periodType)}", value = metrics.TotalBookings, unit = "đặt phòng" },
+                new { code = "checkIns", title = $"Tổng Check-in {GetPeriodLabel(periodType)}", value = metrics.CheckIns, unit = "lượt" },
+                new { code = "checkOuts", title = $"Tổng Check-out {GetPeriodLabel(periodType)}", value = metrics.CheckOuts, unit = "lượt" },
                 new { code = "availableRooms", title = "Phòng trống hiện tại", value = metrics.AvailableRooms, unit = "phòng" }
             },
             "WarehouseStaff" or "Warehouse" => new object[]
@@ -856,6 +1121,15 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
             }
         };
     }
+
+    private static string GetPeriodLabel(string periodType) => periodType.ToUpperInvariant() switch
+    {
+        "DAILY" => "hôm nay",
+        "WEEKLY" => "tuần này",
+        "MONTHLY" => "tháng này",
+        "YEARLY" => "năm này",
+        _ => "kỳ này"
+    };
 
     private static IReadOnlyList<object> BuildDepartmentOverview(DashboardMetrics metrics)
     {
@@ -974,6 +1248,7 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
         public int CheckOuts { get; init; }
         public decimal TotalRevenue { get; init; }
         public IReadOnlyList<RevenueTrendItem> RevenueTrends { get; init; } = Array.Empty<RevenueTrendItem>();
+        public IReadOnlyList<RevenueTrendItem>? MonthlyTrends { get; init; }
         public decimal RoomRevenue { get; init; }
         public decimal ServiceRevenue { get; init; }
         public decimal PendingPaymentAmount { get; init; }
@@ -1000,6 +1275,15 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
         public IReadOnlyList<TopServiceItem> TopServices { get; init; } = Array.Empty<TopServiceItem>();
         public IReadOnlyList<RecentBookingItem> RecentBookings { get; init; } = Array.Empty<RecentBookingItem>();
         public int NewStaffAccounts { get; init; }
+
+        // Receptionist specific lists
+        public IReadOnlyList<DashboardTaskItem> UpcomingCheckIns { get; init; } = Array.Empty<DashboardTaskItem>();
+        public IReadOnlyList<DashboardTaskItem> UpcomingCheckOuts { get; init; } = Array.Empty<DashboardTaskItem>();
+        public IReadOnlyList<DashboardTaskItem> TodayBookings { get; init; } = Array.Empty<DashboardTaskItem>();
+        public IReadOnlyList<DashboardTaskItem> PendingServiceRequests { get; init; } = Array.Empty<DashboardTaskItem>();
+        public IReadOnlyList<DashboardTaskItem> PendingPayments { get; init; } = Array.Empty<DashboardTaskItem>();
+        public IReadOnlyList<DashboardTaskItem> BookingsToConfirm { get; init; } = Array.Empty<DashboardTaskItem>();
+        public IReadOnlyList<DashboardTaskItem> Notifications { get; init; } = Array.Empty<DashboardTaskItem>();
     }
 
     private sealed record RoleUserCount(
@@ -1016,12 +1300,34 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
         string? Message,
         DateTime Timestamp);
 
+    private sealed record BookingPreview(
+        string GuestName,
+        string RoomNumber,
+        string Status,
+        string Type, // CHECK_IN, CHECK_OUT, STAYING
+        string Time);
+
     private sealed record RevenueTrendItem(
         string Date,
         decimal Value,
         decimal RoomValue = 0,
-        decimal ServiceValue = 0);
+        decimal ServiceValue = 0,
+        int CheckInCount = 0,
+        int CheckOutCount = 0,
+        int OccupiedCount = 0,
+        IReadOnlyList<BookingPreview> Bookings = null!);
 
     public record TopServiceItem(string Name, int Count, decimal TotalAmount);
     public record RecentBookingItem(string Code, string CustomerName, string Status, decimal Amount, DateTime CreatedAt);
+    
+    public sealed record DashboardTaskItem(
+        string Id,
+        string Title,
+        string? Subtitle,
+        string Status,
+        string Type, // CHECK_IN, CHECK_OUT, BOOKING, SERVICE, PAYMENT, NOTIFICATION
+        DateTime Time,
+        string? ReferenceCode = null,
+        decimal? Amount = null,
+        string? Extra = null);
 }
