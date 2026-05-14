@@ -3,23 +3,17 @@ import { useNavigate } from "react-router-dom";
 import { loginWithEmail, loginWithGoogle } from "../api/auth/authApi";
 import { saveAuth } from "../utils/authStorage";
 
-const ADMIN_ROLE_NAMES = new Set([
-  "admin",
-  "receptionist",
-  "front desk",
-  "frontdesk",
-  "le tan",
-  "housekeeping",
-]);
 
 const resolveRedirectPath = (role) => {
   const normalizedRole = role?.trim().toLowerCase();
 
-  if (ADMIN_ROLE_NAMES.has(normalizedRole)) {
-    return "/admin/dashboard";
+  // Nếu là role User hoặc Guest thì về trang chủ (trang đặt phòng)
+  if (normalizedRole === "user" || normalizedRole === "guest" || normalizedRole === "customer" || !normalizedRole) {
+    return "/";
   }
 
-  return "/";
+  // Tất cả các role khác (Admin, Receptionist, Manager, Housekeeping và các role mới tạo) đều về Admin Dashboard
+  return "/admin/dashboard";
 };
 
 export const useLogin = () => {

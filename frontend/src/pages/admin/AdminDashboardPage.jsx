@@ -590,7 +590,7 @@ function QuickActions({ role }) {
 function ActionList({ title, items, type, icon: Icon, color = "blue" }) {
   if (!items?.length) return (
     <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50/30 p-8 text-center">
-      <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">{title}</p>
+      <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">{title}</p>
       <p className="mt-2 text-xs text-gray-400">Không có mục nào</p>
     </div>
   );
@@ -614,24 +614,24 @@ function ActionList({ title, items, type, icon: Icon, color = "blue" }) {
           </div>
           {title}
         </h3>
-        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-black text-slate-500">
+        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-black text-slate-500">
           {items.length}
         </span>
       </div>
-      <div className="space-y-2.5 overflow-y-auto max-h-[320px] pr-1 custom-scrollbar">
+      <div className="space-y-2.5 overflow-y-auto max-h-[320px] pr-1 no-scrollbar">
         {items.map((item, i) => (
           <div key={i} className="group relative flex items-center gap-3 rounded-xl border border-transparent bg-slate-50/50 p-2.5 transition-all hover:border-slate-200 hover:bg-white hover:shadow-sm">
              <div className="min-w-0 flex-1">
                <div className="flex items-center justify-between gap-2">
-                 <p className="truncate text-xs font-black text-slate-900 group-hover:text-blue-600">{item.title}</p>
-                 <p className="whitespace-nowrap text-[10px] font-bold text-slate-400">
+                 <p className="truncate text-base font-black text-slate-900 group-hover:text-blue-600">{item.title}</p>
+                 <p className="whitespace-nowrap text-sm font-bold text-slate-400">
                     {new Date(item.time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
                  </p>
                </div>
                <div className="mt-0.5 flex items-center justify-between">
-                 <p className="truncate text-[10px] font-medium text-slate-500 uppercase tracking-tight">{item.subtitle}</p>
+                 <p className="truncate text-sm font-medium text-slate-500 uppercase tracking-tight">{item.subtitle}</p>
                  {item.amount != null && (
-                   <p className="text-[10px] font-black text-emerald-600">{fmtVND(item.amount)}</p>
+                   <p className="text-sm font-black text-emerald-600">{fmtVND(item.amount)}</p>
                  )}
                </div>
              </div>
@@ -663,19 +663,19 @@ function CheckInList({ items = [] }) {
           </div>
           <h3 className="font-black text-slate-800">Check-in</h3>
         </div>
-        <span className="rounded-lg bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Ưu tiên</span>
+        <span className="rounded-lg bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-500 uppercase tracking-wider">Ưu tiên</span>
       </div>
       
       <div className="space-y-3">
         {items.length > 0 ? items.map((item, i) => (
-          <div key={i} className="group relative rounded-2xl border border-slate-50 bg-slate-50/50 p-3 transition-all hover:bg-white hover:shadow-md hover:shadow-slate-100">
+          <div key={i} className="group relative rounded-2xl border border-slate-50 bg-slate-50/50 p-4 transition-all hover:bg-white hover:shadow-md hover:shadow-slate-100">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-black text-slate-900 line-clamp-1">{item.title}</span>
-              <span className="text-[10px] font-bold text-emerald-500">{new Date(item.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+              <span className="text-base font-black text-slate-900 line-clamp-1">{item.title}</span>
+              <span className="text-sm font-bold text-emerald-500">{new Date(item.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
             </div>
             <div className="mt-1 flex items-center justify-between">
-              <span className="text-[10px] font-medium text-slate-500">{item.subtitle}</span>
-              <span className={`rounded-md px-1.5 py-0.5 text-[9px] font-bold ${
+              <span className="text-sm font-medium text-slate-500">{item.subtitle}</span>
+              <span className={`rounded-md px-1.5 py-0.5 text-xs font-bold ${
                 item.extra === 'Đã thanh toán' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
               }`}>
                 {item.extra}
@@ -687,7 +687,7 @@ function CheckInList({ items = [] }) {
             <div className="mb-2 size-10 rounded-full bg-slate-50 flex items-center justify-center">
               <Calendar className="size-5 text-slate-300" />
             </div>
-            <p className="text-xs font-bold text-slate-400">Không có khách đến</p>
+            <p className="text-sm font-bold text-slate-400">Không có khách đến</p>
           </div>
         )}
       </div>
@@ -710,19 +710,19 @@ function CheckOutList({ items = [] }) {
           </div>
           <h3 className="font-black text-slate-800">Check-out</h3>
         </div>
-        <span className="rounded-lg bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-500 uppercase">Hôm nay</span>
+        <span className="rounded-lg bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-500 uppercase">Hôm nay</span>
       </div>
 
       <div className="space-y-3">
         {items.length > 0 ? items.map((item, i) => (
-          <div key={i} className="group relative rounded-2xl border border-slate-50 bg-slate-50/50 p-3 transition-all hover:bg-white hover:shadow-md hover:shadow-slate-100">
+          <div key={i} className="group relative rounded-2xl border border-slate-50 bg-slate-50/50 p-4 transition-all hover:bg-white hover:shadow-md hover:shadow-slate-100">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-black text-slate-900 line-clamp-1">{item.title}</span>
-              <span className="text-[10px] font-bold text-rose-500">{new Date(item.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+              <span className="text-base font-black text-slate-900 line-clamp-1">{item.title}</span>
+              <span className="text-sm font-bold text-rose-500">{new Date(item.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
             </div>
             <div className="mt-1 flex items-center justify-between">
-              <span className="text-[10px] font-medium text-slate-500">{item.subtitle}</span>
-              <span className="text-[10px] font-black text-slate-800">
+              <span className="text-sm font-medium text-slate-500">{item.subtitle}</span>
+              <span className="text-base font-black text-slate-800">
                 {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(item.amount || 0)}
               </span>
             </div>
@@ -732,7 +732,7 @@ function CheckOutList({ items = [] }) {
             <div className="mb-2 size-10 rounded-full bg-slate-50 flex items-center justify-center">
               <Package className="size-5 text-slate-300" />
             </div>
-            <p className="text-xs font-bold text-slate-400">Không có khách đi</p>
+            <p className="text-sm font-bold text-slate-400">Không có khách đi</p>
           </div>
         )}
       </div>
@@ -759,28 +759,28 @@ function NotificationCenter({ items = [] }) {
           </div>
           <div>
             <h3 className="font-black text-base uppercase tracking-wider text-slate-900">Thông báo</h3>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Cập nhật thời gian thực</p>
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Cập nhật thời gian thực</p>
           </div>
         </div>
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-100/50">
           <div className="size-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="text-[10px] font-extrabold text-emerald-600 uppercase tracking-wider">Trực tiếp</span>
+          <span className="text-xs font-extrabold text-emerald-600 uppercase tracking-wider">Trực tiếp</span>
         </div>
       </div>
       
-      <div className="space-y-4 max-h-[350px] overflow-y-auto pr-2 custom-scrollbar relative z-10 flex-1">
+      <div className="space-y-4 max-h-[350px] overflow-y-auto pr-2 no-scrollbar relative z-10 flex-1">
         {items.length > 0 ? items.map((item, i) => (
           <div key={i} className="group flex gap-4 p-4 rounded-2xl transition-all duration-300 bg-white/50 hover:bg-white border border-slate-100/50 hover:border-blue-200 hover:shadow-lg hover:shadow-blue-50/50 cursor-pointer">
             <div className="mt-1.5 size-2.5 shrink-0 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.3)] group-hover:scale-125 transition-transform duration-300" />
             <div className="overflow-hidden flex-1">
-              <p className="text-sm font-extrabold text-slate-900 group-hover:text-blue-600 transition-colors duration-300">{item.title}</p>
-              {item.subtitle && <p className="mt-1.5 text-xs text-slate-600 font-medium leading-relaxed group-hover:text-slate-800 transition-colors duration-300">{item.subtitle}</p>}
+              <p className="text-base font-extrabold text-slate-900 group-hover:text-blue-600 transition-colors duration-300">{item.title}</p>
+              {item.subtitle && <p className="mt-1.5 text-sm text-slate-600 font-medium leading-relaxed group-hover:text-slate-800 transition-colors duration-300">{item.subtitle}</p>}
               <div className="mt-3 flex items-center gap-2">
-                <span className="text-[10px] font-bold text-slate-400 bg-slate-50 px-2 py-0.5 rounded-md uppercase tracking-widest">
+                <span className="text-xs font-bold text-slate-400 bg-slate-50 px-2 py-0.5 rounded-md uppercase tracking-widest">
                   {new Date(item.time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
                 </span>
-                <span className="text-[10px] font-bold text-blue-400">·</span>
-                <span className="text-[10px] font-bold text-slate-400">
+                <span className="text-xs font-bold text-blue-400">·</span>
+                <span className="text-xs font-bold text-slate-400">
                   {new Date(item.time).toLocaleDateString('vi-VN')}
                 </span>
               </div>
@@ -813,19 +813,19 @@ function TodayBookingsList({ items = [] }) {
         {items.slice(0, 4).map((item, i) => (
           <div key={i} className="flex items-center justify-between border-b border-slate-50 pb-2 last:border-0 last:pb-0">
             <div className="overflow-hidden">
-              <p className="text-[11px] font-black text-slate-900 truncate">{item.title}</p>
-              <p className="text-[9px] text-slate-400">{item.subtitle}</p>
+              <p className="text-sm font-black text-slate-900 truncate">{item.title}</p>
+              <p className="text-xs text-slate-400">{item.subtitle}</p>
             </div>
             <div className="text-right shrink-0 ml-2">
-              <p className="text-[9px] font-bold text-slate-700">{new Date(item.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
-              <span className={`text-[8px] font-black ${
+              <p className="text-xs font-bold text-slate-700">{new Date(item.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+              <span className={`text-[10px] font-black ${
                 item.status === 'Completed' || item.status === 'CheckedIn' ? 'text-emerald-500' : 'text-amber-500'
               }`}>{item.status}</span>
             </div>
           </div>
         ))}
         {items.length === 0 && (
-           <p className="py-4 text-center text-[10px] font-medium text-slate-400 italic">Không có đơn đặt phòng mới</p>
+           <p className="py-4 text-center text-xs font-medium text-slate-400 italic">Không có đơn đặt phòng mới</p>
         )}
       </div>
     </motion.div>
@@ -850,14 +850,14 @@ function PopularServicesList({ items = [] }) {
       </div>
       <div className="space-y-3">
         {items.map((item, i) => (
-          <div key={i} className="flex items-center justify-between group cursor-default">
-            <div className="flex items-center gap-3">
-              <div className="size-8 rounded-xl bg-emerald-50 flex items-center justify-center text-[10px] font-black text-emerald-600 group-hover:bg-emerald-500 group-hover:text-white transition-colors duration-300">
+          <div key={i} className="flex items-center justify-between group cursor-default py-1">
+            <div className="flex items-center gap-4">
+              <div className="size-10 rounded-xl bg-emerald-50 flex items-center justify-center text-sm font-black text-emerald-600 group-hover:bg-emerald-500 group-hover:text-white transition-colors duration-300">
                 #{i+1}
               </div>
-              <span className="text-xs font-bold text-slate-700">{item.name}</span>
+              <span className="text-base font-bold text-slate-700">{item.name}</span>
             </div>
-            <span className="text-[10px] font-black bg-slate-100 px-2 py-1 rounded-lg text-slate-500">{item.count} lượt</span>
+            <span className="text-sm font-black bg-slate-100 px-3 py-1.5 rounded-lg text-slate-500">{item.count} lượt</span>
           </div>
         ))}
       </div>
@@ -879,12 +879,12 @@ function PendingServicesList({ items = [] }) {
       </div>
       <div className="space-y-3">
         {items.map((item, i) => (
-          <div key={i} className="flex flex-col border-b border-rose-100/50 pb-2 last:border-0 last:pb-0">
+          <div key={i} className="flex flex-col border-b border-rose-100/50 pb-3 last:border-0 last:pb-0">
             <div className="flex justify-between items-start">
-              <p className="text-[11px] font-black text-slate-900">{item.subtitle}</p>
-              <span className="text-[10px] font-black text-rose-600">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(item.amount)}</span>
+              <p className="text-base font-black text-slate-900">{item.subtitle}</p>
+              <span className="text-sm font-black text-rose-600">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(item.amount)}</span>
             </div>
-            <p className="text-[10px] font-bold text-slate-500">{item.title}</p>
+            <p className="text-sm font-bold text-slate-500">{item.title}</p>
           </div>
         ))}
         {items.length === 0 && <p className="text-center text-[10px] text-slate-400 italic py-4">Tất cả dịch vụ đã xử lý</p>}
@@ -905,16 +905,16 @@ function ServiceHistoryList({ items = [] }) {
         <Activity className="size-4 text-blue-500" />
         <h3 className="font-black text-slate-800 uppercase tracking-tight text-sm">Lịch sử dịch vụ</h3>
       </div>
-      <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+      <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 no-scrollbar">
         {items.map((item, i) => (
           <div key={i} className="flex items-center justify-between border-b border-slate-50 pb-2 last:border-0 last:pb-0">
              <div className="overflow-hidden">
-                <p className="text-[11px] font-bold text-slate-800 truncate">{item.subtitle}</p>
-                <p className="text-[9px] text-slate-400">{item.title}</p>
+                <p className="text-base font-bold text-slate-800 truncate">{item.subtitle}</p>
+                <p className="text-sm text-slate-400">{item.title}</p>
              </div>
              <div className="text-right ml-2 shrink-0">
-                <p className="text-[10px] font-black text-slate-900">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(item.amount)}</p>
-                <p className="text-[9px] font-bold text-slate-400">{new Date(item.time).toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'})}</p>
+                <p className="text-base font-black text-slate-900">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(item.amount)}</p>
+                <p className="text-sm font-bold text-slate-400">{new Date(item.time).toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'})}</p>
              </div>
           </div>
         ))}
