@@ -5,7 +5,7 @@ import {
   BedDouble, DollarSign, Users, Activity, Package, AlertTriangle,
   BatteryWarning, Brush, CheckSquare, CheckCircle, CreditCard, Clock,
   Receipt, LogIn, LogOut, CalendarRange, Layers, Hammer, BarChart3,
-  Calendar
+  Calendar, UserCircle
 } from "lucide-react";
 import { motion } from "framer-motion";
 import {
@@ -60,8 +60,8 @@ const KPI_CONFIG = {
   penaltyAmount: { icon: CreditCard, color: "rose" },
   paidInvoices: { icon: Receipt, color: "teal" },
   currentDamagedQuantity: { icon: Hammer, color: "red" },
-  newCustomers: { icon: Users, color: "sky" },
-  totalEquipmentTypes: { icon: Layers, color: "blue" },
+  totalGuests: { icon: Users, color: "sky" },
+  userRoleCount: { icon: UserCircle, color: "violet" },
   fallback: { icon: BarChart3, color: "slate" },
 };
 
@@ -196,45 +196,81 @@ function DeptOverview({ items }) {
 }
 
 // ─── Room Pie Chart ──────────────────────────────────────────────────────────
-function RoomPieChart({ roomsSummary, role }) {
+function RoomStatusOverview({ roomsSummary, role }) {
   if (!roomsSummary) return null;
 
-  let data = [];
-  if (role === "Housekeeping" || role === "HouseKeeping") {
-    data = [
-      { name: "Phòng trống (Sạch)", value: roomsSummary.availableRooms || 0, color: "#22c55e" }, // green
-      { name: "Cần dọn (Dirty)", value: roomsSummary.dirtyRooms || 0, color: "#ef4444" }, // red
-      { name: "Đang dọn", value: roomsSummary.cleaningRooms || 0, color: "#eab308" }, // yellow
-      { name: "Bảo trì", value: roomsSummary.maintenanceRooms || 0, color: "#94a3b8" }, // gray
-    ].filter(d => d.value > 0);
-  } else {
-    data = [
-      { name: "Trống", value: roomsSummary.availableRooms || 0, color: "#10b981" },
-      { name: "Đang ở", value: roomsSummary.occupiedRooms || 0, color: "#0ea5e9" },
-      { name: "Đang dọn", value: roomsSummary.cleaningRooms || 0, color: "#f59e0b" },
-      { name: "Bảo trì", value: roomsSummary.maintenanceRooms || 0, color: "#ef4444" },
-    ].filter(d => d.value > 0);
-  }
+  const occupancyData = [
+    { name: "Trống", value: roomsSummary.availableRooms || 0, color: "#10b981" },
+    { name: "Đang ở", value: roomsSummary.occupiedRooms || 0, color: "#0ea5e9" },
+    { name: "Đang dọn", value: roomsSummary.cleaningRooms || 0, color: "#f59e0b" },
+    { name: "Bảo trì", value: roomsSummary.maintenanceRooms || 0, color: "#ef4444" },
+    { name: "Ngừng hoạt động", value: roomsSummary.outOfOrderRooms || 0, color: "#64748b" },
+  ].filter(d => d.value > 0);
 
-  if (data.length === 0) return null;
+  const housekeepingData = [
+    { name: "Clean", value: roomsSummary.cleanRooms || 0, color: "#10b981" }, // Xanh lá
+    { name: "Pickup", value: roomsSummary.pickupRooms || 0, color: "#f97316" }, // Cam
+    { name: "Dirty", value: roomsSummary.dirtyRooms || 0, color: "#7c2d12" }, // Nâu (Warm Brown)
+    { name: "In Progress", value: roomsSummary.cleaningRooms || 0, color: "#3b82f6" }, // Xanh biển
+  ];
+
+  const isReceptionist = role === "Receptionist";
 
   return (
-    <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-      <h3 className="mb-4 text-base font-bold text-gray-900">Trạng thái phòng</h3>
-      <ResponsiveContainer width="100%" height={220}>
-        <PieChart>
-          <Pie data={data} cx="50%" cy="50%" innerRadius={55} outerRadius={85}
-            paddingAngle={3} dataKey="value">
-            {data.map((entry, i) => <Cell key={i} fill={entry.color} />)}
-          </Pie>
-          <Tooltip formatter={(v, name) => [v + " phòng", name]} />
-          <Legend iconType="circle" iconSize={10}
-            formatter={(value) => <span className="text-xs font-medium text-gray-600">{value}</span>} />
-        </PieChart>
-      </ResponsiveContainer>
-      <div className="mt-2 text-center text-xs text-gray-400">
-        Tổng: {roomsSummary.totalRooms || 0} phòng · Lấp đầy: {roomsSummary.occupancyRate || 0}%
-      </div>
+    <div className="rounded-[2.5rem] border border-slate-100 bg-white p-7 shadow-sm h-full flex flex-col">
+       <div className="mb-6 flex items-center justify-between">
+          <h3 className="text-lg font-black text-slate-800 tracking-tight">Tình trạng phòng</h3>
+          <div className="flex size-10 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-500 ring-1 ring-indigo-100">
+             <BedDouble className="size-5" />
+          </div>
+       </div>
+
+       <div className={`flex-1 grid gap-8 ${isReceptionist ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2"}`}>
+          <div className="flex flex-col">
+             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 text-center">Trạng thái lưu trú</p>
+             <div className="flex-1 min-h-[180px]">
+               <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                     <Pie data={occupancyData} cx="50%" cy="50%" innerRadius={45} outerRadius={65} paddingAngle={3} dataKey="value">
+                        {occupancyData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                     </Pie>
+                     <Tooltip formatter={(v) => [v + " phòng"]} />
+                     <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: '10px', paddingTop: '10px' }} 
+                        formatter={(value, entry) => (
+                           <span className="text-[10px] font-bold text-slate-500">
+                             {value}: <span className="text-slate-900">{entry.payload.value}</span>
+                           </span>
+                        )} 
+                     />
+                  </PieChart>
+               </ResponsiveContainer>
+             </div>
+          </div>
+          
+          {!isReceptionist && (
+            <div className="flex flex-col">
+               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 text-center">Tình trạng vệ sinh</p>
+               <div className="flex-1 min-h-[180px]">
+                 <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                       <Pie data={housekeepingData} cx="50%" cy="50%" innerRadius={45} outerRadius={65} paddingAngle={3} dataKey="value">
+                          {housekeepingData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                       </Pie>
+                       <Tooltip formatter={(v) => [v + " phòng"]} />
+                       <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: '10px', paddingTop: '10px' }}
+                          formatter={(value, entry) => (
+                             <span className="text-[10px] font-bold text-slate-500">
+                               {value}: <span className="text-slate-900">{entry.payload.value}</span>
+                             </span>
+                          )}
+                       />
+                    </PieChart>
+                 </ResponsiveContainer>
+               </div>
+            </div>
+          )}
+       </div>
+
     </div>
   );
 }
@@ -756,11 +792,11 @@ function SystemSummary({ systemSummary }) {
   if (!systemSummary) return null;
   const rows = [
     { label: "Tổng tài khoản", val: systemSummary.totalUsers, icon: Users },
-    { label: "Nhân viên mới", val: systemSummary.newStaffAccounts, highlight: true, icon: Activity },
+    { label: "Nhân viên", val: systemSummary.staffCount, highlight: true, icon: Activity },
     { label: "Đang hoạt động", val: systemSummary.activeUsers, icon: CheckCircle },
     { label: "Bị khóa", val: systemSummary.lockedUsers, alert: true, icon: AlertTriangle },
-    { label: "Thông báo chưa đọc", val: systemSummary.unreadNotifications, alert: true, icon: Clock },
-    { label: "Sự kiện audit", val: systemSummary.auditEvents, icon: Layers },
+    { label: "Số khách hàng", val: systemSummary.totalGuests, icon: Users },
+    { label: "Số người dùng", val: systemSummary.userRoleCount, icon: UserCircle },
   ].filter(r => r.val != null);
 
   return (
@@ -809,7 +845,7 @@ function TopServices({ services }) {
          </div>
       </div>
       
-      <div className="space-y-4">
+      <div className="space-y-4 max-h-[400px] overflow-y-auto no-scrollbar pr-1">
         {services.map((s, i) => (
           <motion.div 
             key={i} 
@@ -852,7 +888,7 @@ function RecentBookings({ bookings }) {
          </div>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-4 max-h-[400px] overflow-y-auto no-scrollbar pr-1">
         {bookings.map((b, i) => (
           <motion.div 
             key={i} 
@@ -1171,8 +1207,8 @@ function TodayBookingsList({ items = [] }) {
         <Layers className="size-4 text-indigo-500" />
         <h3 className="font-black text-slate-800">Booking hôm nay</h3>
       </div>
-      <div className="space-y-2">
-        {items.slice(0, 4).map((item, i) => (
+      <div className="space-y-2 overflow-y-auto max-h-[290px] no-scrollbar pr-1">
+        {items.map((item, i) => (
           <div key={i} className="flex items-center justify-between border-b border-slate-50 pb-2 last:border-0 last:pb-0">
             <div className="overflow-hidden">
               <p className="text-sm font-black text-slate-900 truncate">{item.title}</p>
@@ -1448,48 +1484,37 @@ export default function AdminDashboardPage() {
                 <div className="lg:col-span-2">
                   {hasRev && <RevenueChart revenueSummary={summary.revenue} role={role} periodType={periodType} />}
                 </div>
-                <div>
-                  {hasRooms && <RoomPieChart roomsSummary={summary.rooms} role={role} />}
-                  <div className="mt-6">
-                    {hasWh && <WarehouseStatusChart summary={summary.warehouse} />}
-                  </div>
+                <div className="lg:col-span-1 space-y-6">
+                   {hasRooms && <RoomStatusOverview roomsSummary={summary.rooms} role={role} />}
+                   {hasWh && <WarehouseStatusChart summary={summary.warehouse} />}
                 </div>
               </div>
 
               {/* Detailed Lists */}
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
                 {/* Bookings & Services */}
-                <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                    <RecentBookings bookings={summary.booking?.recentBookings} />
                    <TopServices services={summary.revenue?.topServices} />
                 </div>
 
-                {/* System & Stats */}
+                {/* System Stats */}
                 <div className="space-y-6">
                    <SystemSummary systemSummary={summary.system} />
-                   <BookingSummary bookingSummary={summary.booking} />
                 </div>
               </div>
 
-              {/* Audits */}
-              {tables.recentAudits?.length > 0 && (
-                <div>
-                  <RecentAudits audits={tables.recentAudits} />
-                </div>
-              )}
-              <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-                <div className="lg:col-span-2">
-                   <DamageReportList reports={summary.warehouse?.recentDamageReports} />
-                </div>
-                <div className="space-y-6">
-                   <PendingServicesList items={summary.services?.pendingServices} />
-                </div>
+              {/* Bottom Row: Stats & Audits */}
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 items-start">
+                 <div>
+                    <BookingSummary bookingSummary={summary.booking} />
+                 </div>
+                 <div className="lg:col-span-2">
+                    {tables.recentAudits?.length > 0 && (
+                      <RecentAudits audits={tables.recentAudits} />
+                    )}
+                 </div>
               </div>
-
-               <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-                  <PopularServicesList items={summary.services?.topServices} />
-                  <ServiceHistoryList items={summary.services?.recentHistory} />
-               </div>
             </div>
           )}
 
@@ -1529,7 +1554,7 @@ export default function AdminDashboardPage() {
                     <TodayBookingsList items={summary.tasks?.todayBookings} />
                  </div>
                  <div className="space-y-6">
-                    {hasRooms && <RoomPieChart roomsSummary={summary.rooms} role={role} />}
+                    {hasRooms && <RoomStatusOverview roomsSummary={summary.rooms} role={role} />}
                  </div>
               </div>
 
@@ -1557,7 +1582,7 @@ export default function AdminDashboardPage() {
               </div>
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                 <div>
-                  {hasRooms && <RoomPieChart roomsSummary={summary.rooms} role={role} />}
+                  {hasRooms && <RoomStatusOverview roomsSummary={summary.rooms} role={role} />}
                 </div>
               </div>
             </div>

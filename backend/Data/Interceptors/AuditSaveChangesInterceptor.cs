@@ -304,8 +304,13 @@ namespace backend.Data.Interceptors
                 if (cleaningProp.IsModified)
                 {
                     var newStatus = cleaningProp.CurrentValue?.ToString();
-                    if (newStatus == "Clean") return $"Phòng {GetEntityIdentifier(entry)} đã dọn xong";
-                    if (newStatus == "InProgress") return $"Đã nhận nhiệm vụ dọn phòng {GetEntityIdentifier(entry)}";
+                    if (string.Equals(newStatus, "Clean", StringComparison.OrdinalIgnoreCase)) 
+                        return $"Phòng {GetEntityIdentifier(entry)} đã dọn xong";
+                    
+                    if (string.Equals(newStatus, "InProgress", StringComparison.OrdinalIgnoreCase) || 
+                        string.Equals(newStatus, "In_Progress", StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(newStatus, "Cleaning", StringComparison.OrdinalIgnoreCase))
+                        return $"Đã nhận nhiệm vụ dọn phòng {GetEntityIdentifier(entry)}";
                 }
             } catch {}
 

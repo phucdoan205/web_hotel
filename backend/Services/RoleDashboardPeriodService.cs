@@ -4,6 +4,7 @@ using backend.DTOs.Dashboard;
 using backend.Helpers;
 using backend.Models;
 using backend.Data;
+using backend.Common;
 
 namespace backend.Services;
 
@@ -241,6 +242,10 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
     {
         var totalUsers = await _context.Users.CountAsync(cancellationToken);
         var activeUsers = await _context.Users.CountAsync(x => x.Status == true, cancellationToken);
+        var userRoleCount = await _context.Users.CountAsync(u => u.Role != null && u.Role.Name == "User", cancellationToken);
+        var guestRoleCount = await _context.Users.CountAsync(u => u.Role != null && u.Role.Name == "Guest", cancellationToken);
+        var totalGuests = await _context.Guests.CountAsync(cancellationToken);
+        var staffCount = totalUsers - userRoleCount - guestRoleCount;
         var newCustomers = 0;
 
         var auditEvents = await _context.AuditLogs
@@ -509,11 +514,14 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
         };
 
         var totalRooms = await _context.Rooms.CountAsync(cancellationToken);
-        var availableRooms = await _context.Rooms.CountAsync(x => x.Status == "Available", cancellationToken);
-        var occupiedRooms = await _context.Rooms.CountAsync(x => x.Status == "Occupied", cancellationToken);
-        var maintenanceRooms = await _context.Rooms.CountAsync(x => x.Status == "Maintenance", cancellationToken);
-        var dirtyRooms = await _context.Rooms.CountAsync(x => x.CleaningStatus == "Dirty", cancellationToken);
-        var cleaningRooms = await _context.Rooms.CountAsync(x => x.CleaningStatus == "Cleaning", cancellationToken);
+        var availableRooms = await _context.Rooms.CountAsync(x => x.Status == RoomStatuses.Available, cancellationToken);
+        var occupiedRooms = await _context.Rooms.CountAsync(x => x.Status == RoomStatuses.Occupied, cancellationToken);
+        var maintenanceRooms = await _context.Rooms.CountAsync(x => x.Status == RoomStatuses.Maintenance, cancellationToken);
+        var outOfOrderRooms = await _context.Rooms.CountAsync(x => x.Status == RoomStatuses.OutOfOrder, cancellationToken);
+        var dirtyRooms = await _context.Rooms.CountAsync(x => x.CleaningStatus == "Dirty" || x.CleaningStatus == "dirty", cancellationToken);
+        var cleaningRooms = await _context.Rooms.CountAsync(x => x.CleaningStatus == "InProgress" || x.CleaningStatus == "inprogress" || x.CleaningStatus == "Cleaning" || x.CleaningStatus == "cleaning" || x.Status == "Cleaning" || x.Status == "cleaning", cancellationToken);
+        var cleanRooms = await _context.Rooms.CountAsync(x => x.CleaningStatus == "Clean" || x.CleaningStatus == "clean" || x.CleaningStatus == "Inspected" || x.CleaningStatus == "inspected" || x.CleaningStatus == null || x.CleaningStatus == "", cancellationToken);
+        var pickupRooms = await _context.Rooms.CountAsync(x => x.CleaningStatus == "Pickup" || x.CleaningStatus == "pickup", cancellationToken);
         var occupancyRate = totalRooms == 0 ? 0m : Math.Round((decimal)occupiedRooms / totalRooms * 100m, 2);
 
         var damageMetrics = await _context.LossAndDamages
@@ -593,8 +601,6 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
             .OrderByDescending(x => x.Timestamp)
             .Take(10)
             .ToList();
-
-        var totalGuests = 0;
 
         var topServicesRaw = await _context.OrderServiceDetails
             .Include(x => x.Service)
@@ -827,6 +833,7 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
             LockedUsers = lockedUsers,
             ManagedRoles = roleUserCounts.Count,
             RoleUserCounts = roleUserCounts,
+            UserRoleCount = userRoleCount,
             RecentAudits = recentAudits,
             TotalBookings = totalBookings,
             CompletedBookings = completedBookings,
@@ -850,6 +857,9 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
             MaintenanceRooms = maintenanceRooms,
             DirtyRooms = dirtyRooms,
             CleaningRooms = cleaningRooms,
+            CleanRooms = cleanRooms,
+            PickupRooms = pickupRooms,
+            OutOfOrderRooms = outOfOrderRooms,
             OccupancyRate = occupancyRate,
             DamageReports = damageMetrics?.Reports ?? 0,
             DamagedQuantityInPeriod = damageMetrics?.Quantity ?? 0,
@@ -863,9 +873,9 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
             NewReviews = reviewMetrics?.NewReviews ?? 0,
             AverageRating = Math.Round(reviewMetrics?.AverageRating ?? 0m, 2),
             TotalGuests = totalGuests,
+            StaffCount = staffCount,
             TopServices = topServices,
             RecentBookings = recentBookings,
-            NewStaffAccounts = newStaffAccounts,
             
             UpcomingCheckIns = upcomingCheckInsRaw.Select(x => new DashboardTaskItem(x.Id, x.Title, x.Subtitle, x.Status, "CHECK_IN", x.Time, x.RefCode, null, x.PaymentStatus)).ToList(),
             UpcomingCheckOuts = upcomingCheckOutsRaw.Select(x => new DashboardTaskItem(x.Id, x.Title, x.Subtitle, x.Status, "CHECK_OUT", x.Time, x.RefCode, x.TotalBill)).ToList(),
@@ -889,12 +899,11 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
                 system = new
                 {
                     totalUsers = metrics.TotalUsers,
+                    staffCount = metrics.StaffCount,
                     activeUsers = metrics.ActiveUsers,
                     lockedUsers = metrics.LockedUsers,
-                    managedRoles = metrics.ManagedRoles,
-                    auditEvents = metrics.AuditEvents,
-                    unreadNotifications = metrics.UnreadNotifications,
-                    newStaffAccounts = metrics.NewStaffAccounts
+                    totalGuests = metrics.TotalGuests,
+                    userRoleCount = metrics.UserRoleCount
                 },
                 booking = new
                 {
@@ -928,6 +937,9 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
                     maintenanceRooms = metrics.MaintenanceRooms,
                     dirtyRooms = metrics.DirtyRooms,
                     cleaningRooms = metrics.CleaningRooms,
+                    cleanRooms = metrics.CleanRooms,
+                    pickupRooms = metrics.PickupRooms,
+                    outOfOrderRooms = metrics.OutOfOrderRooms,
                     occupancyRate = metrics.OccupancyRate
                 },
                 services = new
@@ -966,6 +978,9 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
                     maintenanceRooms = metrics.MaintenanceRooms,
                     dirtyRooms = metrics.DirtyRooms,
                     cleaningRooms = metrics.CleaningRooms,
+                    cleanRooms = metrics.CleanRooms,
+                    pickupRooms = metrics.PickupRooms,
+                    outOfOrderRooms = metrics.OutOfOrderRooms,
                     occupancyRate = metrics.OccupancyRate,
                     totalGuests = metrics.TotalGuests
                 },
@@ -1017,6 +1032,12 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
                     totalRooms = metrics.TotalRooms,
                     availableRooms = metrics.AvailableRooms,
                     occupiedRooms = metrics.OccupiedRooms,
+                    maintenanceRooms = metrics.MaintenanceRooms,
+                    dirtyRooms = metrics.DirtyRooms,
+                    cleaningRooms = metrics.CleaningRooms,
+                    cleanRooms = metrics.CleanRooms,
+                    pickupRooms = metrics.PickupRooms,
+                    outOfOrderRooms = metrics.OutOfOrderRooms,
                     occupancyRate = metrics.OccupancyRate
                 },
                 tasks = new
@@ -1122,7 +1143,9 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
                 newCustomers = CompareMetric(current.NewCustomers, previous.NewCustomers, "higher_is_better"),
                 totalEquipmentTypes = CompareMetric(current.TotalEquipmentTypes, previous.TotalEquipmentTypes, "neutral"),
                 pendingPaymentAmount = CompareMetric(current.PendingPaymentAmount, previous.PendingPaymentAmount, "lower_is_better"),
-                damagedQuantityInPeriod = CompareMetric(current.DamagedQuantityInPeriod, previous.DamagedQuantityInPeriod, "lower_is_better")
+                damagedQuantityInPeriod = CompareMetric(current.DamagedQuantityInPeriod, previous.DamagedQuantityInPeriod, "lower_is_better"),
+                totalGuests = CompareMetric(current.TotalGuests, previous.TotalGuests, "higher_is_better"),
+                userRoleCount = CompareMetric(current.UserRoleCount, previous.UserRoleCount, "higher_is_better")
             }
         };
 
@@ -1131,14 +1154,16 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
 
     private static object CompareMetric(decimal current, decimal previous, string directionMeaning)
     {
+        var growthRate = DashboardPeriodHelper.CalculateGrowthRate(current, previous);
         return new
         {
             current,
             previous,
             difference = current - previous,
-            growthRate = DashboardPeriodHelper.CalculateGrowthRate(current, previous),
+            growthRate,
             trend = DashboardPeriodHelper.ResolveTrend(current, previous),
-            directionMeaning
+            directionMeaning,
+            growthDescription = growthRate > 0 ? "Tăng trưởng so với kỳ trước" : growthRate < 0 ? "Giảm sút so với kỳ trước" : "Ổn định so với kỳ trước"
         };
     }
 
@@ -1155,8 +1180,8 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
             {
                 new { code = "totalRevenue", title = "Tổng doanh thu", value = metrics.TotalRevenue, unit = "VND" },
                 new { code = "totalBookings", title = "Tổng Booking", value = metrics.TotalBookings, unit = "booking" },
-                new { code = "occupancyRate", title = "Tỷ lệ lấp đầy", value = metrics.OccupancyRate, unit = "%" },
-                new { code = "activeUsers", title = "Đang lưu trú", value = metrics.InProgressBookings, unit = "booking" }
+                new { code = "totalGuests", title = "Số khách hàng", value = metrics.TotalGuests, unit = "khách" },
+                new { code = "userRoleCount", title = "Số User", value = metrics.UserRoleCount, unit = "người" }
             },
             "Manager" => new object[]
             {
@@ -1352,6 +1377,9 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
         public int MaintenanceRooms { get; init; }
         public int DirtyRooms { get; init; }
         public int CleaningRooms { get; init; }
+        public int CleanRooms { get; init; }
+        public int PickupRooms { get; init; }
+        public int OutOfOrderRooms { get; init; }
         public decimal OccupancyRate { get; init; }
         public int DamageReports { get; init; }
         public int DamagedQuantityInPeriod { get; init; }
@@ -1367,7 +1395,8 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
         public int TotalGuests { get; init; }
         public IReadOnlyList<TopServiceItem> TopServices { get; init; } = Array.Empty<TopServiceItem>();
         public IReadOnlyList<RecentBookingItem> RecentBookings { get; init; } = Array.Empty<RecentBookingItem>();
-        public int NewStaffAccounts { get; init; }
+        public int UserRoleCount { get; init; }
+        public int StaffCount { get; init; }
 
         // Receptionist specific lists
         public IReadOnlyList<DashboardTaskItem> UpcomingCheckIns { get; init; } = Array.Empty<DashboardTaskItem>();
