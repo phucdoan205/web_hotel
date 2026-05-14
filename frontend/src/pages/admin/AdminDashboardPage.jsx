@@ -315,7 +315,6 @@ function BookingSummary({ bookingSummary }) {
   const rows = [
     { label: "Tổng đặt phòng", val: bookingSummary.totalBookings, icon: Calendar },
     { label: "Đang chờ duyệt", val: bookingSummary.pendingBookings, alert: true, icon: Clock },
-    { label: "Đã xác nhận", val: bookingSummary.confirmedBookings, icon: CheckCircle },
     { label: "Đang lưu trú", val: bookingSummary.inProgressBookings, icon: Activity },
     { label: "Hoàn tất", val: bookingSummary.completedBookings, icon: CheckSquare },
     { label: "Đã hủy", val: bookingSummary.cancelledBookings, icon: AlertTriangle },
@@ -1600,7 +1599,7 @@ export default function AdminDashboardPage() {
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-                  <WarehouseHistory audits={tables.recentAudits} />
+                  <WarehouseHistory audits={summary.warehouse?.recentEquipmentAudits || []} />
                   {hasWh && <WarehouseSummary warehouseSummary={summary.warehouse} />}
                 </div>
 

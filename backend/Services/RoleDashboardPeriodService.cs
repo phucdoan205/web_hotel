@@ -287,7 +287,7 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
         var cancelledBookings = bookings.Where(x => x.Status == "Cancelled").Sum(x => x.Total);
         var pendingBookings = bookings.Where(x => x.Status == "Pending").Sum(x => x.Total);
         var confirmedBookings = bookings.Where(x => x.Status == "Confirmed").Sum(x => x.Total);
-        var inProgressBookings = bookings.Where(x => x.Status == "In_Progress").Sum(x => x.Total);
+        var inProgressBookings = await _context.Bookings.CountAsync(x => x.Status == "In_Progress" || x.Status == "CheckedIn", cancellationToken);
 
         var checkIns = await _context.BookingDetails
             .Where(x => x.CheckInDate >= start && x.CheckInDate <= end && x.Booking!.Status != "Cancelled")
@@ -602,6 +602,25 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
             .Take(10)
             .ToList();
 
+        var recentEquipmentAuditLogs = await _context.EquipmentHistories
+            .AsNoTracking()
+            .Include(x => x.CreatedBy)
+                .ThenInclude(u => u!.Role)
+            .Include(x => x.Equipment)
+            .OrderByDescending(x => x.CreatedAt)
+            .Take(10)
+            .ToListAsync(cancellationToken);
+
+        var recentEquipmentAudits = recentEquipmentAuditLogs.Select(x => new RecentAuditItem(
+            UserId: x.CreatedById ?? 0,
+            UserName: x.CreatedBy?.FullName ?? x.CreatedBy?.Email ?? "Hệ thống",
+            RoleName: x.CreatedBy?.Role?.Name ?? "Hệ thống",
+            Action: x.ActionType,
+            EntityType: "Equipment",
+            Message: $"{x.Note}: {x.Equipment?.Name} ({x.QuantityChanged} món, từ {x.PreviousQuantity} lên {x.NewQuantity})",
+            Timestamp: x.CreatedAt
+        )).ToList();
+
         var topServicesRaw = await _context.OrderServiceDetails
             .Include(x => x.Service)
             .GroupBy(x => x.Service.Name)
@@ -630,7 +649,9 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
                 BookingCode = x.BookingCode,
                 FullName = x.User != null ? x.User.FullName : (x.Guest != null ? x.Guest.Name : "Khách vãng lai"),
                 Status = x.Status,
-                TotalAmount = x.Invoices.Sum(i => i.FinalTotal ?? 0m),
+                TotalAmount = x.Invoices.Any(i => (i.FinalTotal ?? 0m) > 0) 
+                    ? x.Invoices.Sum(i => i.FinalTotal ?? 0m) 
+                    : x.BookingDetails.Sum(bd => bd.PricePerNight),
                 CreatedAt = x.CreatedAt
             })
             .ToListAsync(cancellationToken);
@@ -696,7 +717,9 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
                 Status = "Đang ở",
                 Time = x.CheckOutDate,
                 RefCode = x.Booking.BookingCode,
-                TotalBill = x.Booking.Invoices.Sum(i => i.FinalTotal ?? 0m)
+                TotalBill = x.Booking.Invoices.Any(i => (i.FinalTotal ?? 0m) > 0)
+                    ? x.Booking.Invoices.Sum(i => i.FinalTotal ?? 0m)
+                    : x.PricePerNight
             })
             .ToListAsync(cancellationToken);
 
@@ -835,6 +858,7 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
             RoleUserCounts = roleUserCounts,
             UserRoleCount = userRoleCount,
             RecentAudits = recentAudits,
+            RecentEquipmentAudits = recentEquipmentAudits,
             TotalBookings = totalBookings,
             CompletedBookings = completedBookings,
             CancelledBookings = cancelledBookings,
@@ -1068,6 +1092,7 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
                     recentDamageReports = metrics.RecentDamageReports,
                     damageReports = metrics.DamageReports,
                     damagedQuantityInPeriod = metrics.DamagedQuantityInPeriod,
+                    recentEquipmentAudits = metrics.RecentEquipmentAudits,
                     penaltyAmount = metrics.PenaltyAmount
                 }
             },
@@ -1209,7 +1234,7 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
                 new { code = "inStockQuantity", title = "Tổng sản phẩm trong kho", value = metrics.InStockQuantity, unit = "món" },
                 new { code = "lowStockItems", title = "Hàng sắp hết (<30)", value = metrics.LowStockItems, unit = "loại" },
                 new { code = "currentDamagedQuantity", title = "Hàng hư hỏng", value = metrics.CurrentDamagedQuantity, unit = "món" },
-                new { code = "damageReports", title = "Phiếu nhập/xuất", value = metrics.DamageReports, unit = "phiếu" }
+                new { code = "damageReports", title = "Báo cáo hư hỏng", value = metrics.DamageReports, unit = "báo cáo" }
             },
             "Accountant" => new object[]
             {
@@ -1355,6 +1380,7 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
         public int ManagedRoles { get; init; }
         public IReadOnlyList<RoleUserCount> RoleUserCounts { get; init; } = Array.Empty<RoleUserCount>();
         public IReadOnlyList<RecentAuditItem> RecentAudits { get; init; } = Array.Empty<RecentAuditItem>();
+        public IReadOnlyList<RecentAuditItem> RecentEquipmentAudits { get; init; } = Array.Empty<RecentAuditItem>();
         public int TotalBookings { get; init; }
         public int CompletedBookings { get; init; }
         public int CancelledBookings { get; init; }

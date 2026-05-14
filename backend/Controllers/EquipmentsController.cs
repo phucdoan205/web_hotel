@@ -209,6 +209,16 @@ namespace backend.Controllers
             }
 
             _context.Equipments.Add(equipment);
+            
+            _context.EquipmentHistories.Add(new EquipmentHistory {
+                Equipment = equipment,
+                ActionType = "NEW",
+                QuantityChanged = request.TotalQuantity,
+                PreviousQuantity = 0,
+                NewQuantity = request.TotalQuantity,
+                Note = "Khởi tạo vật tư"
+            });
+
             await _context.SaveChangesAsync();
 
             return CreatedAtAction(nameof(GetById), new { id = equipment.Id }, MapEquipment(equipment));
@@ -264,6 +274,9 @@ namespace backend.Controllers
 
             var oldImageUrl = equipment.ImageUrl;
 
+            int oldTotal = equipment.TotalQuantity;
+            int oldLiquidated = equipment.LiquidatedQuantity;
+
             equipment.ItemCode = normalizedItemCode;
             equipment.Name = normalizedName;
             equipment.Category = normalizedCategory;
@@ -281,6 +294,16 @@ namespace backend.Controllers
             equipment.Supplier = normalizedSupplier;
             equipment.IsActive = request.IsActive;
             equipment.UpdatedAt = DateTime.UtcNow;
+
+            if (request.TotalQuantity > oldTotal) {
+                _context.EquipmentHistories.Add(new EquipmentHistory { EquipmentId = equipment.Id, ActionType = "IMPORT", QuantityChanged = request.TotalQuantity - oldTotal, PreviousQuantity = oldTotal, NewQuantity = request.TotalQuantity, Note = "Nhập thêm vật tư" });
+            } else if (request.TotalQuantity < oldTotal) {
+                _context.EquipmentHistories.Add(new EquipmentHistory { EquipmentId = equipment.Id, ActionType = "EXPORT", QuantityChanged = oldTotal - request.TotalQuantity, PreviousQuantity = oldTotal, NewQuantity = request.TotalQuantity, Note = "Xuất giảm vật tư" });
+            }
+
+            if (request.LiquidatedQuantity > oldLiquidated) {
+                _context.EquipmentHistories.Add(new EquipmentHistory { EquipmentId = equipment.Id, ActionType = "LIQUIDATE", QuantityChanged = request.LiquidatedQuantity - oldLiquidated, PreviousQuantity = oldLiquidated, NewQuantity = request.LiquidatedQuantity, Note = "Thanh lý vật tư" });
+            }
 
             if (request.ImageFile != null)
             {
@@ -303,6 +326,58 @@ namespace backend.Controllers
             }
 
             return Ok(MapEquipment(equipment));
+        }
+
+        [HttpGet("history")]
+        [Permission("VIEW_INVENTORY")]
+        public async Task<ActionResult> GetGlobalHistory([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+        {
+            var query = _context.EquipmentHistories
+                .Include(h => h.CreatedBy)
+                .Include(h => h.Equipment)
+                .OrderByDescending(h => h.CreatedAt);
+
+            var totalCount = await query.CountAsync();
+            var history = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(h => new {
+                    h.Id,
+                    EquipmentName = h.Equipment != null ? h.Equipment.Name : "Vật tư đã xóa",
+                    h.ActionType,
+                    h.QuantityChanged,
+                    h.PreviousQuantity,
+                    h.NewQuantity,
+                    h.Note,
+                    h.CreatedAt,
+                    CreatedBy = h.CreatedBy != null ? h.CreatedBy.FullName : "Hệ thống"
+                })
+                .ToListAsync();
+
+            return Ok(new { Items = history, TotalCount = totalCount });
+        }
+
+        [HttpGet("{id:int}/history")]
+        [Permission("VIEW_INVENTORY")]
+        public async Task<ActionResult> GetEquipmentHistory(int id)
+        {
+            var history = await _context.EquipmentHistories
+                .Include(h => h.CreatedBy)
+                .Where(h => h.EquipmentId == id)
+                .OrderByDescending(h => h.CreatedAt)
+                .Select(h => new {
+                    h.Id,
+                    h.ActionType,
+                    h.QuantityChanged,
+                    h.PreviousQuantity,
+                    h.NewQuantity,
+                    h.Note,
+                    h.CreatedAt,
+                    CreatedBy = h.CreatedBy != null ? h.CreatedBy.FullName : "Hệ thống"
+                })
+                .ToListAsync();
+
+            return Ok(history);
         }
 
         private static EquipmentListItemDTO MapEquipment(Equipment equipment)

@@ -16,8 +16,10 @@ import {
   getEquipmentList,
   getEquipmentSummary,
   updateEquipment,
+  getGlobalEquipmentHistory,
 } from "../../api/admin/equipmentApi";
 import { hasPermission } from "../../utils/permissions";
+import { Clock } from "lucide-react";
 
 const CATEGORY_OPTIONS = ["Điện tử", "Đồ vải", "Minibar"];
 const PAGE_SIZE = 8;
@@ -197,6 +199,9 @@ export default function EquipmentManagementSection({
   const [modalMode, setModalMode] = useState(null);
   const [editingEquipmentId, setEditingEquipmentId] = useState(null);
   const [formData, setFormData] = useState(emptyForm);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [historyData, setHistoryData] = useState([]);
+  const [isHistoryLoading, setIsHistoryLoading] = useState(false);
   const deferredSearchTerm = useDeferredValue(searchTerm);
 
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
@@ -244,6 +249,18 @@ export default function EquipmentManagementSection({
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
+    }
+  };
+
+  const loadHistoryData = async () => {
+    setIsHistoryLoading(true);
+    try {
+      const response = await getGlobalEquipmentHistory(1, 100);
+      setHistoryData(response.items || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsHistoryLoading(false);
     }
   };
 
@@ -428,6 +445,17 @@ export default function EquipmentManagementSection({
             >
               <RefreshCw className={`size-4 ${isRefreshing ? "animate-spin" : ""}`} />
               Làm mới
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setIsHistoryModalOpen(true);
+                loadHistoryData();
+              }}
+              className="inline-flex items-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-bold text-slate-700 shadow-sm ring-1 ring-gray-200 transition hover:bg-gray-50"
+            >
+              <Clock className="size-4" />
+              Lịch sử
             </button>
             {canCreateInventory ? (
               <button
@@ -775,6 +803,70 @@ export default function EquipmentManagementSection({
                 </div>
               </div>
             </form>
+          </div>
+        </div>
+      ) : null}
+
+      {isHistoryModalOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4 backdrop-blur-sm">
+          <div className="max-h-[92vh] w-full max-w-4xl overflow-hidden flex flex-col rounded-[2rem] bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-gray-100 px-6 py-5">
+              <div>
+                <h2 className="text-2xl font-black text-slate-900">
+                  Lịch sử nhập/xuất thanh lý
+                </h2>
+                <p className="mt-1 text-sm font-medium text-slate-500">
+                  Danh sách lịch sử thao tác với vật tư
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsHistoryModalOpen(false)}
+                className="rounded-xl p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+              >
+                <X className="size-5" />
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-6">
+              {isHistoryLoading ? (
+                <p className="text-center text-sm font-semibold text-slate-400 py-10">Đang tải lịch sử...</p>
+              ) : historyData.length === 0 ? (
+                <p className="text-center text-sm font-semibold text-slate-400 py-10">Chưa có lịch sử nào.</p>
+              ) : (
+                <div className="space-y-4">
+                  {historyData.map((item) => (
+                    <div key={item.id} className="flex items-start gap-4 rounded-2xl border border-gray-100 bg-slate-50 p-4">
+                      <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm">
+                        <Clock className="size-5 text-sky-600" />
+                      </div>
+                      <div className="flex-1 space-y-1">
+                        <p className="font-bold text-slate-800">
+                          {item.note || item.actionType} - <span className="text-sky-600">{item.equipmentName}</span>
+                        </p>
+                        <p className="text-sm font-medium text-slate-600">
+                          Thay đổi: <span className="font-black text-slate-800">{item.quantityChanged}</span> món (Từ {item.previousQuantity} lên {item.newQuantity})
+                        </p>
+                        <div className="flex items-center gap-4 text-xs font-semibold text-slate-400">
+                          <span>Bởi: {item.createdBy}</span>
+                          <span>{new Date(item.createdAt).toLocaleString('vi-VN')}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            
+            <div className="border-t border-gray-100 px-6 py-4 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setIsHistoryModalOpen(false)}
+                className="rounded-2xl bg-gray-100 px-5 py-3 text-sm font-bold text-gray-600 transition hover:bg-gray-200"
+              >
+                Đóng
+              </button>
+            </div>
           </div>
         </div>
       ) : null}

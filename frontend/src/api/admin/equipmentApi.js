@@ -56,3 +56,10 @@ export const updateEquipment = async (equipmentId, payload) => {
 
   return response.data;
 };
+
+export const getGlobalEquipmentHistory = async (page = 1, pageSize = 20) => {
+  const response = await apiClient.get("/Equipments/history", {
+    params: { page, pageSize }
+  });
+  return response.data;
+};

@@ -20,6 +20,7 @@ namespace backend.Data
         public DbSet<Amenity> Amenities { get; set; }
         public DbSet<AmenityDetail> AmenityDetails { get; set; }
         public DbSet<Equipment> Equipments { get; set; }
+        public DbSet<EquipmentHistory> EquipmentHistories { get; set; }
         public DbSet<RoomType> RoomTypes { get; set; }
         public DbSet<Room> Rooms { get; set; }
         public DbSet<RoomTypeAmenity> RoomTypeAmenities { get; set; }

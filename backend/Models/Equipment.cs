@@ -41,5 +41,6 @@ namespace backend.Models
         public string? ImageUrl { get; set; }
 
         public ICollection<RoomInventory> RoomInventories { get; set; } = new List<RoomInventory>();
+        public ICollection<EquipmentHistory> EquipmentHistories { get; set; } = new List<EquipmentHistory>();
     }
 }
