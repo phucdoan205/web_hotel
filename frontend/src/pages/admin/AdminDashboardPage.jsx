@@ -110,27 +110,44 @@ function StatCard({ code, title, value, unit, growthRate, trendDir }) {
   const hasGrowth = growthRate != null && !isNaN(Number(growthRate));
 
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-gray-100 bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
-      <div className="mb-4 flex items-start justify-between gap-2">
-        <div className={`rounded-xl p-2.5 ring-1 ${c.bg} ${c.ring}`}>
-          <Icon className={`size-5 ${c.text}`} />
-        </div>
-        {hasGrowth && (
-          <div className={`flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-bold
-            ${isUp ? "bg-emerald-50 text-emerald-600" : isDown ? "bg-rose-50 text-rose-600" : "bg-slate-50 text-slate-500"}`}>
-            {isUp ? <TrendingUp className="size-3" /> : isDown ? <TrendingDown className="size-3" /> : null}
-            {Math.abs(Number(growthRate)).toFixed(1)}%
+    <motion.div 
+      whileHover={{ y: -4 }}
+      className="relative overflow-hidden rounded-[2rem] border border-slate-100 bg-white p-6 shadow-sm transition-all hover:shadow-xl hover:shadow-slate-200/50"
+    >
+      {/* Decorative background circle */}
+      <div className={`absolute -right-6 -top-6 size-24 rounded-full opacity-10 blur-2xl ${c.bg}`} />
+      
+      <div className="relative z-10">
+        <div className="mb-6 flex items-start justify-between">
+          <div className={`rounded-2xl p-3 ring-1 ${c.bg} ${c.ring} shadow-sm`}>
+            <Icon className={`size-6 ${c.text}`} />
           </div>
-        )}
+          {hasGrowth && (
+            <div className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-wider
+              ${isUp ? "bg-emerald-50 text-emerald-600 ring-1 ring-emerald-100" : isDown ? "bg-rose-50 text-rose-600 ring-1 ring-rose-100" : "bg-slate-50 text-slate-500"}`}>
+              {isUp ? <TrendingUp className="size-3" /> : isDown ? <TrendingDown className="size-3" /> : null}
+              {Math.abs(Number(growthRate)).toFixed(1)}%
+            </div>
+          )}
+        </div>
+        
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.1em] text-slate-400">{title}</p>
+          <div className="mt-1 flex items-baseline gap-1">
+            <p className="text-3xl font-black text-slate-900 tracking-tight">{fmtValue(value, unit)}</p>
+          </div>
+          
+          {hasGrowth && (
+            <div className="mt-3 flex items-center gap-2">
+              <div className={`size-1.5 rounded-full ${isUp ? "bg-emerald-400" : isDown ? "bg-rose-400" : "bg-slate-300"}`} />
+              <p className={`text-[11px] font-bold ${isUp ? "text-emerald-500" : isDown ? "text-rose-500" : "text-slate-400"}`}>
+                {isUp ? "Tăng trưởng" : isDown ? "Giảm sút" : "Ổn định"} so với kỳ trước
+              </p>
+            </div>
+          )}
+        </div>
       </div>
-      <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">{title}</p>
-      <p className="mt-1 text-2xl font-black text-gray-900">{fmtValue(value, unit)}</p>
-      {hasGrowth && (
-        <p className={`mt-1 text-xs font-medium ${isUp ? "text-emerald-500" : isDown ? "text-rose-500" : "text-slate-400"}`}>
-          {isUp ? "↑" : isDown ? "↓" : "→"} so với kỳ trước
-        </p>
-      )}
-    </div>
+    </motion.div>
   );
 }
 
@@ -138,16 +155,41 @@ function StatCard({ code, title, value, unit, growthRate, trendDir }) {
 function DeptOverview({ items }) {
   if (!items?.length) return null;
   return (
-    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+    <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
       {items.map((d, i) => (
-        <div key={i} className={`rounded-2xl border p-4
-          ${d.status === "warning" ? "border-amber-200 bg-amber-50" : "border-gray-100 bg-white shadow-sm"}`}>
-          <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">{d.department}</p>
-          <p className="mt-1 text-xl font-black text-gray-900">{fmtNum(d.value)}</p>
+        <motion.div 
+          key={i} 
+          whileHover={{ scale: 1.02 }}
+          className={`relative overflow-hidden rounded-3xl border p-5 transition-all
+            ${d.status === "warning" 
+              ? "border-amber-200 bg-gradient-to-br from-amber-50 to-white shadow-lg shadow-amber-100/50" 
+              : "border-slate-100 bg-white shadow-sm hover:shadow-md"}`}
+        >
           {d.status === "warning" && (
-            <p className="mt-1 text-xs font-semibold text-amber-600">⚠ Cần xử lý</p>
+            <div className="absolute -right-4 -top-4 size-16 rounded-full bg-amber-200/20 blur-xl" />
           )}
-        </div>
+          
+          <div className="flex items-center justify-between mb-3">
+             <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{d.department}</p>
+             {d.status === "warning" && (
+                <div className="flex size-6 items-center justify-center rounded-lg bg-amber-500 text-white shadow-lg shadow-amber-200">
+                   <AlertTriangle className="size-3.5" />
+                </div>
+             )}
+          </div>
+          
+          <p className="text-2xl font-black text-slate-900">{fmtNum(d.value)}</p>
+          
+          {d.status === "warning" ? (
+            <p className="mt-2 text-[10px] font-extrabold uppercase text-amber-600 flex items-center gap-1">
+              <Clock className="size-3" /> Cần xử lý ngay
+            </p>
+          ) : (
+             <p className="mt-2 text-[10px] font-bold text-slate-400 flex items-center gap-1">
+               <CheckCircle className="size-3 text-emerald-500" /> Hoạt động tốt
+             </p>
+          )}
+        </motion.div>
       ))}
     </div>
   );
@@ -235,28 +277,42 @@ function WarehouseStatusChart({ summary }) {
 function BookingSummary({ bookingSummary }) {
   if (!bookingSummary) return null;
   const rows = [
-    { label: "Tổng đặt phòng", val: bookingSummary.totalBookings },
-    { label: "Đang chờ duyệt", val: bookingSummary.pendingBookings, alert: true },
-    { label: "Đã xác nhận", val: bookingSummary.confirmedBookings },
-    { label: "Đang lưu trú", val: bookingSummary.inProgressBookings },
-    { label: "Hoàn tất", val: bookingSummary.completedBookings },
-    { label: "Đã hủy", val: bookingSummary.cancelledBookings },
-    { label: "Check-in kỳ này", val: bookingSummary.checkIns },
-    { label: "Check-out kỳ này", val: bookingSummary.checkOuts },
+    { label: "Tổng đặt phòng", val: bookingSummary.totalBookings, icon: Calendar },
+    { label: "Đang chờ duyệt", val: bookingSummary.pendingBookings, alert: true, icon: Clock },
+    { label: "Đã xác nhận", val: bookingSummary.confirmedBookings, icon: CheckCircle },
+    { label: "Đang lưu trú", val: bookingSummary.inProgressBookings, icon: Activity },
+    { label: "Hoàn tất", val: bookingSummary.completedBookings, icon: CheckSquare },
+    { label: "Đã hủy", val: bookingSummary.cancelledBookings, icon: AlertTriangle },
+    { label: "Check-in kỳ này", val: bookingSummary.checkIns, icon: LogIn },
+    { label: "Check-out kỳ này", val: bookingSummary.checkOuts, icon: LogOut },
   ].filter(r => r.val != null);
 
   return (
-    <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-      <h3 className="mb-4 text-base font-bold text-gray-900">Thống kê đặt phòng</h3>
-      <div className="space-y-2">
-        {rows.map((r, i) => (
-          <div key={i} className="flex items-center justify-between">
-            <span className="text-sm text-gray-500">{r.label}</span>
-            <span className={`text-sm font-bold ${r.alert && r.val > 0 ? "text-amber-600" : "text-gray-800"}`}>
-              {fmtNum(r.val)}
-            </span>
-          </div>
-        ))}
+    <div className="rounded-[2rem] border border-slate-100 bg-white p-6 shadow-sm">
+      <div className="mb-6 flex items-center gap-3">
+        <div className="flex size-10 items-center justify-center rounded-2xl bg-slate-50 text-slate-400 ring-1 ring-slate-100">
+           <Layers className="size-5" />
+        </div>
+        <h3 className="text-base font-black text-slate-800 tracking-tight">Thống kê đặt phòng</h3>
+      </div>
+      
+      <div className="grid grid-cols-1 gap-1">
+        {rows.map((r, i) => {
+          const Icon = r.icon;
+          return (
+            <div key={i} className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 transition-colors">
+              <div className="flex items-center gap-3">
+                <div className={`flex size-7 items-center justify-center rounded-lg ${r.alert && r.val > 0 ? "bg-amber-100 text-amber-600" : "bg-slate-100 text-slate-400"}`}>
+                   <Icon className="size-3.5" />
+                </div>
+                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-tight">{r.label}</span>
+              </div>
+              <span className={`text-sm font-black ${r.alert && r.val > 0 ? "text-amber-600" : "text-slate-800"}`}>
+                {fmtNum(r.val)}
+              </span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -266,27 +322,41 @@ function BookingSummary({ bookingSummary }) {
 function RevenueSummary({ revenueSummary }) {
   if (!revenueSummary) return null;
   const rows = [
-    { label: "Tổng doanh thu", val: revenueSummary.totalRevenue, vnd: true, highlight: true },
-    { label: "Doanh thu phòng", val: revenueSummary.roomRevenue, vnd: true },
-    { label: "Doanh thu DV", val: revenueSummary.serviceRevenue, vnd: true },
-    { label: "Chưa thanh toán", val: revenueSummary.pendingPaymentAmount, vnd: true, alert: true },
-    { label: "HĐ đã thanh toán", val: revenueSummary.paidInvoices },
-    { label: "HĐ chưa thanh toán", val: revenueSummary.unpaidInvoices, alert: true },
+    { label: "Tổng doanh thu", val: revenueSummary.totalRevenue, vnd: true, highlight: true, icon: DollarSign },
+    { label: "Doanh thu phòng", val: revenueSummary.roomRevenue, vnd: true, icon: BedDouble },
+    { label: "Doanh thu DV", val: revenueSummary.serviceRevenue, vnd: true, icon: Activity },
+    { label: "Chưa thanh toán", val: revenueSummary.pendingPaymentAmount, vnd: true, alert: true, icon: AlertTriangle },
+    { label: "HĐ đã thanh toán", val: revenueSummary.paidInvoices, icon: CheckCircle },
+    { label: "HĐ chưa thanh toán", val: revenueSummary.unpaidInvoices, alert: true, icon: Clock },
   ].filter(r => r.val != null);
 
   return (
-    <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-      <h3 className="mb-4 text-base font-bold text-gray-900">Tài chính kỳ này</h3>
-      <div className="space-y-2">
-        {rows.map((r, i) => (
-          <div key={i} className={`flex items-center justify-between ${r.highlight ? "rounded-xl bg-emerald-50 px-3 py-2" : ""}`}>
-            <span className={`text-sm ${r.highlight ? "font-semibold text-emerald-700" : "text-gray-500"}`}>{r.label}</span>
-            <span className={`text-sm font-bold
-              ${r.highlight ? "text-emerald-700" : r.alert && r.val > 0 ? "text-rose-600" : "text-gray-800"}`}>
-              {r.vnd ? fmtVND(r.val) : fmtNum(r.val)}
-            </span>
-          </div>
-        ))}
+    <div className="rounded-[2rem] border border-slate-100 bg-white p-6 shadow-sm">
+      <div className="mb-6 flex items-center gap-3">
+        <div className="flex size-10 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-500 ring-1 ring-emerald-100">
+           <Receipt className="size-5" />
+        </div>
+        <h3 className="text-base font-black text-slate-800 tracking-tight">Tài chính kỳ này</h3>
+      </div>
+      
+      <div className="space-y-1">
+        {rows.map((r, i) => {
+          const Icon = r.icon;
+          return (
+            <div key={i} className={`flex items-center justify-between p-3 rounded-2xl transition-all ${r.highlight ? "bg-emerald-500 text-white shadow-lg shadow-emerald-200" : "hover:bg-slate-50"}`}>
+              <div className="flex items-center gap-3">
+                <div className={`flex size-8 items-center justify-center rounded-xl ${r.highlight ? "bg-white/20 text-white" : r.alert && r.val > 0 ? "bg-rose-100 text-rose-600" : "bg-slate-100 text-slate-400"}`}>
+                   <Icon className="size-4" />
+                </div>
+                <span className={`text-[11px] font-black uppercase tracking-wider ${r.highlight ? "text-white" : "text-slate-500"}`}>{r.label}</span>
+              </div>
+              <span className={`text-sm font-black
+                ${r.highlight ? "text-white" : r.alert && r.val > 0 ? "text-rose-600" : "text-slate-800"}`}>
+                {r.vnd ? fmtVND(r.val) : fmtNum(r.val)}
+              </span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -466,34 +536,70 @@ function WarehouseSummary({ warehouseSummary }) {
 
 // ─── Low Stock List ──────────────────────────────────────────────────────────
 function LowStockList({ items = [] }) {
+  const limit = 30;
   return (
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm h-full"
+      className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm h-full flex flex-col"
     >
-      <div className="mb-4 flex items-center gap-2">
-        <div className="flex size-8 items-center justify-center rounded-xl bg-amber-100 text-amber-600">
-          <AlertTriangle className="size-4" />
+      <div className="mb-6 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="flex size-10 items-center justify-center rounded-2xl bg-amber-50 text-amber-500 ring-1 ring-amber-100 shadow-sm shadow-amber-50">
+            <AlertTriangle className="size-5" />
+          </div>
+          <div>
+            <h3 className="text-base font-black text-slate-800 tracking-tight">Vật tư sắp hết</h3>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Ngưỡng cảnh báo: {limit}</p>
+          </div>
         </div>
-        <h3 className="font-black text-slate-800">Vật tư sắp hết {"(<30)"}</h3>
+        <span className="rounded-full bg-rose-50 px-3 py-1 text-[10px] font-black text-rose-600 uppercase tracking-wider">
+          {items.length} mặt hàng
+        </span>
       </div>
       
-      <div className="space-y-3">
-        {items.length > 0 ? items.map((item, i) => (
-          <div key={i} className="flex items-center justify-between group py-1">
-             <div className="flex-1 min-w-0">
-                <p className="text-base font-bold text-slate-700 truncate">{item.name}</p>
-             </div>
-             <div className="text-right ml-4">
-                <span className="text-sm font-black bg-rose-50 px-3 py-1 rounded-lg text-rose-600">
-                  {item.quantity} tồn
-                </span>
-             </div>
-          </div>
-        )) : (
-          <div className="py-8 text-center">
-            <p className="text-sm font-bold text-slate-400 italic">Kho hàng đầy đủ</p>
+      <div className="space-y-4 overflow-y-auto pr-1 no-scrollbar max-h-[300px]">
+        {items.length > 0 ? items.map((item, i) => {
+          const percentage = Math.min(100, (item.quantity / limit) * 100);
+          const isCritical = item.quantity <= 5;
+          
+          return (
+            <motion.div 
+              key={i}
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: i * 0.05 }}
+              className="group relative flex flex-col gap-2 rounded-2xl border border-transparent bg-slate-50/50 p-4 transition-all hover:border-amber-200 hover:bg-white hover:shadow-md hover:shadow-amber-50"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className={`size-2 rounded-full shadow-[0_0_8px] ${isCritical ? 'bg-rose-500 shadow-rose-200 animate-pulse' : 'bg-amber-400 shadow-amber-200'}`} />
+                  <p className="text-sm font-extrabold text-slate-700 truncate">{item.name}</p>
+                </div>
+                <div className="text-right ml-4">
+                  <span className={`text-xs font-black px-2 py-1 rounded-lg ${isCritical ? 'bg-rose-100 text-rose-600' : 'bg-amber-100 text-amber-600'}`}>
+                    {item.quantity} tồn
+                  </span>
+                </div>
+              </div>
+              
+              <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-slate-200/50 mt-1">
+                <motion.div 
+                  initial={{ width: 0 }}
+                  animate={{ width: `${percentage}%` }}
+                  transition={{ duration: 1, delay: 0.2 + i * 0.05 }}
+                  className={`absolute inset-y-0 left-0 rounded-full ${isCritical ? 'bg-gradient-to-r from-rose-400 to-rose-600' : 'bg-gradient-to-r from-amber-400 to-amber-600'}`}
+                />
+              </div>
+            </motion.div>
+          );
+        }) : (
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <div className="mb-4 flex size-16 items-center justify-center rounded-3xl bg-emerald-50 text-emerald-500 shadow-inner">
+              <CheckCircle className="size-8" />
+            </div>
+            <p className="text-sm font-black text-slate-800">Kho hàng an toàn</p>
+            <p className="mt-1 text-xs font-bold text-slate-400 uppercase tracking-widest">Mọi vật tư đều trên ngưỡng 30</p>
           </div>
         )}
       </div>
@@ -524,7 +630,7 @@ function WarehouseHistory({ audits = [] }) {
         <h3 className="font-black text-slate-800">Lịch sử nhập/xuất</h3>
       </div>
       
-      <div className="space-y-3 max-h-[350px] overflow-y-auto pr-2 no-scrollbar">
+      <div className="space-y-3 max-h-[280px] overflow-y-auto pr-2 no-scrollbar">
         {history.length > 0 ? history.map((h, i) => (
           <div key={i} className="flex flex-col gap-1 border-b border-slate-50 pb-3 last:border-0 last:pb-0">
              <p className="text-sm font-bold text-slate-700 leading-snug">{h.message}</p>
@@ -565,7 +671,7 @@ function DamageReportList({ reports = [] }) {
         </span>
       </div>
       
-      <div className="overflow-x-auto no-scrollbar">
+      <div className="overflow-auto no-scrollbar max-h-[520px]">
         <table className="w-full text-left">
           <thead>
             <tr className="border-b border-slate-50">
@@ -608,17 +714,37 @@ function DamageReportList({ reports = [] }) {
 function RecentAudits({ audits }) {
   if (!audits?.length) return null;
   return (
-    <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-      <h3 className="mb-4 text-base font-bold text-gray-900">Nhật ký hoạt động gần đây</h3>
-      <div className="space-y-2 max-h-72 overflow-y-auto">
-        {audits.slice(0, 10).map((a, i) => (
-          <div key={i} className="flex items-start gap-3 rounded-xl bg-slate-50 px-3 py-2.5">
-            <div className="size-2 mt-1.5 rounded-full bg-slate-400 flex-shrink-0" />
-            <div className="min-w-0">
-              <p className="text-xs font-semibold text-slate-700 truncate">{a.message || a.action}</p>
-              <p className="text-xs text-slate-400">{a.userName} · {a.timestamp ? new Date(a.timestamp).toLocaleString("vi-VN") : ""}</p>
+    <div className="rounded-[2rem] border border-slate-100 bg-white p-7 shadow-sm">
+      <div className="mb-6 flex items-center justify-between">
+         <div className="flex items-center gap-3">
+            <div className="flex size-10 items-center justify-center rounded-2xl bg-slate-50 text-slate-400 ring-1 ring-slate-100">
+               <Activity className="size-5" />
             </div>
-          </div>
+            <h3 className="text-base font-black text-slate-800 tracking-tight">Nhật ký hoạt động</h3>
+         </div>
+         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 px-3 py-1 rounded-full">Gần đây</span>
+      </div>
+
+      <div className="space-y-3 max-h-80 overflow-y-auto pr-2 no-scrollbar">
+        {audits.slice(0, 10).map((a, i) => (
+          <motion.div 
+            key={i} 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.05 }}
+            className="group flex items-start gap-4 rounded-2xl border border-transparent bg-slate-50/50 p-4 transition-all hover:bg-white hover:shadow-md hover:shadow-slate-100"
+          >
+            <div className="mt-1 size-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)] flex-shrink-0" />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-extrabold text-slate-700 leading-snug group-hover:text-blue-600 transition-colors">{a.message || a.action}</p>
+              <div className="mt-2 flex items-center justify-between">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-tight">{a.userName}</span>
+                <span className="text-[10px] font-bold text-slate-300 italic">
+                   {a.timestamp ? new Date(a.timestamp).toLocaleString("vi-VN", {hour:'2-digit', minute:'2-digit', day:'2-digit', month:'2-digit'}) : ""}
+                </span>
+              </div>
+            </div>
+          </motion.div>
         ))}
       </div>
     </div>
@@ -629,26 +755,40 @@ function RecentAudits({ audits }) {
 function SystemSummary({ systemSummary }) {
   if (!systemSummary) return null;
   const rows = [
-    { label: "Tổng tài khoản", val: systemSummary.totalUsers },
-    { label: "Nhân viên mới", val: systemSummary.newStaffAccounts, highlight: true },
-    { label: "Đang hoạt động", val: systemSummary.activeUsers },
-    { label: "Bị khóa", val: systemSummary.lockedUsers, alert: true },
-    { label: "Thông báo chưa đọc", val: systemSummary.unreadNotifications, alert: true },
-    { label: "Sự kiện audit", val: systemSummary.auditEvents },
+    { label: "Tổng tài khoản", val: systemSummary.totalUsers, icon: Users },
+    { label: "Nhân viên mới", val: systemSummary.newStaffAccounts, highlight: true, icon: Activity },
+    { label: "Đang hoạt động", val: systemSummary.activeUsers, icon: CheckCircle },
+    { label: "Bị khóa", val: systemSummary.lockedUsers, alert: true, icon: AlertTriangle },
+    { label: "Thông báo chưa đọc", val: systemSummary.unreadNotifications, alert: true, icon: Clock },
+    { label: "Sự kiện audit", val: systemSummary.auditEvents, icon: Layers },
   ].filter(r => r.val != null);
 
   return (
-    <div className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm">
-      <h3 className="mb-4 text-base font-bold text-slate-800">Hệ thống</h3>
-      <div className="space-y-3">
-        {rows.map((r, i) => (
-          <div key={i} className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-500 uppercase tracking-tight">{r.label}</span>
-            <span className={`text-sm font-black ${r.alert && r.val > 0 ? "text-rose-600" : r.highlight && r.val > 0 ? "text-blue-600" : "text-slate-800"}`}>
-              {fmtNum(r.val)}
-            </span>
-          </div>
-        ))}
+    <div className="rounded-[2rem] border border-slate-100 bg-white p-6 shadow-sm">
+      <div className="mb-6 flex items-center gap-3">
+        <div className="flex size-10 items-center justify-center rounded-2xl bg-slate-50 text-slate-400 ring-1 ring-slate-100">
+           <Activity className="size-5" />
+        </div>
+        <h3 className="text-base font-black text-slate-800 tracking-tight">Hệ thống</h3>
+      </div>
+      
+      <div className="grid grid-cols-1 gap-1">
+        {rows.map((r, i) => {
+          const Icon = r.icon;
+          return (
+            <div key={i} className="flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 transition-colors group">
+              <div className="flex items-center gap-3">
+                <div className={`flex size-7 items-center justify-center rounded-lg ${r.alert && r.val > 0 ? "bg-rose-100 text-rose-600" : r.highlight && r.val > 0 ? "bg-blue-100 text-blue-600" : "bg-slate-100 text-slate-400 group-hover:bg-white transition-colors"}`}>
+                   <Icon className="size-3.5" />
+                </div>
+                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-tight">{r.label}</span>
+              </div>
+              <span className={`text-sm font-black ${r.alert && r.val > 0 ? "text-rose-600" : r.highlight && r.val > 0 ? "text-blue-600" : "text-slate-800"}`}>
+                {fmtNum(r.val)}
+              </span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -658,20 +798,39 @@ function SystemSummary({ systemSummary }) {
 function TopServices({ services }) {
   if (!services?.length) return null;
   return (
-    <div className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm">
-      <h3 className="mb-4 text-base font-bold text-slate-800">Dịch vụ phổ biến</h3>
-      <div className="space-y-3">
+    <div className="rounded-[2.5rem] border border-slate-100 bg-white p-7 shadow-sm">
+      <div className="mb-6 flex items-center justify-between">
+         <div>
+            <h3 className="text-lg font-black text-slate-800 tracking-tight">Dịch vụ phổ biến</h3>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Top 5 doanh thu</p>
+         </div>
+         <div className="flex size-10 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-500 ring-1 ring-indigo-100">
+            <Activity className="size-5" />
+         </div>
+      </div>
+      
+      <div className="space-y-4">
         {services.map((s, i) => (
-          <div key={i} className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-50 text-[10px] font-bold text-slate-400">
-              #{i+1}
+          <motion.div 
+            key={i} 
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: i * 0.1 }}
+            className="group flex items-center gap-4 rounded-2xl border border-transparent p-2 transition-all hover:bg-slate-50"
+          >
+            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-slate-50 text-xs font-black text-slate-400 group-hover:bg-indigo-500 group-hover:text-white transition-colors">
+              0{i+1}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-bold text-slate-800 truncate">{s.name}</p>
-              <p className="text-[10px] text-slate-400 uppercase font-medium">{s.count} lượt dùng</p>
+              <p className="text-sm font-extrabold text-slate-800 truncate">{s.name}</p>
+              <div className="mt-0.5 flex items-center gap-2">
+                 <span className="text-[10px] font-bold text-slate-400 uppercase">{s.count} lượt dùng</span>
+                 <div className="size-1 rounded-full bg-slate-200" />
+                 <span className="text-[10px] font-bold text-emerald-500 uppercase">Tăng trưởng</span>
+              </div>
             </div>
-            <p className="text-xs font-black text-emerald-600">{fmtVND(s.totalAmount)}</p>
-          </div>
+            <p className="text-sm font-black text-slate-900">{fmtVND(s.totalAmount)}</p>
+          </motion.div>
         ))}
       </div>
     </div>
@@ -682,27 +841,47 @@ function TopServices({ services }) {
 function RecentBookings({ bookings }) {
   if (!bookings?.length) return null;
   return (
-    <div className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm">
-      <h3 className="mb-4 text-base font-bold text-slate-800">Đơn đặt phòng mới</h3>
-      <div className="space-y-3">
+    <div className="rounded-[2.5rem] border border-slate-100 bg-white p-7 shadow-sm">
+      <div className="mb-6 flex items-center justify-between">
+         <div>
+            <h3 className="text-lg font-black text-slate-800 tracking-tight">Đơn đặt phòng mới</h3>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Thời gian thực</p>
+         </div>
+         <div className="flex size-10 items-center justify-center rounded-2xl bg-blue-50 text-blue-500 ring-1 ring-blue-100">
+            <CalendarRange className="size-5" />
+         </div>
+      </div>
+
+      <div className="space-y-4">
         {bookings.map((b, i) => (
-          <div key={i} className="flex items-center gap-3 border-b border-slate-50 pb-2 last:border-0 last:pb-0">
+          <motion.div 
+            key={i} 
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: i * 0.1 }}
+            className="group flex items-center gap-4 rounded-2xl border border-transparent p-2 transition-all hover:bg-slate-50"
+          >
+            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-slate-50 text-blue-500">
+               <Users className="size-5" />
+            </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-bold text-slate-800 truncate">{b.customerName}</p>
-              <p className="text-[10px] text-slate-400 font-medium">{b.code} · {new Date(b.createdAt).toLocaleDateString("vi-VN")}</p>
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-extrabold text-slate-800 truncate">{b.customerName}</p>
+                <p className="text-sm font-black text-slate-900">{fmtVND(b.amount)}</p>
+              </div>
+              <div className="mt-1 flex items-center justify-between">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">{b.code} · {new Date(b.createdAt).toLocaleDateString("vi-VN")}</p>
+                <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ring-1 ${
+                  b.status === "Completed" ? "bg-emerald-50 text-emerald-600 ring-emerald-100" :
+                  b.status === "Pending" ? "bg-amber-50 text-amber-600 ring-amber-100" :
+                  b.status === "Cancelled" ? "bg-rose-50 text-rose-600 ring-rose-100" :
+                  "bg-slate-50 text-slate-500 ring-slate-100"
+                }`}>
+                  {b.status === "Completed" ? "Hoàn tất" : b.status === "Pending" ? "Chờ duyệt" : b.status === "Cancelled" ? "Đã hủy" : b.status}
+                </span>
+              </div>
             </div>
-            <div className="text-right">
-              <p className="text-xs font-black text-slate-800">{fmtVND(b.amount)}</p>
-              <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded ${
-                b.status === "Completed" ? "bg-emerald-50 text-emerald-600" :
-                b.status === "Pending" ? "bg-amber-50 text-amber-600" :
-                b.status === "Cancelled" ? "bg-rose-50 text-rose-600" :
-                "bg-slate-50 text-slate-500"
-              }`}>
-                {b.status}
-              </span>
-            </div>
-          </div>
+          </motion.div>
         ))}
       </div>
     </div>
@@ -714,46 +893,54 @@ function QuickActions({ role }) {
   let actions = [];
   if (role === "Admin") {
     actions = [
-      { label: "Quản lý Role", icon: Users, color: "bg-blue-100 text-blue-700" },
-      { label: "Backup dữ liệu", icon: Package, color: "bg-slate-100 text-slate-700" },
-      { label: "Cảnh báo hệ thống", icon: AlertTriangle, color: "bg-rose-100 text-rose-700" },
-      { label: "Yêu cầu cần duyệt", icon: CheckSquare, color: "bg-amber-100 text-amber-700" }
+      { label: "Quản lý Role", icon: Users, color: "bg-blue-50 text-blue-600 ring-blue-100" },
+      { label: "Backup dữ liệu", icon: Package, color: "bg-slate-50 text-slate-600 ring-slate-100" },
+      { label: "Cảnh báo hệ thống", icon: AlertTriangle, color: "bg-rose-50 text-rose-600 ring-rose-100" },
+      { label: "Yêu cầu cần duyệt", icon: CheckSquare, color: "bg-amber-50 text-amber-600 ring-amber-100" }
     ];
   } else if (role === "Manager") {
     actions = [
-      { label: "Calendar Booking", icon: CalendarRange, color: "bg-indigo-100 text-indigo-700" },
-      { label: "Dịch vụ bán chạy", icon: Activity, color: "bg-emerald-100 text-emerald-700" },
-      { label: "Occupancy Rate", icon: BedDouble, color: "bg-sky-100 text-sky-700" }
+      { label: "Lịch đặt phòng", icon: CalendarRange, color: "bg-indigo-50 text-indigo-600 ring-indigo-100" },
+      { label: "Dịch vụ bán chạy", icon: Activity, color: "bg-emerald-50 text-emerald-600 ring-emerald-100" },
+      { label: "Tỷ lệ lấp đầy", icon: BedDouble, color: "bg-sky-50 text-sky-600 ring-sky-100" }
     ];
   } else if (role === "Receptionist") {
     actions = [
-      { label: "Check-in nhanh", icon: LogIn, color: "bg-emerald-100 text-emerald-700" },
-      { label: "Check-out nhanh", icon: LogOut, color: "bg-rose-100 text-rose-700" },
-      { label: "Tạo booking", icon: CalendarRange, color: "bg-blue-100 text-blue-700" },
-      { label: "Tìm phòng trống", icon: BedDouble, color: "bg-teal-100 text-teal-700" },
-      { label: "In hóa đơn", icon: Receipt, color: "bg-slate-100 text-slate-700" }
+      { label: "Check-in nhanh", icon: LogIn, color: "bg-emerald-50 text-emerald-600 ring-emerald-100" },
+      { label: "Check-out nhanh", icon: LogOut, color: "bg-rose-50 text-rose-600 ring-rose-100" },
+      { label: "Tạo booking", icon: CalendarRange, color: "bg-blue-50 text-blue-600 ring-blue-100" },
+      { label: "Tìm phòng trống", icon: BedDouble, color: "bg-teal-50 text-teal-600 ring-teal-100" },
+      { label: "In hóa đơn", icon: Receipt, color: "bg-slate-50 text-slate-600 ring-slate-100" }
     ];
   } else if (role === "Housekeeping" || role === "HouseKeeping") {
     actions = [
-      { label: "Cập nhật trạng thái", icon: RefreshCw, color: "bg-amber-100 text-amber-700" },
-      { label: "Ghi chú phòng", icon: CheckSquare, color: "bg-blue-100 text-blue-700" },
-      { label: "Upload ảnh lỗi", icon: AlertTriangle, color: "bg-rose-100 text-rose-700" }
+      { label: "Cập nhật trạng thái", icon: RefreshCw, color: "bg-amber-50 text-amber-600 ring-amber-100" },
+      { label: "Ghi chú phòng", icon: CheckSquare, color: "bg-blue-50 text-blue-600 ring-blue-100" },
+      { label: "Upload ảnh lỗi", icon: AlertTriangle, color: "bg-rose-50 text-rose-600 ring-rose-100" }
     ];
   }
 
   if (!actions.length) return null;
 
   return (
-    <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm mt-4 lg:mt-0">
-      <h3 className="mb-4 text-base font-bold text-gray-900">Thao tác nhanh</h3>
+    <div className="rounded-[2rem] border border-slate-100 bg-white p-7 shadow-sm mt-6 lg:mt-0">
+      <div className="mb-6 flex items-center justify-between">
+         <h3 className="text-base font-black text-slate-800 tracking-tight">Thao tác nhanh</h3>
+         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 px-3 py-1 rounded-full">Phím tắt</span>
+      </div>
       <div className="flex flex-wrap gap-3">
         {actions.map((a, i) => {
           const Icon = a.icon;
           return (
-            <button key={i} className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition hover:opacity-80 ${a.color}`}>
+            <motion.button 
+              key={i} 
+              whileHover={{ scale: 1.05, y: -2 }}
+              whileTap={{ scale: 0.95 }}
+              className={`flex items-center gap-2.5 rounded-2xl px-5 py-3 text-xs font-black transition-all shadow-sm ring-1 ${a.color} hover:shadow-md`}
+            >
               <Icon className="size-4" />
-              {a.label}
-            </button>
+              <span className="uppercase tracking-wider">{a.label}</span>
+            </motion.button>
           );
         })}
       </div>

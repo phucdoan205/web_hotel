@@ -517,7 +517,7 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
         var occupancyRate = totalRooms == 0 ? 0m : Math.Round((decimal)occupiedRooms / totalRooms * 100m, 2);
 
         var damageMetrics = await _context.LossAndDamages
-            .Where(x => x.CreatedAt >= start && x.CreatedAt <= end)
+            // Bỏ lọc period cho warehouse metrics chính để khớp với trang vật tư
             .GroupBy(_ => 1)
             .Select(g => new
             {
@@ -533,18 +533,19 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
             .Select(g => new
             {
                 TotalEquipmentTypes = g.Count(),
-                InStockQuantity = g.Sum(x => x.InStockQuantity ?? 0),
+                // Tính toán trực tiếp để tránh lệch do chưa cập nhật cột InStockQuantity
+                InStockQuantity = g.Sum(x => x.TotalQuantity - x.InUseQuantity - x.DamagedQuantity),
                 InUseQuantity = g.Sum(x => x.InUseQuantity),
                 CurrentDamagedQuantity = g.Sum(x => x.DamagedQuantity),
                 LiquidatedQuantity = g.Sum(x => x.LiquidatedQuantity),
-                LowStockItems = g.Count(x => (x.InStockQuantity ?? 0) < 30)
+                LowStockItems = g.Count(x => (x.TotalQuantity - x.InUseQuantity - x.DamagedQuantity) < 30)
             })
             .FirstOrDefaultAsync(cancellationToken);
 
         var lowStockItemsListRaw = await _context.Equipments
             .AsNoTracking()
-            .Where(x => x.IsActive && (x.InStockQuantity ?? 0) < 30)
-            .Select(x => new { x.Name, Quantity = x.InStockQuantity ?? 0 })
+            .Where(x => x.IsActive && (x.TotalQuantity - x.InUseQuantity - x.DamagedQuantity) < 30)
+            .Select(x => new { x.Name, Quantity = x.TotalQuantity - x.InUseQuantity - x.DamagedQuantity })
             .OrderBy(x => x.Quantity)
             .ToListAsync(cancellationToken);
 
@@ -554,7 +555,7 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
                 .ThenInclude(ri => ri!.Equipment)
             .Include(x => x.RoomInventory)
                 .ThenInclude(ri => ri!.Room)
-            .Where(x => x.CreatedAt >= start && x.CreatedAt <= end)
+            // Bỏ lọc theo period để danh sách không bị trống khi mới sang kỳ mới
             .OrderByDescending(x => x.CreatedAt)
             .Take(10)
             .Select(x => new
@@ -588,8 +589,7 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
             .Take(20)
             .ToListAsync(cancellationToken);
 
-        var recentAudits = recentAuditLogs
-            .SelectMany(ExtractAuditEvents)
+        var recentAudits = ExtractAuditEvents(recentAuditLogs, start, end, true)
             .OrderByDescending(x => x.Timestamp)
             .Take(10)
             .ToList();
@@ -1201,6 +1201,17 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
         };
     }
 
+    private static object BuildDepartmentOverview(DashboardMetrics metrics)
+    {
+        return new[]
+        {
+            new { department = "Lễ tân", value = metrics.PendingBookings, status = metrics.PendingBookings > 0 ? "warning" : "normal" },
+            new { department = "Buồng phòng", value = metrics.DirtyRooms, status = metrics.DirtyRooms > 0 ? "warning" : "normal" },
+            new { department = "Kho vật tư", value = metrics.LowStockItems, status = metrics.LowStockItems > 0 ? "warning" : "normal" },
+            new { department = "Kế toán", value = metrics.UnpaidInvoices, status = metrics.UnpaidInvoices > 0 ? "warning" : "normal" }
+        };
+    }
+
     private static string GetPeriodLabel(string periodType) => periodType.ToUpperInvariant() switch
     {
         "DAILY" => "hôm nay",
@@ -1210,47 +1221,49 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
         _ => "kỳ này"
     };
 
-    private static IReadOnlyList<object> BuildDepartmentOverview(DashboardMetrics metrics)
+    private static List<RecentAuditItem> ExtractAuditEvents(
+        IReadOnlyList<AuditLog> logs,
+        DateTime start,
+        DateTime end,
+        bool ignorePeriod = false)
     {
-        return new object[]
+        var result = new List<RecentAuditItem>();
+        foreach (var log in logs)
         {
-            new { department = "Reception", status = metrics.PendingBookings > 0 ? "warning" : "normal", value = metrics.PendingBookings, metric = "pendingBookings" },
-            new { department = "Accountant", status = metrics.PendingPaymentAmount > 0 ? "warning" : "normal", value = metrics.PendingPaymentAmount, metric = "pendingPaymentAmount" },
-            new { department = "Warehouse", status = metrics.LowStockItems > 0 ? "warning" : "normal", value = metrics.LowStockItems, metric = "lowStockItems" },
-            new { department = "Housekeeping", status = metrics.DirtyRooms > 0 ? "warning" : "normal", value = metrics.DirtyRooms, metric = "dirtyRooms" }
-        };
+            if (string.IsNullOrWhiteSpace(log.LogData)) continue;
+
+            try
+            {
+                using var document = JsonDocument.Parse(log.LogData);
+                if (!TryGetProperty(document.RootElement, "Events", "events", out var events) || events.ValueKind != JsonValueKind.Array)
+                {
+                    continue;
+                }
+
+                foreach (var item in events.EnumerateArray())
+                {
+                    var entityType = GetString(item, "EntityType") ?? GetString(item, "entityType");
+                    if (entityType == "RoleDashboardPeriodState") continue;
+
+                    var timestamp = GetDateTime(item, "Timestamp") ?? GetDateTime(item, "timestamp") ?? log.LogDate;
+
+                    if (!ignorePeriod && (timestamp < start || timestamp > end)) continue;
+
+                    result.Add(new RecentAuditItem(
+                        UserId: log.UserId ?? 0,
+                        UserName: log.User?.FullName ?? log.User?.Email ?? "Hệ thống",
+                        RoleName: log.User?.Role?.Name ?? "Hệ thống",
+                        Action: GetString(item, "ActionType") ?? GetString(item, "actionType") ?? GetString(item, "Action") ?? GetString(item, "action") ?? "UNKNOWN",
+                        EntityType: entityType,
+                        Message: GetString(item, "Message") ?? GetString(item, "message"),
+                        Timestamp: timestamp));
+                }
+            }
+            catch { continue; }
+        }
+        return result;
     }
 
-    private static IEnumerable<RecentAuditItem> ExtractAuditEvents(AuditLog log)
-    {
-        if (string.IsNullOrWhiteSpace(log.LogData))
-        {
-            yield break;
-        }
-
-        using var document = JsonDocument.Parse(log.LogData);
-        if (!TryGetProperty(document.RootElement, "Events", "events", out var events) || events.ValueKind != JsonValueKind.Array)
-        {
-            yield break;
-        }
-
-        foreach (var item in events.EnumerateArray())
-        {
-            var entityType = GetString(item, "EntityType") ?? GetString(item, "entityType");
-            if (entityType == "RoleDashboardPeriodState") continue;
-
-            var timestamp = GetDateTime(item, "Timestamp") ?? GetDateTime(item, "timestamp") ?? log.LogDate;
-
-            yield return new RecentAuditItem(
-                UserId: log.UserId ?? 0,
-                UserName: log.User?.FullName ?? log.User?.Email ?? "Hệ thống",
-                RoleName: log.User?.Role?.Name ?? "Hệ thống",
-                Action: GetString(item, "ActionType") ?? GetString(item, "actionType") ?? GetString(item, "Action") ?? GetString(item, "action") ?? "UNKNOWN",
-                EntityType: entityType,
-                Message: GetString(item, "Message") ?? GetString(item, "message"),
-                Timestamp: timestamp);
-        }
-    }
 
     private static bool TryGetProperty(JsonElement element, string firstName, string secondName, out JsonElement value)
     {
