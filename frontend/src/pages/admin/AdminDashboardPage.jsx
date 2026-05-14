@@ -660,7 +660,7 @@ function CheckInList({ items = [] }) {
           <div className="flex size-8 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600">
             <LogIn className="size-4" />
           </div>
-          <h3 className="font-black text-slate-800">Sắp Check-in</h3>
+          <h3 className="font-black text-slate-800">Check-in</h3>
         </div>
         <span className="rounded-lg bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Ưu tiên</span>
       </div>
@@ -707,7 +707,7 @@ function CheckOutList({ items = [] }) {
           <div className="flex size-8 items-center justify-center rounded-xl bg-rose-100 text-rose-600">
             <LogOut className="size-4" />
           </div>
-          <h3 className="font-black text-slate-800">Sắp Check-out</h3>
+          <h3 className="font-black text-slate-800">Check-out</h3>
         </div>
         <span className="rounded-lg bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-500 uppercase">Hôm nay</span>
       </div>
@@ -745,27 +745,51 @@ function NotificationCenter({ items = [] }) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.2 }}
-      className="rounded-3xl border border-slate-100 bg-slate-900 p-6 text-white shadow-xl shadow-slate-200 h-full"
+      className="rounded-3xl border border-white bg-white/80 backdrop-blur-2xl p-6 text-slate-800 shadow-2xl shadow-indigo-100/40 h-full flex flex-col relative overflow-hidden"
     >
-      <div className="mb-4 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Activity className="size-4 text-emerald-400" />
-          <h3 className="font-black text-sm uppercase tracking-wider">Thông báo mới</h3>
+      {/* Decorative background gradients */}
+      <div className="absolute top-0 right-0 -mr-12 -mt-12 size-48 rounded-full bg-gradient-to-br from-indigo-500/10 to-purple-500/10 blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 left-0 -ml-12 -mb-12 size-48 rounded-full bg-gradient-to-tr from-emerald-500/10 to-teal-500/10 blur-3xl pointer-events-none" />
+
+      <div className="mb-6 flex items-center justify-between relative z-10">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-2xl bg-indigo-600 shadow-lg shadow-indigo-200">
+            <Activity className="size-5 text-white" />
+          </div>
+          <div>
+            <h3 className="font-black text-base uppercase tracking-wider text-slate-900">Thông báo</h3>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Cập nhật thời gian thực</p>
+          </div>
         </div>
-        <div className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-100/50">
+          <div className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+          <span className="text-[10px] font-extrabold text-emerald-600 uppercase tracking-wider">Trực tiếp</span>
+        </div>
       </div>
       
-      <div className="space-y-4 max-h-[160px] overflow-y-auto pr-2 custom-scrollbar">
+      <div className="space-y-4 max-h-[350px] overflow-y-auto pr-2 custom-scrollbar relative z-10 flex-1">
         {items.length > 0 ? items.map((item, i) => (
-          <div key={i} className="flex gap-3">
-            <div className="mt-1 size-1.5 shrink-0 rounded-full bg-slate-700" />
-            <div className="overflow-hidden">
-              <p className="text-xs font-bold text-slate-200 truncate">{item.title}</p>
-              <p className="mt-0.5 text-[10px] text-slate-400 line-clamp-2">{item.subtitle}</p>
+          <div key={i} className="group flex gap-4 p-4 rounded-2xl transition-all duration-300 bg-white/50 hover:bg-white border border-slate-100/50 hover:border-blue-200 hover:shadow-lg hover:shadow-blue-50/50 cursor-pointer">
+            <div className="mt-1.5 size-2.5 shrink-0 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.3)] group-hover:scale-125 transition-transform duration-300" />
+            <div className="overflow-hidden flex-1">
+              <p className="text-sm font-extrabold text-slate-900 group-hover:text-blue-600 transition-colors duration-300">{item.title}</p>
+              {item.subtitle && <p className="mt-1.5 text-xs text-slate-600 font-medium leading-relaxed group-hover:text-slate-800 transition-colors duration-300">{item.subtitle}</p>}
+              <div className="mt-3 flex items-center gap-2">
+                <span className="text-[10px] font-bold text-slate-400 bg-slate-50 px-2 py-0.5 rounded-md uppercase tracking-widest">
+                  {new Date(item.time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                </span>
+                <span className="text-[10px] font-bold text-blue-400">·</span>
+                <span className="text-[10px] font-bold text-slate-400">
+                  {new Date(item.time).toLocaleDateString('vi-VN')}
+                </span>
+              </div>
             </div>
           </div>
         )) : (
-          <p className="py-4 text-center text-[10px] font-medium text-slate-500 italic">Hệ thống đang yên tĩnh...</p>
+          <div className="flex flex-col items-center justify-center py-10 opacity-50">
+            <Activity className="size-12 text-slate-300 mb-4" />
+            <p className="text-sm font-medium text-slate-400 italic">Hệ thống đang yên tĩnh...</p>
+          </div>
         )}
       </div>
     </motion.div>
@@ -1011,20 +1035,20 @@ export default function AdminDashboardPage() {
                 {enrichedCards.map((card, i) => <StatCard key={i} {...card} />)}
               </div>
 
-              {/* Row 2: Operational Center */}
+              {/* Row 2: Today Bookings */}
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-                 <CheckInList items={summary.tasks?.upcomingCheckIns} />
-                 <CheckOutList items={summary.tasks?.upcomingCheckOuts} />
+                 <div className="lg:col-span-2">
+                    <TodayBookingsList items={summary.tasks?.todayBookings} />
+                 </div>
                  <div className="space-y-6">
                     {hasRooms && <RoomPieChart roomsSummary={summary.rooms} role={role} />}
                  </div>
               </div>
 
-              {/* Row 3: Updates & Notifications */}
+              {/* Row 3: Operational Center & Notifications */}
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-                 <div className="lg:col-span-2">
-                    <TodayBookingsList items={summary.tasks?.todayBookings} />
-                 </div>
+                 <CheckInList items={summary.tasks?.upcomingCheckIns} />
+                 <CheckOutList items={summary.tasks?.upcomingCheckOuts} />
                  <NotificationCenter items={summary.tasks?.notifications} />
               </div>
             </div>

@@ -53,6 +53,8 @@ namespace backend.Data.Interceptors
 
             if (events.Any())
             {
+                GenerateNotifications(context, events);
+
                 var today = DateTime.UtcNow.Date;
 
                 // Tìm log của user này trong ngày hôm nay
@@ -137,6 +139,7 @@ namespace backend.Data.Interceptors
                 "CREATE" => entityType switch
                 {
                     "Booking" => $"Đặt phòng {GetEntityIdentifier(entry)}",
+                    "BookingDetail" => $"Đặt mới {entityName}",
                     "Invoice" => $"Tạo {entityName}",
                     "Payment" => $"Thanh toán {GetPaymentRoomIdentifier(entry)}",
                     _ => $"Thêm {entityName}"
@@ -174,7 +177,7 @@ namespace backend.Data.Interceptors
                 "RoomInventory" => "vật tư phòng",
                 "Equipment" => "thiết bị",
                 "Booking" => "đặt phòng",
-                "BookingDetail" => "chi tiết đặt phòng",
+                "BookingDetail" => (entry.CurrentValues["RoomId"] as int?).HasValue && entry.Context is AppDbContext db ? $"phòng {db.Rooms.Find(entry.CurrentValues["RoomId"])?.RoomNumber ?? "mới"}" : "phòng",
                 "Invoice" => "hóa đơn",
                 "User" => "nhân viên",
                 "Role" => "phân quyền",
@@ -289,13 +292,25 @@ namespace backend.Data.Interceptors
 
         private string ResolveRoomUpdateMessage(EntityEntry entry, string defaultName)
         {
-            var statusProp = entry.Property("Status");
-            if (statusProp.IsModified)
-            {
-                var newStatus = statusProp.CurrentValue?.ToString();
-                if (newStatus == "Occupied") return $"Đã check in {defaultName}";
-                if (newStatus == "Available") return $"Đã check out {defaultName}";
-            }
+            try {
+                var cleaningProp = entry.Property("CleaningStatus");
+                if (cleaningProp.IsModified)
+                {
+                    var newStatus = cleaningProp.CurrentValue?.ToString();
+                    if (newStatus == "Clean") return $"Phòng {GetEntityIdentifier(entry)} đã dọn xong";
+                }
+            } catch {}
+
+            try {
+                var statusProp = entry.Property("Status");
+                if (statusProp.IsModified)
+                {
+                    var newStatus = statusProp.CurrentValue?.ToString();
+                    if (newStatus == "Occupied") return $"Đã check in {defaultName}";
+                    if (newStatus == "Available") return $"Đã check out {defaultName}";
+                }
+            } catch {}
+            
             return $"Sửa {defaultName}";
         }
 
@@ -331,6 +346,59 @@ namespace backend.Data.Interceptors
             }
             catch { }
             return GetEntityIdentifier(entry);
+        }
+
+        private void GenerateNotifications(AppDbContext context, List<AuditEvent> events)
+        {
+            var notifications = new List<Notification>();
+            foreach (var e in events)
+            {
+                if (e.Message.StartsWith("Đặt mới phòng "))
+                {
+                    notifications.Add(new Notification
+                    {
+                        Title = "Booking mới",
+                        Content = $"Booking của {e.Message.Replace("Đặt mới ", "")} mới được đặt",
+                        Type = "Booking",
+                        CreatedAt = DateTime.UtcNow
+                    });
+                }
+                else if (e.Message.StartsWith("Check in cho phòng "))
+                {
+                    notifications.Add(new Notification
+                    {
+                        Title = "Khách Check-in",
+                        Content = $"Khách của phòng {e.Message.Replace("Check in cho phòng ", "")} check-in",
+                        Type = "CheckIn",
+                        CreatedAt = DateTime.UtcNow
+                    });
+                }
+                else if (e.Message.StartsWith("Thanh toán hóa đơn phòng "))
+                {
+                    notifications.Add(new Notification
+                    {
+                        Title = "Thanh toán thành công",
+                        Content = $"Thanh toán phòng {e.Message.Replace("Thanh toán hóa đơn phòng ", "").Split(" mã ")[0]} thành công",
+                        Type = "Payment",
+                        CreatedAt = DateTime.UtcNow
+                    });
+                }
+                else if (e.Message.StartsWith("Phòng ") && e.Message.EndsWith(" đã dọn xong"))
+                {
+                    notifications.Add(new Notification
+                    {
+                        Title = "Phòng đã dọn",
+                        Content = e.Message,
+                        Type = "Housekeeping",
+                        CreatedAt = DateTime.UtcNow
+                    });
+                }
+            }
+
+            if (notifications.Any())
+            {
+                context.Notifications.AddRange(notifications);
+            }
         }
 
         private class AuditPayload

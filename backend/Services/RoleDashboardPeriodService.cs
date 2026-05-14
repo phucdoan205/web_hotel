@@ -348,7 +348,7 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
                 x.BookingId, 
                 x.CheckInDate, 
                 x.CheckOutDate,
-                GuestName = x.Booking!.User!.FullName ?? "Khách vãng lai",
+                GuestName = x.Booking!.User!.FullName ?? x.Booking!.Guest!.Name ?? "Khách vãng lai",
                 RoomNumber = x.Room!.RoomNumber ?? "—",
                 BookingStatus = x.Booking.Status
             })
@@ -587,13 +587,14 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
 
         var recentBookingsRaw = await _context.Bookings
             .Include(x => x.User)
+            .Include(x => x.Guest)
             .OrderByDescending(x => x.CreatedAt)
             .Take(5)
             .Select(x => new
             {
                 Id = x.Id,
                 BookingCode = x.BookingCode,
-                FullName = x.User != null ? x.User.FullName : "Khách vãng lai",
+                FullName = x.User != null ? x.User.FullName : (x.Guest != null ? x.Guest.Name : "Khách vãng lai"),
                 Status = x.Status,
                 TotalAmount = x.Invoices.Sum(i => i.FinalTotal ?? 0m),
                 CreatedAt = x.CreatedAt
@@ -620,6 +621,8 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
             .Include(x => x.Booking)
                 .ThenInclude(b => b!.User)
             .Include(x => x.Booking)
+                .ThenInclude(b => b!.Guest)
+            .Include(x => x.Booking)
                 .ThenInclude(b => b!.Invoices)
             .Include(x => x.Room)
                 .ThenInclude(r => r!.RoomType)
@@ -630,7 +633,7 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
             .Select(x => new
             {
                 Id = x.Id.ToString(),
-                Title = x.Booking!.User!.FullName ?? "Khách vãng lai",
+                Title = x.Booking!.User!.FullName ?? x.Booking!.Guest!.Name ?? "Khách vãng lai",
                 Subtitle = $"Phòng {x.Room!.RoomNumber} - {x.Room.RoomType!.Name}",
                 Status = x.Booking.Status!,
                 Time = x.CheckInDate,
@@ -643,6 +646,8 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
             .Include(x => x.Booking)
                 .ThenInclude(b => b!.User)
             .Include(x => x.Booking)
+                .ThenInclude(b => b!.Guest)
+            .Include(x => x.Booking)
                 .ThenInclude(b => b!.Invoices)
             .Include(x => x.Room)
             .Where(x => x.CheckOutDate >= today && x.CheckOutDate <= tomorrow 
@@ -652,7 +657,7 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
             .Select(x => new
             {
                 Id = x.Id.ToString(),
-                Title = x.Booking!.User!.FullName ?? "Khách vãng lai",
+                Title = x.Booking!.User!.FullName ?? x.Booking!.Guest!.Name ?? "Khách vãng lai",
                 Subtitle = $"Phòng {x.Room!.RoomNumber}",
                 Status = "Đang ở",
                 Time = x.CheckOutDate,
@@ -663,14 +668,17 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
 
         var todayBookingsRaw = await _context.Bookings
             .Include(x => x.User)
+            .Include(x => x.Guest)
+            .Include(x => x.BookingDetails)
+                .ThenInclude(bd => bd.Room)
             .Where(x => x.CreatedAt >= today)
             .OrderByDescending(x => x.CreatedAt)
             .Take(10)
             .Select(x => new
             {
                 Id = x.Id.ToString(),
-                Title = x.User!.FullName ?? "Khách vãng lai",
-                Subtitle = x.BookingCode,
+                Title = x.User!.FullName ?? x.Guest!.Name ?? "Khách vãng lai",
+                Subtitle = string.Join(", ", x.BookingDetails.Select(bd => bd.Room != null ? "Phòng " + bd.Room.RoomNumber : "Chưa gán")),
                 Status = x.Status!,
                 Time = x.CreatedAt,
                 RefCode = x.BookingCode
@@ -682,6 +690,9 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
                 .ThenInclude(bd => bd!.Booking)
                     .ThenInclude(b => b!.User)
             .Include(x => x.BookingDetail)
+                .ThenInclude(bd => bd!.Booking)
+                    .ThenInclude(b => b!.Guest)
+            .Include(x => x.BookingDetail)
                 .ThenInclude(bd => bd!.Room)
             .Where(x => x.Status == "Pending")
             .OrderByDescending(x => x.OrderDate)
@@ -690,7 +701,7 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
             {
                 Id = x.Id.ToString(),
                 Title = $"Yêu cầu từ Phòng {x.BookingDetail!.Room!.RoomNumber}",
-                Subtitle = x.BookingDetail!.Booking!.User!.FullName ?? "Khách vãng lai",
+                Subtitle = x.BookingDetail!.Booking!.User!.FullName ?? x.BookingDetail!.Booking!.Guest!.Name ?? "Khách vãng lai",
                 Status = "Chờ xử lý",
                 Time = x.OrderDate ?? DateTime.UtcNow,
                 RefCode = $"SRV-{x.Id}",
@@ -701,13 +712,15 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
         var pendingPaymentsRaw = await _context.Invoices
             .Include(x => x.Booking)
                 .ThenInclude(b => b!.User)
+            .Include(x => x.Booking)
+                .ThenInclude(b => b!.Guest)
             .Where(x => x.Status == "Unpaid")
             .OrderByDescending(x => x.CreatedAt)
             .Take(10)
             .Select(x => new
             {
                 Id = x.Id.ToString(),
-                Title = x.Booking!.User!.FullName ?? "Khách vãng lai",
+                Title = x.Booking!.User!.FullName ?? x.Booking!.Guest!.Name ?? "Khách vãng lai",
                 Subtitle = x.Code,
                 Status = "Chưa thanh toán",
                 Time = x.CreatedAt ?? DateTime.UtcNow,
@@ -718,13 +731,14 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
 
         var bookingsToConfirmRaw = await _context.Bookings
             .Include(x => x.User)
+            .Include(x => x.Guest)
             .Where(x => x.Status == "Pending")
             .OrderByDescending(x => x.CreatedAt)
             .Take(10)
             .Select(x => new
             {
                 Id = x.Id.ToString(),
-                Title = x.User!.FullName ?? "Khách vãng lai",
+                Title = x.User!.FullName ?? x.Guest!.Name ?? "Khách vãng lai",
                 Subtitle = "Cần xác nhận",
                 Status = "Chờ duyệt",
                 Time = x.CreatedAt,
