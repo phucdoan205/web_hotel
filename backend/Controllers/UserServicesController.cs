@@ -146,10 +146,11 @@ namespace backend.Controllers
                     .ThenInclude(order => order!.BookingDetail)
                         .ThenInclude(bookingDetail => bookingDetail!.RoomType)
                 .Where(detail =>
-                    detail.OrderService != null &&
-                    detail.OrderService.BookingDetail != null &&
-                    detail.OrderService.BookingDetail.Booking != null &&
-                    detail.OrderService.BookingDetail.Booking.UserId == currentUserId.Value)
+                    (detail.OrderService != null &&
+                     detail.OrderService.BookingDetail != null &&
+                     detail.OrderService.BookingDetail.Booking != null &&
+                     detail.OrderService.BookingDetail.Booking.UserId == currentUserId.Value) ||
+                    (detail.OrderService != null && detail.OrderService.UserId == currentUserId.Value))
                 .AsQueryable();
 
             if (bookingDetailId.HasValue)
@@ -203,9 +204,9 @@ namespace backend.Controllers
                 return Unauthorized(new { message = "Khong xac dinh duoc nguoi dung hien tai." });
             }
 
-            if (!request.BookingDetailId.HasValue || !request.ServiceId.HasValue)
+            if (!request.ServiceId.HasValue)
             {
-                return BadRequest("Thiếu phòng hoặc dịch vụ cần áp dụng.");
+                return BadRequest("Thiếu dịch vụ cần áp dụng.");
             }
 
             if (request.Quantity <= 0)
@@ -213,24 +214,28 @@ namespace backend.Controllers
                 return BadRequest("Số lượng phải lớn hơn 0.");
             }
 
-            var bookingDetail = await _context.BookingDetails
-                .Include(detail => detail.Booking)
-                    .ThenInclude(booking => booking!.Guest)
-                .Include(detail => detail.Room)
-                .Include(detail => detail.RoomType)
-                .FirstOrDefaultAsync(detail =>
-                    detail.Id == request.BookingDetailId.Value &&
-                    detail.Booking != null &&
-                    detail.Booking.UserId == currentUserId.Value);
-
-            if (bookingDetail == null)
+            BookingDetail? bookingDetail = null;
+            if (request.BookingDetailId.HasValue)
             {
-                return NotFound("Không tìm thấy phòng thuộc booking của bạn.");
-            }
+                bookingDetail = await _context.BookingDetails
+                    .Include(detail => detail.Booking)
+                        .ThenInclude(booking => booking!.Guest)
+                    .Include(detail => detail.Room)
+                    .Include(detail => detail.RoomType)
+                    .FirstOrDefaultAsync(detail =>
+                        detail.Id == request.BookingDetailId.Value &&
+                        detail.Booking != null &&
+                        detail.Booking.UserId == currentUserId.Value);
 
-            if (!string.Equals(bookingDetail.Status, "CheckedIn", StringComparison.OrdinalIgnoreCase))
-            {
-                return BadRequest("Chỉ có thể áp dụng dịch vụ cho phòng đang ở trạng thái đã nhận phòng.");
+                if (bookingDetail == null)
+                {
+                    return NotFound("Không tìm thấy phòng thuộc booking của bạn.");
+                }
+
+                if (!string.Equals(bookingDetail.Status, "CheckedIn", StringComparison.OrdinalIgnoreCase))
+                {
+                    return BadRequest("Chỉ có thể áp dụng dịch vụ cho phòng đang ở trạng thái đã nhận phòng.");
+                }
             }
 
             var service = await _context.Services.FirstOrDefaultAsync(item => item.Id == request.ServiceId.Value && item.Status);
@@ -241,7 +246,8 @@ namespace backend.Controllers
 
             var orderService = new OrderService
             {
-                BookingDetailId = bookingDetail.Id,
+                BookingDetailId = bookingDetail?.Id,
+                UserId = bookingDetail == null ? currentUserId.Value : null,
                 OrderDate = DateTime.UtcNow,
                 Status = "Unpaid",
                 TotalAmount = service.Price * request.Quantity
@@ -264,7 +270,7 @@ namespace backend.Controllers
             orderServiceDetail.OrderService = orderService;
             orderServiceDetail.Service = service;
 
-            return Created($"/api/user-services/history?bookingDetailId={bookingDetail.Id}", MapUsage(orderServiceDetail));
+            return Created($"/api/user-services/history", MapUsage(orderServiceDetail));
         }
     }
 }

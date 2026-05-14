@@ -150,13 +150,16 @@ namespace backend.Controllers
                     .ThenInclude(order => order!.BookingDetail)
                         .ThenInclude(bookingDetail => bookingDetail!.Room)
                 .Include(detail => detail.OrderService)
-                    .ThenInclude(order => order!.BookingDetail)
-                        .ThenInclude(bookingDetail => bookingDetail!.RoomType)
+                    .ThenInclude(order => order!.User)
                 .AsQueryable();
 
             if (bookingDetailId.HasValue)
             {
                 query = query.Where(detail => detail.OrderService != null && detail.OrderService.BookingDetailId == bookingDetailId.Value);
+            }
+            else
+            {
+                // Optionally show all or filter logic
             }
 
             if (!string.IsNullOrWhiteSpace(paymentStatus))
@@ -200,9 +203,9 @@ namespace backend.Controllers
         [Permission("CREATE_SERVICES")]
         public async Task<ActionResult<ServiceUsageResponseDTO>> ApplyService([FromBody] ApplyServiceDTO request)
         {
-            if (!request.BookingDetailId.HasValue || !request.ServiceId.HasValue)
+            if (!request.ServiceId.HasValue)
             {
-                return BadRequest("Thiếu phòng hoặc dịch vụ cần áp dụng.");
+                return BadRequest("Thiếu dịch vụ cần áp dụng.");
             }
 
             if (request.Quantity <= 0)
@@ -210,21 +213,25 @@ namespace backend.Controllers
                 return BadRequest("Số lượng phải lớn hơn 0.");
             }
 
-            var bookingDetail = await _context.BookingDetails
-                .Include(detail => detail.Booking)
-                    .ThenInclude(booking => booking!.Guest)
-                .Include(detail => detail.Room)
-                .Include(detail => detail.RoomType)
-                .FirstOrDefaultAsync(detail => detail.Id == request.BookingDetailId.Value);
-
-            if (bookingDetail == null)
+            BookingDetail? bookingDetail = null;
+            if (request.BookingDetailId.HasValue)
             {
-                return NotFound("Không tìm thấy phòng lưu trú.");
-            }
+                bookingDetail = await _context.BookingDetails
+                    .Include(detail => detail.Booking)
+                        .ThenInclude(booking => booking!.Guest)
+                    .Include(detail => detail.Room)
+                    .Include(detail => detail.RoomType)
+                    .FirstOrDefaultAsync(detail => detail.Id == request.BookingDetailId.Value);
 
-            if (!string.Equals(bookingDetail.Status, "CheckedIn", StringComparison.OrdinalIgnoreCase))
-            {
-                return BadRequest("Chỉ được áp dụng dịch vụ cho phòng đang lưu trú.");
+                if (bookingDetail == null)
+                {
+                    return NotFound("Không tìm thấy phòng lưu trú.");
+                }
+
+                if (!string.Equals(bookingDetail.Status, "CheckedIn", StringComparison.OrdinalIgnoreCase))
+                {
+                    return BadRequest("Chỉ được áp dụng dịch vụ cho phòng đang lưu trú.");
+                }
             }
 
             var service = await _context.Services.FirstOrDefaultAsync(item => item.Id == request.ServiceId.Value);
@@ -235,7 +242,7 @@ namespace backend.Controllers
 
             var orderService = new OrderService
             {
-                BookingDetailId = bookingDetail.Id,
+                BookingDetailId = bookingDetail?.Id,
                 OrderDate = DateTime.UtcNow,
                 Status = "Unpaid",
                 TotalAmount = service.Price * request.Quantity
@@ -258,7 +265,7 @@ namespace backend.Controllers
             orderServiceDetail.OrderService = orderService;
             orderServiceDetail.Service = service;
 
-            return Created($"/api/Services/history?bookingDetailId={bookingDetail.Id}", MapUsage(orderServiceDetail));
+            return Created($"/api/Services/history", MapUsage(orderServiceDetail));
         }
 
         [HttpPost]

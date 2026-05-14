@@ -10,8 +10,10 @@ namespace backend.Models
         public DateTime? OrderDate { get; set; }
         public decimal? TotalAmount { get; set; }
         public string? Status { get; set; }
+        public int? UserId { get; set; }
 
         public BookingDetail? BookingDetail { get; set; }
+        public User? User { get; set; }
         public ICollection<OrderServiceDetail> OrderServiceDetails { get; set; } = new List<OrderServiceDetail>();
     }
 }

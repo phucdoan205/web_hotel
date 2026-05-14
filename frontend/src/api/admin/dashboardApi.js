@@ -25,5 +25,10 @@ export const dashboardApi = {
       reason
     });
     return response.data;
+  },
+
+  rebuildCurrentDashboards: async () => {
+    const response = await apiClient.post('/dashboard-periods/rebuild-current');
+    return response.data;
   }
 };

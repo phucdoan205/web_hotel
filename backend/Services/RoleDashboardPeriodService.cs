@@ -104,7 +104,7 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
         var previousMetrics = await BuildMetricsAsync(period.PreviousPeriodStart, period.PreviousPeriodEnd, cancellationToken);
 
         var dashboardJson = BuildDashboardJson(role.Name, dashboardCode, period, periodMetrics);
-        var comparisonJson = BuildComparisonJson(period, periodMetrics, previousMetrics);
+        var comparisonJson = BuildComparisonJson(role.Name, period, periodMetrics, previousMetrics);
 
         var existing = await _context.RoleDashboardPeriodStates.FirstOrDefaultAsync(x =>
             x.RoleId == role.Id
@@ -287,9 +287,105 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
         var checkIns = await _context.BookingDetails.CountAsync(x => x.CheckInDate >= start && x.CheckInDate <= end, cancellationToken);
         var checkOuts = await _context.BookingDetails.CountAsync(x => x.CheckOutDate >= start && x.CheckOutDate <= end, cancellationToken);
 
-        var totalRevenue = await _context.Payments
+        var payments = await _context.Payments
             .Where(x => x.PaymentDate.HasValue && x.PaymentDate.Value >= start && x.PaymentDate.Value <= end)
-            .SumAsync(x => (decimal?)x.AmountPaid, cancellationToken) ?? 0m;
+            .ToListAsync(cancellationToken);
+
+        var totalRevenue = payments.Sum(x => (decimal?)x.AmountPaid) ?? 0m;
+
+        var trendsRaw = await _context.Invoices
+            .Where(x => x.CreatedAt.HasValue && x.CreatedAt.Value >= start && x.CreatedAt.Value <= end && x.Status != "Cancelled")
+            .GroupBy(x => x.CreatedAt.Value.Date)
+            .Select(g => new
+            {
+                Date = g.Key,
+                Room = g.Sum(x => x.TotalRoomAmount ?? 0m),
+                Discount = g.Sum(x => x.DiscountAmount ?? 0m)
+            })
+            .ToListAsync(cancellationToken);
+
+        var serviceTrendsRaw = await _context.OrderServices
+            .Where(x => x.OrderDate.HasValue && x.OrderDate.Value >= start && x.OrderDate.Value <= end && x.Status != "Cancelled")
+            .GroupBy(x => x.OrderDate.Value.Date)
+            .Select(g => new
+            {
+                Date = g.Key,
+                Service = g.Sum(x => x.TotalAmount ?? 0m)
+            })
+            .ToListAsync(cancellationToken);
+
+        var revenueTrends = new List<RevenueTrendItem>();
+        var totalDays = (end.Date - start.Date).TotalDays;
+
+        if (totalDays > 32)
+        {
+            // Group by Month for Yearly/Quarterly views
+            var monthlyRaw = await _context.Invoices
+                .Where(x => x.CreatedAt.HasValue && x.CreatedAt.Value >= start && x.CreatedAt.Value <= end && x.Status != "Cancelled")
+                .GroupBy(x => new { x.CreatedAt.Value.Year, x.CreatedAt.Value.Month })
+                .Select(g => new
+                {
+                    Year = g.Key.Year,
+                    Month = g.Key.Month,
+                    Room = g.Sum(x => x.TotalRoomAmount ?? 0m),
+                    Discount = g.Sum(x => x.DiscountAmount ?? 0m)
+                })
+                .ToListAsync(cancellationToken);
+
+            var serviceMonthlyRaw = await _context.OrderServices
+                .Where(x => x.OrderDate.HasValue && x.OrderDate.Value >= start && x.OrderDate.Value <= end && x.Status != "Cancelled")
+                .GroupBy(x => new { x.OrderDate.Value.Year, x.OrderDate.Value.Month })
+                .Select(g => new
+                {
+                    Year = g.Key.Year,
+                    Month = g.Key.Month,
+                    Service = g.Sum(x => x.TotalAmount ?? 0m)
+                })
+                .ToListAsync(cancellationToken);
+
+            for (var date = start.Date; date <= end.Date; date = date.AddMonths(1))
+            {
+                var raw = monthlyRaw.FirstOrDefault(x => x.Year == date.Year && x.Month == date.Month);
+                var svcRaw = serviceMonthlyRaw.FirstOrDefault(x => x.Year == date.Year && x.Month == date.Month);
+                
+                var room = raw?.Room ?? 0m;
+                var service = svcRaw?.Service ?? 0m;
+                var discount = raw?.Discount ?? 0m;
+                var total = room + service - discount;
+                
+                revenueTrends.Add(new RevenueTrendItem(
+                    Date: $"T{date.Month}",
+                    Value: total < 0 ? 0 : total,
+                    RoomValue: room,
+                    ServiceValue: service
+                ));
+            }
+        }
+        else
+        {
+            // Daily grouping
+            for (var date = start.Date; date <= end.Date; date = date.AddDays(1))
+            {
+                var raw = trendsRaw.FirstOrDefault(x => x.Date == date);
+                var svcRaw = serviceTrendsRaw.FirstOrDefault(x => x.Date == date);
+                
+                var room = raw?.Room ?? 0m;
+                var service = svcRaw?.Service ?? 0m;
+                var discount = raw?.Discount ?? 0m;
+                var total = room + service - discount;
+
+                revenueTrends.Add(new RevenueTrendItem(
+                    Date: date.ToString("dd/MM"),
+                    Value: total < 0 ? 0 : total,
+                    RoomValue: room,
+                    ServiceValue: service
+                ));
+            }
+        }
+
+        var trueServiceRevenue = await _context.OrderServices
+            .Where(x => x.OrderDate.HasValue && x.OrderDate.Value >= start && x.OrderDate.Value <= end && x.Status != "Cancelled")
+            .SumAsync(x => x.TotalAmount ?? 0m, cancellationToken);
 
         var invoiceMetrics = await _context.Invoices
             .Where(x => x.CreatedAt.HasValue && x.CreatedAt.Value >= start && x.CreatedAt.Value <= end)
@@ -297,12 +393,20 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
             .Select(g => new
             {
                 RoomRevenue = g.Sum(x => x.Status == "Cancelled" ? 0m : (x.TotalRoomAmount ?? 0m)),
-                ServiceRevenue = g.Sum(x => x.Status == "Cancelled" ? 0m : (x.TotalServiceAmount ?? 0m)),
                 PendingPaymentAmount = g.Sum(x => x.Status == "Unpaid" ? (x.FinalTotal ?? 0m) : 0m),
                 PaidInvoices = g.Count(x => x.Status == "Paid"),
                 UnpaidInvoices = g.Count(x => x.Status == "Unpaid")
             })
             .FirstOrDefaultAsync(cancellationToken);
+
+        var invoiceMetricsResult = new
+        {
+            RoomRevenue = invoiceMetrics?.RoomRevenue ?? 0m,
+            ServiceRevenue = trueServiceRevenue,
+            PendingPaymentAmount = invoiceMetrics?.PendingPaymentAmount ?? 0m,
+            PaidInvoices = invoiceMetrics?.PaidInvoices ?? 0,
+            UnpaidInvoices = invoiceMetrics?.UnpaidInvoices ?? 0
+        };
 
         var totalRooms = await _context.Rooms.CountAsync(cancellationToken);
         var availableRooms = await _context.Rooms.CountAsync(x => x.Status == "Available", cancellationToken);
@@ -349,6 +453,8 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
         var recentAuditLogs = await _context.AuditLogs
             .AsNoTracking()
             .Include(x => x.User)
+                .ThenInclude(u => u!.Role)
+            .Where(x => x.UserId != null)
             .OrderByDescending(x => x.LogDate)
             .ThenByDescending(x => x.Id)
             .Take(20)
@@ -359,6 +465,52 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
             .OrderByDescending(x => x.Timestamp)
             .Take(10)
             .ToList();
+
+        var totalGuests = 0;
+
+        var topServicesRaw = await _context.OrderServiceDetails
+            .Include(x => x.Service)
+            .GroupBy(x => x.Service.Name)
+            .Select(g => new
+            {
+                Name = g.Key ?? "Dịch vụ khác",
+                Count = g.Sum(x => x.Quantity),
+                TotalAmount = g.Sum(x => x.UnitPrice * x.Quantity)
+            })
+            .OrderByDescending(x => x.Count)
+            .Take(5)
+            .ToListAsync(cancellationToken);
+
+        var topServices = topServicesRaw
+            .Select(x => new TopServiceItem(x.Name, x.Count, x.TotalAmount))
+            .ToList();
+
+        var recentBookingsRaw = await _context.Bookings
+            .Include(x => x.User)
+            .OrderByDescending(x => x.CreatedAt)
+            .Take(5)
+            .Select(x => new
+            {
+                Id = x.Id,
+                BookingCode = x.BookingCode,
+                FullName = x.User != null ? x.User.FullName : "Khách vãng lai",
+                Status = x.Status,
+                TotalAmount = x.Invoices.Sum(i => i.FinalTotal ?? 0m),
+                CreatedAt = x.CreatedAt
+            })
+            .ToListAsync(cancellationToken);
+
+        var recentBookings = recentBookingsRaw
+            .Select(x => new RecentBookingItem(
+                x.BookingCode ?? $"BK-{x.Id}",
+                x.FullName ?? "Khách vãng lai",
+                x.Status ?? "Unknown",
+                x.TotalAmount,
+                x.CreatedAt
+            ))
+            .ToList();
+
+        var newStaffAccounts = 0;
 
         return new DashboardMetrics
         {
@@ -380,11 +532,12 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
             CheckIns = checkIns,
             CheckOuts = checkOuts,
             TotalRevenue = totalRevenue,
-            RoomRevenue = invoiceMetrics?.RoomRevenue ?? 0m,
-            ServiceRevenue = invoiceMetrics?.ServiceRevenue ?? 0m,
-            PendingPaymentAmount = invoiceMetrics?.PendingPaymentAmount ?? 0m,
-            PaidInvoices = invoiceMetrics?.PaidInvoices ?? 0,
-            UnpaidInvoices = invoiceMetrics?.UnpaidInvoices ?? 0,
+            RevenueTrends = revenueTrends,
+            RoomRevenue = invoiceMetricsResult.RoomRevenue,
+            ServiceRevenue = invoiceMetricsResult.ServiceRevenue,
+            PendingPaymentAmount = invoiceMetricsResult.PendingPaymentAmount,
+            PaidInvoices = invoiceMetricsResult.PaidInvoices,
+            UnpaidInvoices = invoiceMetricsResult.UnpaidInvoices,
             TotalRooms = totalRooms,
             AvailableRooms = availableRooms,
             OccupiedRooms = occupiedRooms,
@@ -401,182 +554,194 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
             CurrentDamagedQuantity = equipmentMetrics?.CurrentDamagedQuantity ?? 0,
             LowStockItems = equipmentMetrics?.LowStockItems ?? 0,
             NewReviews = reviewMetrics?.NewReviews ?? 0,
-            AverageRating = Math.Round(reviewMetrics?.AverageRating ?? 0m, 2)
+            AverageRating = Math.Round(reviewMetrics?.AverageRating ?? 0m, 2),
+            TotalGuests = totalGuests,
+            TopServices = topServices,
+            RecentBookings = recentBookings,
+            NewStaffAccounts = newStaffAccounts
         };
     }
 
     private string BuildDashboardJson(string roleName, string dashboardCode, DashboardPeriodInfo period, DashboardMetrics metrics)
     {
-        var alerts = new List<object>();
-        if (metrics.LowStockItems > 0)
+        var summary = roleName switch
         {
-            alerts.Add(new
+            "Admin" => (object)new
             {
-                level = "warning",
-                code = "LOW_STOCK_ITEMS",
-                message = "Có vật tư dưới ngưỡng tồn kho.",
-                value = metrics.LowStockItems,
-                createdAt = DateTime.UtcNow
-            });
-        }
-
-        if (metrics.PendingPaymentAmount > 0)
-        {
-            alerts.Add(new
+                system = new
+                {
+                    totalUsers = metrics.TotalUsers,
+                    activeUsers = metrics.ActiveUsers,
+                    lockedUsers = metrics.LockedUsers,
+                    managedRoles = metrics.ManagedRoles,
+                    auditEvents = metrics.AuditEvents,
+                    unreadNotifications = metrics.UnreadNotifications,
+                    newStaffAccounts = metrics.NewStaffAccounts
+                },
+                booking = new
+                {
+                    totalBookings = metrics.TotalBookings,
+                    pendingBookings = metrics.PendingBookings,
+                    confirmedBookings = metrics.ConfirmedBookings,
+                    inProgressBookings = metrics.InProgressBookings,
+                    completedBookings = metrics.CompletedBookings,
+                    cancelledBookings = metrics.CancelledBookings,
+                    checkIns = metrics.CheckIns,
+                    checkOuts = metrics.CheckOuts,
+                    recentBookings = metrics.RecentBookings
+                },
+                revenue = new
+                {
+                    totalRevenue = metrics.TotalRevenue,
+                    revenueTrends = metrics.RevenueTrends,
+                    roomRevenue = metrics.RoomRevenue,
+                    serviceRevenue = metrics.ServiceRevenue,
+                    pendingPaymentAmount = metrics.PendingPaymentAmount,
+                    paidInvoices = metrics.PaidInvoices,
+                    unpaidInvoices = metrics.UnpaidInvoices,
+                    topServices = metrics.TopServices
+                },
+                rooms = new
+                {
+                    totalRooms = metrics.TotalRooms,
+                    availableRooms = metrics.AvailableRooms,
+                    occupiedRooms = metrics.OccupiedRooms,
+                    maintenanceRooms = metrics.MaintenanceRooms,
+                    dirtyRooms = metrics.DirtyRooms,
+                    cleaningRooms = metrics.CleaningRooms,
+                    occupancyRate = metrics.OccupancyRate
+                }
+            },
+            "Manager" => (object)new
             {
-                level = "warning",
-                code = "PENDING_PAYMENT_AMOUNT",
-                message = "Có hóa đơn chưa thanh toán trong kỳ.",
-                value = metrics.PendingPaymentAmount,
-                createdAt = DateTime.UtcNow
-            });
-        }
+                booking = new
+                {
+                    totalBookings = metrics.TotalBookings,
+                    pendingBookings = metrics.PendingBookings,
+                    inProgressBookings = metrics.InProgressBookings,
+                    checkIns = metrics.CheckIns,
+                    checkOuts = metrics.CheckOuts
+                },
+                revenue = new
+                {
+                    totalRevenue = metrics.TotalRevenue,
+                    revenueTrends = metrics.RevenueTrends,
+                    roomRevenue = metrics.RoomRevenue,
+                    serviceRevenue = metrics.ServiceRevenue,
+                    pendingPaymentAmount = metrics.PendingPaymentAmount,
+                    paidInvoices = metrics.PaidInvoices,
+                    unpaidInvoices = metrics.UnpaidInvoices
+                },
+                rooms = new
+                {
+                    totalRooms = metrics.TotalRooms,
+                    availableRooms = metrics.AvailableRooms,
+                    occupiedRooms = metrics.OccupiedRooms,
+                    maintenanceRooms = metrics.MaintenanceRooms,
+                    dirtyRooms = metrics.DirtyRooms,
+                    cleaningRooms = metrics.CleaningRooms,
+                    occupancyRate = metrics.OccupancyRate,
+                    totalGuests = metrics.TotalGuests
+                },
+                customer = new
+                {
+                    newCustomers = metrics.NewCustomers,
+                    newReviews = metrics.NewReviews,
+                    averageRating = metrics.AverageRating
+                }
+            },
+            "Housekeeping" or "HouseKeeping" => (object)new
+            {
+                rooms = new
+                {
+                    totalRooms = metrics.TotalRooms,
+                    dirtyRooms = metrics.DirtyRooms,
+                    cleaningRooms = metrics.CleaningRooms,
+                    availableRooms = metrics.AvailableRooms,
+                    maintenanceRooms = metrics.MaintenanceRooms,
+                    occupancyRate = metrics.OccupancyRate
+                },
+                warehouse = new
+                {
+                    damageReports = metrics.DamageReports,
+                    penaltyAmount = metrics.PenaltyAmount,
+                    damagedQuantityInPeriod = metrics.DamagedQuantityInPeriod
+                }
+            },
+            "Receptionist" => (object)new
+            {
+                booking = new
+                {
+                    pendingBookings = metrics.PendingBookings,
+                    confirmedBookings = metrics.ConfirmedBookings,
+                    inProgressBookings = metrics.InProgressBookings,
+                    checkIns = metrics.CheckIns,
+                    checkOuts = metrics.CheckOuts
+                },
+                revenue = new
+                {
+                    pendingPaymentAmount = metrics.PendingPaymentAmount,
+                    unpaidInvoices = metrics.UnpaidInvoices,
+                    paidInvoices = metrics.PaidInvoices,
+                    revenueTrends = metrics.RevenueTrends
+                },
+                rooms = new
+                {
+                    totalRooms = metrics.TotalRooms,
+                    availableRooms = metrics.AvailableRooms,
+                    occupiedRooms = metrics.OccupiedRooms
+                }
+            },
+            "WarehouseStaff" or "Warehouse" => (object)new
+            {
+                warehouse = new
+                {
+                    totalEquipmentTypes = metrics.TotalEquipmentTypes,
+                    inStockQuantity = metrics.InStockQuantity,
+                    inUseQuantity = metrics.InUseQuantity,
+                    currentDamagedQuantity = metrics.CurrentDamagedQuantity,
+                    lowStockItems = metrics.LowStockItems,
+                    damageReports = metrics.DamageReports,
+                    damagedQuantityInPeriod = metrics.DamagedQuantityInPeriod,
+                    penaltyAmount = metrics.PenaltyAmount
+                }
+            },
+            _ => (object)new
+            {
+                booking = new { totalBookings = metrics.TotalBookings },
+                revenue = new { totalRevenue = metrics.TotalRevenue, revenueTrends = metrics.RevenueTrends },
+                rooms = new { occupancyRate = metrics.OccupancyRate }
+            }
+        };
 
         var payload = new
         {
             meta = new
             {
-                schemaVersion = 1,
-                dashboardCode,
-                roleName,
+                schemaVersion = 2,
+                dashboardCode = dashboardCode,
+                roleName = roleName,
                 periodType = period.PeriodType,
                 periodKey = period.PeriodKey,
                 periodStart = period.PeriodStart,
                 periodEnd = period.PeriodEnd,
                 status = period.IsCurrent ? "OPEN" : "CLOSED",
-                generatedAt = DateTime.UtcNow,
-                lastUpdatedAt = DateTime.UtcNow
+                generatedAt = DateTime.UtcNow
             },
-            summary = new
-            {
-                system = new
-                {
-                    metrics.TotalUsers,
-                    metrics.ActiveUsers,
-                    metrics.NewCustomers,
-                    metrics.AuditEvents,
-                    metrics.UnreadNotifications,
-                    metrics.LockedUsers,
-                    metrics.ManagedRoles
-                },
-                booking = new
-                {
-                    metrics.TotalBookings,
-                    metrics.CompletedBookings,
-                    metrics.CancelledBookings,
-                    metrics.PendingBookings,
-                    metrics.ConfirmedBookings,
-                    metrics.InProgressBookings,
-                    metrics.CheckIns,
-                    metrics.CheckOuts
-                },
-                revenue = new
-                {
-                    metrics.TotalRevenue,
-                    metrics.RoomRevenue,
-                    metrics.ServiceRevenue,
-                    metrics.PendingPaymentAmount,
-                    metrics.PaidInvoices,
-                    metrics.UnpaidInvoices
-                },
-                rooms = new
-                {
-                    metrics.TotalRooms,
-                    metrics.AvailableRooms,
-                    metrics.OccupiedRooms,
-                    metrics.MaintenanceRooms,
-                    metrics.DirtyRooms,
-                    metrics.CleaningRooms,
-                    metrics.OccupancyRate
-                },
-                warehouse = new
-                {
-                    metrics.TotalEquipmentTypes,
-                    metrics.InStockQuantity,
-                    metrics.InUseQuantity,
-                    metrics.CurrentDamagedQuantity,
-                    metrics.DamageReports,
-                    metrics.DamagedQuantityInPeriod,
-                    metrics.PenaltyAmount,
-                    metrics.LowStockItems
-                },
-                housekeeping = new
-                {
-                    metrics.DirtyRooms,
-                    metrics.CleaningRooms,
-                    metrics.DamageReports,
-                    metrics.PenaltyAmount
-                },
-                customer = new
-                {
-                    metrics.NewCustomers,
-                    metrics.AverageRating,
-                    metrics.NewReviews
-                },
-                admin = new
-                {
-                    metrics.ManagedRoles,
-                    metrics.LockedUsers,
-                    PendingBookings = metrics.PendingBookings,
-                    metrics.UnpaidInvoices,
-                    metrics.UnreadNotifications,
-                    metrics.AuditEvents
-                }
-            },
-            widgets = new
-            {
-                kpiCards = BuildKpiCards(roleName, metrics),
-                departmentOverview = BuildDepartmentOverview(metrics)
-            },
+            summary = summary,
+            kpiCards = BuildKpiCards(roleName, metrics),
+            departmentOverview = BuildDepartmentOverview(metrics),
             tables = new
             {
                 usersByRole = metrics.RoleUserCounts,
                 recentAudits = metrics.RecentAudits
-            },
-            admin = new
-            {
-                kpis = new
-                {
-                    metrics.TotalUsers,
-                    metrics.ActiveUsers,
-                    metrics.AuditEvents,
-                    metrics.UnreadNotifications,
-                    metrics.TotalBookings,
-                    metrics.TotalRevenue
-                },
-                systemStatus = new
-                {
-                    RolesManaged = metrics.ManagedRoles,
-                    metrics.LockedUsers,
-                    PendingBookings = metrics.PendingBookings,
-                    metrics.UnpaidInvoices
-                },
-                usersByRole = metrics.RoleUserCounts,
-                recentAudits = metrics.RecentAudits
-            },
-            breakdown = new
-            {
-                roleName,
-                dataSource = "Database aggregation"
-            },
-            alerts,
-            events = new[]
-            {
-                new
-                {
-                    eventType = "DASHBOARD_REBUILT",
-                    source = "RoleDashboardPeriodService",
-                    refId = (int?)null,
-                    description = "Dashboard period snapshot was rebuilt from source tables.",
-                    createdAt = DateTime.UtcNow
-                }
             }
         };
 
         return JsonSerializer.Serialize(payload, JsonOptions);
     }
 
-    private string BuildComparisonJson(DashboardPeriodInfo period, DashboardMetrics current, DashboardMetrics previous)
+    private string BuildComparisonJson(string roleName, DashboardPeriodInfo period, DashboardMetrics current, DashboardMetrics previous)
     {
         var payload = new
         {
@@ -591,15 +756,29 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
             },
             metrics = new
             {
-                totalBookings = CompareMetric(current.TotalBookings, previous.TotalBookings, "higher_is_better"),
                 totalRevenue = CompareMetric(current.TotalRevenue, previous.TotalRevenue, "higher_is_better"),
+                roomRevenue = CompareMetric(current.RoomRevenue, previous.RoomRevenue, "higher_is_better"),
+                serviceRevenue = CompareMetric(current.ServiceRevenue, previous.ServiceRevenue, "higher_is_better"),
                 occupancyRate = CompareMetric(current.OccupancyRate, previous.OccupancyRate, "higher_is_better"),
+                totalBookings = CompareMetric(current.TotalBookings, previous.TotalBookings, "higher_is_better"),
+                pendingBookings = CompareMetric(current.PendingBookings, previous.PendingBookings, "lower_is_better"),
+                checkIns = CompareMetric(current.CheckIns, previous.CheckIns, "higher_is_better"),
+                checkOuts = CompareMetric(current.CheckOuts, previous.CheckOuts, "higher_is_better"),
+                availableRooms = CompareMetric(current.AvailableRooms, previous.AvailableRooms, "higher_is_better"),
+                activeUsers = CompareMetric(current.ActiveUsers, previous.ActiveUsers, "higher_is_better"),
+                auditEvents = CompareMetric(current.AuditEvents, previous.AuditEvents, "neutral"),
+                inStockQuantity = CompareMetric(current.InStockQuantity, previous.InStockQuantity, "higher_is_better"),
+                lowStockItems = CompareMetric(current.LowStockItems, previous.LowStockItems, "lower_is_better"),
                 damageReports = CompareMetric(current.DamageReports, previous.DamageReports, "lower_is_better"),
-                damagedQuantityInPeriod = CompareMetric(current.DamagedQuantityInPeriod, previous.DamagedQuantityInPeriod, "lower_is_better"),
+                dirtyRooms = CompareMetric(current.DirtyRooms, previous.DirtyRooms, "lower_is_better"),
+                cleaningRooms = CompareMetric(current.CleaningRooms, previous.CleaningRooms, "neutral"),
                 penaltyAmount = CompareMetric(current.PenaltyAmount, previous.PenaltyAmount, "lower_is_better"),
-                pendingPaymentAmount = CompareMetric(current.PendingPaymentAmount, previous.PendingPaymentAmount, "lower_is_better"),
+                paidInvoices = CompareMetric(current.PaidInvoices, previous.PaidInvoices, "higher_is_better"),
+                currentDamagedQuantity = CompareMetric(current.CurrentDamagedQuantity, previous.CurrentDamagedQuantity, "lower_is_better"),
                 newCustomers = CompareMetric(current.NewCustomers, previous.NewCustomers, "higher_is_better"),
-                dirtyRooms = CompareMetric(current.DirtyRooms, previous.DirtyRooms, "lower_is_better")
+                totalEquipmentTypes = CompareMetric(current.TotalEquipmentTypes, previous.TotalEquipmentTypes, "neutral"),
+                pendingPaymentAmount = CompareMetric(current.PendingPaymentAmount, previous.PendingPaymentAmount, "lower_is_better"),
+                damagedQuantityInPeriod = CompareMetric(current.DamagedQuantityInPeriod, previous.DamagedQuantityInPeriod, "lower_is_better")
             }
         };
 
@@ -628,41 +807,46 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
     {
         return roleName switch
         {
+            "Admin" => new object[]
+            {
+                new { code = "totalRevenue", title = "Tổng doanh thu", value = metrics.TotalRevenue, unit = "VND" },
+                new { code = "totalBookings", title = "Tổng Booking", value = metrics.TotalBookings, unit = "booking" },
+                new { code = "occupancyRate", title = "Tỷ lệ lấp đầy", value = metrics.OccupancyRate, unit = "%" },
+                new { code = "activeUsers", title = "Đang lưu trú", value = metrics.InProgressBookings, unit = "booking" }
+            },
+            "Manager" => new object[]
+            {
+                new { code = "totalRevenue", title = "Doanh thu", value = metrics.TotalRevenue, unit = "VND" },
+                new { code = "checkIns", title = "Check-in hôm nay", value = metrics.CheckIns, unit = "lượt" },
+                new { code = "checkOuts", title = "Check-out hôm nay", value = metrics.CheckOuts, unit = "lượt" },
+                new { code = "occupancyRate", title = "Tỷ lệ lấp đầy", value = metrics.OccupancyRate, unit = "%" }
+            },
+            "Housekeeping" or "HouseKeeping" => new object[]
+            {
+                new { code = "dirtyRooms", title = "Phòng cần dọn", value = metrics.DirtyRooms, unit = "phòng" },
+                new { code = "cleaningRooms", title = "Phòng đang dọn", value = metrics.CleaningRooms, unit = "phòng" },
+                new { code = "availableRooms", title = "Phòng hoàn tất", value = metrics.AvailableRooms, unit = "phòng" },
+                new { code = "maintenanceRooms", title = "Phòng bảo trì", value = metrics.MaintenanceRooms, unit = "phòng" }
+            },
+            "Receptionist" => new object[]
+            {
+                new { code = "pendingBookings", title = "Booking chờ duyệt", value = metrics.PendingBookings, unit = "đặt phòng" },
+                new { code = "checkIns", title = "Khách sắp Check-in", value = metrics.CheckIns, unit = "lượt" },
+                new { code = "checkOuts", title = "Khách sắp Check-out", value = metrics.CheckOuts, unit = "lượt" },
+                new { code = "availableRooms", title = "Phòng trống hiện tại", value = metrics.AvailableRooms, unit = "phòng" }
+            },
             "WarehouseStaff" or "Warehouse" => new object[]
             {
-                new { code = "inStockQuantity", title = "Tồn kho", value = metrics.InStockQuantity, unit = "item" },
-                new { code = "damageReports", title = "Báo cáo hỏng/mất", value = metrics.DamageReports, unit = "report" },
-                new { code = "lowStockItems", title = "Dưới ngưỡng tồn", value = metrics.LowStockItems, unit = "item" }
-            },
-            "Housekeeping" => new object[]
-            {
-                new { code = "dirtyRooms", title = "Phòng cần dọn", value = metrics.DirtyRooms, unit = "room" },
-                new { code = "cleaningRooms", title = "Phòng đang dọn", value = metrics.CleaningRooms, unit = "room" },
-                new { code = "damageReports", title = "Báo cáo hỏng/mất", value = metrics.DamageReports, unit = "report" }
+                new { code = "inStockQuantity", title = "Tổng sản phẩm trong kho", value = metrics.InStockQuantity, unit = "món" },
+                new { code = "lowStockItems", title = "Hàng sắp hết (<10)", value = metrics.LowStockItems, unit = "loại" },
+                new { code = "currentDamagedQuantity", title = "Hàng hư hỏng", value = metrics.CurrentDamagedQuantity, unit = "món" },
+                new { code = "damageReports", title = "Phiếu nhập/xuất", value = metrics.DamageReports, unit = "phiếu" }
             },
             "Accountant" => new object[]
             {
                 new { code = "totalRevenue", title = "Doanh thu", value = metrics.TotalRevenue, unit = "VND" },
                 new { code = "pendingPaymentAmount", title = "Chưa thanh toán", value = metrics.PendingPaymentAmount, unit = "VND" },
                 new { code = "paidInvoices", title = "Hóa đơn đã trả", value = metrics.PaidInvoices, unit = "invoice" }
-            },
-            "Receptionist" => new object[]
-            {
-                new { code = "pendingBookings", title = "Chờ duyệt", value = metrics.PendingBookings, unit = "booking" },
-                new { code = "checkIns", title = "Check In", value = metrics.CheckIns, unit = "booking" },
-                new { code = "checkOuts", title = "Check Out", value = metrics.CheckOuts, unit = "booking" }
-            },
-            "Admin" => new object[]
-            {
-                new { code = "totalRevenue", title = "Doanh thu", value = metrics.TotalRevenue, unit = "VND" },
-                new { code = "activeUsers", title = "Người dùng HT", value = metrics.ActiveUsers, unit = "user" },
-                new { code = "occupancyRate", title = "Tỷ lệ lấp đầy", value = metrics.OccupancyRate, unit = "%" }
-            },
-            "Manager" => new object[]
-            {
-                new { code = "totalRevenue", title = "Doanh thu", value = metrics.TotalRevenue, unit = "VND" },
-                new { code = "totalBookings", title = "Tổng đặt phòng", value = metrics.TotalBookings, unit = "booking" },
-                new { code = "occupancyRate", title = "Tỷ lệ lấp đầy", value = metrics.OccupancyRate, unit = "%" }
             },
             _ => new object[]
             {
@@ -699,15 +883,18 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
 
         foreach (var item in events.EnumerateArray())
         {
-            var timestamp = GetDateTime(item, "timestamp") ?? log.LogDate;
+            var entityType = GetString(item, "EntityType") ?? GetString(item, "entityType");
+            if (entityType == "RoleDashboardPeriodState") continue;
+
+            var timestamp = GetDateTime(item, "Timestamp") ?? GetDateTime(item, "timestamp") ?? log.LogDate;
 
             yield return new RecentAuditItem(
                 UserId: log.UserId ?? 0,
-                UserName: log.User?.FullName ?? log.User?.Email ?? "Unknown",
-                RoleName: log.User?.Role?.Name ?? "Unknown",
-                Action: GetString(item, "actionType") ?? GetString(item, "action") ?? "UNKNOWN",
-                EntityType: GetString(item, "entityType"),
-                Message: GetString(item, "message"),
+                UserName: log.User?.FullName ?? log.User?.Email ?? "Hệ thống",
+                RoleName: log.User?.Role?.Name ?? "Hệ thống",
+                Action: GetString(item, "ActionType") ?? GetString(item, "actionType") ?? GetString(item, "Action") ?? GetString(item, "action") ?? "UNKNOWN",
+                EntityType: entityType,
+                Message: GetString(item, "Message") ?? GetString(item, "message"),
                 Timestamp: timestamp);
         }
     }
@@ -786,6 +973,7 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
         public int CheckIns { get; init; }
         public int CheckOuts { get; init; }
         public decimal TotalRevenue { get; init; }
+        public IReadOnlyList<RevenueTrendItem> RevenueTrends { get; init; } = Array.Empty<RevenueTrendItem>();
         public decimal RoomRevenue { get; init; }
         public decimal ServiceRevenue { get; init; }
         public decimal PendingPaymentAmount { get; init; }
@@ -808,6 +996,10 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
         public int LowStockItems { get; init; }
         public int NewReviews { get; init; }
         public decimal AverageRating { get; init; }
+        public int TotalGuests { get; init; }
+        public IReadOnlyList<TopServiceItem> TopServices { get; init; } = Array.Empty<TopServiceItem>();
+        public IReadOnlyList<RecentBookingItem> RecentBookings { get; init; } = Array.Empty<RecentBookingItem>();
+        public int NewStaffAccounts { get; init; }
     }
 
     private sealed record RoleUserCount(
@@ -823,4 +1015,13 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
         string? EntityType,
         string? Message,
         DateTime Timestamp);
+
+    private sealed record RevenueTrendItem(
+        string Date,
+        decimal Value,
+        decimal RoomValue = 0,
+        decimal ServiceValue = 0);
+
+    public record TopServiceItem(string Name, int Count, decimal TotalAmount);
+    public record RecentBookingItem(string Code, string CustomerName, string Status, decimal Amount, DateTime CreatedAt);
 }

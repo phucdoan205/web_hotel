@@ -34,9 +34,14 @@ namespace backend.Data.Interceptors
 
             var events = new List<AuditEvent>();
 
+            var userId = GetCurrentUserId();
+            if (userId == null)
+                return await base.SavingChangesAsync(eventData, result, cancellationToken);
+
             foreach (var entry in context.ChangeTracker.Entries())
             {
                 if (entry.Entity is AuditLog ||
+                    entry.Metadata.ClrType.Name == "RoleDashboardPeriodState" ||
                     entry.State == EntityState.Unchanged ||
                     entry.State == EntityState.Detached)
                     continue;
@@ -48,7 +53,6 @@ namespace backend.Data.Interceptors
 
             if (events.Any())
             {
-                var userId = GetCurrentUserId();
                 var today = DateTime.UtcNow.Date;
 
                 // Tìm log của user này trong ngày hôm nay
