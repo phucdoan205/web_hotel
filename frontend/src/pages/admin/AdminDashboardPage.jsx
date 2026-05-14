@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   TrendingUp, TrendingDown, RefreshCw, LayoutDashboard,
   BedDouble, DollarSign, Users, Activity, Package, AlertTriangle,
-  BatteryWarning, Brush, CheckSquare, CheckCircle, CreditCard,
+  BatteryWarning, Brush, CheckSquare, CheckCircle, CreditCard, Clock,
   Receipt, LogIn, LogOut, CalendarRange, Layers, Hammer, BarChart3,
   Calendar
 } from "lucide-react";
@@ -13,6 +13,7 @@ import {
   ResponsiveContainer, Cell, PieChart, Pie, Legend,
   AreaChart, Area, ComposedChart, Line
 } from "recharts";
+import { getNotifications } from "../../api/notifications/notificationApi";
 import { dashboardApi } from "../../api/admin/dashboardApi";
 import { useStoredAuth } from "../../hooks/useStoredAuth";
 
@@ -818,7 +819,7 @@ function TodayBookingsList({ items = [] }) {
             <div className="text-right shrink-0 ml-2">
               <p className="text-[9px] font-bold text-slate-700">{new Date(item.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
               <span className={`text-[8px] font-black ${
-                item.status === 'Confirmed' ? 'text-emerald-500' : 'text-amber-500'
+                item.status === 'Completed' || item.status === 'CheckedIn' ? 'text-emerald-500' : 'text-amber-500'
               }`}>{item.status}</span>
             </div>
           </div>
@@ -835,6 +836,94 @@ function TodayBookingsList({ items = [] }) {
 
 
 // ─── Skeleton ────────────────────────────────────────────────────────────────
+function PopularServicesList({ items = [] }) {
+  return (
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.4 }}
+      className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm h-full"
+    >
+      <div className="mb-4 flex items-center gap-2">
+        <TrendingUp className="size-4 text-emerald-500" />
+        <h3 className="font-black text-slate-800 uppercase tracking-tight text-sm">Dịch vụ phổ biến</h3>
+      </div>
+      <div className="space-y-3">
+        {items.map((item, i) => (
+          <div key={i} className="flex items-center justify-between group cursor-default">
+            <div className="flex items-center gap-3">
+              <div className="size-8 rounded-xl bg-emerald-50 flex items-center justify-center text-[10px] font-black text-emerald-600 group-hover:bg-emerald-500 group-hover:text-white transition-colors duration-300">
+                #{i+1}
+              </div>
+              <span className="text-xs font-bold text-slate-700">{item.name}</span>
+            </div>
+            <span className="text-[10px] font-black bg-slate-100 px-2 py-1 rounded-lg text-slate-500">{item.count} lượt</span>
+          </div>
+        ))}
+      </div>
+    </motion.div>
+  );
+}
+
+function PendingServicesList({ items = [] }) {
+  return (
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.5 }}
+      className="rounded-3xl border border-rose-100 bg-rose-50/30 p-6 shadow-sm h-full"
+    >
+      <div className="mb-4 flex items-center gap-2">
+        <Clock className="size-4 text-rose-500" />
+        <h3 className="font-black text-slate-800 uppercase tracking-tight text-sm">Dịch vụ chờ xử lý</h3>
+      </div>
+      <div className="space-y-3">
+        {items.map((item, i) => (
+          <div key={i} className="flex flex-col border-b border-rose-100/50 pb-2 last:border-0 last:pb-0">
+            <div className="flex justify-between items-start">
+              <p className="text-[11px] font-black text-slate-900">{item.subtitle}</p>
+              <span className="text-[10px] font-black text-rose-600">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(item.amount)}</span>
+            </div>
+            <p className="text-[10px] font-bold text-slate-500">{item.title}</p>
+          </div>
+        ))}
+        {items.length === 0 && <p className="text-center text-[10px] text-slate-400 italic py-4">Tất cả dịch vụ đã xử lý</p>}
+      </div>
+    </motion.div>
+  );
+}
+
+function ServiceHistoryList({ items = [] }) {
+  return (
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.6 }}
+      className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm h-full"
+    >
+      <div className="mb-4 flex items-center gap-2">
+        <Activity className="size-4 text-blue-500" />
+        <h3 className="font-black text-slate-800 uppercase tracking-tight text-sm">Lịch sử dịch vụ</h3>
+      </div>
+      <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+        {items.map((item, i) => (
+          <div key={i} className="flex items-center justify-between border-b border-slate-50 pb-2 last:border-0 last:pb-0">
+             <div className="overflow-hidden">
+                <p className="text-[11px] font-bold text-slate-800 truncate">{item.subtitle}</p>
+                <p className="text-[9px] text-slate-400">{item.title}</p>
+             </div>
+             <div className="text-right ml-2 shrink-0">
+                <p className="text-[10px] font-black text-slate-900">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(item.amount)}</p>
+                <p className="text-[9px] font-bold text-slate-400">{new Date(item.time).toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'})}</p>
+             </div>
+          </div>
+        ))}
+        {items.length === 0 && <p className="text-center text-[10px] text-slate-400 italic py-4">Chưa có lịch sử dịch vụ</p>}
+      </div>
+    </motion.div>
+  );
+}
+
 function Skeleton() {
   return (
     <div className="space-y-6 animate-pulse">
@@ -871,9 +960,15 @@ export default function AdminDashboardPage() {
     },
   });
 
-  // dashboard & comparison come as already-parsed JSON objects from the API
   const dash = resp?.dashboard || resp?.Dashboard || null;
   const cmp = resp?.comparison || resp?.Comparison || null;
+
+  const { data: personalNotifications } = useQuery({
+    queryKey: ["personal-notifications", auth?.id || auth?.userId],
+    queryFn: () => getNotifications(10),
+    enabled: !!auth,
+    refetchInterval: 30000,
+  });
 
   const { kpiCards, summary, departmentOverview, tables } = useMemo(() => {
     if (!dash) return { kpiCards: [], summary: {}, departmentOverview: [], tables: {} };
@@ -898,6 +993,21 @@ export default function AdminDashboardPage() {
       };
     });
   }, [kpiCards, cmp]);
+
+  const mergedNotifications = useMemo(() => {
+    const global = summary.tasks?.notifications || [];
+    const personal = (personalNotifications || [])
+      .filter(n => n.userId != null) // Avoid duplicating global ones if they are returned
+      .map(n => ({
+        id: n.id?.toString(),
+        title: n.title,
+        subtitle: n.content,
+        time: n.createdAt,
+        type: n.type || "Info"
+      }));
+    
+    return [...global, ...personal].sort((a, b) => new Date(b.time) - new Date(a.time)).slice(0, 10);
+  }, [summary.tasks?.notifications, personalNotifications]);
 
   const hasRooms = !!(summary.rooms);
   const hasRev = !!(summary.revenue);
@@ -1002,6 +1112,12 @@ export default function AdminDashboardPage() {
                   <RecentAudits audits={tables.recentAudits} />
                 </div>
               )}
+               {/* Row 4: Service Management Center */}
+               <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                  <PopularServicesList items={summary.services?.topServices} />
+                  <PendingServicesList items={summary.services?.pendingServices} />
+                  <ServiceHistoryList items={summary.services?.recentHistory} />
+               </div>
             </div>
           )}
 
@@ -1049,7 +1165,14 @@ export default function AdminDashboardPage() {
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
                  <CheckInList items={summary.tasks?.upcomingCheckIns} />
                  <CheckOutList items={summary.tasks?.upcomingCheckOuts} />
-                 <NotificationCenter items={summary.tasks?.notifications} />
+                 <NotificationCenter items={mergedNotifications} />
+              </div>
+
+              {/* Row 4: Service Management Center */}
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                 <PopularServicesList items={summary.services?.topServices} />
+                 <PendingServicesList items={summary.services?.pendingServices} />
+                 <ServiceHistoryList items={summary.services?.recentHistory} />
               </div>
             </div>
           )}

@@ -694,7 +694,7 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
                     .ThenInclude(b => b!.Guest)
             .Include(x => x.BookingDetail)
                 .ThenInclude(bd => bd!.Room)
-            .Where(x => x.Status == "Pending")
+            .Where(x => x.Status == "Unpaid")
             .OrderByDescending(x => x.OrderDate)
             .Take(10)
             .Select(x => new
@@ -726,6 +726,29 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
                 Time = x.CreatedAt ?? DateTime.UtcNow,
                 RefCode = x.Code,
                 Amount = x.FinalTotal
+            })
+            .ToListAsync(cancellationToken);
+
+        var recentServicesRaw = await _context.OrderServices
+            .Include(x => x.BookingDetail)
+                .ThenInclude(bd => bd!.Booking)
+                    .ThenInclude(b => b!.User)
+            .Include(x => x.BookingDetail)
+                .ThenInclude(bd => bd!.Booking)
+                    .ThenInclude(b => b!.Guest)
+            .Include(x => x.BookingDetail)
+                .ThenInclude(bd => bd!.Room)
+            .OrderByDescending(x => x.OrderDate)
+            .Take(10)
+            .Select(x => new
+            {
+                Id = x.Id.ToString(),
+                Title = $"Yêu cầu từ Phòng {x.BookingDetail!.Room!.RoomNumber}",
+                Subtitle = x.BookingDetail!.Booking!.User!.FullName ?? x.BookingDetail!.Booking!.Guest!.Name ?? "Khách vãng lai",
+                Status = x.Status ?? "N/A",
+                Time = x.OrderDate ?? DateTime.UtcNow,
+                RefCode = $"SRV-{x.Id}",
+                Amount = x.TotalAmount
             })
             .ToListAsync(cancellationToken);
 
@@ -821,6 +844,7 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
             PendingServiceRequests = pendingServicesRaw.Select(x => new DashboardTaskItem(x.Id, x.Title, x.Subtitle, x.Status, "SERVICE", x.Time, x.RefCode, x.Amount)).ToList(),
             PendingPayments = pendingPaymentsRaw.Select(x => new DashboardTaskItem(x.Id, x.Title, x.Subtitle, x.Status, "PAYMENT", x.Time, x.RefCode, x.Amount)).ToList(),
             BookingsToConfirm = bookingsToConfirmRaw.Select(x => new DashboardTaskItem(x.Id, x.Title, x.Subtitle, x.Status, "BOOKING", x.Time, x.RefCode)).ToList(),
+            RecentServices = recentServicesRaw.Select(x => new DashboardTaskItem(x.Id, x.Title, x.Subtitle, x.Status, "SERVICE", x.Time, x.RefCode, x.Amount)).ToList(),
             Notifications = notifications
         };
     }
@@ -874,6 +898,12 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
                     dirtyRooms = metrics.DirtyRooms,
                     cleaningRooms = metrics.CleaningRooms,
                     occupancyRate = metrics.OccupancyRate
+                },
+                services = new
+                {
+                    topServices = metrics.TopServices,
+                    pendingServices = metrics.PendingServiceRequests,
+                    recentHistory = metrics.RecentServices
                 }
             },
             "Manager" => (object)new
@@ -963,10 +993,13 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
                     upcomingCheckIns = metrics.UpcomingCheckIns,
                     upcomingCheckOuts = metrics.UpcomingCheckOuts,
                     todayBookings = metrics.TodayBookings,
-                    pendingPayments = metrics.PendingPayments,
-                    pendingServices = metrics.PendingServiceRequests,
-                    bookingsToConfirm = metrics.BookingsToConfirm,
                     notifications = metrics.Notifications
+                },
+                services = new
+                {
+                    topServices = metrics.TopServices,
+                    pendingServices = metrics.PendingServiceRequests,
+                    recentHistory = metrics.RecentServices
                 }
             },
             "WarehouseStaff" or "Warehouse" => (object)new
@@ -1296,6 +1329,7 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
         public IReadOnlyList<DashboardTaskItem> PendingPayments { get; init; } = Array.Empty<DashboardTaskItem>();
         public IReadOnlyList<DashboardTaskItem> BookingsToConfirm { get; init; } = Array.Empty<DashboardTaskItem>();
         public IReadOnlyList<DashboardTaskItem> Notifications { get; init; } = Array.Empty<DashboardTaskItem>();
+        public IReadOnlyList<DashboardTaskItem> RecentServices { get; init; } = Array.Empty<DashboardTaskItem>();
     }
 
     private sealed record RoleUserCount(

@@ -6,6 +6,7 @@ using System.Text.Json.Serialization;
 using backend.Data;
 using backend.DTOs.Payment;
 using backend.Security;
+using backend.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -237,7 +238,87 @@ namespace backend.Controllers
                 payload.OrderId,
                 payload.ResultCode);
 
+            if (payload.ResultCode == 0)
+            {
+                var invoiceIdStr = decodedExtraData?.ContainsKey("invoiceId") == true ? decodedExtraData["invoiceId"] : null;
+                var bookingIdStr = decodedExtraData?.ContainsKey("bookingId") == true ? decodedExtraData["bookingId"] : null;
+
+                if (int.TryParse(invoiceIdStr, out var invoiceId))
+                {
+                    var invoice = await _context.Invoices
+                        .Include(i => i.Booking)
+                        .ThenInclude(b => b!.BookingDetails)
+                        .FirstOrDefaultAsync(i => i.Id == invoiceId, cancellationToken);
+
+                    if (invoice != null && invoice.Status != "Completed")
+                    {
+                        var paidAt = DateTime.UtcNow;
+                        invoice.Status = "Completed";
+                        invoice.PaidAt = paidAt;
+                        invoice.UpdatedAt = paidAt;
+
+                        _context.Payments.Add(new Payment
+                        {
+                            InvoiceId = invoice.Id,
+                            AmountPaid = payload.Amount,
+                            TransactionCode = payload.TransId?.ToString() ?? payload.OrderId,
+                            PaymentDate = paidAt,
+                            Status = "Completed"
+                        });
+
+                        if (invoice.BookingDetailId.HasValue)
+                        {
+                            var detail = await _context.BookingDetails.FirstOrDefaultAsync(d => d.Id == invoice.BookingDetailId.Value, cancellationToken);
+                            if (detail != null)
+                            {
+                                detail.Status = "Completed";
+                            }
+                        }
+
+                        if (invoice.Booking != null)
+                        {
+                            invoice.Booking.Status = ResolveBookingStatusFromDetails(invoice.Booking.BookingDetails);
+                        }
+
+                        await _context.SaveChangesAsync(cancellationToken);
+                        _logger.LogInformation("Successfully processed payment for Invoice {InvoiceId} via MoMo IPN.", invoiceId);
+                    }
+                }
+                else if (int.TryParse(bookingIdStr, out var parsedBookingId))
+                {
+                    var booking = await _context.Bookings
+                        .Include(b => b.BookingDetails)
+                        .FirstOrDefaultAsync(b => b.Id == parsedBookingId, cancellationToken);
+
+                    if (booking != null)
+                    {
+                        foreach (var detail in booking.BookingDetails)
+                        {
+                            if (detail.Status == "Pending") detail.Status = "Confirmed";
+                        }
+                        booking.Status = ResolveBookingStatusFromDetails(booking.BookingDetails);
+                        await _context.SaveChangesAsync(cancellationToken);
+                        _logger.LogInformation("Successfully processed payment for Booking {BookingId} via MoMo IPN.", parsedBookingId);
+                    }
+                }
+            }
+
             return NoContent();
+        }
+
+        private static string ResolveBookingStatusFromDetails(IEnumerable<Models.BookingDetail> details)
+        {
+            var detailList = details.ToList();
+            if (!detailList.Any()) return "Pending";
+
+            if (detailList.All(detail => detail.Status == "Completed")) return "Completed";
+            if (detailList.All(detail => detail.Status == "Cancelled")) return "Cancelled";
+            
+            if (detailList.Any(detail => detail.Status == "CheckedIn")) return "CheckedIn";
+            if (detailList.Any(detail => detail.Status == "Confirmed")) return "Confirmed";
+            if (detailList.Any(detail => detail.Status == "Paying")) return "Paying";
+
+            return "Pending";
         }
 
         private static string BuildOrderId(string bookingCode, int? detailId, long timestamp)

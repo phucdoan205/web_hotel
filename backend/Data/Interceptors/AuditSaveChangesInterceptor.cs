@@ -282,10 +282,16 @@ namespace backend.Data.Interceptors
                 var oldStatus = statusProp.OriginalValue?.ToString();
                 var newStatus = statusProp.CurrentValue?.ToString();
 
-                if (newStatus == "CheckedIn") return $"Check in cho phòng {GetEntityIdentifier(entry)}";
-                if (newStatus == "CheckedOut") return $"Check out cho phòng {GetEntityIdentifier(entry)}";
-                if (newStatus == "Confirmed" && oldStatus == "Pending") return $"Xác nhận đặt phòng {GetEntityIdentifier(entry)}";
-                if (newStatus == "Cancelled") return $"Hủy đặt phòng {GetEntityIdentifier(entry)}";
+                var roomNumber = (entry.CurrentValues["RoomId"] as int?).HasValue && entry.Context is AppDbContext db 
+                    ? db.Rooms.Find(entry.CurrentValues["RoomId"])?.RoomNumber 
+                    : null;
+                
+                var identifier = roomNumber ?? GetEntityIdentifier(entry);
+
+                if (newStatus == "CheckedIn") return $"Check in cho phòng {identifier}";
+                if (newStatus == "CheckedOut") return $"Check out cho phòng {identifier}";
+                if (newStatus == "Confirmed" && oldStatus == "Pending") return $"Xác nhận đặt phòng {identifier}";
+                if (newStatus == "Cancelled") return $"Hủy đặt phòng {identifier}";
             }
             return $"Sửa {defaultName}";
         }
@@ -351,12 +357,14 @@ namespace backend.Data.Interceptors
         private void GenerateNotifications(AppDbContext context, List<AuditEvent> events)
         {
             var notifications = new List<Notification>();
+            var userId = GetCurrentUserId();
             foreach (var e in events)
             {
                 if (e.Message.StartsWith("Đặt mới phòng "))
                 {
                     notifications.Add(new Notification
                     {
+                        UserId = userId,
                         Title = "Booking mới",
                         Content = $"Booking của {e.Message.Replace("Đặt mới ", "")} mới được đặt",
                         Type = "Booking",
@@ -367,6 +375,7 @@ namespace backend.Data.Interceptors
                 {
                     notifications.Add(new Notification
                     {
+                        UserId = userId,
                         Title = "Khách Check-in",
                         Content = $"Khách của phòng {e.Message.Replace("Check in cho phòng ", "")} check-in",
                         Type = "CheckIn",
@@ -377,6 +386,7 @@ namespace backend.Data.Interceptors
                 {
                     notifications.Add(new Notification
                     {
+                        UserId = userId,
                         Title = "Thanh toán thành công",
                         Content = $"Thanh toán phòng {e.Message.Replace("Thanh toán hóa đơn phòng ", "").Split(" mã ")[0]} thành công",
                         Type = "Payment",
@@ -387,6 +397,7 @@ namespace backend.Data.Interceptors
                 {
                     notifications.Add(new Notification
                     {
+                        UserId = userId,
                         Title = "Phòng đã dọn",
                         Content = e.Message,
                         Type = "Housekeeping",

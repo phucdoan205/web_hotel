@@ -29,20 +29,12 @@ namespace backend.Controllers
             var detailList = details.ToList();
             if (!detailList.Any()) return "Pending";
 
-            if (detailList.All(detail => detail.Status == "Completed"))
-            {
-                return "Completed";
-            }
-
-            if (detailList.All(detail => detail.Status == "Cancelled"))
-            {
-                return "Cancelled";
-            }
-
-            if (detailList.Any(detail => detail.Status == "Paying"))
-            {
-                return "Paying";
-            }
+            if (detailList.All(detail => detail.Status == "Completed")) return "Completed";
+            if (detailList.All(detail => detail.Status == "Cancelled")) return "Cancelled";
+            
+            if (detailList.Any(detail => detail.Status == "CheckedIn")) return "CheckedIn";
+            if (detailList.Any(detail => detail.Status == "Confirmed")) return "Confirmed";
+            if (detailList.Any(detail => detail.Status == "Paying")) return "Paying";
 
             return "Pending";
         }
