@@ -59,8 +59,8 @@ namespace backend.Controllers
                     .FirstOrDefaultAsync(u => u.Id == resolvedUserId.Value);
 
                 bool isStaff = user?.Role != null &&
-                               user.Role.RoleName != "Guest" &&
-                               user.Role.RoleName != "User";
+                               user.Role.Name != "Guest" &&
+                               user.Role.Name != "User";
 
                 if (isStaff)
                 {
@@ -101,8 +101,8 @@ namespace backend.Controllers
                     .FirstOrDefaultAsync(u => u.Id == resolvedUserId.Value);
 
                 bool isStaff = user?.Role != null &&
-                               user.Role.RoleName != "Guest" &&
-                               user.Role.RoleName != "User";
+                               user.Role.Name != "Guest" &&
+                               user.Role.Name != "User";
 
                 if (isStaff)
                 {
@@ -150,8 +150,8 @@ namespace backend.Controllers
                     .FirstOrDefaultAsync(u => u.Id == resolvedUserId.Value);
 
                 isStaff = user?.Role != null &&
-                          user.Role.RoleName != "Guest" &&
-                          user.Role.RoleName != "User";
+                          user.Role.Name != "Guest" &&
+                          user.Role.Name != "User";
             }
 
             Response.Headers.Append("Cache-Control", "no-cache");

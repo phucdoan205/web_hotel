@@ -93,16 +93,26 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
     {
         var period = DashboardPeriodHelper.Resolve(periodType, occurredAtUtc);
         var role = await _context.Roles.FirstOrDefaultAsync(x => x.Name == roleName, cancellationToken);
-        if (role == null)
-        {
-            return;
-        }
-
-        var dashboardCode = DashboardPeriodHelper.GetDashboardCode(role.Name);
-        var dashboardTitle = role.Name + " Dashboard";
+        if (role == null) return;
 
         var periodMetrics = await BuildMetricsAsync(periodType, period.PeriodStart, period.PeriodEnd, cancellationToken);
         var previousMetrics = await BuildMetricsAsync(periodType, period.PreviousPeriodStart, period.PreviousPeriodEnd, cancellationToken);
+
+        await RebuildDashboardInternalAsync(role, period, periodMetrics, previousMetrics, updatedByUserId, eventType, eventRefId, cancellationToken);
+    }
+
+    private async Task RebuildDashboardInternalAsync(
+        Role role,
+        DashboardPeriodInfo period,
+        DashboardMetrics periodMetrics,
+        DashboardMetrics previousMetrics,
+        int? updatedByUserId,
+        string eventType,
+        int? eventRefId,
+        CancellationToken cancellationToken)
+    {
+        var dashboardCode = DashboardPeriodHelper.GetDashboardCode(role.Name);
+        var dashboardTitle = role.Name + " Dashboard";
 
         var dashboardJson = BuildDashboardJson(role.Name, dashboardCode, period, periodMetrics);
         var comparisonJson = BuildComparisonJson(role.Name, period, periodMetrics, previousMetrics);
@@ -128,7 +138,6 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
                 PeriodKey = period.PeriodKey,
                 CreatedAt = DateTime.UtcNow
             };
-
             _context.RoleDashboardPeriodStates.Add(existing);
         }
 
@@ -158,13 +167,21 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
         int? eventRefId,
         CancellationToken cancellationToken = default)
     {
-        var affectedRoles = await ResolveAffectedRolesAsync(eventType, cancellationToken);
+        var affectedRoleNames = await ResolveAffectedRolesAsync(eventType, cancellationToken);
+        var roles = await _context.Roles
+            .AsNoTracking()
+            .Where(r => affectedRoleNames.Contains(r.Name))
+            .ToListAsync(cancellationToken);
 
-        foreach (var roleName in affectedRoles)
+        foreach (var periodType in DashboardPeriodHelper.DefaultEventPeriods)
         {
-            foreach (var periodType in DashboardPeriodHelper.DefaultEventPeriods)
+            var period = DashboardPeriodHelper.Resolve(periodType, occurredAtUtc);
+            var periodMetrics = await BuildMetricsAsync(periodType, period.PeriodStart, period.PeriodEnd, cancellationToken);
+            var previousMetrics = await BuildMetricsAsync(periodType, period.PreviousPeriodStart, period.PreviousPeriodEnd, cancellationToken);
+
+            foreach (var role in roles)
             {
-                await RebuildDashboardAsync(roleName, periodType, occurredAtUtc, updatedByUserId, eventType, eventRefId, cancellationToken);
+                await RebuildDashboardInternalAsync(role, period, periodMetrics, previousMetrics, updatedByUserId, eventType, eventRefId, cancellationToken);
             }
         }
     }
@@ -180,15 +197,18 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
                 || x.Name == "Housekeeping"
                 || x.Name == "WarehouseStaff"
                 || x.Name == "Warehouse")
-            .Select(x => x.Name)
             .ToListAsync(cancellationToken);
 
         var now = DateTime.UtcNow;
-        foreach (var roleName in roles)
+        foreach (var periodType in DashboardPeriodHelper.DefaultEventPeriods)
         {
-            foreach (var periodType in DashboardPeriodHelper.DefaultEventPeriods)
+            var period = DashboardPeriodHelper.Resolve(periodType, now);
+            var periodMetrics = await BuildMetricsAsync(periodType, period.PeriodStart, period.PeriodEnd, cancellationToken);
+            var previousMetrics = await BuildMetricsAsync(periodType, period.PreviousPeriodStart, period.PreviousPeriodEnd, cancellationToken);
+
+            foreach (var role in roles)
             {
-                await RebuildDashboardAsync(roleName, periodType, now, updatedByUserId, "MANUAL_REBUILD", null, cancellationToken);
+                await RebuildDashboardInternalAsync(role, period, periodMetrics, previousMetrics, updatedByUserId, "MANUAL_REBUILD", null, cancellationToken);
             }
         }
     }
@@ -301,11 +321,9 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
             .Distinct()
             .CountAsync(cancellationToken);
 
-        var payments = await _context.Payments
+        var totalRevenue = await _context.Payments
             .Where(x => x.PaymentDate.HasValue && x.PaymentDate.Value >= start && x.PaymentDate.Value <= end)
-            .ToListAsync(cancellationToken);
-
-        var totalRevenue = payments.Sum(x => (decimal?)x.AmountPaid) ?? 0m;
+            .SumAsync(x => (decimal?)x.AmountPaid, cancellationToken) ?? 0m;
 
         var trendsRaw = await _context.Invoices
             .Where(x => x.CreatedAt.HasValue && x.CreatedAt.Value >= start && x.CreatedAt.Value <= end && x.Status != "Cancelled")
