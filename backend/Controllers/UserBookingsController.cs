@@ -405,12 +405,12 @@ namespace backend.Controllers
             var currentUser = await ResolveCurrentUserAsync();
             if (currentUser == null)
             {
-                return Unauthorized(new { message = "Khong xac dinh duoc nguoi dung hien tai." });
+                return Unauthorized(new { message = "Không xác định được người dùng hiện tại." });
             }
 
             if (dto.BookingDetails == null || !dto.BookingDetails.Any())
             {
-                return BadRequest(new { message = "Phai co it nhat mot chi tiet phong." });
+                return BadRequest(new { message = "Phải có ít nhất một chi tiết phòng." });
             }
 
             var guest = await _context.Guests.FirstOrDefaultAsync(item => item.Phone == currentUser.Phone);
@@ -436,6 +436,8 @@ namespace backend.Controllers
                 Status = "Pending"
             };
 
+            var detailsToCreate = new List<(BookingDetailCreateDTO dto, BookingDetail detail)>();
+
             foreach (var detailDto in dto.BookingDetails)
             {
                 var roomType = await _context.RoomTypes
@@ -444,7 +446,7 @@ namespace backend.Controllers
 
                 if (roomType == null)
                 {
-                    return BadRequest(new { message = $"Loai phong ID {detailDto.RoomTypeId} khong ton tai." });
+                    return BadRequest(new { message = $"Loại phòng ID {detailDto.RoomTypeId} không tồn tại." });
                 }
 
                 var detail = new BookingDetail
@@ -457,11 +459,51 @@ namespace backend.Controllers
                     Status = "Pending"
                 };
 
-                booking.BookingDetails.Add(detail);
+                detailsToCreate.Add((detailDto, detail));
             }
 
-            _context.Bookings.Add(booking);
-            await _context.SaveChangesAsync();
+            // Dùng transaction để tránh race condition khi 2 user đặt cùng phòng cùng lúc
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                var holdCutoff = DateTime.Now.AddMinutes(-10);
+
+                foreach (var (detailDto, detail) in detailsToCreate)
+                {
+                    if (detailDto.RoomId.HasValue)
+                    {
+                        // Kiểm tra lại lần cuối TRONG transaction — tránh TOCTOU race condition
+                        var conflict = await _context.BookingDetails
+                            .AnyAsync(bd =>
+                                bd.RoomId == detailDto.RoomId &&
+                                bd.Status != "Cancelled" &&
+                                bd.Status != "CheckedOut" &&
+                                bd.Status != "Completed" &&
+                                (bd.Status == "Confirmed" || bd.Status == "CheckedIn"
+                                || (bd.Status == "Pending" && bd.Booking != null && bd.Booking.CreatedAt > holdCutoff)) &&
+                                bd.CheckInDate < detail.CheckOutDate &&
+                                bd.CheckOutDate > detail.CheckInDate);
+
+                        if (conflict)
+                        {
+                            await transaction.RollbackAsync();
+                            return Conflict(new { message = $"Phòng {detailDto.RoomId} vừa được người khác đặt trong lúc bạn thao tác. Vui lòng chọn phòng hoặc thời gian khác." });
+                        }
+                    }
+
+                    booking.BookingDetails.Add(detail);
+                }
+
+                _context.Bookings.Add(booking);
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                _logger.LogError(ex, "Error creating booking for user {UserId}", currentUser.Id);
+                return StatusCode(500, new { message = "Đã xảy ra lỗi khi tạo đặt phòng. Vui lòng thử lại sau." });
+            }
 
             var created = await BuildOwnedBookingsQuery(currentUser.Id)
                 .AsNoTracking()
@@ -619,7 +661,7 @@ namespace backend.Controllers
             var currentUser = await ResolveCurrentUserAsync();
             if (currentUser == null)
             {
-                return Unauthorized(new { message = "Khong xac dinh duoc nguoi dung hien tai." });
+                return Unauthorized(new { message = "Không xác định được người dùng hiện tại." });
             }
 
             var booking = await BuildOwnedBookingsQuery(currentUser.Id)
@@ -627,12 +669,12 @@ namespace backend.Controllers
 
             if (booking == null)
             {
-                return NotFound(new { message = "Khong tim thay booking cua ban." });
+                return NotFound(new { message = "Không tìm thấy booking của bạn." });
             }
 
             if (booking.Status == "Cancelled")
             {
-                return BadRequest(new { message = "Booking da huy, khong the xac nhan thanh toan." });
+                return BadRequest(new { message = "Booking đã hủy, không thể xác nhận thanh toan." });
             }
 
             BookingDetail? detail = null;
@@ -642,7 +684,7 @@ namespace backend.Controllers
                 detail = booking.BookingDetails.FirstOrDefault(item => item.Id == request.BookingDetailId.Value);
                 if (detail == null)
                 {
-                    return BadRequest(new { message = "Khong tim thay phong can xac nhan thanh toan." });
+                    return BadRequest(new { message = "Không tìm thấy phòng cần xác nhận thanh toán." });
                 }
             }
             else if (booking.BookingDetails.Count == 1)
@@ -651,14 +693,14 @@ namespace backend.Controllers
             }
             else
             {
-                return BadRequest(new { message = "Booking co nhieu phong, vui long chon dung phong can thanh toan." });
+                return BadRequest(new { message = "Booking có nhiều phòng, vui lòng chọn đúng phòng cần thanh toán." });
             }
 
             if (detail.Status == "Confirmed" || detail.Status == "CheckedIn" || detail.Status == "CheckedOut")
             {
                 return Ok(new
                 {
-                    message = "Phong nay da duoc xac nhan thanh toan truoc do.",
+                    message = "Phòng này đã được xác nhận thanh toán trước đó.",
                     bookingId = booking.Id,
                     detailId = detail.Id
                 });
@@ -666,17 +708,50 @@ namespace backend.Controllers
 
             if (detail.Status != "Pending")
             {
-                return BadRequest(new { message = "Chi co the xac nhan thanh toan cho phong dang o trang thai Pending." });
+                return BadRequest(new { message = "Chỉ có thể xác nhận thanh toán cho phòng đang ở trạng thái Pending." });
             }
 
-            detail.Status = "Confirmed";
-            booking.Status = ResolveBookingStatusFromDetails(booking.BookingDetails);
+            // Dùng transaction để tránh race condition khi confirm payment
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                if (detail.RoomId.HasValue)
+                {
+                    // Kiểm tra xem phòng có bị ai khác chiếm (Confirmed/CheckedIn) trong lúc mình đang "Pending" (mà có thể đã quá 10p) hay không
+                    var conflict = await _context.BookingDetails
+                        .AnyAsync(bd =>
+                            bd.Id != detail.Id && // Không tự check chính mình
+                            bd.RoomId == detail.RoomId &&
+                            bd.Status != "Cancelled" &&
+                            bd.Status != "CheckedOut" &&
+                            bd.Status != "Completed" &&
+                            (bd.Status == "Confirmed" || bd.Status == "CheckedIn") &&
+                            bd.CheckInDate < detail.CheckOutDate &&
+                            bd.CheckOutDate > detail.CheckInDate);
 
-            await _context.SaveChangesAsync();
+                    if (conflict)
+                    {
+                        await transaction.RollbackAsync();
+                        return Conflict(new { message = "Phòng này đã được người khác đặt chính thức trong lúc bạn chờ thanh toán. Rất tiếc, bạn không thể xác nhận thanh toán này." });
+                    }
+                }
+
+                detail.Status = "Confirmed";
+                booking.Status = ResolveBookingStatusFromDetails(booking.BookingDetails);
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                _logger.LogError(ex, "Error confirming payment for booking {BookingId}", id);
+                return StatusCode(500, new { message = "Đã xảy ra lỗi khi xác nhận thanh toán. Vui lòng thử lại." });
+            }
 
             return Ok(new
             {
-                message = "Da xac nhan thanh toan booking.",
+                message = "Đã xác nhận thanh toán booking.",
                 bookingId = booking.Id,
                 detailId = detail.Id,
                 bookingStatus = booking.Status,
