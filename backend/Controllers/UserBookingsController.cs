@@ -15,6 +15,7 @@ using backend.Models;
 using backend.Security;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using backend.Services;
 
 namespace backend.Controllers
 {
@@ -29,6 +30,7 @@ namespace backend.Controllers
         private readonly IConfiguration _configuration;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger<UserBookingsController> _logger;
+        private readonly IMembershipService _membershipService;
 
         private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
@@ -37,13 +39,15 @@ namespace backend.Controllers
             IMapper mapper,
             IConfiguration configuration,
             IHttpClientFactory httpClientFactory,
-            ILogger<UserBookingsController> logger)
+            ILogger<UserBookingsController> logger,
+            IMembershipService membershipService)
         {
             _context = context;
             _mapper = mapper;
             _configuration = configuration;
             _httpClientFactory = httpClientFactory;
             _logger = logger;
+            _membershipService = membershipService;
         }
 
         private int? ResolveCurrentUserId()
@@ -69,7 +73,7 @@ namespace backend.Controllers
                 return null;
             }
 
-            return await _context.Users.AsNoTracking().FirstOrDefaultAsync(item => item.Id == userId.Value);
+            return await _context.Users.FirstOrDefaultAsync(item => item.Id == userId.Value);
         }
 
         private IQueryable<Booking> BuildOwnedBookingsQuery(int userId)
@@ -758,6 +762,21 @@ namespace backend.Controllers
                 return StatusCode(500, new { message = "Đã xảy ra lỗi khi xác nhận thanh toán. Vui lòng thử lại." });
             }
 
+            // Award Membership Points for Total Booking Amount
+            if (currentUser.Id > 0 && detail != null)
+            {
+                // Calculate total nights
+                var nights = (detail.CheckOutDate - detail.CheckInDate).Days;
+                if (nights <= 0) nights = 1;
+
+                var totalAmount = detail.PricePerNight * nights;
+                
+                if (totalAmount > 0)
+                {
+                    await _membershipService.AddPointsAsync(currentUser.Id, totalAmount);
+                }
+            }
+
             return Ok(new
             {
                 message = "Đã xác nhận thanh toán booking.",
@@ -850,6 +869,16 @@ namespace backend.Controllers
 
             booking.Status = ResolveBookingStatusFromDetails(booking.BookingDetails);
             await _context.SaveChangesAsync();
+
+            // Award Membership Points
+            if (currentUser.Id > 0)
+            {
+                var totalPaid = invoices.Sum(i => i.FinalTotal ?? 0);
+                if (totalPaid > 0)
+                {
+                    await _membershipService.AddPointsAsync(currentUser.Id, totalPaid);
+                }
+            }
 
             var completedInvoices = await _context.Invoices
                 .AsNoTracking()

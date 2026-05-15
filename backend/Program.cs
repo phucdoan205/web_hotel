@@ -62,6 +62,7 @@ builder.Services.AddScoped<NotificationService>();
 builder.Services.AddScoped<IEmailService, SmtpEmailService>();
 builder.Services.AddScoped<AuditLogViewService>();
 builder.Services.AddScoped<IRoleDashboardPeriodService, RoleDashboardPeriodService>();
+builder.Services.AddScoped<IMembershipService, MembershipService>();
 
 //Dùng cho AuditLog, không được xoá
 builder.Services.AddHttpContextAccessor();

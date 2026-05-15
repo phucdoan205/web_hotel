@@ -9,6 +9,7 @@ using backend.Security;
 using backend.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using backend.Services;
 
 namespace backend.Controllers
 {
@@ -21,6 +22,7 @@ namespace backend.Controllers
         private readonly IConfiguration _configuration;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger<BookingPaymentsController> _logger;
+        private readonly IMembershipService _membershipService;
 
         private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
@@ -28,12 +30,14 @@ namespace backend.Controllers
             AppDbContext context,
             IConfiguration configuration,
             IHttpClientFactory httpClientFactory,
-            ILogger<BookingPaymentsController> logger)
+            ILogger<BookingPaymentsController> logger,
+            IMembershipService membershipService)
         {
             _context = context;
             _configuration = configuration;
             _httpClientFactory = httpClientFactory;
             _logger = logger;
+            _membershipService = membershipService;
         }
 
         [HttpPost("momo")]
@@ -282,6 +286,12 @@ namespace backend.Controllers
 
                         await _context.SaveChangesAsync(cancellationToken);
                         _logger.LogInformation("Successfully processed payment for Invoice {InvoiceId} via MoMo IPN.", invoiceId);
+
+                        // Award Membership Points
+                        if (invoice.Booking != null && invoice.Booking.UserId.HasValue)
+                        {
+                            await _membershipService.AddPointsAsync(invoice.Booking.UserId.Value, payload.Amount, cancellationToken);
+                        }
                     }
                 }
                 else if (int.TryParse(bookingIdStr, out var parsedBookingId))
@@ -298,6 +308,12 @@ namespace backend.Controllers
                         }
                         booking.Status = ResolveBookingStatusFromDetails(booking.BookingDetails);
                         await _context.SaveChangesAsync(cancellationToken);
+
+                        // Award Membership Points
+                        if (booking.UserId.HasValue)
+                        {
+                            await _membershipService.AddPointsAsync(booking.UserId.Value, payload.Amount, cancellationToken);
+                        }
                         _logger.LogInformation("Successfully processed payment for Booking {BookingId} via MoMo IPN.", parsedBookingId);
                     }
                 }

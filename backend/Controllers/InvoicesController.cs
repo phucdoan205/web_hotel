@@ -10,6 +10,7 @@ using backend.Models;
 using backend.Security;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using backend.Services;
 
 namespace backend.Controllers
 {
@@ -22,6 +23,7 @@ namespace backend.Controllers
         private readonly IConfiguration _configuration;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger<InvoicesController> _logger;
+        private readonly IMembershipService _membershipService;
 
         private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
@@ -29,12 +31,14 @@ namespace backend.Controllers
             AppDbContext context,
             IConfiguration configuration,
             IHttpClientFactory httpClientFactory,
-            ILogger<InvoicesController> logger)
+            ILogger<InvoicesController> logger,
+            IMembershipService membershipService)
         {
             _context = context;
             _configuration = configuration;
             _httpClientFactory = httpClientFactory;
             _logger = logger;
+            _membershipService = membershipService;
         }
 
         private static string ResolveBookingStatusFromDetails(IEnumerable<BookingDetail> details)
@@ -331,6 +335,13 @@ namespace backend.Controllers
             }
 
             await _context.SaveChangesAsync();
+
+            // Award Membership Points
+            var booking = await _context.Bookings.FirstOrDefaultAsync(b => b.Id == invoice.BookingId);
+            if (booking != null && booking.UserId.HasValue)
+            {
+                await _membershipService.AddPointsAsync(booking.UserId.Value, invoice.FinalTotal ?? 0);
+            }
 
             return Ok(MapInvoice(invoice));
         }
