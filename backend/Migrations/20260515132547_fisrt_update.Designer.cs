@@ -12,15 +12,15 @@ using backend.Data;
 namespace backend.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260513035636_bookingtimer")]
-    partial class bookingtimer
+    [Migration("20260515132547_fisrt_update")]
+    partial class fisrt_update
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.26")
+                .HasAnnotation("ProductVersion", "8.0.25")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -494,6 +494,50 @@ namespace backend.Migrations
                     b.ToTable("Equipments");
                 });
 
+            modelBuilder.Entity("backend.Models.EquipmentHistory", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ActionType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("CreatedById")
+                        .HasColumnType("int");
+
+                    b.Property<int>("EquipmentId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("NewQuantity")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<int>("PreviousQuantity")
+                        .HasColumnType("int");
+
+                    b.Property<int>("QuantityChanged")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedById");
+
+                    b.HasIndex("EquipmentId");
+
+                    b.ToTable("EquipmentHistories");
+                });
+
             modelBuilder.Entity("backend.Models.Guest", b =>
                 {
                     b.Property<int>("Id")
@@ -731,9 +775,14 @@ namespace backend.Migrations
                     b.Property<decimal?>("TotalAmount")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<int?>("UserId")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
                     b.HasIndex("BookingDetailId");
+
+                    b.HasIndex("UserId");
 
                     b.ToTable("Order_Services");
                 });
@@ -906,6 +955,126 @@ namespace backend.Migrations
                     b.ToTable("Roles");
                 });
 
+            modelBuilder.Entity("backend.Models.RoleDashboardPeriodState", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("ClosedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("closed_at");
+
+                    b.Property<string>("ComparisonJson")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("comparison_json");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("DashboardCode")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("dashboard_code");
+
+                    b.Property<string>("DashboardJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("dashboard_json");
+
+                    b.Property<string>("DashboardTitle")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)")
+                        .HasColumnName("dashboard_title");
+
+                    b.Property<bool>("IsCurrent")
+                        .HasColumnType("bit")
+                        .HasColumnName("is_current");
+
+                    b.Property<int?>("LastEventRefId")
+                        .HasColumnType("int")
+                        .HasColumnName("last_event_ref_id");
+
+                    b.Property<string>("LastEventSource")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("last_event_source");
+
+                    b.Property<string>("LastEventType")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("last_event_type");
+
+                    b.Property<DateTime>("PeriodEnd")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("period_end");
+
+                    b.Property<string>("PeriodKey")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)")
+                        .HasColumnName("period_key");
+
+                    b.Property<DateTime>("PeriodStart")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("period_start");
+
+                    b.Property<string>("PeriodType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasColumnName("period_type");
+
+                    b.Property<int>("RoleId")
+                        .HasColumnType("int")
+                        .HasColumnName("role_id");
+
+                    b.Property<string>("RoleName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("role_name");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasColumnName("status");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("updated_at");
+
+                    b.Property<int?>("UpdatedBy")
+                        .HasColumnType("int")
+                        .HasColumnName("updated_by");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("int")
+                        .HasColumnName("version");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UpdatedAt");
+
+                    b.HasIndex("UpdatedBy");
+
+                    b.HasIndex("RoleId", "DashboardCode", "PeriodType", "IsCurrent")
+                        .HasFilter("[is_current] = 1");
+
+                    b.HasIndex("RoleId", "DashboardCode", "PeriodType", "PeriodKey")
+                        .IsUnique();
+
+                    b.HasIndex("DashboardCode", "RoleName", "PeriodType", "PeriodStart", "PeriodEnd");
+
+                    b.ToTable("Role_Dashboard_Period_States");
+                });
+
             modelBuilder.Entity("backend.Models.RolePermission", b =>
                 {
                     b.Property<int>("RoleId")
@@ -928,6 +1097,9 @@ namespace backend.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("AssignedUserId")
+                        .HasColumnType("int");
 
                     b.Property<string>("CleaningStatus")
                         .HasColumnType("nvarchar(max)");
@@ -955,6 +1127,8 @@ namespace backend.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("AssignedUserId");
 
                     b.HasIndex("RoomTypeId");
 
@@ -1549,6 +1723,23 @@ namespace backend.Migrations
                     b.Navigation("RoomType");
                 });
 
+            modelBuilder.Entity("backend.Models.EquipmentHistory", b =>
+                {
+                    b.HasOne("backend.Models.User", "CreatedBy")
+                        .WithMany()
+                        .HasForeignKey("CreatedById");
+
+                    b.HasOne("backend.Models.Equipment", "Equipment")
+                        .WithMany("EquipmentHistories")
+                        .HasForeignKey("EquipmentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CreatedBy");
+
+                    b.Navigation("Equipment");
+                });
+
             modelBuilder.Entity("backend.Models.Invoice", b =>
                 {
                     b.HasOne("backend.Models.Booking", "Booking")
@@ -1589,7 +1780,13 @@ namespace backend.Migrations
                         .WithMany("OrderServices")
                         .HasForeignKey("BookingDetailId");
 
+                    b.HasOne("backend.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId");
+
                     b.Navigation("BookingDetail");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("backend.Models.OrderServiceDetail", b =>
@@ -1637,6 +1834,23 @@ namespace backend.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("backend.Models.RoleDashboardPeriodState", b =>
+                {
+                    b.HasOne("backend.Models.Role", "Role")
+                        .WithMany()
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("backend.Models.User", "UpdatedByUser")
+                        .WithMany()
+                        .HasForeignKey("UpdatedBy");
+
+                    b.Navigation("Role");
+
+                    b.Navigation("UpdatedByUser");
+                });
+
             modelBuilder.Entity("backend.Models.RolePermission", b =>
                 {
                     b.HasOne("backend.Models.Permission", "Permission")
@@ -1658,9 +1872,15 @@ namespace backend.Migrations
 
             modelBuilder.Entity("backend.Models.Room", b =>
                 {
+                    b.HasOne("backend.Models.User", "AssignedUser")
+                        .WithMany()
+                        .HasForeignKey("AssignedUserId");
+
                     b.HasOne("backend.Models.RoomType", "RoomType")
                         .WithMany("Rooms")
                         .HasForeignKey("RoomTypeId");
+
+                    b.Navigation("AssignedUser");
 
                     b.Navigation("RoomType");
                 });
@@ -1872,6 +2092,8 @@ namespace backend.Migrations
 
             modelBuilder.Entity("backend.Models.Equipment", b =>
                 {
+                    b.Navigation("EquipmentHistories");
+
                     b.Navigation("RoomInventories");
                 });
 

@@ -29,7 +29,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("FrontendDev", policy =>
     {
-        policy.WithOrigins("http://localhost:5173", "http://127.0.0.1:5173")
+        policy.WithOrigins("http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:5174")
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
@@ -170,6 +170,11 @@ ELSE
 BEGIN
     ALTER TABLE Services ALTER COLUMN Slug nvarchar(255) NULL;
 END
+
+IF COL_LENGTH('Services', 'Description') IS NULL ALTER TABLE Services ADD Description nvarchar(max) NULL;
+IF COL_LENGTH('Services', 'Location') IS NULL ALTER TABLE Services ADD Location nvarchar(max) NULL;
+IF COL_LENGTH('Services', 'ThumbnailUrl') IS NULL ALTER TABLE Services ADD ThumbnailUrl nvarchar(max) NULL;
+IF COL_LENGTH('Bookings', 'CreatedAt') IS NULL ALTER TABLE Bookings ADD CreatedAt datetime2 NOT NULL DEFAULT GETUTCDATE();
 
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Services_Slug' AND object_id = OBJECT_ID('Services'))
 BEGIN
