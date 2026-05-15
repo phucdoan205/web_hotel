@@ -336,7 +336,8 @@ const PostDetailPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-white pb-24 pt-6 md:pt-10">
+    <>
+      <div className="min-h-screen bg-white pb-24 pt-6 md:pt-10">
       <div className="mx-auto max-w-6xl px-5 lg:px-8">
         
         {/* Breadcrumbs / Back */}
@@ -623,7 +624,7 @@ const PostDetailPage = () => {
        </div>
     </div>
   </div>
-</div>
+
 
       {/* GALLERY MODAL OVERLAY */}
       {isGalleryOpen && (
@@ -693,7 +694,8 @@ const PostDetailPage = () => {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 };
 

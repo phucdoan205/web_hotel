@@ -470,7 +470,8 @@ const ServiceDetailPage = () => {
   }).format(service.price);
 
   return (
-    <div className="min-h-screen bg-white pb-24 pt-24">
+    <>
+      <div className="min-h-screen bg-white pb-24 pt-24">
       <div className="mx-auto max-w-7xl px-5 lg:px-8">
         <div className="mb-6 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-400">
           <Link to="/services" className="transition-colors hover:text-[#0194f3]">
@@ -964,7 +965,8 @@ const ServiceDetailPage = () => {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 };
 
