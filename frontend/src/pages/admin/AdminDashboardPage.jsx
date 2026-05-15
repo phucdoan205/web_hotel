@@ -110,13 +110,13 @@ function StatCard({ code, title, value, unit, growthRate, trendDir }) {
   const hasGrowth = growthRate != null && !isNaN(Number(growthRate));
 
   return (
-    <motion.div 
+    <motion.div
       whileHover={{ y: -4 }}
       className="relative overflow-hidden rounded-[2rem] border border-slate-100 bg-white p-6 shadow-sm transition-all hover:shadow-xl hover:shadow-slate-200/50"
     >
       {/* Decorative background circle */}
       <div className={`absolute -right-6 -top-6 size-24 rounded-full opacity-10 blur-2xl ${c.bg}`} />
-      
+
       <div className="relative z-10">
         <div className="mb-6 flex items-start justify-between">
           <div className={`rounded-2xl p-3 ring-1 ${c.bg} ${c.ring} shadow-sm`}>
@@ -130,13 +130,13 @@ function StatCard({ code, title, value, unit, growthRate, trendDir }) {
             </div>
           )}
         </div>
-        
+
         <div>
           <p className="text-[10px] font-black uppercase tracking-[0.1em] text-slate-400">{title}</p>
           <div className="mt-1 flex items-baseline gap-1">
             <p className="text-3xl font-black text-slate-900 tracking-tight">{fmtValue(value, unit)}</p>
           </div>
-          
+
           {hasGrowth && (
             <div className="mt-3 flex items-center gap-2">
               <div className={`size-1.5 rounded-full ${isUp ? "bg-emerald-400" : isDown ? "bg-rose-400" : "bg-slate-300"}`} />
@@ -157,37 +157,37 @@ function DeptOverview({ items }) {
   return (
     <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
       {items.map((d, i) => (
-        <motion.div 
-          key={i} 
+        <motion.div
+          key={i}
           whileHover={{ scale: 1.02 }}
           className={`relative overflow-hidden rounded-3xl border p-5 transition-all
-            ${d.status === "warning" 
-              ? "border-amber-200 bg-gradient-to-br from-amber-50 to-white shadow-lg shadow-amber-100/50" 
+            ${d.status === "warning"
+              ? "border-amber-200 bg-gradient-to-br from-amber-50 to-white shadow-lg shadow-amber-100/50"
               : "border-slate-100 bg-white shadow-sm hover:shadow-md"}`}
         >
           {d.status === "warning" && (
             <div className="absolute -right-4 -top-4 size-16 rounded-full bg-amber-200/20 blur-xl" />
           )}
-          
+
           <div className="flex items-center justify-between mb-3">
-             <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{d.department}</p>
-             {d.status === "warning" && (
-                <div className="flex size-6 items-center justify-center rounded-lg bg-amber-500 text-white shadow-lg shadow-amber-200">
-                   <AlertTriangle className="size-3.5" />
-                </div>
-             )}
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{d.department}</p>
+            {d.status === "warning" && (
+              <div className="flex size-6 items-center justify-center rounded-lg bg-amber-500 text-white shadow-lg shadow-amber-200">
+                <AlertTriangle className="size-3.5" />
+              </div>
+            )}
           </div>
-          
+
           <p className="text-2xl font-black text-slate-900">{fmtNum(d.value)}</p>
-          
+
           {d.status === "warning" ? (
             <p className="mt-2 text-[10px] font-extrabold uppercase text-amber-600 flex items-center gap-1">
               <Clock className="size-3" /> Cần xử lý ngay
             </p>
           ) : (
-             <p className="mt-2 text-[10px] font-bold text-slate-400 flex items-center gap-1">
-               <CheckCircle className="size-3 text-emerald-500" /> Hoạt động tốt
-             </p>
+            <p className="mt-2 text-[10px] font-bold text-slate-400 flex items-center gap-1">
+              <CheckCircle className="size-3 text-emerald-500" /> Hoạt động tốt
+            </p>
           )}
         </motion.div>
       ))}
@@ -218,58 +218,58 @@ function RoomStatusOverview({ roomsSummary, role }) {
 
   return (
     <div className="rounded-[2.5rem] border border-slate-100 bg-white p-7 shadow-sm h-full flex flex-col">
-       <div className="mb-6 flex items-center justify-between">
-          <h3 className="text-lg font-black text-slate-800 tracking-tight">Tình trạng phòng</h3>
-          <div className="flex size-10 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-500 ring-1 ring-indigo-100">
-             <BedDouble className="size-5" />
-          </div>
-       </div>
+      <div className="mb-6 flex items-center justify-between">
+        <h3 className="text-lg font-black text-slate-800 tracking-tight">Tình trạng phòng</h3>
+        <div className="flex size-10 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-500 ring-1 ring-indigo-100">
+          <BedDouble className="size-5" />
+        </div>
+      </div>
 
-       <div className={`flex-1 grid gap-8 ${isReceptionist ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2"}`}>
-          <div className="flex flex-col">
-             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 text-center">Trạng thái lưu trú</p>
-             <div className="flex-1 min-h-[180px]">
-               <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                     <Pie data={occupancyData} cx="50%" cy="50%" innerRadius={45} outerRadius={65} paddingAngle={3} dataKey="value">
-                        {occupancyData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
-                     </Pie>
-                     <Tooltip formatter={(v) => [v + " phòng"]} />
-                     <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: '10px', paddingTop: '10px' }} 
-                        formatter={(value, entry) => (
-                           <span className="text-[10px] font-bold text-slate-500">
-                             {value}: <span className="text-slate-900">{entry.payload.value}</span>
-                           </span>
-                        )} 
-                     />
-                  </PieChart>
-               </ResponsiveContainer>
-             </div>
+      <div className={`flex-1 grid gap-8 ${isReceptionist ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2"}`}>
+        <div className="flex flex-col">
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 text-center">Trạng thái lưu trú</p>
+          <div className="flex-1 min-h-[180px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie data={occupancyData} cx="50%" cy="50%" innerRadius={45} outerRadius={65} paddingAngle={3} dataKey="value">
+                  {occupancyData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                </Pie>
+                <Tooltip formatter={(v) => [v + " phòng"]} />
+                <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: '10px', paddingTop: '10px' }}
+                  formatter={(value, entry) => (
+                    <span className="text-[10px] font-bold text-slate-500">
+                      {value}: <span className="text-slate-900">{entry.payload.value}</span>
+                    </span>
+                  )}
+                />
+              </PieChart>
+            </ResponsiveContainer>
           </div>
-          
-          {!isReceptionist && (
-            <div className="flex flex-col">
-               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 text-center">Tình trạng vệ sinh</p>
-               <div className="flex-1 min-h-[180px]">
-                 <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                       <Pie data={housekeepingData} cx="50%" cy="50%" innerRadius={45} outerRadius={65} paddingAngle={3} dataKey="value">
-                          {housekeepingData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
-                       </Pie>
-                       <Tooltip formatter={(v) => [v + " phòng"]} />
-                       <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: '10px', paddingTop: '10px' }}
-                          formatter={(value, entry) => (
-                             <span className="text-[10px] font-bold text-slate-500">
-                               {value}: <span className="text-slate-900">{entry.payload.value}</span>
-                             </span>
-                          )}
-                       />
-                    </PieChart>
-                 </ResponsiveContainer>
-               </div>
+        </div>
+
+        {!isReceptionist && (
+          <div className="flex flex-col">
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 text-center">Tình trạng vệ sinh</p>
+            <div className="flex-1 min-h-[180px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={housekeepingData} cx="50%" cy="50%" innerRadius={45} outerRadius={65} paddingAngle={3} dataKey="value">
+                    {housekeepingData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                  </Pie>
+                  <Tooltip formatter={(v) => [v + " phòng"]} />
+                  <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: '10px', paddingTop: '10px' }}
+                    formatter={(value, entry) => (
+                      <span className="text-[10px] font-bold text-slate-500">
+                        {value}: <span className="text-slate-900">{entry.payload.value}</span>
+                      </span>
+                    )}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
             </div>
-          )}
-       </div>
+          </div>
+        )}
+      </div>
 
     </div>
   );
@@ -356,11 +356,11 @@ function RevenueSummary({ revenueSummary }) {
     <div className="rounded-[2rem] border border-slate-100 bg-white p-6 shadow-sm">
       <div className="mb-6 flex items-center gap-3">
         <div className="flex size-10 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-500 ring-1 ring-emerald-100">
-           <Receipt className="size-5" />
+          <Receipt className="size-5" />
         </div>
         <h3 className="text-base font-black text-slate-800 tracking-tight">Tài chính kỳ này</h3>
       </div>
-      
+
       <div className="space-y-1">
         {rows.map((r, i) => {
           const Icon = r.icon;
@@ -368,7 +368,7 @@ function RevenueSummary({ revenueSummary }) {
             <div key={i} className={`flex items-center justify-between p-3 rounded-2xl transition-all ${r.highlight ? "bg-emerald-500 text-white shadow-lg shadow-emerald-200" : "hover:bg-slate-50"}`}>
               <div className="flex items-center gap-3">
                 <div className={`flex size-8 items-center justify-center rounded-xl ${r.highlight ? "bg-white/20 text-white" : r.alert && r.val > 0 ? "bg-rose-100 text-rose-600" : "bg-slate-100 text-slate-400"}`}>
-                   <Icon className="size-4" />
+                  <Icon className="size-4" />
                 </div>
                 <span className={`text-[11px] font-black uppercase tracking-wider ${r.highlight ? "text-white" : "text-slate-500"}`}>{r.label}</span>
               </div>
@@ -397,7 +397,7 @@ function RevenueChart({ revenueSummary, role, periodType }) {
   const isYearly = periodType === "YEARLY";
   const rawTrends = revenueSummary.revenueTrends || revenueSummary.RevenueTrends || [];
   const monthlyTrends = revenueSummary.monthlyTrends || revenueSummary.MonthlyTrends || [];
-  
+
   const dataToUse = (isYearly && showMonthly && monthlyTrends.length > 0) ? monthlyTrends : rawTrends;
 
   const data = dataToUse.map(x => ({
@@ -418,8 +418,8 @@ function RevenueChart({ revenueSummary, role, periodType }) {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h3 className="text-lg font-extrabold text-slate-800 tracking-tight">
-            {isYearly 
-              ? (showMonthly ? "Chi tiết doanh thu năm (Tháng)" : "Doanh thu năm (Quý)") 
+            {isYearly
+              ? (showMonthly ? "Chi tiết doanh thu năm (Tháng)" : "Doanh thu năm (Quý)")
               : "Biểu đồ doanh thu"}
           </h3>
           <p className="text-xs text-slate-400 mt-0.5">
@@ -431,45 +431,45 @@ function RevenueChart({ revenueSummary, role, periodType }) {
           </p>
         </div>
       </div>
-      
+
       <div className="flex-1 min-h-[300px] outline-none">
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart 
-            data={data} 
+          <ComposedChart
+            data={data}
             margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
             style={{ outline: 'none', border: 'none' }}
           >
             <defs>
               <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#10b981" stopOpacity={0.15}/>
-                <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                <stop offset="5%" stopColor="#10b981" stopOpacity={0.15} />
+                <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-            <XAxis 
-              dataKey="name" 
-              axisLine={false} 
-              tickLine={false} 
-              tick={{ fontSize: 9, fill: '#94a3b8', fontWeight: 600 }} 
+            <XAxis
+              dataKey="name"
+              axisLine={false}
+              tickLine={false}
+              tick={{ fontSize: 9, fill: '#94a3b8', fontWeight: 600 }}
               dy={10}
               interval="preserveStartEnd"
               minTickGap={20}
             />
-            <YAxis 
-              axisLine={false} 
-              tickLine={false} 
-              tick={{ fontSize: 9, fill: '#94a3b8', fontWeight: 600 }} 
-              tickFormatter={(val) => val >= 1000000 ? `${(val / 1000000).toFixed(0)}M` : fmtNum(val)} 
+            <YAxis
+              axisLine={false}
+              tickLine={false}
+              tick={{ fontSize: 9, fill: '#94a3b8', fontWeight: 600 }}
+              tickFormatter={(val) => val >= 1000000 ? `${(val / 1000000).toFixed(0)}M` : fmtNum(val)}
             />
-            <Tooltip 
+            <Tooltip
               cursor={{ fill: '#f8fafc' }}
               contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', padding: '12px' }}
-              formatter={(val, name) => [fmtVND(val), name === "room" ? "Booking (Phòng)" : name === "service" ? "Dịch vụ" : "Tổng doanh thu"]} 
+              formatter={(val, name) => [fmtVND(val), name === "room" ? "Booking (Phòng)" : name === "service" ? "Dịch vụ" : "Tổng doanh thu"]}
             />
-            <Legend 
-              verticalAlign="top" 
-              align="right" 
-              iconType="circle" 
+            <Legend
+              verticalAlign="top"
+              align="right"
+              iconType="circle"
               iconSize={8}
               wrapperStyle={{ paddingBottom: 25, fontSize: 10, fontWeight: 700, color: '#475569' }}
               formatter={(value) => {
@@ -479,39 +479,39 @@ function RevenueChart({ revenueSummary, role, periodType }) {
                 return value;
               }}
             />
-            <Bar 
-              dataKey="room" 
-              stackId="revenue" 
-              fill="#3b82f6" 
+            <Bar
+              dataKey="room"
+              stackId="revenue"
+              fill="#3b82f6"
               radius={[0, 0, 0, 0]}
               barSize={data.length > 20 ? 6 : 12}
               name="room"
               onClick={handleBarClick}
               style={{ cursor: isYearly && !showMonthly ? 'pointer' : 'default' }}
             />
-            <Bar 
-              dataKey="service" 
-              stackId="revenue" 
-              fill="#f59e0b" 
+            <Bar
+              dataKey="service"
+              stackId="revenue"
+              fill="#f59e0b"
               radius={[4, 4, 0, 0]}
               barSize={data.length > 20 ? 6 : 12}
               name="service"
               onClick={handleBarClick}
               style={{ cursor: isYearly && !showMonthly ? 'pointer' : 'default' }}
             />
-            <Area 
-              type="monotone" 
-              dataKey="value" 
-              fill="url(#areaGrad)" 
-              stroke="none" 
+            <Area
+              type="monotone"
+              dataKey="value"
+              fill="url(#areaGrad)"
+              stroke="none"
               legendType="none"
               tooltipType="none"
             />
-            <Line 
-              type="monotone" 
-              dataKey="value" 
-              stroke="#10b981" 
-              strokeWidth={3} 
+            <Line
+              type="monotone"
+              dataKey="value"
+              stroke="#10b981"
+              strokeWidth={3}
               dot={false}
               activeDot={{ r: 4, strokeWidth: 0, fill: '#10b981' }}
               name="value"
@@ -560,7 +560,7 @@ function WarehouseSummary({ warehouseSummary }) {
 function LowStockList({ items = [] }) {
   const limit = 30;
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm h-full flex flex-col"
@@ -579,14 +579,14 @@ function LowStockList({ items = [] }) {
           {items.length} mặt hàng
         </span>
       </div>
-      
+
       <div className="space-y-4 overflow-y-auto pr-1 no-scrollbar max-h-[300px]">
         {items.length > 0 ? items.map((item, i) => {
           const percentage = Math.min(100, (item.quantity / limit) * 100);
           const isCritical = item.quantity <= 5;
-          
+
           return (
-            <motion.div 
+            <motion.div
               key={i}
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
@@ -604,9 +604,9 @@ function LowStockList({ items = [] }) {
                   </span>
                 </div>
               </div>
-              
+
               <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-slate-200/50 mt-1">
-                <motion.div 
+                <motion.div
                   initial={{ width: 0 }}
                   animate={{ width: `${percentage}%` }}
                   transition={{ duration: 1, delay: 0.2 + i * 0.05 }}
@@ -632,14 +632,14 @@ function LowStockList({ items = [] }) {
 // ─── Warehouse History ────────────────────────────────────────────────────────
 function WarehouseHistory({ audits = [] }) {
   // Filter for equipment-related audits or custom messages
-  const history = audits.filter(a => 
-    a.entityType === "Equipment" || 
-    a.message?.includes("sản phẩm") || 
+  const history = audits.filter(a =>
+    a.entityType === "Equipment" ||
+    a.message?.includes("sản phẩm") ||
     a.message?.includes("Tồn kho hiện tại")
   );
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.1 }}
@@ -651,17 +651,17 @@ function WarehouseHistory({ audits = [] }) {
         </div>
         <h3 className="font-black text-slate-800">Lịch sử nhập/xuất</h3>
       </div>
-      
+
       <div className="space-y-3 max-h-[280px] overflow-y-auto pr-2 no-scrollbar">
         {history.length > 0 ? history.map((h, i) => (
           <div key={i} className="flex flex-col gap-1 border-b border-slate-50 pb-3 last:border-0 last:pb-0">
-             <p className="text-sm font-bold text-slate-700 leading-snug">{h.message}</p>
-             <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{h.userName}</span>
-                <span className="text-[10px] font-bold text-slate-400">
-                   {new Date(h.timestamp).toLocaleString('vi-VN', {hour:'2-digit', minute:'2-digit', day:'2-digit', month:'2-digit'})}
-                </span>
-             </div>
+            <p className="text-sm font-bold text-slate-700 leading-snug">{h.message}</p>
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{h.userName}</span>
+              <span className="text-[10px] font-bold text-slate-400">
+                {new Date(h.timestamp).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}
+              </span>
+            </div>
           </div>
         )) : (
           <div className="py-8 text-center">
@@ -676,7 +676,7 @@ function WarehouseHistory({ audits = [] }) {
 // ─── Damage Report List ──────────────────────────────────────────────────────
 function DamageReportList({ reports = [] }) {
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm h-full"
@@ -692,7 +692,7 @@ function DamageReportList({ reports = [] }) {
           Gần đây
         </span>
       </div>
-      
+
       <div className="overflow-auto no-scrollbar max-h-[520px]">
         <table className="w-full text-left">
           <thead>
@@ -738,19 +738,19 @@ function RecentAudits({ audits }) {
   return (
     <div className="rounded-[2rem] border border-slate-100 bg-white p-7 shadow-sm">
       <div className="mb-6 flex items-center justify-between">
-         <div className="flex items-center gap-3">
-            <div className="flex size-10 items-center justify-center rounded-2xl bg-slate-50 text-slate-400 ring-1 ring-slate-100">
-               <Activity className="size-5" />
-            </div>
-            <h3 className="text-base font-black text-slate-800 tracking-tight">Nhật ký hoạt động</h3>
-         </div>
-         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 px-3 py-1 rounded-full">Gần đây</span>
+        <div className="flex items-center gap-3">
+          <div className="flex size-10 items-center justify-center rounded-2xl bg-slate-50 text-slate-400 ring-1 ring-slate-100">
+            <Activity className="size-5" />
+          </div>
+          <h3 className="text-base font-black text-slate-800 tracking-tight">Nhật ký hoạt động</h3>
+        </div>
+        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 px-3 py-1 rounded-full">Gần đây</span>
       </div>
 
       <div className="space-y-3 max-h-80 overflow-y-auto pr-2 no-scrollbar">
         {audits.slice(0, 10).map((a, i) => (
-          <motion.div 
-            key={i} 
+          <motion.div
+            key={i}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.05 }}
@@ -762,7 +762,7 @@ function RecentAudits({ audits }) {
               <div className="mt-2 flex items-center justify-between">
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-tight">{a.userName}</span>
                 <span className="text-[10px] font-bold text-slate-300 italic">
-                   {a.timestamp ? new Date(a.timestamp).toLocaleString("vi-VN", {hour:'2-digit', minute:'2-digit', day:'2-digit', month:'2-digit'}) : ""}
+                  {a.timestamp ? new Date(a.timestamp).toLocaleString("vi-VN", { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }) : ""}
                 </span>
               </div>
             </div>
@@ -809,33 +809,33 @@ function TopServices({ services }) {
   return (
     <div className="rounded-[2.5rem] border border-slate-100 bg-white p-7 shadow-sm">
       <div className="mb-6 flex items-center justify-between">
-         <div>
-            <h3 className="text-lg font-black text-slate-800 tracking-tight">Dịch vụ phổ biến</h3>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Top 5 doanh thu</p>
-         </div>
-         <div className="flex size-10 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-500 ring-1 ring-indigo-100">
-            <Activity className="size-5" />
-         </div>
+        <div>
+          <h3 className="text-lg font-black text-slate-800 tracking-tight">Dịch vụ phổ biến</h3>
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Top 5 doanh thu</p>
+        </div>
+        <div className="flex size-10 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-500 ring-1 ring-indigo-100">
+          <Activity className="size-5" />
+        </div>
       </div>
-      
+
       <div className="space-y-4 max-h-[400px] overflow-y-auto no-scrollbar pr-1">
         {services.map((s, i) => (
-          <motion.div 
-            key={i} 
+          <motion.div
+            key={i}
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: i * 0.1 }}
             className="group flex items-center gap-4 rounded-2xl border border-transparent p-2 transition-all hover:bg-slate-50"
           >
             <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-slate-50 text-xs font-black text-slate-400 group-hover:bg-indigo-500 group-hover:text-white transition-colors">
-              0{i+1}
+              0{i + 1}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-extrabold text-slate-800 truncate">{s.name}</p>
               <div className="mt-0.5 flex items-center gap-2">
-                 <span className="text-[10px] font-bold text-slate-400 uppercase">{s.count} lượt dùng</span>
-                 <div className="size-1 rounded-full bg-slate-200" />
-                 <span className="text-[10px] font-bold text-emerald-500 uppercase">Tăng trưởng</span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase">{s.count} lượt dùng</span>
+                <div className="size-1 rounded-full bg-slate-200" />
+                <span className="text-[10px] font-bold text-emerald-500 uppercase">Tăng trưởng</span>
               </div>
             </div>
             <p className="text-sm font-black text-slate-900">{fmtVND(s.totalAmount)}</p>
@@ -852,26 +852,26 @@ function RecentBookings({ bookings }) {
   return (
     <div className="rounded-[2.5rem] border border-slate-100 bg-white p-7 shadow-sm">
       <div className="mb-6 flex items-center justify-between">
-         <div>
-            <h3 className="text-lg font-black text-slate-800 tracking-tight">Đơn đặt phòng mới</h3>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Thời gian thực</p>
-         </div>
-         <div className="flex size-10 items-center justify-center rounded-2xl bg-blue-50 text-blue-500 ring-1 ring-blue-100">
-            <CalendarRange className="size-5" />
-         </div>
+        <div>
+          <h3 className="text-lg font-black text-slate-800 tracking-tight">Đơn đặt phòng mới</h3>
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Thời gian thực</p>
+        </div>
+        <div className="flex size-10 items-center justify-center rounded-2xl bg-blue-50 text-blue-500 ring-1 ring-blue-100">
+          <CalendarRange className="size-5" />
+        </div>
       </div>
 
       <div className="space-y-4 max-h-[400px] overflow-y-auto no-scrollbar pr-1">
         {bookings.map((b, i) => (
-          <motion.div 
-            key={i} 
+          <motion.div
+            key={i}
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: i * 0.1 }}
             className="group flex items-center gap-4 rounded-2xl border border-transparent p-2 transition-all hover:bg-slate-50"
           >
             <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-slate-50 text-blue-500">
-               <Users className="size-5" />
+              <Users className="size-5" />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between">
@@ -880,12 +880,11 @@ function RecentBookings({ bookings }) {
               </div>
               <div className="mt-1 flex items-center justify-between">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">{b.code} · {new Date(b.createdAt).toLocaleDateString("vi-VN")}</p>
-                <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ring-1 ${
-                  b.status === "Completed" ? "bg-emerald-50 text-emerald-600 ring-emerald-100" :
-                  b.status === "Pending" ? "bg-amber-50 text-amber-600 ring-amber-100" :
-                  b.status === "Cancelled" ? "bg-rose-50 text-rose-600 ring-rose-100" :
-                  "bg-slate-50 text-slate-500 ring-slate-100"
-                }`}>
+                <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ring-1 ${b.status === "Completed" ? "bg-emerald-50 text-emerald-600 ring-emerald-100" :
+                    b.status === "Pending" ? "bg-amber-50 text-amber-600 ring-amber-100" :
+                      b.status === "Cancelled" ? "bg-rose-50 text-rose-600 ring-rose-100" :
+                        "bg-slate-50 text-slate-500 ring-slate-100"
+                  }`}>
                   {b.status === "Completed" ? "Hoàn tất" : b.status === "Pending" ? "Chờ duyệt" : b.status === "Cancelled" ? "Đã hủy" : b.status}
                 </span>
               </div>
@@ -935,15 +934,15 @@ function QuickActions({ role }) {
   return (
     <div className="rounded-[2rem] border border-slate-100 bg-white p-7 shadow-sm mt-6 lg:mt-0">
       <div className="mb-6 flex items-center justify-between">
-         <h3 className="text-base font-black text-slate-800 tracking-tight">Thao tác nhanh</h3>
-         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 px-3 py-1 rounded-full">Phím tắt</span>
+        <h3 className="text-base font-black text-slate-800 tracking-tight">Thao tác nhanh</h3>
+        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 px-3 py-1 rounded-full">Phím tắt</span>
       </div>
       <div className="flex flex-wrap gap-3">
         {actions.map((a, i) => {
           const Icon = a.icon;
           return (
-            <motion.button 
-              key={i} 
+            <motion.button
+              key={i}
               whileHover={{ scale: 1.05, y: -2 }}
               whileTap={{ scale: 0.95 }}
               className={`flex items-center gap-2.5 rounded-2xl px-5 py-3 text-xs font-black transition-all shadow-sm ring-1 ${a.color} hover:shadow-md`}
@@ -993,25 +992,25 @@ function ActionList({ title, items, type, icon: Icon, color = "blue" }) {
       <div className="space-y-2.5 overflow-y-auto max-h-[320px] pr-1 no-scrollbar">
         {items.map((item, i) => (
           <div key={i} className="group relative flex items-center gap-3 rounded-xl border border-transparent bg-slate-50/50 p-2.5 transition-all hover:border-slate-200 hover:bg-white hover:shadow-sm">
-             <div className="min-w-0 flex-1">
-               <div className="flex items-center justify-between gap-2">
-                 <p className="truncate text-base font-black text-slate-900 group-hover:text-blue-600">{item.title}</p>
-                 <p className="whitespace-nowrap text-sm font-bold text-slate-400">
-                    {new Date(item.time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
-                 </p>
-               </div>
-               <div className="mt-0.5 flex items-center justify-between">
-                 <p className="truncate text-sm font-medium text-slate-500 uppercase tracking-tight">{item.subtitle}</p>
-                 {item.amount != null && (
-                   <p className="text-sm font-black text-emerald-600">{fmtVND(item.amount)}</p>
-                 )}
-               </div>
-             </div>
-             <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                <button className="rounded-lg bg-white p-1.5 text-slate-400 shadow-sm ring-1 ring-slate-100 hover:text-blue-600">
-                   <RefreshCw className="size-3" />
-                </button>
-             </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center justify-between gap-2">
+                <p className="truncate text-base font-black text-slate-900 group-hover:text-blue-600">{item.title}</p>
+                <p className="whitespace-nowrap text-sm font-bold text-slate-400">
+                  {new Date(item.time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                </p>
+              </div>
+              <div className="mt-0.5 flex items-center justify-between">
+                <p className="truncate text-sm font-medium text-slate-500 uppercase tracking-tight">{item.subtitle}</p>
+                {item.amount != null && (
+                  <p className="text-sm font-black text-emerald-600">{fmtVND(item.amount)}</p>
+                )}
+              </div>
+            </div>
+            <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+              <button className="rounded-lg bg-white p-1.5 text-slate-400 shadow-sm ring-1 ring-slate-100 hover:text-blue-600">
+                <RefreshCw className="size-3" />
+              </button>
+            </div>
           </div>
         ))}
       </div>
@@ -1023,7 +1022,7 @@ function ActionList({ title, items, type, icon: Icon, color = "blue" }) {
 // ─── Receptionist Components ───────────────────────────────────────────────
 function CheckInList({ items = [] }) {
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm h-full"
@@ -1037,7 +1036,7 @@ function CheckInList({ items = [] }) {
         </div>
         <span className="rounded-lg bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-500 uppercase tracking-wider">Ưu tiên</span>
       </div>
-      
+
       <div className="space-y-3">
         {items.length > 0 ? items.map((item, i) => (
           <div key={i} className="group relative rounded-2xl border border-slate-50 bg-slate-50/50 p-4 transition-all hover:bg-white hover:shadow-md hover:shadow-slate-100">
@@ -1047,9 +1046,8 @@ function CheckInList({ items = [] }) {
             </div>
             <div className="mt-1 flex items-center justify-between">
               <span className="text-sm font-medium text-slate-500">{item.subtitle}</span>
-              <span className={`rounded-md px-1.5 py-0.5 text-xs font-bold ${
-                item.extra === 'Đã thanh toán' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
-              }`}>
+              <span className={`rounded-md px-1.5 py-0.5 text-xs font-bold ${item.extra === 'Đã thanh toán' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+                }`}>
                 {item.extra}
               </span>
             </div>
@@ -1069,7 +1067,7 @@ function CheckInList({ items = [] }) {
 
 function CheckOutList({ items = [] }) {
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.1 }}
@@ -1114,7 +1112,7 @@ function CheckOutList({ items = [] }) {
 
 function NotificationCenter({ items = [] }) {
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.2 }}
@@ -1139,7 +1137,7 @@ function NotificationCenter({ items = [] }) {
           <span className="text-xs font-extrabold text-emerald-600 uppercase tracking-wider">Trực tiếp</span>
         </div>
       </div>
-      
+
       <div className="space-y-4 max-h-[350px] overflow-y-auto pr-2 no-scrollbar relative z-10 flex-1">
         {items.length > 0 ? items.map((item, i) => (
           <div key={i} className="group flex gap-4 p-4 rounded-2xl transition-all duration-300 bg-white/50 hover:bg-white border border-slate-100/50 hover:border-blue-200 hover:shadow-lg hover:shadow-blue-50/50 cursor-pointer">
@@ -1171,7 +1169,7 @@ function NotificationCenter({ items = [] }) {
 
 function TodayBookingsList({ items = [] }) {
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.3 }}
@@ -1190,14 +1188,13 @@ function TodayBookingsList({ items = [] }) {
             </div>
             <div className="text-right shrink-0 ml-2">
               <p className="text-xs font-bold text-slate-700">{new Date(item.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
-              <span className={`text-[10px] font-black ${
-                item.status === 'Completed' || item.status === 'CheckedIn' ? 'text-emerald-500' : 'text-amber-500'
-              }`}>{item.status}</span>
+              <span className={`text-[10px] font-black ${item.status === 'Completed' || item.status === 'CheckedIn' ? 'text-emerald-500' : 'text-amber-500'
+                }`}>{item.status}</span>
             </div>
           </div>
         ))}
         {items.length === 0 && (
-           <p className="py-4 text-center text-xs font-medium text-slate-400 italic">Không có đơn đặt phòng mới</p>
+          <p className="py-4 text-center text-xs font-medium text-slate-400 italic">Không có đơn đặt phòng mới</p>
         )}
       </div>
     </motion.div>
@@ -1210,7 +1207,7 @@ function TodayBookingsList({ items = [] }) {
 // ─── Skeleton ────────────────────────────────────────────────────────────────
 function PopularServicesList({ items = [] }) {
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.4 }}
@@ -1225,7 +1222,7 @@ function PopularServicesList({ items = [] }) {
           <div key={i} className="flex items-center justify-between group cursor-default py-1">
             <div className="flex items-center gap-4">
               <div className="size-10 rounded-xl bg-emerald-50 flex items-center justify-center text-sm font-black text-emerald-600 group-hover:bg-emerald-500 group-hover:text-white transition-colors duration-300">
-                #{i+1}
+                #{i + 1}
               </div>
               <span className="text-base font-bold text-slate-700">{item.name}</span>
             </div>
@@ -1239,7 +1236,7 @@ function PopularServicesList({ items = [] }) {
 
 function PendingServicesList({ items = [] }) {
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.5 }}
@@ -1267,7 +1264,7 @@ function PendingServicesList({ items = [] }) {
 
 function ServiceHistoryList({ items = [] }) {
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.6 }}
@@ -1280,14 +1277,14 @@ function ServiceHistoryList({ items = [] }) {
       <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 no-scrollbar">
         {items.map((item, i) => (
           <div key={i} className="flex items-center justify-between border-b border-slate-50 pb-2 last:border-0 last:pb-0">
-             <div className="overflow-hidden">
-                <p className="text-base font-bold text-slate-800 truncate">{item.subtitle}</p>
-                <p className="text-sm text-slate-400">{item.title}</p>
-             </div>
-             <div className="text-right ml-2 shrink-0">
-                <p className="text-base font-black text-slate-900">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(item.amount)}</p>
-                <p className="text-sm font-bold text-slate-400">{new Date(item.time).toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'})}</p>
-             </div>
+            <div className="overflow-hidden">
+              <p className="text-base font-bold text-slate-800 truncate">{item.subtitle}</p>
+              <p className="text-sm text-slate-400">{item.title}</p>
+            </div>
+            <div className="text-right ml-2 shrink-0">
+              <p className="text-base font-black text-slate-900">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(item.amount)}</p>
+              <p className="text-sm font-bold text-slate-400">{new Date(item.time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</p>
+            </div>
           </div>
         ))}
         {items.length === 0 && <p className="text-center text-[10px] text-slate-400 italic py-4">Chưa có lịch sử dịch vụ</p>}
@@ -1377,7 +1374,7 @@ export default function AdminDashboardPage() {
         time: n.createdAt,
         type: n.type || "Info"
       }));
-    
+
     return [...global, ...personal].sort((a, b) => new Date(b.time) - new Date(a.time)).slice(0, 10);
   }, [summary.tasks?.notifications, personalNotifications]);
 
@@ -1404,17 +1401,16 @@ export default function AdminDashboardPage() {
             <button
               key={p.id}
               onClick={() => setPeriodType(p.id)}
-              className={`rounded-xl px-4 py-1.5 text-xs font-bold transition-all ${
-                periodType === p.id
+              className={`rounded-xl px-4 py-1.5 text-xs font-bold transition-all ${periodType === p.id
                   ? "bg-white text-slate-900 shadow-sm"
                   : "text-slate-500 hover:text-slate-700"
-              }`}
+                }`}
             >
               {p.label}
             </button>
           ))}
           <div className="mx-1 h-4 w-px bg-slate-200" />
-          <button 
+          <button
             onClick={() => rebuildMutation.mutate()}
             disabled={rebuildMutation.isPending}
             className="rounded-xl p-1.5 text-slate-400 hover:bg-white hover:text-emerald-500 transition-colors disabled:opacity-50"
@@ -1459,21 +1455,21 @@ export default function AdminDashboardPage() {
                   {hasRev && <RevenueChart revenueSummary={summary.revenue} role={role} periodType={periodType} />}
                 </div>
                 <div className="lg:col-span-1 space-y-6">
-                   {hasRooms && <RoomStatusOverview roomsSummary={summary.rooms} role={role} />}
+                  {hasRooms && <RoomStatusOverview roomsSummary={summary.rooms} role={role} />}
                 </div>
               </div>
 
               {/* Stats Row (Dòng 3) */}
-              <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 items-start">
-                 <BookingSummary bookingSummary={summary.booking} />
-                 {hasWh && <WarehouseSummary warehouseSummary={summary.warehouse} />}
-                 <SystemSummary systemSummary={summary.system} />
+              <div className={`grid grid-cols-1 gap-6 items-start ${role === "Admin" ? "lg:grid-cols-3" : "lg:grid-cols-2"}`}>
+                <BookingSummary bookingSummary={summary.booking} />
+                {hasWh && <WarehouseSummary warehouseSummary={summary.warehouse} />}
+                {role === "Admin" && <SystemSummary systemSummary={summary.system} />}
               </div>
 
               {/* Detailed Lists (Dòng 4) */}
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 items-start">
-                 <RecentBookings bookings={summary.booking?.recentBookings} />
-                 <TopServices services={summary.revenue?.topServices} />
+                <RecentBookings bookings={summary.booking?.recentBookings} />
+                <TopServices services={summary.revenue?.topServices} />
               </div>
 
               {/* Admin-only System Management Section */}
@@ -1505,12 +1501,12 @@ export default function AdminDashboardPage() {
                       </div>
                     </div>
                     <div className="lg:col-span-1">
-                       <QuickActions role={role} />
+                      <QuickActions role={role} />
                     </div>
                     <div className="lg:col-span-1">
-                       {summary.audit?.recentEquipmentAudits?.length > 0 && (
-                         <WarehouseHistory audits={summary.audit.recentEquipmentAudits} />
-                       )}
+                      {summary.audit?.recentEquipmentAudits?.length > 0 && (
+                        <WarehouseHistory audits={summary.audit.recentEquipmentAudits} />
+                      )}
                     </div>
                   </div>
 
@@ -1533,26 +1529,26 @@ export default function AdminDashboardPage() {
 
               {/* Row 2: Today Bookings */}
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-                 <div className="lg:col-span-2">
-                    <TodayBookingsList items={summary.tasks?.todayBookings} />
-                 </div>
-                 <div className="space-y-6">
-                    {hasRooms && <RoomStatusOverview roomsSummary={summary.rooms} role={role} />}
-                 </div>
+                <div className="lg:col-span-2">
+                  <TodayBookingsList items={summary.tasks?.todayBookings} />
+                </div>
+                <div className="space-y-6">
+                  {hasRooms && <RoomStatusOverview roomsSummary={summary.rooms} role={role} />}
+                </div>
               </div>
 
               {/* Row 3: Operational Center & Notifications */}
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-                 <CheckInList items={summary.tasks?.upcomingCheckIns} />
-                 <CheckOutList items={summary.tasks?.upcomingCheckOuts} />
-                 <NotificationCenter items={mergedNotifications} />
+                <CheckInList items={summary.tasks?.upcomingCheckIns} />
+                <CheckOutList items={summary.tasks?.upcomingCheckOuts} />
+                <NotificationCenter items={mergedNotifications} />
               </div>
 
               {/* Row 4: Service Management Center */}
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-                 <PopularServicesList items={summary.services?.topServices} />
-                 <PendingServicesList items={summary.services?.pendingServices} />
-                 <ServiceHistoryList items={summary.services?.recentHistory} />
+                <PopularServicesList items={summary.services?.topServices} />
+                <PendingServicesList items={summary.services?.pendingServices} />
+                <ServiceHistoryList items={summary.services?.recentHistory} />
               </div>
             </div>
           )}
@@ -1581,7 +1577,7 @@ export default function AdminDashboardPage() {
                   <LowStockList items={summary.warehouse?.lowStockItemsList} />
                   {hasWh && <WarehouseStatusChart summary={summary.warehouse} />}
                 </div>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                   <WarehouseHistory audits={summary.warehouse?.recentEquipmentAudits || []} />
                   {hasWh && <WarehouseSummary warehouseSummary={summary.warehouse} />}
