@@ -32,6 +32,25 @@ public class DashboardPeriodsController : ControllerBase
             currentOnly: true,
             cancellationToken);
 
+        if (dashboard == null || (DateTime.UtcNow - dashboard.UpdatedAt).TotalMinutes > 15)
+        {
+            await _dashboardService.RebuildDashboardAsync(
+                resolvedRoleName,
+                periodType,
+                DateTime.UtcNow,
+                ResolveUserId(),
+                "AUTO_ON_DEMAND",
+                null,
+                cancellationToken);
+
+            dashboard = await _dashboardService.GetDashboardAsync(
+                resolvedRoleName,
+                periodType,
+                periodKey: null,
+                currentOnly: true,
+                cancellationToken);
+        }
+
         return dashboard == null
             ? NotFound(new { message = "Không tìm thấy dashboard hiện tại." })
             : Ok(dashboard);

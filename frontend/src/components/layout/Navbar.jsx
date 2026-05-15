@@ -36,7 +36,7 @@ const Navbar = () => {
   const navLinks = [
     { label: "Khách sạn", to: "/", icon: Hotel },
     { label: "Tìm phòng", to: "/booking", icon: Calendar },
-    { label: "Hoạt động", to: "/services", icon: Utensils },
+    { label: "Dịch vụ", to: "/services", icon: Utensils },
     { label: "Khám phá", to: "/articles", icon: FileText },
     { label: "Ưu đãi", to: "/offers", icon: BadgePercent },
     { label: "Trợ giúp", to: "/support/help-center", icon: HelpCircle },

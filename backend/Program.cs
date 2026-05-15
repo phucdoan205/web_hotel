@@ -69,7 +69,7 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<AuditSaveChangesInterceptor>();
 builder.Services.AddSingleton<AuditLogCleanupService>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<AuditLogCleanupService>());
-builder.Services.AddHostedService<DashboardRebuildBackgroundService>();
+// Đã xóa DashboardRebuildBackgroundService để không chạy ngầm liên tục gây chậm hệ thống
 
 builder.Services.AddDbContext<AppDbContext>((sp, options) =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
