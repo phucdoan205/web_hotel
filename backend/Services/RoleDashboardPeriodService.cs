@@ -695,7 +695,7 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
                 Status = x.Booking.Status!,
                 Time = x.CheckInDate,
                 RefCode = x.Booking.BookingCode,
-                PaymentStatus = x.Booking.Invoices.Any(i => i.Status == "Paid") ? "Đã thanh toán" : "Chưa thanh toán"
+                PaymentStatus = (x.Booking.Status == "Confirmed" || x.Booking.Status == "Completed" || x.Booking.Invoices.Any(i => i.Status == "Paid" || i.Status == "Completed")) ? "Đã thanh toán" : "Chưa thanh toán"
             })
             .ToListAsync(cancellationToken);
 
@@ -930,6 +930,7 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
                     lockedUsers = metrics.LockedUsers,
                     staffCount = metrics.StaffCount,
                     userRoleCount = metrics.UserRoleCount,
+                    totalGuests = metrics.TotalGuests,
                     totalRoles = metrics.ManagedRoles,
                     totalPermissions = metrics.TotalPermissions
                 },

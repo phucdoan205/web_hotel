@@ -112,7 +112,7 @@ function StatCard({ code, title, value, unit, growthRate, trendDir }) {
   return (
     <motion.div
       whileHover={{ y: -4 }}
-      className="relative overflow-hidden rounded-[2rem] border border-slate-100 bg-white p-6 shadow-sm transition-all hover:shadow-xl hover:shadow-slate-200/50"
+      className="relative overflow-hidden rounded-xl border border-slate-100 bg-white p-6 shadow-sm transition-all hover:shadow-xl hover:shadow-slate-200/50"
     >
       {/* Decorative background circle */}
       <div className={`absolute -right-6 -top-6 size-24 rounded-full opacity-10 blur-2xl ${c.bg}`} />
@@ -151,7 +151,7 @@ function DeptOverview({ items }) {
         <motion.div
           key={i}
           whileHover={{ scale: 1.02 }}
-          className={`relative overflow-hidden rounded-3xl border p-5 transition-all
+          className={`relative overflow-hidden rounded-xl border p-5 transition-all
             ${d.status === "warning"
               ? "border-amber-200 bg-gradient-to-br from-amber-50 to-white shadow-lg shadow-amber-100/50"
               : "border-slate-100 bg-white shadow-sm hover:shadow-md"}`}
@@ -208,7 +208,7 @@ function RoomStatusOverview({ roomsSummary, role }) {
   const isReceptionist = role === "Receptionist";
 
   return (
-    <div className="rounded-[2.5rem] border border-slate-100 bg-white p-7 shadow-sm h-full flex flex-col">
+    <div className="rounded-xl border border-slate-100 bg-white p-7 shadow-sm h-full flex flex-col">
       <div className="mb-6 flex items-center justify-between">
         <h3 className="text-lg font-black text-slate-800 tracking-tight">Tình trạng phòng</h3>
         <div className="flex size-10 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-500 ring-1 ring-indigo-100">
@@ -280,7 +280,7 @@ function WarehouseStatusChart({ summary }) {
   if (data.length === 0) return null;
 
   return (
-    <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm h-full">
+    <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm h-full">
       <h3 className="mb-4 text-base font-bold text-gray-900">Phân bổ vật tư</h3>
       <ResponsiveContainer width="100%" height={220}>
         <PieChart>
@@ -314,11 +314,11 @@ function BookingSummary({ bookingSummary }) {
   ].filter(r => r.val != null);
 
   return (
-    <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm h-full">
-      <h3 className="mb-4 text-base font-bold text-gray-900">Thống kê đặt phòng</h3>
-      <div className="space-y-2">
+    <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm h-full flex flex-col">
+      <h3 className="mb-6 text-base font-bold text-gray-900">Thống kê đặt phòng</h3>
+      <div className="flex-1 flex flex-col justify-between py-2">
         {rows.map((r, i) => (
-          <div key={i} className="flex items-center justify-between">
+          <div key={i} className="flex items-center justify-between border-b border-gray-50 pb-2 last:border-0 last:pb-0">
             <span className="text-sm text-gray-500">{r.label}</span>
             <span className={`text-sm font-bold
               ${r.alert && r.val > 0 ? "text-amber-600" : r.info && r.val > 0 ? "text-blue-600" : "text-gray-800"}`}>
@@ -344,7 +344,7 @@ function RevenueSummary({ revenueSummary }) {
   ].filter(r => r.val != null);
 
   return (
-    <div className="rounded-[2rem] border border-slate-100 bg-white p-6 shadow-sm">
+    <div className="rounded-xl border border-slate-100 bg-white p-6 shadow-sm">
       <div className="mb-6 flex items-center gap-3">
         <div className="flex size-10 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-500 ring-1 ring-emerald-100">
           <Receipt className="size-5" />
@@ -530,7 +530,7 @@ function WarehouseSummary({ warehouseSummary }) {
   ].filter(r => r.val != null);
 
   return (
-    <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm h-full">
+    <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm h-full">
       <h3 className="mb-4 text-base font-bold text-gray-900">Tình trạng kho</h3>
       <div className="space-y-2">
         {rows.map((r, i) => (
@@ -634,7 +634,7 @@ function WarehouseHistory({ audits = [] }) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.1 }}
-      className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm h-full"
+      className="rounded-xl border border-slate-100 bg-white p-6 shadow-sm h-full"
     >
       <div className="mb-4 flex items-center gap-2">
         <div className="flex size-8 items-center justify-center rounded-xl bg-blue-100 text-blue-600">
@@ -670,7 +670,7 @@ function DamageReportList({ reports = [] }) {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm h-full"
+      className="rounded-xl border border-slate-100 bg-white p-6 shadow-sm h-full"
     >
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -727,7 +727,7 @@ function DamageReportList({ reports = [] }) {
 function RecentAudits({ audits }) {
   if (!audits?.length) return null;
   return (
-    <div className="rounded-[2rem] border border-slate-100 bg-white p-7 shadow-sm">
+    <div className="rounded-xl border border-slate-100 bg-white p-7 shadow-sm">
       <div className="mb-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="flex size-10 items-center justify-center rounded-2xl bg-slate-50 text-slate-400 ring-1 ring-slate-100">
@@ -769,7 +769,7 @@ function UserGrowthChart({ data = [] }) {
   if (!data?.length) return null;
 
   return (
-    <div className="rounded-[2.5rem] border border-slate-100 bg-white p-7 shadow-sm h-full flex flex-col">
+    <div className="rounded-xl border border-slate-100 bg-white p-7 shadow-sm h-full flex flex-col">
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h3 className="text-lg font-black text-slate-800 tracking-tight">Tăng trưởng Người dùng & Khách hàng</h3>
@@ -821,7 +821,7 @@ function RoleDistributionChart({ data = [], totalPermissions = 0 }) {
   })).filter(d => d.value > 0);
 
   return (
-    <div className="rounded-[2.5rem] border border-slate-100 bg-white p-7 shadow-sm h-full flex flex-col">
+    <div className="rounded-xl border border-slate-100 bg-white p-7 shadow-sm h-full flex flex-col">
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h3 className="text-lg font-black text-slate-800 tracking-tight">Cơ cấu vai trò & Quyền</h3>
@@ -869,20 +869,21 @@ function SystemSummary({ systemSummary }) {
     { label: "Nhân viên", val: systemSummary.staffCount, info: true },
     { label: "Đang hoạt động", val: systemSummary.activeUsers },
     { label: "Bị khóa", val: systemSummary.lockedUsers, alert: true },
-    { label: "Số khách hàng", val: systemSummary.totalGuests },
+    { label: "Số khách hàng", val: systemSummary.totalGuests ?? 0 },
     { label: "Số người dùng", val: systemSummary.userRoleCount },
-  ].filter(r => r.val != null);
+  ];
 
   return (
-    <div className="rounded-[2.5rem] border border-slate-100 bg-white p-7 shadow-sm h-full flex flex-col">
-      <h3 className="text-lg font-black text-slate-800 tracking-tight mb-6">Hệ thống</h3>
-      <div className="flex-1 space-y-4">
-        {rows.map((row, i) => (
-          <div key={i} className="flex items-center justify-between">
-            <span className={`text-sm font-bold ${row.alert ? "text-rose-500" : row.info ? "text-blue-500" : "text-slate-500"}`}>
-              {row.label}
+    <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm h-full flex flex-col">
+      <h3 className="mb-6 text-base font-bold text-gray-900">Hệ thống</h3>
+      <div className="flex-1 flex flex-col justify-between py-2">
+        {rows.map((r, i) => (
+          <div key={i} className="flex items-center justify-between border-b border-gray-50 pb-2 last:border-0 last:pb-0">
+            <span className="text-sm text-gray-500">{r.label}</span>
+            <span className={`text-sm font-bold
+              ${r.alert && r.val > 0 ? "text-rose-600" : r.info && r.val > 0 ? "text-blue-600" : "text-gray-800"}`}>
+              {fmtNum(r.val)}
             </span>
-            <span className="text-base font-black text-slate-900">{fmtNum(row.val)}</span>
           </div>
         ))}
       </div>
@@ -894,7 +895,7 @@ function SystemSummary({ systemSummary }) {
 function TopServices({ services }) {
   if (!services?.length) return null;
   return (
-    <div className="rounded-[2.5rem] border border-slate-100 bg-white p-7 shadow-sm">
+    <div className="rounded-xl border border-slate-100 bg-white p-7 shadow-sm">
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h3 className="text-lg font-black text-slate-800 tracking-tight">Dịch vụ phổ biến</h3>
@@ -937,7 +938,7 @@ function TopServices({ services }) {
 function RecentBookings({ bookings }) {
   if (!bookings?.length) return null;
   return (
-    <div className="rounded-[2.5rem] border border-slate-100 bg-white p-7 shadow-sm">
+    <div className="rounded-xl border border-slate-100 bg-white p-7 shadow-sm">
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h3 className="text-lg font-black text-slate-800 tracking-tight">Đơn đặt phòng mới</h3>
@@ -1112,7 +1113,7 @@ function CheckInList({ items = [] }) {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm h-full"
+      className="rounded-xl border border-slate-100 bg-white p-6 shadow-sm h-full"
     >
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -1158,7 +1159,7 @@ function CheckOutList({ items = [] }) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.1 }}
-      className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm h-full"
+      className="rounded-xl border border-slate-100 bg-white p-6 shadow-sm h-full"
     >
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -1203,7 +1204,7 @@ function NotificationCenter({ items = [] }) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.2 }}
-      className="rounded-3xl border border-white bg-white/80 backdrop-blur-2xl p-6 text-slate-800 shadow-2xl shadow-indigo-100/40 h-full flex flex-col relative overflow-hidden"
+      className="rounded-xl border border-white bg-white/80 backdrop-blur-2xl p-6 text-slate-800 shadow-2xl shadow-indigo-100/40 h-full flex flex-col relative overflow-hidden"
     >
       {/* Decorative background gradients */}
       <div className="absolute top-0 right-0 -mr-12 -mt-12 size-48 rounded-full bg-gradient-to-br from-indigo-500/10 to-purple-500/10 blur-3xl pointer-events-none" />
@@ -1216,12 +1217,7 @@ function NotificationCenter({ items = [] }) {
           </div>
           <div>
             <h3 className="font-black text-base uppercase tracking-wider text-slate-900">Thông báo</h3>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Cập nhật thời gian thực</p>
           </div>
-        </div>
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-100/50">
-          <div className="size-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="text-xs font-extrabold text-emerald-600 uppercase tracking-wider">Trực tiếp</span>
         </div>
       </div>
 
@@ -1260,7 +1256,7 @@ function TodayBookingsList({ items = [] }) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.3 }}
-      className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm h-full"
+      className="rounded-xl border border-slate-100 bg-white p-6 shadow-sm h-full"
     >
       <div className="mb-4 flex items-center gap-2">
         <Layers className="size-4 text-indigo-500" />
@@ -1275,7 +1271,7 @@ function TodayBookingsList({ items = [] }) {
             </div>
             <div className="text-right shrink-0 ml-2">
               <p className="text-xs font-bold text-slate-700">{new Date(item.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
-              <span className={`text-[10px] font-black ${item.status === 'Completed' || item.status === 'CheckedIn' ? 'text-emerald-500' : 'text-amber-500'
+              <span className={`text-[10px] font-black ${item.status === 'Completed' || item.status === 'CheckedIn' || item.status === 'Confirmed' ? 'text-emerald-500' : 'text-amber-500'
                 }`}>{item.status}</span>
             </div>
           </div>
@@ -1298,7 +1294,7 @@ function PopularServicesList({ items = [] }) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.4 }}
-      className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm h-full"
+      className="rounded-xl border border-slate-100 bg-white p-6 shadow-sm h-full"
     >
       <div className="mb-4 flex items-center gap-2">
         <TrendingUp className="size-4 text-emerald-500" />
@@ -1327,7 +1323,7 @@ function PendingServicesList({ items = [] }) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.5 }}
-      className="rounded-3xl border border-rose-100 bg-rose-50/30 p-6 shadow-sm h-full"
+      className="rounded-xl border border-rose-100 bg-rose-50/30 p-6 shadow-sm h-full"
     >
       <div className="mb-4 flex items-center gap-2">
         <Clock className="size-4 text-rose-500" />
@@ -1355,7 +1351,7 @@ function ServiceHistoryList({ items = [] }) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.6 }}
-      className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm h-full"
+      className="rounded-xl border border-slate-100 bg-white p-6 shadow-sm h-full"
     >
       <div className="mb-4 flex items-center gap-2">
         <Activity className="size-4 text-blue-500" />

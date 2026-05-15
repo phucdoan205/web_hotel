@@ -602,6 +602,7 @@ namespace backend.Controllers
         {
             var booking = await _context.Bookings
                 .Include(b => b.BookingDetails)
+                    .ThenInclude(bd => bd.Room)
                 .FirstOrDefaultAsync(b => b.Id == id);
 
             if (booking == null)
@@ -637,6 +638,16 @@ namespace backend.Controllers
                     }
                 }
             }
+            
+            var roomNumbers = string.Join(", ", booking.BookingDetails.Select(bd => bd.Room?.RoomNumber ?? "Chưa gán"));
+            _context.Notifications.Add(new Notification
+            {
+                UserId = booking.UserId,
+                Title = "Booking đã hủy",
+                Content = $"Booking của phòng {roomNumbers} .#{booking.BookingCode} đã hủy",
+                Type = "Warning",
+                CreatedAt = DateTime.UtcNow
+            });
 
             await _context.SaveChangesAsync();
 

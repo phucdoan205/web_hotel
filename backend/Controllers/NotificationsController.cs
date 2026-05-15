@@ -53,7 +53,23 @@ namespace backend.Controllers
 
             if (resolvedUserId.HasValue)
             {
-                query = query.Where(n => n.UserId == null || n.UserId == resolvedUserId.Value);
+                var user = await _context.Users
+                    .AsNoTracking()
+                    .Include(u => u.Role)
+                    .FirstOrDefaultAsync(u => u.Id == resolvedUserId.Value);
+
+                bool isStaff = user?.Role != null &&
+                               user.Role.RoleName != "Guest" &&
+                               user.Role.RoleName != "User";
+
+                if (isStaff)
+                {
+                    query = query.Where(n => n.UserId == null || n.UserId == resolvedUserId.Value);
+                }
+                else
+                {
+                    query = query.Where(n => n.UserId == resolvedUserId.Value);
+                }
             }
             else
             {
@@ -79,7 +95,23 @@ namespace backend.Controllers
 
             if (resolvedUserId.HasValue)
             {
-                query = query.Where(n => n.UserId == null || n.UserId == resolvedUserId.Value);
+                var user = await _context.Users
+                    .AsNoTracking()
+                    .Include(u => u.Role)
+                    .FirstOrDefaultAsync(u => u.Id == resolvedUserId.Value);
+
+                bool isStaff = user?.Role != null &&
+                               user.Role.RoleName != "Guest" &&
+                               user.Role.RoleName != "User";
+
+                if (isStaff)
+                {
+                    query = query.Where(n => n.UserId == null || n.UserId == resolvedUserId.Value);
+                }
+                else
+                {
+                    query = query.Where(n => n.UserId == resolvedUserId.Value);
+                }
             }
             else
             {
@@ -108,6 +140,20 @@ namespace backend.Controllers
         public async Task Stream([FromQuery] int? userId, CancellationToken cancellationToken)
         {
             var resolvedUserId = ResolveUserId(userId);
+            bool isStaff = false;
+
+            if (resolvedUserId.HasValue)
+            {
+                var user = await _context.Users
+                    .AsNoTracking()
+                    .Include(u => u.Role)
+                    .FirstOrDefaultAsync(u => u.Id == resolvedUserId.Value);
+
+                isStaff = user?.Role != null &&
+                          user.Role.RoleName != "Guest" &&
+                          user.Role.RoleName != "User";
+            }
+
             Response.Headers.Append("Cache-Control", "no-cache");
             Response.Headers.Append("Connection", "keep-alive");
             Response.Headers.Append("X-Accel-Buffering", "no");
@@ -130,10 +176,24 @@ namespace backend.Controllers
 
                 while (reader.TryRead(out var notification))
                 {
-                    if (notification.UserId.HasValue &&
-                        (!resolvedUserId.HasValue || notification.UserId.Value != resolvedUserId.Value))
+                    // Filter logic:
+                    // 1. If notification has a UserId, it must match the resolvedUserId.
+                    // 2. If notification has NO UserId (Broadcast), it only goes to Staff.
+                    
+                    if (notification.UserId.HasValue)
                     {
-                        continue;
+                        if (!resolvedUserId.HasValue || notification.UserId.Value != resolvedUserId.Value)
+                        {
+                            continue;
+                        }
+                    }
+                    else
+                    {
+                        // Broadcast notification (null UserId)
+                        if (!isStaff)
+                        {
+                            continue;
+                        }
                     }
 
                     var payload = JsonSerializer.Serialize(notification);

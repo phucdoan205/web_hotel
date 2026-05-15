@@ -549,6 +549,15 @@ namespace backend.Controllers
                 detail.Status = "Cancelled";
             }
 
+            var roomNumbers = string.Join(", ", booking.BookingDetails.Select(bd => bd.Room?.RoomNumber ?? "Chưa gán"));
+            _context.Notifications.Add(new Notification
+            {
+                Title = "Booking đã hủy",
+                Content = $"Booking của phòng {roomNumbers} .#{booking.BookingCode} đã hủy",
+                Type = "Warning",
+                CreatedAt = DateTime.UtcNow
+            });
+
             await _context.SaveChangesAsync();
 
             return Ok(new
