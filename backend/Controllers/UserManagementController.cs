@@ -26,12 +26,11 @@ namespace backend.Controllers
         [Permission("VIEW_USERS")]
         public async Task<ActionResult<IEnumerable<UserManagementResponseDTO>>> GetStaff([FromQuery] bool includeInactive = true)
         {
-            var staffRoleIds = new[] { 1, 4, 5 };
-
             var query = _context.Users
                 .AsNoTracking()
                 .Include(u => u.Role)
-                .Where(u => u.RoleId.HasValue && staffRoleIds.Contains(u.RoleId.Value));
+                .Where(u => u.RoleId.HasValue && u.Role != null && 
+                       u.Role.Name != "User" && u.Role.Name != "Guest");
 
             if (!includeInactive)
             {
