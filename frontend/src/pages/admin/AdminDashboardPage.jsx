@@ -5,7 +5,7 @@ import {
   BedDouble, DollarSign, Users, Activity, Package, AlertTriangle,
   BatteryWarning, Brush, CheckSquare, CheckCircle, CreditCard, Clock,
   Receipt, LogIn, LogOut, CalendarRange, Layers, Hammer, BarChart3,
-  Calendar, UserCircle
+  Calendar, UserCircle, Plus
 } from "lucide-react";
 import { motion } from "framer-motion";
 import {
@@ -902,6 +902,7 @@ function QuickActions({ role }) {
   let actions = [];
   if (role === "Admin") {
     actions = [
+      { label: "Thêm nhân viên", icon: Plus, color: "bg-indigo-50 text-indigo-600 ring-indigo-100" },
       { label: "Quản lý Role", icon: Users, color: "bg-blue-50 text-blue-600 ring-blue-100" },
       { label: "Backup dữ liệu", icon: Package, color: "bg-slate-50 text-slate-600 ring-slate-100" },
       { label: "Cảnh báo hệ thống", icon: AlertTriangle, color: "bg-rose-50 text-rose-600 ring-rose-100" },
@@ -1445,14 +1446,14 @@ export default function AdminDashboardPage() {
       ) : (
         <>
           {/* ── Main Layout Engine by Role ── */}
-          {role === "Admin" && (
+          {(role === "Admin" || role === "Manager") && (
             <div className="flex flex-col gap-6">
-              {/* KPI Cards */}
+              {/* Row 1: KPI Cards */}
               <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
                 {enrichedCards.map((card, i) => <StatCard key={i} {...card} />)}
               </div>
 
-              {/* Chart & Rooms */}
+              {/* Row 2: Chart & Rooms */}
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
                 <div className="lg:col-span-2">
                   {hasRev && <RevenueChart revenueSummary={summary.revenue} role={role} periodType={periodType} />}
@@ -1475,35 +1476,51 @@ export default function AdminDashboardPage() {
                  <TopServices services={summary.revenue?.topServices} />
               </div>
 
-              {/* Bottom Row: Audits */}
-              <div>
-                 {tables.recentAudits?.length > 0 && (
-                   <RecentAudits audits={tables.recentAudits} />
-                 )}
-              </div>
-            </div>
-          )}
+              {/* Admin-only System Management Section */}
+              {role === "Admin" && (
+                <>
+                  <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 items-start mt-4">
+                    <div className="lg:col-span-1">
+                      <div className="rounded-[2rem] border border-slate-100 bg-white p-7 shadow-sm h-full">
+                        <div className="flex items-center gap-3 mb-6">
+                          <div className="flex size-10 items-center justify-center rounded-2xl bg-violet-50 text-violet-500 ring-1 ring-violet-100">
+                            <Activity className="size-5" />
+                          </div>
+                          <h3 className="text-base font-black text-slate-800 tracking-tight">Trung tâm hệ thống</h3>
+                        </div>
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between p-4 rounded-2xl bg-rose-50 border border-rose-100">
+                            <span className="text-xs font-black text-rose-600 uppercase">Tài khoản bị khóa</span>
+                            <span className="text-lg font-black text-rose-700">{summary.security?.lockedUsers || 0}</span>
+                          </div>
+                          <div className="flex items-center justify-between p-4 rounded-2xl bg-blue-50 border border-blue-100">
+                            <span className="text-xs font-black text-blue-600 uppercase">Thông báo mới</span>
+                            <span className="text-lg font-black text-blue-700">{summary.security?.unreadNotifications || 0}</span>
+                          </div>
+                          <div className="flex items-center justify-between p-4 rounded-2xl bg-emerald-50 border border-emerald-100">
+                            <span className="text-xs font-black text-emerald-600 uppercase">Trực tuyến</span>
+                            <span className="text-lg font-black text-emerald-700">{summary.system?.activeUsers || 0}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="lg:col-span-1">
+                       <QuickActions role={role} />
+                    </div>
+                    <div className="lg:col-span-1">
+                       {summary.audit?.recentEquipmentAudits?.length > 0 && (
+                         <WarehouseHistory audits={summary.audit.recentEquipmentAudits} />
+                       )}
+                    </div>
+                  </div>
 
-          {role === "Manager" && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-                {enrichedCards.map((card, i) => <StatCard key={i} {...card} />)}
-              </div>
-              {departmentOverview.length > 0 && (
-                <div>
-                  <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-slate-500">Tổng quan bộ phận</h2>
-                  <DeptOverview items={departmentOverview} />
-                </div>
+                  <div className="mt-6">
+                    {summary.audit?.recentAudits?.length > 0 && (
+                      <RecentAudits audits={summary.audit.recentAudits} />
+                    )}
+                  </div>
+                </>
               )}
-              <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-                <div className="space-y-6 lg:col-span-2">
-                  {hasRev && <RevenueChart revenueSummary={summary.revenue} role={role} periodType={periodType} />}
-                  {hasBk && <BookingSummary bookingSummary={summary.booking} />}
-                </div>
-                <div className="space-y-6">
-                  {hasRev && <RevenueSummary revenueSummary={summary.revenue} />}
-                </div>
-              </div>
             </div>
           )}
 

@@ -923,6 +923,32 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
                 system = new
                 {
                     totalUsers = metrics.TotalUsers,
+                    activeUsers = metrics.ActiveUsers,
+                    lockedUsers = metrics.LockedUsers,
+                    staffCount = metrics.StaffCount,
+                    userRoleCount = metrics.UserRoleCount
+                },
+                audit = new
+                {
+                    totalAuditEvents = metrics.AuditEvents,
+                    recentAudits = metrics.RecentAudits,
+                    recentEquipmentAudits = metrics.RecentEquipmentAudits
+                },
+                security = new
+                {
+                    unreadNotifications = metrics.UnreadNotifications,
+                    lockedUsers = metrics.LockedUsers
+                },
+                tables = new
+                {
+                    usersByRole = metrics.RoleUserCounts
+                }
+            },
+            "Manager" => (object)new
+            {
+                system = new
+                {
+                    totalUsers = metrics.TotalUsers,
                     staffCount = metrics.StaffCount,
                     activeUsers = metrics.ActiveUsers,
                     lockedUsers = metrics.LockedUsers,
@@ -982,42 +1008,6 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
                     lowStockItems = metrics.LowStockItems,
                     damageReports = metrics.DamageReports,
                     penaltyAmount = metrics.PenaltyAmount
-                }
-            },
-            "Manager" => (object)new
-            {
-                booking = new
-                {
-                    totalBookings = metrics.TotalBookings,
-                    pendingBookings = metrics.PendingBookings,
-                    inProgressBookings = metrics.InProgressBookings,
-                    checkIns = metrics.CheckIns,
-                    checkOuts = metrics.CheckOuts
-                },
-                revenue = new
-                {
-                    totalRevenue = metrics.TotalRevenue,
-                    revenueTrends = metrics.RevenueTrends,
-                    monthlyTrends = metrics.MonthlyTrends,
-                    roomRevenue = metrics.RoomRevenue,
-                    serviceRevenue = metrics.ServiceRevenue,
-                    pendingPaymentAmount = metrics.PendingPaymentAmount,
-                    paidInvoices = metrics.PaidInvoices,
-                    unpaidInvoices = metrics.UnpaidInvoices
-                },
-                rooms = new
-                {
-                    totalRooms = metrics.TotalRooms,
-                    availableRooms = metrics.AvailableRooms,
-                    occupiedRooms = metrics.OccupiedRooms,
-                    maintenanceRooms = metrics.MaintenanceRooms,
-                    dirtyRooms = metrics.DirtyRooms,
-                    cleaningRooms = metrics.CleaningRooms,
-                    cleanRooms = metrics.CleanRooms,
-                    pickupRooms = metrics.PickupRooms,
-                    outOfOrderRooms = metrics.OutOfOrderRooms,
-                    occupancyRate = metrics.OccupancyRate,
-                    totalGuests = metrics.TotalGuests
                 },
                 customer = new
                 {
@@ -1214,17 +1204,17 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
         {
             "Admin" => new object[]
             {
+                new { code = "auditEvents", title = "Nhật ký hệ thống", value = metrics.AuditEvents, unit = "sự kiện" },
+                new { code = "activeUsers", title = "Đang hoạt động", value = metrics.ActiveUsers, unit = "người" },
+                new { code = "lockedUsers", title = "Tài khoản bị khóa", value = metrics.LockedUsers, unit = "người" },
+                new { code = "unreadNotifications", title = "Thông báo mới", value = metrics.UnreadNotifications, unit = "tin" }
+            },
+            "Manager" => new object[]
+            {
                 new { code = "totalRevenue", title = "Tổng doanh thu", value = metrics.TotalRevenue, unit = "VND" },
                 new { code = "totalBookings", title = "Tổng Booking", value = metrics.TotalBookings, unit = "booking" },
                 new { code = "totalGuests", title = "Số khách hàng", value = metrics.TotalGuests, unit = "khách" },
                 new { code = "userRoleCount", title = "Số User", value = metrics.UserRoleCount, unit = "người" }
-            },
-            "Manager" => new object[]
-            {
-                new { code = "totalRevenue", title = "Doanh thu", value = metrics.TotalRevenue, unit = "VND" },
-                new { code = "checkIns", title = "Check-in hôm nay", value = metrics.CheckIns, unit = "lượt" },
-                new { code = "checkOuts", title = "Check-out hôm nay", value = metrics.CheckOuts, unit = "lượt" },
-                new { code = "occupancyRate", title = "Tỷ lệ lấp đầy", value = metrics.OccupancyRate, unit = "%" }
             },
             "Housekeeping" or "HouseKeeping" => new object[]
             {
