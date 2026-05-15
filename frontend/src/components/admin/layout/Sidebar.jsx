@@ -170,7 +170,7 @@ function SidebarLink({ item, pathname, className = "" }) {
   );
 }
 
-export default function Sidebar() {
+export default function Sidebar({ isOpen }) {
   const location = useLocation();
   const auth = useStoredAuth();
   const [openGroups, setOpenGroups] = useState({});
@@ -213,7 +213,11 @@ export default function Sidebar() {
   );
 
   return (
-    <aside className="fixed left-0 top-0 z-[9999] flex h-screen w-64 flex-col border-r border-white/10 bg-[#1F649C] p-6">
+    <aside 
+      className={`fixed left-0 top-0 z-[9999] flex h-screen w-64 flex-col border-r border-white/10 bg-[#1F649C] p-6 transition-all duration-300 ${
+        isOpen ? "translate-x-0" : "-translate-x-full"
+      }`}
+    >
       <div className="mb-8 flex items-center gap-3">
         <div className="rounded-xl bg-white p-2.5 text-[#1F649C] shadow-inner">
           <Hotel className="size-6" />
