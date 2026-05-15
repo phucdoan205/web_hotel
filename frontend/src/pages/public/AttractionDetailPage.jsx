@@ -47,7 +47,7 @@ const AttractionDetailPage = () => {
 
   const imageUrls = useMemo(() => {
     if (!attraction) return [];
-    return [...new Set([attraction.imageUrl, ...(attraction.attractionImages?.map(img => img.imageUrl) || [])].filter(Boolean))];
+    return [...new Set([attraction.imageUrl, ...(attraction.images || [])].filter(Boolean))];
   }, [attraction]);
 
   useEffect(() => {
@@ -112,7 +112,7 @@ const AttractionDetailPage = () => {
 
   return (
     <div className="min-h-screen bg-white pb-24 pt-6 md:pt-10">
-      <div className="mx-auto max-w-6xl px-5 lg:px-8">
+      <div className="mx-auto max-w-7xl px-5 lg:px-8">
         
         {/* Breadcrumbs */}
         <div className="mb-6 flex items-center gap-2 text-sm font-semibold text-slate-500">

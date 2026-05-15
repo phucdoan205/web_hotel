@@ -140,12 +140,6 @@ namespace backend.Controllers
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
 
-            await _notificationService.CreateAsync(
-                "Staff Created",
-                $"Staff account {user.FullName} has been created.",
-                "Success",
-                "/admin/staff");
-
             return Ok(new UserManagementResponseDTO {
                 Id = user.Id,
                 FullName = user.FullName,
@@ -209,12 +203,6 @@ namespace backend.Controllers
 
             await _context.Entry(user).Reference(u => u.Role).LoadAsync();
 
-            await _notificationService.CreateAsync(
-                "Staff Updated",
-                $"Staff account {user.FullName} has been updated.",
-                "Info",
-                "/admin/staff");
-
             return Ok(new UserManagementResponseDTO
             {
                 Id = user.Id,
@@ -239,11 +227,6 @@ namespace backend.Controllers
             user.RoleId = request.NewRoleId;
             await _context.SaveChangesAsync();
 
-            await _notificationService.CreateAsync(
-                "Role Changed",
-                $"Role for {user.FullName} has been changed.",
-                "Warning",
-                "/admin/staff");
             return NoContent();
         }
 
@@ -257,11 +240,6 @@ namespace backend.Controllers
             user.Status = false;
             await _context.SaveChangesAsync();
 
-            await _notificationService.CreateAsync(
-                "Staff Deactivated",
-                $"{user.FullName} has been soft deleted.",
-                "Error",
-                "/admin/staff");
             return NoContent();
         }
     }

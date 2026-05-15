@@ -17,13 +17,9 @@ import {
 } from "../../utils/authStorage";
 import { getAvatarPreview } from "../../utils/avatar";
 
-const ADMIN_ROLE_NAMES = new Set([
-  "admin",
-  "receptionist",
-  "front desk",
-  "frontdesk",
-  "le tan",
-  "housekeeping",
+const CUSTOMER_ROLE_NAMES = new Set([
+  "user",
+  "guest",
 ]);
 
 const customerMenuItems = [
@@ -93,7 +89,7 @@ const UserMenu = ({
   };
 
   const normalizedRole = auth?.role?.trim().toLowerCase();
-  const showCustomerLinks = !ADMIN_ROLE_NAMES.has(normalizedRole);
+  const showCustomerLinks = CUSTOMER_ROLE_NAMES.has(normalizedRole);
   
   const buttonClassName =
     variant === "dark"

@@ -101,7 +101,7 @@ const ServicesPage = () => {
 
   return (
     <div className="min-h-screen bg-[#F5F7FA] pb-20 pt-24">
-      <div className="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
 
         {/* Search Bar Section */}
         <div className="mb-10 flex flex-col items-center">

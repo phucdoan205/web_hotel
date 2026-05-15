@@ -136,15 +136,6 @@ function StatCard({ code, title, value, unit, growthRate, trendDir }) {
           <div className="mt-1 flex items-baseline gap-1">
             <p className="text-3xl font-black text-slate-900 tracking-tight">{fmtValue(value, unit)}</p>
           </div>
-
-          {hasGrowth && (
-            <div className="mt-3 flex items-center gap-2">
-              <div className={`size-1.5 rounded-full ${isUp ? "bg-emerald-400" : isDown ? "bg-rose-400" : "bg-slate-300"}`} />
-              <p className={`text-[11px] font-bold ${isUp ? "text-emerald-500" : isDown ? "text-rose-500" : "text-slate-400"}`}>
-                {isUp ? "Tăng trưởng" : isDown ? "Giảm sút" : "Ổn định"} so với kỳ trước
-              </p>
-            </div>
-          )}
         </div>
       </div>
     </motion.div>
@@ -773,7 +764,104 @@ function RecentAudits({ audits }) {
   );
 }
 
-// ─── Role-specific system info ────────────────────────────────────────────────
+// ─── User Growth Chart ───────────────────────────────────────────────────────
+function UserGrowthChart({ data = [] }) {
+  if (!data?.length) return null;
+
+  return (
+    <div className="rounded-[2.5rem] border border-slate-100 bg-white p-7 shadow-sm h-full flex flex-col">
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-black text-slate-800 tracking-tight">Tăng trưởng Người dùng & Khách hàng</h3>
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Xu hướng đăng ký</p>
+        </div>
+        <div className="flex size-10 items-center justify-center rounded-2xl bg-violet-50 text-violet-500 ring-1 ring-violet-100">
+          <Users className="size-5" />
+        </div>
+      </div>
+
+      <div className="flex-1 min-h-[300px]">
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+            <defs>
+              <linearGradient id="userGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+              </linearGradient>
+              <linearGradient id="guestGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#f97316" stopOpacity={0.3} />
+                <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+            <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 600 }} dy={10} />
+            <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 600 }} />
+            <Tooltip
+              contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', padding: '12px' }}
+              formatter={(v, name) => [v, name === "userCount" ? "Người dùng (User)" : "Khách hàng (Guest)"]}
+            />
+            <Legend verticalAlign="top" align="right" iconType="circle" iconSize={8} wrapperStyle={{ paddingBottom: 20, fontSize: 11, fontWeight: 700 }}
+              formatter={(value) => value === "userCount" ? "User" : "Guest"}
+            />
+            <Area type="monotone" dataKey="userCount" stroke="#3b82f6" strokeWidth={3} fill="url(#userGrad)" />
+            <Area type="monotone" dataKey="guestCount" stroke="#f97316" strokeWidth={3} fill="url(#guestGrad)" />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
+
+// ─── Role Distribution Chart ────────────────────────────────────────────────
+function RoleDistributionChart({ data = [], totalPermissions = 0 }) {
+  const chartData = data.map(d => ({
+    name: d.roleName,
+    value: d.userCount,
+    color: d.roleName === "Admin" ? "#6366f1" : d.roleName === "Manager" ? "#8b5cf6" : "#94a3b8"
+  })).filter(d => d.value > 0);
+
+  return (
+    <div className="rounded-[2.5rem] border border-slate-100 bg-white p-7 shadow-sm h-full flex flex-col">
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-black text-slate-800 tracking-tight">Cơ cấu vai trò & Quyền</h3>
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Phân bổ hệ thống</p>
+        </div>
+        <div className="flex size-10 items-center justify-center rounded-2xl bg-amber-50 text-amber-500 ring-1 ring-amber-100">
+          <UserCircle className="size-5" />
+        </div>
+      </div>
+
+      <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+        <div className="h-[200px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie data={chartData} innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
+                {chartData.map((entry, index) => <Cell key={index} fill={entry.color} />)}
+              </Pie>
+              <Tooltip />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            {chartData.map((d, i) => (
+              <div key={i} className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="size-2 rounded-full" style={{ backgroundColor: d.color }} />
+                  <span className="text-xs font-bold text-slate-600">{d.name}</span>
+                </div>
+                <span className="text-xs font-black text-slate-900">{d.value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
 function SystemSummary({ systemSummary }) {
   if (!systemSummary) return null;
   const rows = [
@@ -786,16 +874,15 @@ function SystemSummary({ systemSummary }) {
   ].filter(r => r.val != null);
 
   return (
-    <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm h-full">
-      <h3 className="mb-4 text-base font-bold text-gray-900">Hệ thống</h3>
-      <div className="space-y-2">
-        {rows.map((r, i) => (
+    <div className="rounded-[2.5rem] border border-slate-100 bg-white p-7 shadow-sm h-full flex flex-col">
+      <h3 className="text-lg font-black text-slate-800 tracking-tight mb-6">Hệ thống</h3>
+      <div className="flex-1 space-y-4">
+        {rows.map((row, i) => (
           <div key={i} className="flex items-center justify-between">
-            <span className="text-sm text-gray-500">{r.label}</span>
-            <span className={`text-sm font-bold
-              ${r.alert && r.val > 0 ? "text-rose-600" : r.info && r.val > 0 ? "text-blue-600" : "text-gray-800"}`}>
-              {fmtNum(r.val)}
+            <span className={`text-sm font-bold ${row.alert ? "text-rose-500" : row.info ? "text-blue-500" : "text-slate-500"}`}>
+              {row.label}
             </span>
+            <span className="text-base font-black text-slate-900">{fmtNum(row.val)}</span>
           </div>
         ))}
       </div>
@@ -881,9 +968,9 @@ function RecentBookings({ bookings }) {
               <div className="mt-1 flex items-center justify-between">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">{b.code} · {new Date(b.createdAt).toLocaleDateString("vi-VN")}</p>
                 <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ring-1 ${b.status === "Completed" ? "bg-emerald-50 text-emerald-600 ring-emerald-100" :
-                    b.status === "Pending" ? "bg-amber-50 text-amber-600 ring-amber-100" :
-                      b.status === "Cancelled" ? "bg-rose-50 text-rose-600 ring-rose-100" :
-                        "bg-slate-50 text-slate-500 ring-slate-100"
+                  b.status === "Pending" ? "bg-amber-50 text-amber-600 ring-amber-100" :
+                    b.status === "Cancelled" ? "bg-rose-50 text-rose-600 ring-rose-100" :
+                      "bg-slate-50 text-slate-500 ring-slate-100"
                   }`}>
                   {b.status === "Completed" ? "Hoàn tất" : b.status === "Pending" ? "Chờ duyệt" : b.status === "Cancelled" ? "Đã hủy" : b.status}
                 </span>
@@ -1402,8 +1489,8 @@ export default function AdminDashboardPage() {
               key={p.id}
               onClick={() => setPeriodType(p.id)}
               className={`rounded-xl px-4 py-1.5 text-xs font-bold transition-all ${periodType === p.id
-                  ? "bg-white text-slate-900 shadow-sm"
-                  : "text-slate-500 hover:text-slate-700"
+                ? "bg-white text-slate-900 shadow-sm"
+                : "text-slate-500 hover:text-slate-700"
                 }`}
             >
               {p.label}
@@ -1442,7 +1529,43 @@ export default function AdminDashboardPage() {
       ) : (
         <>
           {/* ── Main Layout Engine by Role ── */}
-          {(role === "Admin" || role === "Manager") && (
+          {role === "Admin" && (
+            <div className="flex flex-col gap-6">
+              {/* Admin Row 1: KPI Cards */}
+              <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+                {enrichedCards.map((card, i) => <StatCard key={i} {...card} />)}
+              </div>
+
+              {/* Admin Row 2: Structure & Summary */}
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                <div className="lg:col-span-1">
+                  <RoleDistributionChart data={tables.usersByRole} totalPermissions={summary.system?.totalPermissions} />
+                </div>
+                <div className="lg:col-span-2">
+                  <SystemSummary systemSummary={summary.system} />
+                </div>
+              </div>
+              {/* Admin Row 3: Revenue & Booking */}
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                <div className="lg:col-span-2">
+                  {hasRev && <RevenueChart revenueSummary={summary.revenue} role={role} periodType={periodType} />}
+                </div>
+                <div className="lg:col-span-1">
+                  {hasBk && <BookingSummary bookingSummary={summary.booking} />}
+                </div>
+              </div>
+
+              {/* Admin Row 4: Activity Logs */}
+              <div className="grid grid-cols-1 gap-6">
+                {summary.audit?.recentAudits?.length > 0 && (
+                  <RecentAudits audits={summary.audit.recentAudits} />
+                )}
+              </div>
+
+            </div>
+          )}
+
+          {role === "Manager" && (
             <div className="flex flex-col gap-6">
               {/* Row 1: KPI Cards */}
               <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -1460,10 +1583,9 @@ export default function AdminDashboardPage() {
               </div>
 
               {/* Stats Row (Dòng 3) */}
-              <div className={`grid grid-cols-1 gap-6 items-start ${role === "Admin" ? "lg:grid-cols-3" : "lg:grid-cols-2"}`}>
+              <div className={`grid grid-cols-1 gap-6 items-start lg:grid-cols-2`}>
                 <BookingSummary bookingSummary={summary.booking} />
                 {hasWh && <WarehouseSummary warehouseSummary={summary.warehouse} />}
-                {role === "Admin" && <SystemSummary systemSummary={summary.system} />}
               </div>
 
               {/* Detailed Lists (Dòng 4) */}
@@ -1471,52 +1593,6 @@ export default function AdminDashboardPage() {
                 <RecentBookings bookings={summary.booking?.recentBookings} />
                 <TopServices services={summary.revenue?.topServices} />
               </div>
-
-              {/* Admin-only System Management Section */}
-              {role === "Admin" && (
-                <>
-                  <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 items-start mt-4">
-                    <div className="lg:col-span-1">
-                      <div className="rounded-[2rem] border border-slate-100 bg-white p-7 shadow-sm h-full">
-                        <div className="flex items-center gap-3 mb-6">
-                          <div className="flex size-10 items-center justify-center rounded-2xl bg-violet-50 text-violet-500 ring-1 ring-violet-100">
-                            <Activity className="size-5" />
-                          </div>
-                          <h3 className="text-base font-black text-slate-800 tracking-tight">Trung tâm hệ thống</h3>
-                        </div>
-                        <div className="space-y-4">
-                          <div className="flex items-center justify-between p-4 rounded-2xl bg-rose-50 border border-rose-100">
-                            <span className="text-xs font-black text-rose-600 uppercase">Tài khoản bị khóa</span>
-                            <span className="text-lg font-black text-rose-700">{summary.security?.lockedUsers || 0}</span>
-                          </div>
-                          <div className="flex items-center justify-between p-4 rounded-2xl bg-blue-50 border border-blue-100">
-                            <span className="text-xs font-black text-blue-600 uppercase">Thông báo mới</span>
-                            <span className="text-lg font-black text-blue-700">{summary.security?.unreadNotifications || 0}</span>
-                          </div>
-                          <div className="flex items-center justify-between p-4 rounded-2xl bg-emerald-50 border border-emerald-100">
-                            <span className="text-xs font-black text-emerald-600 uppercase">Trực tuyến</span>
-                            <span className="text-lg font-black text-emerald-700">{summary.system?.activeUsers || 0}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="lg:col-span-1">
-                      <QuickActions role={role} />
-                    </div>
-                    <div className="lg:col-span-1">
-                      {summary.audit?.recentEquipmentAudits?.length > 0 && (
-                        <WarehouseHistory audits={summary.audit.recentEquipmentAudits} />
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="mt-6">
-                    {summary.audit?.recentAudits?.length > 0 && (
-                      <RecentAudits audits={summary.audit.recentAudits} />
-                    )}
-                  </div>
-                </>
-              )}
             </div>
           )}
 

@@ -110,11 +110,6 @@ namespace backend.Controllers
                         .LoadAsync();
                 }
 
-                await _notificationService.CreateAsync(
-                    "New Google User",
-                    $"{user.FullName} created a new account with Google.",
-                    "Success",
-                    "/admin/staff");
 
                 return Ok(BuildAuthResponse(user));
             }

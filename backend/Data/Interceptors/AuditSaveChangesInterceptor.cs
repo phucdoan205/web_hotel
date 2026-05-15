@@ -40,11 +40,22 @@ namespace backend.Data.Interceptors
 
             foreach (var entry in context.ChangeTracker.Entries())
             {
+                // Skip specific entities or specific changes
                 if (entry.Entity is AuditLog ||
-                    entry.Metadata.ClrType.Name == "RoleDashboardPeriodState" ||
-                    entry.State == EntityState.Unchanged ||
-                    entry.State == EntityState.Detached)
+                    entry.Entity is Notification ||
+                    entry.Metadata.ClrType.Name == "RoleDashboardPeriodState")
                     continue;
+
+                if (entry.State == EntityState.Unchanged || entry.State == EntityState.Detached)
+                    continue;
+
+                // Skip User audit if only AvatarUrl is changed (common during profile photo uploads)
+                if (entry.Entity is User && entry.State == EntityState.Modified)
+                {
+                    var modifiedProps = entry.Properties.Where(p => p.IsModified).ToList();
+                    if (modifiedProps.Count == 1 && modifiedProps.Any(p => p.Metadata.Name == "AvatarUrl"))
+                        continue;
+                }
 
                 var auditEvent = CreateAuditEvent(entry);
                 if (auditEvent != null)

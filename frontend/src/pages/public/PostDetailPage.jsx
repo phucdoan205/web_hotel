@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, MessageCircle, Reply, Send, Calendar, User, ArrowLeft, MapPin, ChevronLeft, ChevronRight, X, Star } from "lucide-react";
+import { ChevronDown, MessageCircle, Reply, Send, Calendar, User, ArrowLeft, ArrowRight, MapPin, ChevronLeft, ChevronRight, X, Star } from "lucide-react";
 import { useParams, Link } from "react-router-dom";
-import { createArticleComment, getArticleDetail } from "../../api/articles/articleApi";
+import { createArticleComment, getArticleDetail, getArticles } from "../../api/articles/articleApi";
 import { getStoredAuth } from "../../utils/authStorage";
 import PostSidebar from "../../components/blog/PostSidebar";
 
@@ -338,7 +338,7 @@ const PostDetailPage = () => {
   return (
     <>
       <div className="min-h-screen bg-white pb-24 pt-6 md:pt-10">
-      <div className="mx-auto max-w-6xl px-5 lg:px-8">
+      <div className="mx-auto max-w-7xl px-5 lg:px-8">
         
         {/* Breadcrumbs / Back */}
         <div className="mb-6 flex items-center gap-2 text-sm font-semibold text-slate-500">

@@ -602,6 +602,8 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
             .Take(10)
             .ToList();
 
+        var totalPermissions = await _context.Permissions.CountAsync(cancellationToken);
+
         var recentEquipmentAuditLogs = await _context.EquipmentHistories
             .AsNoTracking()
             .Include(x => x.CreatedBy)
@@ -859,6 +861,7 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
             UserRoleCount = userRoleCount,
             RecentAudits = recentAudits,
             RecentEquipmentAudits = recentEquipmentAudits,
+            TotalPermissions = totalPermissions,
             TotalBookings = totalBookings,
             CompletedBookings = completedBookings,
             CancelledBookings = cancelledBookings,
@@ -926,7 +929,9 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
                     activeUsers = metrics.ActiveUsers,
                     lockedUsers = metrics.LockedUsers,
                     staffCount = metrics.StaffCount,
-                    userRoleCount = metrics.UserRoleCount
+                    userRoleCount = metrics.UserRoleCount,
+                    totalRoles = metrics.ManagedRoles,
+                    totalPermissions = metrics.TotalPermissions
                 },
                 audit = new
                 {
@@ -942,6 +947,26 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
                 tables = new
                 {
                     usersByRole = metrics.RoleUserCounts
+                },
+                booking = new
+                {
+                    totalBookings = metrics.TotalBookings,
+                    pendingBookings = metrics.PendingBookings,
+                    confirmedBookings = metrics.ConfirmedBookings,
+                    inProgressBookings = metrics.InProgressBookings,
+                    completedBookings = metrics.CompletedBookings,
+                    cancelledBookings = metrics.CancelledBookings,
+                    checkIns = metrics.CheckIns,
+                    checkOuts = metrics.CheckOuts,
+                    recentBookings = metrics.RecentBookings
+                },
+                revenue = new
+                {
+                    totalRevenue = metrics.TotalRevenue,
+                    revenueTrends = metrics.RevenueTrends,
+                    roomRevenue = metrics.RoomRevenue,
+                    serviceRevenue = metrics.ServiceRevenue,
+                    topServices = metrics.TopServices
                 }
             },
             "Manager" => (object)new
@@ -1370,6 +1395,7 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
         return document.RootElement.Clone();
     }
 
+
     private sealed class DashboardMetrics
     {
         public int TotalUsers { get; init; }
@@ -1393,6 +1419,7 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
         public decimal TotalRevenue { get; init; }
         public IReadOnlyList<RevenueTrendItem> RevenueTrends { get; init; } = Array.Empty<RevenueTrendItem>();
         public IReadOnlyList<RevenueTrendItem>? MonthlyTrends { get; init; }
+        public int TotalPermissions { get; init; }
         public decimal RoomRevenue { get; init; }
         public decimal ServiceRevenue { get; init; }
         public decimal PendingPaymentAmount { get; init; }

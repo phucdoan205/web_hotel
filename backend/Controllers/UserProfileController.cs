@@ -109,12 +109,6 @@ namespace backend.Controllers
 
             await _context.SaveChangesAsync();
 
-            await _notificationService.CreateAsync(
-                "Profile Updated",
-                $"{user.FullName} updated their profile information.",
-                "Info",
-                "/admin/settings");
-
             return NoContent();
         }
 
@@ -160,12 +154,6 @@ namespace backend.Controllers
             user.AvatarUrl = uploadedUrl;
             await _context.SaveChangesAsync();
             await _cloudinaryService.DeleteImageByUrlAsync(oldAvatarUrl);
-
-            await _notificationService.CreateAsync(
-                "Avatar Updated",
-                $"{user.FullName} updated their profile photo.",
-                "Info",
-                "/admin/settings");
 
             return Ok(new UploadAvatarResponseDTO
             {
