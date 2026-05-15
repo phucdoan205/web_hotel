@@ -224,6 +224,7 @@ const PostDetailPage = () => {
   const [canExpandContent, setCanExpandContent] = useState(false);
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [latestArticles, setLatestArticles] = useState([]);
 
   const canInteract = auth?.role?.toLowerCase() !== "housekeeping";
   const htmlContent = useMemo(() => normalizeArticleContent(article?.content), [article?.content]);
@@ -232,6 +233,18 @@ const PostDetailPage = () => {
     if (!article) return [];
     return [...new Set([article.thumbnailUrl, ...(article.galleryUrls || [])].filter(Boolean))];
   }, [article]);
+
+  useEffect(() => {
+    const fetchLatest = async () => {
+      try {
+        const data = await getArticles({ scope: "public" });
+        setLatestArticles(data.filter(a => a.id !== id).slice(0, 4));
+      } catch (err) {
+        console.error("Failed to fetch latest articles:", err);
+      }
+    };
+    fetchLatest();
+  }, [id]);
 
   useEffect(() => {
     if (isGalleryOpen) {
@@ -550,14 +563,67 @@ const PostDetailPage = () => {
         </div>
       </div>
 
-      {/* Sidebar */}
+      {/* Sidebar - Hidden on Mobile */}
       <div className="hidden lg:block">
         <div className="sticky top-24">
           <PostSidebar />
         </div>
       </div>
     </div>
+
+    {/* RELATED ARTICLES SECTION - Visible on all, but crucial for mobile */}
+    <div className="mt-20 pt-16 border-t border-slate-100">
+       <div className="flex items-center justify-between mb-10">
+         <div>
+           <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Khám phá thêm</h2>
+           <p className="text-sm font-medium text-slate-500 mt-1">Những bài viết thú vị khác bạn có thể quan tâm</p>
+         </div>
+         <Link 
+           to="/articles" 
+           className="flex items-center gap-1.5 text-sm font-black text-[#0194f3] hover:underline"
+         >
+           Xem tất cả bài viết <ArrowRight size={16} />
+         </Link>
+       </div>
+
+       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+         {latestArticles.map((item) => (
+           <Link 
+             key={item.id} 
+             to={`/articles/${item.slug || item.id}`}
+             className="group flex flex-col overflow-hidden rounded-2xl bg-white border border-slate-100 transition-all hover:shadow-xl hover:-translate-y-1"
+           >
+             <div className="relative aspect-[16/10] overflow-hidden">
+               <img 
+                 src={item.thumbnailUrl || "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400"} 
+                 alt={item.title} 
+                 className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+               />
+               <div className="absolute top-3 left-3">
+                 <span className="rounded-lg bg-white/90 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-[#0194f3] shadow-sm">
+                   {item.categoryName || "Tin tức"}
+                 </span>
+               </div>
+             </div>
+             <div className="p-5 flex flex-1 flex-col">
+               <h3 className="text-[15px] font-black text-slate-900 leading-snug line-clamp-2 group-hover:text-[#0194f3] transition-colors">
+                 {item.title}
+               </h3>
+               <div className="mt-auto pt-4 flex items-center justify-between opacity-60">
+                  <span className="text-[10px] font-bold text-slate-400">
+                    {new Date(item.publishedAt || item.createdAt).toLocaleDateString("vi-VN")}
+                  </span>
+                  <div className="flex items-center gap-1 text-[#0194f3] text-[11px] font-black">
+                    Chi tiết <ChevronRight size={12} />
+                  </div>
+               </div>
+             </div>
+           </Link>
+         ))}
+       </div>
+    </div>
   </div>
+</div>
 
       {/* GALLERY MODAL OVERLAY */}
       {isGalleryOpen && (

@@ -159,7 +159,7 @@ const HomePage = () => {
         <section className="mx-auto max-w-7xl px-5 pt-12 lg:px-8">
           <div className="mb-8 flex items-center justify-between">
             <div>
-              <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Bạn vẫn quan tâm?</h2>
+              <h2 className="text-xl font-bold text-slate-900 tracking-tight sm:text-2xl">Bạn vẫn quan tâm?</h2>
             </div>
             {recentlyViewed.length > 4 && (
               <div className="flex gap-2">
@@ -260,7 +260,7 @@ const HomePage = () => {
       {/* Section: Offers & Promo - Redesigned to 'Ưu đãi cho bạn' */}
       <section className="mx-auto max-w-7xl px-5 py-12 lg:px-8">
         <div className="mb-8 flex items-center justify-between">
-          <h2 className="text-2xl font-black tracking-tight text-slate-900 uppercase">Ưu đãi cho bạn</h2>
+          <h2 className="text-xl font-black tracking-tight text-slate-900 uppercase sm:text-2xl">Ưu đãi cho bạn</h2>
           <Link 
             to="/offers"
             className="flex items-center gap-1.5 text-sm font-black text-orange-600 transition hover:gap-2 hover:text-orange-700"
@@ -289,7 +289,7 @@ const HomePage = () => {
                   </p>
                 </div>
                 
-                <div className={`relative flex w-40 flex-col items-center justify-center border-l border-dashed p-6 text-white ${isExpired ? 'border-slate-100 bg-slate-400' : 'border-orange-100 bg-orange-500'}`}>
+                <div className={`relative flex w-32 sm:w-40 flex-col items-center justify-center border-l border-dashed p-4 sm:p-6 text-white ${isExpired ? 'border-slate-100 bg-slate-400' : 'border-orange-100 bg-orange-500'}`}>
                   {/* Ticket notches */}
                   <div className={`absolute -left-2 -top-2 size-4 rounded-full ${isExpired ? 'bg-slate-50' : 'bg-[#f8fafc]'}`} />
                   <div className={`absolute -left-2 -bottom-2 size-4 rounded-full ${isExpired ? 'bg-slate-50' : 'bg-[#f8fafc]'}`} />
@@ -337,7 +337,7 @@ const HomePage = () => {
       {/* Section: Property Types */}
       <section className="mx-auto max-w-7xl px-5 pb-16 lg:px-8">
         <div className="mb-8">
-          <h2 className="text-2xl font-bold text-slate-900">Lưu trú tại các chỗ nghỉ độc đáo hàng đầu</h2>
+          <h2 className="text-xl font-bold text-slate-900 sm:text-2xl">Lưu trú tại các chỗ nghỉ độc đáo hàng đầu</h2>
           <p className="mt-1 text-slate-500">
             Từ biệt thự, lâu đài cho đến nhà thuyền, igloo, chúng tôi đều có hết
           </p>
@@ -433,7 +433,7 @@ const HomePage = () => {
       <section className="mx-auto max-w-7xl px-5 pb-20 lg:px-8">
         <div className="mb-10 flex items-center justify-between">
           <div>
-            <h2 className="text-3xl font-black tracking-tight text-slate-900 uppercase">Bài viết gần đây</h2>
+            <h2 className="text-2xl font-black tracking-tight text-slate-900 uppercase sm:text-3xl">Bài viết gần đây</h2>
             <p className="mt-2 font-medium text-slate-500">Cập nhật những xu hướng và kinh nghiệm du lịch mới nhất.</p>
           </div>
           <Link 

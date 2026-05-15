@@ -41,6 +41,7 @@ const AttractionDetailPage = () => {
   const [canExpandContent, setCanExpandContent] = useState(false);
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [otherAttractions, setOtherAttractions] = useState([]);
 
   const htmlContent = useMemo(() => normalizeContent(attraction?.description), [attraction?.description]);
 
@@ -66,6 +67,10 @@ const AttractionDetailPage = () => {
       try {
         const response = await apiClient.get(`/Attractions/public/${id}`);
         setAttraction(response.data);
+        
+        // Fetch others for bottom section
+        const othersRes = await apiClient.get("/Attractions/public", { params: { pageSize: 5 } });
+        setOtherAttractions((othersRes.data?.items || othersRes.data || []).filter(a => a.id !== id).slice(0, 4));
       } catch (err) {
         setError("Không tải được chi tiết địa điểm.");
       } finally {
@@ -266,6 +271,54 @@ const AttractionDetailPage = () => {
               )}
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* OTHER ATTRACTIONS SECTION - Crucial for mobile UX */}
+      <div className="mx-auto max-w-6xl px-5 lg:px-8 mt-20 pt-16 border-t border-slate-100">
+        <div className="flex items-center justify-between mb-10">
+          <div>
+            <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Địa điểm khác</h2>
+            <p className="text-sm font-medium text-slate-500 mt-1">Khám phá thêm những địa danh thú vị xung quanh</p>
+          </div>
+          <Link 
+            to="/attractions/search" 
+            className="flex items-center gap-1.5 text-sm font-black text-rose-500 hover:underline"
+          >
+            Xem tất cả <ChevronRight size={18} />
+          </Link>
+        </div>
+
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {otherAttractions.map((item) => (
+            <Link 
+              key={item.id} 
+              to={`/attractions/${item.slug || item.id}`}
+              className="group flex flex-col overflow-hidden rounded-2xl bg-white border border-slate-100 transition-all hover:shadow-xl hover:-translate-y-1"
+            >
+              <div className="relative aspect-[4/3] overflow-hidden">
+                <img 
+                  src={item.imageUrl || "https://images.unsplash.com/photo-1530789253388-582c481c54b0?w=400"} 
+                  alt={item.name} 
+                  className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+                />
+                <div className="absolute top-3 left-3">
+                  <span className="rounded-lg bg-rose-500 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-white shadow-sm">
+                    {item.category || "Địa điểm"}
+                  </span>
+                </div>
+              </div>
+              <div className="p-5 flex flex-1 flex-col">
+                <h3 className="text-[15px] font-black text-slate-900 leading-snug line-clamp-2 group-hover:text-rose-500 transition-colors">
+                  {item.name}
+                </h3>
+                <div className="mt-auto pt-4 flex items-center gap-2 text-slate-400">
+                   <MapPin size={12} className="text-rose-400" />
+                   <span className="text-[10px] font-bold line-clamp-1">{item.address || "Việt Nam"}</span>
+                </div>
+              </div>
+            </Link>
+          ))}
         </div>
       </div>
 

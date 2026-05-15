@@ -48,7 +48,7 @@ const BlogPage = () => {
               <div className="mb-16">
                 <div className="flex items-center justify-between mb-8">
                   <h2 className="text-2xl md:text-3xl font-black text-slate-900">Các hoạt động hàng đầu</h2>
-                  <Link to="/articles/search" className="hidden sm:flex items-center gap-1 text-sm font-bold text-[#01539d] hover:underline">
+                  <Link to="/articles/search" className="flex items-center gap-1.5 text-sm font-bold text-[#01539d] hover:underline whitespace-nowrap">
                     Xem tất cả <ArrowRight className="size-4" />
                   </Link>
                 </div>
@@ -116,7 +116,7 @@ const BlogPage = () => {
               <div className="mb-12">
                 <div className="flex items-center justify-between mb-8">
                   <h2 className="text-2xl md:text-3xl font-black text-slate-900">Khám phá các địa điểm xung quanh</h2>
-                  <Link to="/attractions/search" className="hidden sm:flex items-center gap-1 text-sm font-bold text-[#01539d] hover:underline">
+                  <Link to="/attractions/search" className="flex items-center gap-1.5 text-sm font-bold text-[#01539d] hover:underline whitespace-nowrap">
                     Xem tất cả <ArrowRight className="size-4" />
                   </Link>
                 </div>

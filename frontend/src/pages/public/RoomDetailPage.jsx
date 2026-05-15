@@ -490,9 +490,9 @@ const RoomDetailPage = () => {
       </div>
 
       {/* Sticky Tabs */}
-      <div className="sticky top-[80px] z-30 bg-white/90 backdrop-blur-xl shadow-sm border border-slate-200 rounded-2xl px-6 pt-4 mb-8">
+      <div className="sticky top-[64px] z-30 bg-white/95 backdrop-blur-xl shadow-sm border border-slate-200 rounded-2xl px-4 sm:px-6 pt-4 mb-8">
         <div className="flex items-center gap-4">
-          <div className="flex gap-10 overflow-x-auto no-scrollbar flex-1">
+          <div className="flex gap-6 sm:gap-10 overflow-x-auto no-scrollbar flex-1">
             {[
               { id: "overview", label: "Tổng quan" },
               { id: "availability", label: "Tình trạng phòng trống" },
@@ -550,13 +550,13 @@ const RoomDetailPage = () => {
 
             <div className="mb-8 space-y-2">
               <div 
-                className="grid grid-cols-3 gap-2 overflow-hidden rounded-2xl cursor-pointer group" 
+                className="grid grid-cols-1 sm:grid-cols-3 gap-2 overflow-hidden rounded-2xl cursor-pointer group" 
                 onClick={() => { setIsGalleryOpen(true); setCurrentImageIndex(0); }}
               >
-                <div className="col-span-2 h-[460px] overflow-hidden">
+                <div className="col-span-1 sm:col-span-2 h-[300px] sm:h-[460px] overflow-hidden">
                   <img src={imageUrls[0]} alt="Phòng chính" className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
                 </div>
-                <div className="flex flex-col gap-2 h-[460px]">
+                <div className="hidden sm:flex flex-col gap-2 h-[460px]">
                   <div className="h-1/2 overflow-hidden">
                     <img src={imageUrls[1] || fallbackImage} alt="Góc khác" className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
                   </div>
@@ -676,7 +676,9 @@ const RoomDetailPage = () => {
                     </div>
                   </div>
                 )}
-                <div className="rounded-t-xl rounded-b border border-slate-300 shadow-sm overflow-hidden">
+                
+                {/* Desktop Table - Hidden on small screens */}
+                <div className="hidden lg:block rounded-t-xl rounded-b border border-slate-300 shadow-sm overflow-hidden">
                   <table className="w-full text-left text-sm text-slate-700">
                     <thead className="bg-[#003b95] text-white">
                       <tr>
@@ -735,29 +737,18 @@ const RoomDetailPage = () => {
                               {!isTrulyAvailable ? (
                                 <div className="space-y-2">
                                   <div className="text-center text-xs font-black uppercase tracking-wider text-rose-600 bg-rose-50 py-2 rounded-lg border border-rose-100">
-                                    Phòng đã có người đặt
+                                    Hết phòng
                                   </div>
-                                  <button 
-                                    type="button"
-                                    disabled
-                                    className="w-full rounded border border-slate-200 bg-slate-100 py-2.5 font-bold text-slate-400 cursor-not-allowed"
-                                  >
+                                  <button type="button" disabled className="w-full rounded border border-slate-200 bg-slate-100 py-2.5 font-bold text-slate-400 cursor-not-allowed">
                                     Không thể chọn
                                   </button>
                                 </div>
                               ) : isSelected ? (
-                                <button 
-                                  type="button"
-                                  className="w-full rounded bg-emerald-600 py-2.5 font-bold text-white shadow-sm flex justify-center items-center gap-2 ring-2 ring-emerald-600 ring-offset-2 transition"
-                                >
+                                <button type="button" className="w-full rounded bg-emerald-600 py-2.5 font-bold text-white shadow-sm flex justify-center items-center gap-2 ring-2 ring-emerald-600 ring-offset-2 transition">
                                   <Check size={18} /> Đang chọn
                                 </button>
                               ) : (
-                                <button 
-                                  type="button"
-                                  onClick={() => setSelectedRoomId(room.id)}
-                                  className="w-full rounded border border-blue-600 bg-white py-2.5 font-bold text-blue-600 shadow-sm hover:bg-blue-50 transition"
-                                >
+                                <button type="button" onClick={() => setSelectedRoomId(room.id)} className="w-full rounded border border-blue-600 bg-white py-2.5 font-bold text-blue-600 shadow-sm hover:bg-blue-50 transition">
                                   Chọn phòng này
                                 </button>
                               )}
@@ -767,6 +758,69 @@ const RoomDetailPage = () => {
                       })}
                     </tbody>
                   </table>
+                </div>
+
+                {/* Mobile/Tablet Card Layout - Shown on smaller screens */}
+                <div className="lg:hidden grid gap-4">
+                  {roomList.map((room) => {
+                    const isSelected = room.id === selectedRoomId;
+                    const isTrulyAvailable = room.isTrulyAvailable;
+
+                    return (
+                      <div 
+                        key={room.id} 
+                        className={`rounded-2xl border-2 p-5 transition-all ${
+                          isSelected ? "border-blue-600 bg-blue-50/30 shadow-md" : "border-slate-200 bg-white"
+                        } ${!isTrulyAvailable ? "opacity-75" : ""}`}
+                      >
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex flex-col gap-1">
+                            <h3 className="text-xl font-black text-blue-700">Phòng {room.roomNumber}</h3>
+                            <div className="flex items-center gap-3">
+                              <div className="flex items-center gap-1.5 text-slate-600 font-bold text-sm">
+                                <Users size={16} />
+                                <span>{roomType.capacityAdults} NL</span>
+                              </div>
+                              {roomType.capacityChildren > 0 && (
+                                <span className="text-xs font-bold text-slate-400">+{roomType.capacityChildren} TE</span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xl font-black text-slate-900">{formatCurrency(totalPrice)}</p>
+                            <p className="text-[11px] font-bold text-slate-500">/{stayDays} đêm</p>
+                          </div>
+                        </div>
+
+                        <div className="mb-6 flex flex-wrap gap-2">
+                          {[...(room.roomSpecificAmenities || []), ...(room.roomTypeAmenities || [])].slice(0, 6).map(amenity => (
+                            <span key={amenity.name} className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-1.5 text-[11px] font-bold text-slate-600">
+                              <span className="text-blue-500">{getAmenityIcon(amenity.name)}</span>
+                              {amenity.name}
+                            </span>
+                          ))}
+                        </div>
+
+                        {!isTrulyAvailable ? (
+                          <div className="rounded-xl bg-rose-50 border border-rose-100 py-3 text-center text-xs font-black uppercase text-rose-600">
+                            Hết phòng
+                          </div>
+                        ) : isSelected ? (
+                          <div className="flex h-12 items-center justify-center gap-2 rounded-xl bg-emerald-600 font-black text-white shadow-lg">
+                            <Check size={20} /> Đang chọn
+                          </div>
+                        ) : (
+                          <button 
+                            type="button" 
+                            onClick={() => setSelectedRoomId(room.id)}
+                            className="flex h-12 w-full items-center justify-center rounded-xl border-2 border-blue-600 font-black text-blue-600 transition active:scale-95 hover:bg-blue-50"
+                          >
+                            Chọn phòng này
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             ) : (

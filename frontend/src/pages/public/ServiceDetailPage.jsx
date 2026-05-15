@@ -479,7 +479,7 @@ const ServiceDetailPage = () => {
           <span className="text-slate-300">/</span>
           <span className="text-[#0194f3]">{service.categoryName || "Chung"}</span>
           <span className="text-slate-300">/</span>
-          <span className="truncate text-slate-900">{service.name}</span>
+          <span className="max-w-[150px] truncate text-slate-900 sm:max-w-none">{service.name}</span>
         </div>
 
         <div className="mb-8">
@@ -513,7 +513,7 @@ const ServiceDetailPage = () => {
 
         {imageUrls.length > 0 && (
           <div
-            className="group mb-12 grid h-[300px] cursor-pointer gap-2 overflow-hidden rounded-3xl shadow-2xl ring-1 ring-slate-200 sm:h-[400px] md:h-[480px] md:grid-cols-3"
+            className="group mb-8 grid h-[250px] cursor-pointer gap-2 overflow-hidden rounded-3xl shadow-xl ring-1 ring-slate-200 sm:h-[400px] md:mb-12 md:h-[480px] md:grid-cols-3"
             onClick={() => {
               setCurrentImageIndex(0);
               setIsGalleryOpen(true);
@@ -554,7 +554,7 @@ const ServiceDetailPage = () => {
                             <div className="h-1.5 w-1.5 rounded-full bg-white" />
                             <div className="h-1.5 w-1.5 rounded-full bg-white" />
                           </div>
-                          <span className="text-sm font-bold">Hiển thị tất cả hình ảnh</span>
+                          <span className="text-sm font-bold">Tất cả ảnh</span>
                         </div>
                       )}
                     </div>
@@ -574,15 +574,19 @@ const ServiceDetailPage = () => {
               </h2>
             </div>
 
-            <div className="relative">
+            <div className="relative overflow-hidden">
               <div
                 ref={contentRef}
-                className={`prose prose-lg prose-slate max-w-none break-words overflow-hidden prose-headings:font-black prose-a:text-[#0194f3] prose-img:rounded-2xl [&_*]:max-w-full [&_*]:break-words [&_p]:whitespace-normal [&_p]:leading-8 [&_li]:whitespace-normal [&_li]:leading-8 [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_code]:break-words [&_table]:block [&_table]:w-full [&_table]:overflow-x-auto [&_img]:my-5 [&_img]:block [&_img]:h-auto [&_img]:max-w-full [&_img]:object-cover transition-all duration-500 ${expandedContent ? "" : "max-h-[800px] overflow-hidden"
+                className={`prose prose-slate max-w-none break-words prose-headings:font-black prose-a:text-[#0194f3] prose-img:rounded-2xl 
+                [&_*]:max-w-full [&_*]:break-words [&_p]:whitespace-normal [&_p]:leading-7 [&_p]:text-slate-600 [&_p]:font-medium
+                [&_li]:whitespace-normal [&_li]:leading-7 [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_code]:break-words 
+                [&_table]:block [&_table]:w-full [&_table]:overflow-x-auto [&_img]:my-5 [&_img]:block [&_img]:h-auto [&_img]:max-w-full [&_img]:object-cover 
+                transition-all duration-500 ${expandedContent ? "" : "max-h-[600px] sm:max-h-[800px] overflow-hidden"
                   }`}
                 dangerouslySetInnerHTML={{ __html: htmlContent }}
               />
               {!expandedContent && canExpandContent && (
-                <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-white via-white/80 to-transparent" />
+                <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-white via-white/80 to-transparent" />
               )}
             </div>
 
@@ -868,6 +872,22 @@ const ServiceDetailPage = () => {
               </div>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Sticky Booking Bar for Mobile */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 border-t bg-white p-4 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] backdrop-blur-md lg:hidden">
+        <div className="flex items-center justify-between">
+          <div className="flex flex-col">
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Giá từ</span>
+            <span className="text-lg font-black text-[#f12c2c]">{formattedPrice}</span>
+          </div>
+          <button 
+            onClick={() => bookingBoxRef.current?.scrollIntoView({ behavior: 'smooth' })}
+            className="rounded-xl bg-[#0194f3] px-8 py-3 text-sm font-black text-white shadow-lg shadow-[#0194f3]/20 active:scale-95"
+          >
+            Đặt ngay
+          </button>
         </div>
       </div>
 
