@@ -14,6 +14,7 @@ const ServicesPage = () => {
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [searchValue, setSearchValue] = useState(searchParams.get("search") || "");
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   const filters = {
     categoryId: searchParams.get("category") ? parseInt(searchParams.get("category")) : null,
@@ -115,29 +116,36 @@ const ServicesPage = () => {
               value={searchValue}
               onChange={(e) => setSearchValue(e.target.value)}
               placeholder="Bạn muốn tìm dịch vụ gì?"
-              className="h-14 w-full pl-14 pr-32 text-sm font-bold text-slate-900 outline-none placeholder:text-slate-400"
+              className="h-14 w-full pl-12 md:pl-14 pr-[100px] md:pr-32 text-sm font-bold text-slate-900 outline-none placeholder:text-slate-400"
             />
             <button
               type="submit"
-              className="absolute right-2 top-2 h-10 rounded-full bg-[#0194f3] px-6 text-sm font-black text-white transition-all hover:bg-[#017bc0] shadow-md"
+              className="absolute right-2 top-2 h-10 rounded-full bg-[#0194f3] px-4 md:px-6 text-sm font-black text-white transition-all hover:bg-[#017bc0] shadow-md"
             >
               Tìm kiếm
             </button>
           </form>
 
           {/* Categories Grid/Row */}
-          <div className="mt-12 w-full">
+          <div className="mt-12 w-full flex flex-col items-center">
             <ServiceCategories
               categories={categories}
               selectedCategoryId={filters.categoryId}
               onCategorySelect={(id) => updateFilters({ categoryId: id })}
             />
+            <button
+              onClick={() => setIsFilterOpen(!isFilterOpen)}
+              className="mt-8 lg:hidden flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-6 py-3 shadow-sm text-sm font-bold text-slate-700 transition active:scale-95"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
+              {isFilterOpen ? "Đóng bộ lọc" : "Bộ lọc & Sắp xếp"}
+            </button>
           </div>
         </div>
 
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-4">
           {/* Sidebar - Filter */}
-          <div className="hidden lg:block">
+          <div className={isFilterOpen ? "block" : "hidden lg:block"}>
             <ServiceSidebar
               filters={filters}
               onFilterChange={updateFilters}

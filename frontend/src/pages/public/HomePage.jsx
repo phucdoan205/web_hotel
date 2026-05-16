@@ -198,22 +198,7 @@ const HomePage = () => {
                       alt={rt.name}
                       className="h-full w-full object-cover transition-transform duration-700 hover:scale-105"
                     />
-                    <div className="absolute right-3 top-3">
-                      <button 
-                        onClick={(e) => { 
-                          e.stopPropagation(); 
-                          toggleFavoriteRoomType({
-                            roomTypeId: rt.id,
-                            roomTypeName: rt.name,
-                            basePrice: rt.basePrice,
-                            imageUrls: [rt.primaryImageUrl]
-                          }); 
-                        }}
-                        className="flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-slate-700 shadow-md backdrop-blur-sm transition hover:bg-white"
-                      >
-                        <Heart size={20} className={isFavoriteRoomType(rt.id) ? 'text-red-500 fill-red-500' : 'text-slate-600'} />
-                      </button>
-                    </div>
+
                   </div>
                   <div className="p-4 flex flex-col gap-3">
                     <div>
@@ -278,7 +263,7 @@ const HomePage = () => {
               <div 
                 key={voucher.id}
                 onClick={() => !isExpired && setSelectedVoucher(voucher)}
-                className={`group relative flex overflow-hidden rounded-2xl border border-dashed bg-white shadow-sm transition-all ${isExpired ? 'border-slate-200 cursor-not-allowed opacity-75 grayscale' : 'border-orange-200 cursor-pointer hover:shadow-md'}`}
+                className={`group relative flex h-full overflow-hidden rounded-2xl border border-dashed bg-white shadow-sm transition-all ${isExpired ? 'border-slate-200 cursor-not-allowed opacity-75 grayscale' : 'border-orange-200 cursor-pointer hover:shadow-md'}`}
               >
                 <div className="flex flex-1 flex-col p-6">
                   <h3 className={`text-base font-black line-clamp-2 min-h-[48px] ${isExpired ? 'text-slate-400' : 'text-slate-900'}`}>
@@ -294,10 +279,12 @@ const HomePage = () => {
                   <div className={`absolute -left-2 -top-2 size-4 rounded-full ${isExpired ? 'bg-slate-50' : 'bg-[#f8fafc]'}`} />
                   <div className={`absolute -left-2 -bottom-2 size-4 rounded-full ${isExpired ? 'bg-slate-50' : 'bg-[#f8fafc]'}`} />
                   
-                  <div className="text-center">
-                    <p className="text-lg font-black uppercase tracking-tight">
-                      Giảm {voucher.discountType === "PERCENT" ? `${voucher.discountValue}%` : `${voucher.discountValue.toLocaleString()} VND`}
-                    </p>
+                  <div className="text-center w-full">
+                    <div className="flex flex-col items-center justify-center min-h-[48px]">
+                      <p className="text-base sm:text-lg font-black uppercase tracking-tight leading-none text-balance">
+                        Giảm {voucher.discountType === "PERCENT" ? `${voucher.discountValue}%` : `${voucher.discountValue.toLocaleString()} đ`}
+                      </p>
+                    </div>
                     <p className="mt-1.5 text-[10px] font-bold leading-tight opacity-95">
                       {voucher.minBookingValue ? `Đơn tối thiểu: ${voucher.minBookingValue.toLocaleString()} VND` : "Không cần đơn tối thiểu"}
                     </p>

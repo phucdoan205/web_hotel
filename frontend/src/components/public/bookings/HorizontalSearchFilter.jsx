@@ -68,7 +68,7 @@ const HorizontalSearchFilter = ({
   const endDate = filters.checkOut ? new Date(filters.checkOut) : null;
 
   return (
-    <div className="relative mx-auto w-full rounded-3xl bg-white p-3 shadow-2xl md:rounded-[2rem] md:p-4">
+    <div className="relative mx-auto w-full rounded-2xl bg-white p-3 shadow-[0_20px_60px_rgba(0,0,0,0.08)] md:rounded-2xl md:p-4 border border-slate-100">
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -78,7 +78,7 @@ const HorizontalSearchFilter = ({
         className="flex flex-col gap-3 lg:flex-row lg:items-center"
       >
         {/* Dates */}
-        <div className="flex-[1.5] rounded-2xl border border-slate-200 bg-white px-5 py-3 transition-all focus-within:border-[#0194f3] focus-within:ring-4 focus-within:ring-[#0194f3]/10">
+        <div className="flex-[1.5] rounded-xl border border-slate-200 bg-white px-5 py-3 transition-all focus-within:border-[#0194f3] focus-within:ring-4 focus-within:ring-[#0194f3]/10">
           <label className="mb-1.5 block text-[11px] font-black uppercase tracking-wider text-slate-400">
             Ngày nhận & trả phòng
           </label>
@@ -108,7 +108,7 @@ const HorizontalSearchFilter = ({
         {/* Guests & Rooms */}
         <div className="relative flex-1" ref={popupRef}>
           <div
-            className="cursor-pointer rounded-2xl border border-slate-200 bg-white px-5 py-3 transition-all hover:border-[#0194f3]"
+            className="cursor-pointer rounded-xl border border-slate-200 bg-white px-5 py-3 transition-all hover:border-[#0194f3]"
             onClick={() => setShowGuestPopup(!showGuestPopup)}
           >
             <label className="mb-1.5 block text-[11px] font-black uppercase tracking-wider text-slate-400">
@@ -132,7 +132,7 @@ const HorizontalSearchFilter = ({
                 initial={{ opacity: 0, y: 10, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                className="absolute left-0 right-0 top-[calc(100%+0.75rem)] z-50 rounded-2xl border border-slate-100 bg-white p-6 shadow-2xl shadow-slate-200"
+                className="absolute left-0 right-0 top-[calc(100%+0.75rem)] z-50 rounded-xl border border-slate-100 bg-white p-6 shadow-2xl shadow-slate-200"
               >
                 <div className="space-y-5">
                   <div className="flex items-center justify-between">
@@ -203,7 +203,7 @@ const HorizontalSearchFilter = ({
         <button
           type="submit"
           disabled={isSearching}
-          className="flex min-h-[64px] items-center justify-center gap-3 rounded-2xl bg-[#0194f3] px-10 text-base font-black text-white shadow-xl shadow-blue-200 transition-all hover:bg-[#017bc0] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70 lg:w-auto"
+          className="flex min-h-[64px] items-center justify-center gap-3 rounded-xl bg-gradient-to-r from-[#0194f3] to-[#0070bc] px-10 text-base font-black text-white shadow-lg shadow-blue-500/30 transition-all hover:scale-[1.02] hover:shadow-blue-500/40 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:scale-100 lg:w-auto"
         >
           <Search size={22} />
           {isSearching ? "Đang tìm..." : "Tìm kiếm"}

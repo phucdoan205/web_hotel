@@ -12,7 +12,7 @@ const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  const isTransparentNav = location.pathname === "/" || location.pathname === "/hotels" || location.pathname === "/offers" || location.pathname === "/articles" || location.pathname === "/support/help-center";
+  const isTransparentNav = location.pathname === "/" || location.pathname === "/hotels" || location.pathname === "/offers" || location.pathname === "/articles" || location.pathname === "/support/help-center" || location.pathname === "/booking";
 
   useEffect(() => {
     const handleScroll = () => {

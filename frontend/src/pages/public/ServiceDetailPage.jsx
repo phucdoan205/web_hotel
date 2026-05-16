@@ -22,11 +22,15 @@ const normalizeServiceContent = (content) => {
     return "";
   }
 
-  if (/<[a-z][\s\S]*>/i.test(content)) {
-    return content;
+  // Thay thế các khoảng trắng không ngắt (non-breaking spaces) sinh ra từ Editor
+  // để chữ có thể tự động xuống dòng trên màn hình nhỏ.
+  let cleanedContent = content.replace(/&nbsp;/g, " ");
+
+  if (/<[a-z][\s\S]*>/i.test(cleanedContent)) {
+    return cleanedContent;
   }
 
-  return content
+  return cleanedContent
     .split(/\n{2,}/)
     .map((paragraph) => `<p>${paragraph.replace(/\n/g, "<br />")}</p>`)
     .join("");
@@ -309,6 +313,174 @@ const ServiceDetailPage = () => {
   const [bookingDate, setBookingDate] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [showFullCalendar, setShowFullCalendar] = useState(false);
+  const [isMobileBookingOpen, setIsMobileBookingOpen] = useState(false);
+  
+  const renderBookingContent = () => (
+    <div className="space-y-6">
+      {/* Date Selector */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-black text-slate-800">Tìm theo ngày</span>
+          <button
+            onClick={() => setShowFullCalendar(!showFullCalendar)}
+            className="text-sm font-bold text-[#0194f3] hover:underline"
+          >
+            {showFullCalendar ? "Đóng lịch" : "Hiển thị thêm ngày"}
+          </button>
+        </div>
+
+        {!showFullCalendar ? (
+          <div className="relative group/scroll">
+            <button
+              onClick={() => scrollContainerRef.current?.scrollBy({ left: -200, behavior: "smooth" })}
+              className="absolute -left-3 top-1/2 z-10 flex size-9 -translate-y-1/2 items-center justify-center rounded-full bg-white shadow-xl ring-1 ring-slate-100 transition-transform hover:scale-110 md:group-hover/scroll:flex"
+            >
+              <ChevronLeft className="size-5 text-slate-600" />
+            </button>
+
+            <div
+              ref={scrollContainerRef}
+              className="flex gap-2 overflow-x-auto pb-2 scroll-smooth"
+              style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+            >
+              <style>{`
+                div::-webkit-scrollbar {
+                  display: none;
+                }
+              `}</style>
+              {quickDates.map((date) => {
+                const dateValue = formatDateValue(date);
+                const isSelected = selectedBookingDate && isSameDate(date, selectedBookingDate);
+                return (
+                  <button
+                    key={date.toISOString()}
+                    data-date={dateValue}
+                    onClick={() => handleSelectBookingDate(date)}
+                    className={`flex min-w-[85px] flex-col items-center justify-center rounded-2xl border-2 py-5 transition-all ${isSelected
+                      ? "border-[#0194f3] bg-[#0194f3]/5 shadow-sm"
+                      : "border-slate-100 bg-white hover:border-[#0194f3]/30"
+                      }`}
+                  >
+                    <span className={`text-[11px] font-bold uppercase tracking-wider ${isSelected ? "text-[#0194f3]" : "text-slate-400"}`}>
+                      {getDayName(date)}
+                    </span>
+                    <span className={`mt-1 text-2xl font-black ${isSelected ? "text-[#0194f3]" : "text-slate-800"}`}>
+                      {date.getDate()}
+                    </span>
+                    <span className={`text-[11px] font-bold ${isSelected ? "text-[#0194f3]" : "text-slate-400"}`}>
+                      Tháng {date.getMonth() + 1}
+                    </span>
+                    {isSameDate(date, new Date(new Date().setDate(new Date().getDate() + 1))) && (
+                      <span className="mt-2 rounded-full bg-slate-100 px-2 py-0.5 text-[8px] font-black text-slate-500">Ngày mai</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            <button
+              onClick={() => scrollContainerRef.current?.scrollBy({ left: 200, behavior: "smooth" })}
+              className="absolute -right-3 top-1/2 z-10 flex size-9 -translate-y-1/2 items-center justify-center rounded-full bg-white shadow-xl ring-1 ring-slate-100 transition-transform hover:scale-110 md:group-hover/scroll:flex"
+            >
+              <ChevronRight className="size-5 text-slate-600" />
+            </button>
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4">
+            <div className="mb-4 flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => setCalendarMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))}
+                className="flex size-8 items-center justify-center rounded-full bg-white text-slate-500 shadow-sm transition hover:text-[#0194f3]"
+              >
+                <ChevronLeft className="size-4" />
+              </button>
+              <div className="text-sm font-black text-slate-800">
+                Tháng {calendarMonth.getMonth() + 1} {calendarMonth.getFullYear()}
+              </div>
+              <button
+                type="button"
+                onClick={() => setCalendarMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))}
+                className="flex size-8 items-center justify-center rounded-full bg-white text-slate-500 shadow-sm transition hover:text-[#0194f3]"
+              >
+                <ChevronRight className="size-4" />
+              </button>
+            </div>
+
+            <div className="mb-2 grid grid-cols-7 gap-1 text-center text-[10px] font-black uppercase text-slate-400">
+              {["CN", "T2", "T3", "T4", "T5", "T6", "T7"].map((day) => (
+                <div key={day}>{day}</div>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-7 gap-1">
+              {calendarDays.map((date) => {
+                const isCurrentMonth = date.getMonth() === calendarMonth.getMonth();
+                const isPast = date < today;
+                const isSelected = selectedBookingDate && isSameDate(date, selectedBookingDate);
+                return (
+                  <button
+                    key={date.toISOString()}
+                    type="button"
+                    disabled={isPast}
+                    onClick={() => handleSelectBookingDate(date)}
+                    className={`aspect-square rounded-xl text-xs font-bold transition-all ${isSelected
+                      ? "bg-[#0194f3] text-white shadow-md"
+                      : isCurrentMonth
+                        ? "text-slate-700 hover:bg-white hover:text-[#0194f3] hover:shadow-sm"
+                        : "text-slate-300"
+                      } ${isPast ? "cursor-not-allowed text-slate-200" : ""}`}
+                  >
+                    {date.getDate()}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Quantity Selector */}
+      <div className="space-y-4 pt-4">
+        <h4 className="text-sm font-black text-slate-800">Số lượng</h4>
+        <div className="flex items-center justify-end rounded-2xl border border-slate-100 bg-slate-50/50 p-4">
+          <div className="flex items-center gap-3 rounded-xl bg-white p-1 shadow-sm ring-1 ring-slate-100">
+            <button
+              type="button"
+              onClick={() => setQuantity((prev) => Math.max(1, prev - 1))}
+              className="flex size-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-50 hover:text-[#0194f3]"
+            >
+              <Minus className="size-4" />
+            </button>
+            <span className="min-w-[20px] text-center text-sm font-black text-slate-900">{quantity}</span>
+            <button
+              type="button"
+              onClick={() => setQuantity((prev) => prev + 1)}
+              className="flex size-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-50 hover:text-[#0194f3]"
+            >
+              <Plus className="size-4" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Summary & CTA */}
+      <div className="space-y-4 pt-6 border-t border-slate-100 mb-12 lg:mb-0">
+        <div className="flex items-end justify-between">
+          <div className="space-y-1">
+            <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">Tổng cộng</div>
+            <div className="text-2xl font-black text-[#f12c2c]">
+              {new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(service.price * quantity)}
+            </div>
+          </div>
+        </div>
+
+        <button className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#0194f3] py-4 text-sm font-black text-white shadow-lg shadow-[#0194f3]/25 transition-all hover:scale-[1.02] hover:bg-[#017bc0] active:scale-95">
+          Tiếp tục
+        </button>
+      </div>
+    </div>
+  );
   const [calendarMonth, setCalendarMonth] = useState(() => {
     const today = new Date();
     return new Date(today.getFullYear(), today.getMonth(), 1);
@@ -575,12 +747,12 @@ const ServiceDetailPage = () => {
               </h2>
             </div>
 
-            <div className="relative overflow-hidden">
+            <div className="relative w-full overflow-hidden">
               <div
                 ref={contentRef}
-                className={`prose prose-slate max-w-none break-words prose-headings:font-black prose-a:text-[#0194f3] prose-img:rounded-2xl 
-                [&_*]:max-w-full [&_*]:break-words [&_p]:whitespace-normal [&_p]:leading-7 [&_p]:text-slate-600 [&_p]:font-medium
-                [&_li]:whitespace-normal [&_li]:leading-7 [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_code]:break-words 
+                className={`prose prose-slate max-w-none prose-headings:font-black prose-a:text-[#0194f3] prose-img:rounded-2xl 
+                [&_*]:!whitespace-normal [&_p]:leading-7 [&_p]:text-slate-600 [&_p]:font-medium
+                [&_li]:leading-7 [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_code]:break-words 
                 [&_table]:block [&_table]:w-full [&_table]:overflow-x-auto [&_img]:my-5 [&_img]:block [&_img]:h-auto [&_img]:max-w-full [&_img]:object-cover 
                 transition-all duration-500 ${expandedContent ? "" : "max-h-[600px] sm:max-h-[800px] overflow-hidden"
                   }`}
@@ -686,7 +858,7 @@ const ServiceDetailPage = () => {
           </div>
 
           {/* Sidebar Column */}
-          <div className="lg:col-span-4 space-y-6">
+          <div className="lg:col-span-4 space-y-6 hidden lg:block">
             {service.location && service.mapEmbedLink && (
               <div className="overflow-hidden rounded-3xl bg-white p-6 shadow-[0_8px_30px_rgb(0,0,0,0.12)] ring-1 ring-slate-100">
                 <h3 className="mb-4 text-sm font-black uppercase tracking-wider text-slate-500">Địa điểm</h3>
@@ -705,187 +877,41 @@ const ServiceDetailPage = () => {
             <div className="sticky top-32 space-y-6">
               <div ref={bookingBoxRef} className="overflow-hidden rounded-3xl bg-white p-6 shadow-[0_8px_30px_rgb(0,0,0,0.12)] ring-1 ring-slate-100">
                 <h3 className="mb-6 text-xl font-black text-slate-900">Giá cả</h3>
-
-                <div className="space-y-6">
-                  {/* Date Selector */}
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-black text-slate-800">Tìm theo ngày</span>
-                      <button
-                        onClick={() => setShowFullCalendar(!showFullCalendar)}
-                        className="text-sm font-bold text-[#0194f3] hover:underline"
-                      >
-                        {showFullCalendar ? "Đóng lịch" : "Hiển thị thêm ngày"}
-                      </button>
-                    </div>
-
-                    {!showFullCalendar ? (
-                      <div className="relative group/scroll">
-                        <button
-                          onClick={() => scrollContainerRef.current?.scrollBy({ left: -200, behavior: "smooth" })}
-                          className="absolute -left-3 top-1/2 z-10 flex size-9 -translate-y-1/2 items-center justify-center rounded-full bg-white shadow-xl ring-1 ring-slate-100 transition-transform hover:scale-110 md:group-hover/scroll:flex"
-                        >
-                          <ChevronLeft className="size-5 text-slate-600" />
-                        </button>
-
-                        <div
-                          ref={scrollContainerRef}
-                          className="flex gap-2 overflow-x-auto pb-2 scroll-smooth"
-                          style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-                        >
-                          <style>{`
-                            div::-webkit-scrollbar {
-                              display: none;
-                            }
-                          `}</style>
-                          {quickDates.map((date) => {
-                            const dateValue = formatDateValue(date);
-                            const isSelected = selectedBookingDate && isSameDate(date, selectedBookingDate);
-                            return (
-                              <button
-                                key={date.toISOString()}
-                                data-date={dateValue}
-                                onClick={() => handleSelectBookingDate(date)}
-                                className={`flex min-w-[85px] flex-col items-center justify-center rounded-2xl border-2 py-5 transition-all ${isSelected
-                                  ? "border-[#0194f3] bg-[#0194f3]/5 shadow-sm"
-                                  : "border-slate-100 bg-white hover:border-[#0194f3]/30"
-                                  }`}
-                              >
-                                <span className={`text-[11px] font-bold uppercase tracking-wider ${isSelected ? "text-[#0194f3]" : "text-slate-400"}`}>
-                                  {getDayName(date)}
-                                </span>
-                                <span className={`mt-1 text-2xl font-black ${isSelected ? "text-[#0194f3]" : "text-slate-800"}`}>
-                                  {date.getDate()}
-                                </span>
-                                <span className={`text-[11px] font-bold ${isSelected ? "text-[#0194f3]" : "text-slate-400"}`}>
-                                  Tháng {date.getMonth() + 1}
-                                </span>
-                                {isSameDate(date, new Date(new Date().setDate(new Date().getDate() + 1))) && (
-                                  <span className="mt-2 rounded-full bg-slate-100 px-2 py-0.5 text-[8px] font-black text-slate-500">Ngày mai</span>
-                                )}
-                              </button>
-                            );
-                          })}
-                        </div>
-
-                        <button
-                          onClick={() => scrollContainerRef.current?.scrollBy({ left: 200, behavior: "smooth" })}
-                          className="absolute -right-3 top-1/2 z-10 flex size-9 -translate-y-1/2 items-center justify-center rounded-full bg-white shadow-xl ring-1 ring-slate-100 transition-transform hover:scale-110 md:group-hover/scroll:flex"
-                        >
-                          <ChevronRight className="size-5 text-slate-600" />
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4">
-                        <div className="mb-4 flex items-center justify-between">
-                          <button
-                            type="button"
-                            onClick={() => setCalendarMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))}
-                            className="flex size-8 items-center justify-center rounded-full bg-white text-slate-500 shadow-sm transition hover:text-[#0194f3]"
-                          >
-                            <ChevronLeft className="size-4" />
-                          </button>
-                          <div className="text-sm font-black text-slate-800">
-                            Tháng {calendarMonth.getMonth() + 1} {calendarMonth.getFullYear()}
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => setCalendarMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))}
-                            className="flex size-8 items-center justify-center rounded-full bg-white text-slate-500 shadow-sm transition hover:text-[#0194f3]"
-                          >
-                            <ChevronRight className="size-4" />
-                          </button>
-                        </div>
-
-                        <div className="mb-2 grid grid-cols-7 gap-1 text-center text-[10px] font-black uppercase text-slate-400">
-                          {["CN", "T2", "T3", "T4", "T5", "T6", "T7"].map((day) => (
-                            <div key={day}>{day}</div>
-                          ))}
-                        </div>
-
-                        <div className="grid grid-cols-7 gap-1">
-                          {calendarDays.map((date) => {
-                            const isCurrentMonth = date.getMonth() === calendarMonth.getMonth();
-                            const isPast = date < today;
-                            const isSelected = selectedBookingDate && isSameDate(date, selectedBookingDate);
-                            return (
-                              <button
-                                key={date.toISOString()}
-                                type="button"
-                                disabled={isPast}
-                                onClick={() => handleSelectBookingDate(date)}
-                                className={`aspect-square rounded-xl text-xs font-bold transition-all ${isSelected
-                                  ? "bg-[#0194f3] text-white shadow-md"
-                                  : isCurrentMonth
-                                    ? "text-slate-700 hover:bg-white hover:text-[#0194f3] hover:shadow-sm"
-                                    : "text-slate-300"
-                                  } ${isPast ? "cursor-not-allowed text-slate-200" : ""}`}
-                              >
-                                {date.getDate()}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Quantity Selector */}
-                  <div className="space-y-4 pt-4">
-                    <h4 className="text-sm font-black text-slate-800">Số lượng</h4>
-                    <div className="flex items-center justify-end rounded-2xl border border-slate-100 bg-slate-50/50 p-4">
-                      <div className="flex items-center gap-3 rounded-xl bg-white p-1 shadow-sm ring-1 ring-slate-100">
-                        <button
-                          type="button"
-                          onClick={() => setQuantity((prev) => Math.max(1, prev - 1))}
-                          className="flex size-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-50 hover:text-[#0194f3]"
-                        >
-                          <Minus className="size-4" />
-                        </button>
-                        <span className="min-w-[20px] text-center text-sm font-black text-slate-900">{quantity}</span>
-                        <button
-                          type="button"
-                          onClick={() => setQuantity((prev) => prev + 1)}
-                          className="flex size-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-50 hover:text-[#0194f3]"
-                        >
-                          <Plus className="size-4" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Summary & CTA */}
-                  <div className="space-y-4 pt-6 border-t border-slate-100">
-                    <div className="flex items-end justify-between">
-                      <div className="space-y-1">
-                        <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">Tổng cộng</div>
-                        <div className="text-2xl font-black text-[#f12c2c]">
-                          {new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(service.price * quantity)}
-                        </div>
-                      </div>
-                    </div>
-
-                    <button className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#0194f3] py-4 text-sm font-black text-white shadow-lg shadow-[#0194f3]/25 transition-all hover:scale-[1.02] hover:bg-[#017bc0] active:scale-95">
-                      Tiếp tục
-                    </button>
-                  </div>
-                </div>
+                {renderBookingContent()}
               </div>
             </div>
           </div>
         </div>
       </div>
 
+      {/* Mobile Booking Drawer (Rendered at root to avoid grid layout shifts) */}
+      {isMobileBookingOpen && (
+        <div className="lg:hidden">
+          <div className="fixed inset-0 z-[90] bg-slate-900/50 backdrop-blur-sm" onClick={() => setIsMobileBookingOpen(false)} />
+          <div className="fixed inset-x-0 bottom-0 top-[15vh] z-[100] flex flex-col rounded-t-3xl bg-white shadow-[0_-10px_40px_rgba(0,0,0,0.2)] animate-in slide-in-from-bottom-full duration-300">
+            <div className="flex items-center justify-between p-6 pb-4 border-b border-slate-100">
+              <span className="font-black text-xl text-slate-900">Đặt dịch vụ</span>
+              <button onClick={() => setIsMobileBookingOpen(false)} className="p-2 bg-slate-100 rounded-full text-slate-500 active:scale-95">
+                <X size={20}/>
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-6 pb-24">
+              {renderBookingContent()}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Sticky Booking Bar for Mobile */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 border-t bg-white p-4 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] backdrop-blur-md lg:hidden">
-        <div className="flex items-center justify-between">
-          <div className="flex flex-col">
+      <div className={`fixed bottom-0 left-0 right-0 z-50 border-t bg-white p-4 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] backdrop-blur-md lg:hidden transition-transform duration-300 ${isMobileBookingOpen ? "translate-y-full" : "translate-y-0"}`}>
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-col min-w-0">
             <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Giá từ</span>
-            <span className="text-lg font-black text-[#f12c2c]">{formattedPrice}</span>
+            <span className="text-lg font-black text-[#f12c2c] truncate">{formattedPrice}</span>
           </div>
           <button 
-            onClick={() => bookingBoxRef.current?.scrollIntoView({ behavior: 'smooth' })}
-            className="rounded-xl bg-[#0194f3] px-8 py-3 text-sm font-black text-white shadow-lg shadow-[#0194f3]/20 active:scale-95"
+            onClick={() => setIsMobileBookingOpen(true)}
+            className="rounded-xl bg-[#0194f3] px-6 py-3 text-sm font-black text-white shadow-lg shadow-[#0194f3]/20 active:scale-95 shrink-0 whitespace-nowrap"
           >
             Đặt ngay
           </button>

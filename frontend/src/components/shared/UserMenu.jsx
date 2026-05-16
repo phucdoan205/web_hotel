@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   CalendarCheck,
   ChevronDown,
-  Heart,
   LogOut,
   Star,
   Ticket,
@@ -25,7 +24,6 @@ const CUSTOMER_ROLE_NAMES = new Set([
 const customerMenuItems = [
   { label: "Hồ sơ cá nhân", path: "/profile", icon: UserCircle },
   { label: "Đặt chỗ", path: "/booking-history", icon: CalendarCheck },
-  { label: "Yêu thích", path: "/favorites", icon: Heart },
   { label: "Đánh giá", path: "/reviews", icon: Star },
   { label: "Voucher", path: "/vouchers", icon: Ticket },
 ];

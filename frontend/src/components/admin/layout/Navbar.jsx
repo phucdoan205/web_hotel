@@ -19,7 +19,6 @@ const Navbar = ({ onToggle, isSidebarOpen }) => {
           <Menu className="size-6" />
         </button>
         <div className="flex items-center gap-2.5 text-sm font-medium">
-          <span className="text-gray-400">Admin</span>
         </div>
       </div>
 

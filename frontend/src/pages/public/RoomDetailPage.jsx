@@ -8,7 +8,7 @@ import HorizontalSearchFilter from "../../components/public/bookings/HorizontalS
 import { userBookingsApi } from "../../api/user/bookingsApi";
 import { userReviewsApi } from "../../api/user/reviewsApi";
 import { getStoredAuth } from "../../utils/authStorage";
-import { isFavoriteRoomType, toggleFavoriteRoomType } from "../../utils/userFavorites";
+
 import DatePicker, { registerLocale } from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import vi from "date-fns/locale/vi";
@@ -60,7 +60,7 @@ const getAmenityIcon = (name, iconUrl) => {
   if (n.includes("điện thoại")) return <Smartphone size={18} />;
   if (n.includes("đỗ xe") || n.includes("parking")) return <Car size={18} />;
   if (n.includes("ngôn ngữ") || n.includes("phiên dịch")) return <Languages size={18} />;
-  
+
   // New mappings based on user feedback and Image 2
   if (n.includes("bàn làm việc") || n.includes("văn phòng") || n.includes("doanh nhân")) return <Smartphone size={18} />;
   if (n.includes("giường") || n.includes("phòng ngủ")) return <BedDouble size={18} />;
@@ -76,10 +76,10 @@ const getAmenityIcon = (name, iconUrl) => {
 
   if (iconUrl && iconUrl.startsWith('http')) {
     return (
-      <img 
-        src={iconUrl} 
-        alt={name} 
-        className="size-[18px] object-contain" 
+      <img
+        src={iconUrl}
+        alt={name}
+        className="size-[18px] object-contain"
         onError={(e) => {
           e.target.style.display = 'none';
           e.target.nextSibling.style.display = 'block';
@@ -87,7 +87,7 @@ const getAmenityIcon = (name, iconUrl) => {
       />
     );
   }
-  
+
   return <Check size={18} />;
 };
 
@@ -184,7 +184,6 @@ const RoomDetailPage = () => {
   const [filters, setFilters] = useState(() => createInitialFilters(location.state?.filters));
   const [appliedFilters, setAppliedFilters] = useState(() => createInitialFilters(location.state?.filters));
   const [selectedRoomId, setSelectedRoomId] = useState(null);
-  const [isFavorite, setIsFavorite] = useState(false);
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
   const [isReviewDrawerOpen, setIsReviewDrawerOpen] = useState(false);
   const [reviewPage, setReviewPage] = useState(1);
@@ -217,8 +216,8 @@ const RoomDetailPage = () => {
 
   const drawerReviewsQuery = useQuery({
     queryKey: ["user-room-type-reviews-drawer", id, { page: reviewPage, pageSize: 10, sort: reviewSort }],
-    queryFn: () => userReviewsApi.getRoomTypeReviews(Number(id), { 
-      page: reviewPage, 
+    queryFn: () => userReviewsApi.getRoomTypeReviews(Number(id), {
+      page: reviewPage,
       pageSize: 10,
       sort: reviewSort
     }),
@@ -298,8 +297,8 @@ const RoomDetailPage = () => {
   useEffect(() => {
     if (thumbnailRef.current && isGalleryOpen) {
       const container = thumbnailRef.current;
-      const activeThumbnail = container.children[currentImageIndex + 1]; 
-      
+      const activeThumbnail = container.children[currentImageIndex + 1];
+
       if (activeThumbnail) {
         const containerWidth = container.offsetWidth;
         const thumbnailOffsetLeft = activeThumbnail.offsetLeft;
@@ -357,10 +356,6 @@ const RoomDetailPage = () => {
     return Object.values(grouped);
   }, [selectedRoom, roomList]);
 
-  useEffect(() => {
-    if (!roomType.roomTypeId) return;
-    setIsFavorite(isFavoriteRoomType(roomType.roomTypeId));
-  }, [roomType.roomTypeId]);
 
   // Track recently viewed
   useEffect(() => {
@@ -392,13 +387,6 @@ const RoomDetailPage = () => {
     handleCreateBooking();
   };
 
-  const handleToggleFavorite = () => {
-    const result = toggleFavoriteRoomType({
-      ...roomType,
-      imageUrls,
-    });
-    setIsFavorite(result.isFavorite);
-  };
 
   const handleCreateBooking = () => {
     const auth = getStoredAuth();
@@ -437,7 +425,7 @@ const RoomDetailPage = () => {
     setActiveTab(sectionId);
     const element = document.getElementById(sectionId);
     if (element) {
-      const headerOffset = 140; 
+      const headerOffset = 140;
       const elementPosition = element.getBoundingClientRect().top;
       const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
 
@@ -482,7 +470,7 @@ const RoomDetailPage = () => {
         <button
           type="button"
           onClick={() => navigate("/booking")}
-          className="group inline-flex h-11 items-center justify-center gap-2.5 rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-700 shadow-sm transition-all hover:bg-slate-50 hover:shadow-md active:scale-95"
+          className="group inline-flex h-11 items-center justify-center gap-2.5 rounded-xl border border-[#1F649C]/20 bg-white px-5 text-sm font-bold text-[#1F649C] shadow-sm transition-all hover:bg-sky-50 hover:border-[#1F649C]/40 hover:shadow-md active:scale-95"
         >
           <ArrowLeft size={18} className="transition-transform group-hover:-translate-x-1" />
           <span>Quay lại danh sách</span>
@@ -490,105 +478,100 @@ const RoomDetailPage = () => {
       </div>
 
       {/* Sticky Tabs */}
-      <div className="sticky top-[64px] z-30 bg-white/95 backdrop-blur-xl shadow-sm border border-slate-200 rounded-2xl px-4 sm:px-6 pt-4 mb-8">
-        <div className="flex items-center gap-4">
-          <div className="flex gap-6 sm:gap-10 overflow-x-auto no-scrollbar flex-1">
-            {[
-              { id: "overview", label: "Tổng quan" },
-              { id: "availability", label: "Tình trạng phòng trống" },
-              { id: "amenities", label: "Tiện nghi" },
-              { id: "reviews", label: "Đánh giá" },
-              { id: "other-rooms", label: "Phòng khác" },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => scrollToSection(tab.id)}
-                className={`whitespace-nowrap pb-4 text-sm font-bold transition-all border-b-2 -mb-[1px] ${
-                  activeTab === tab.id
-                    ? "border-blue-600 text-blue-600"
-                    : "border-transparent text-slate-500 hover:text-slate-900"
+      <div className="sticky top-[80px] z-30 mb-10 flex items-center justify-center pointer-events-none transition-all">
+        <div className="bg-white/80 backdrop-blur-xl shadow-xl shadow-slate-200/50 border border-slate-200/50 rounded-full p-1.5 flex gap-1 pointer-events-auto overflow-x-auto max-w-full">
+          {[
+            { id: "overview", label: "Tổng quan" },
+            { id: "availability", label: "Tình trạng phòng" },
+            { id: "amenities", label: "Tiện nghi" },
+            { id: "reviews", label: "Đánh giá" },
+            { id: "other-rooms", label: "Phòng khác" },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => scrollToSection(tab.id)}
+              className={`whitespace-nowrap px-6 py-2.5 rounded-full text-[13px] font-black transition-all ${activeTab === tab.id
+                  ? "bg-[#1F649C] text-white shadow-md"
+                  : "text-slate-600 hover:bg-sky-50 hover:text-[#1F649C]"
                 }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
       </div>
 
       <div className="flex flex-col gap-12">
         <section className="space-y-12">
-          
+
           {/* OVERVIEW SECTION */}
           <div id="overview" className="scroll-mt-40 space-y-8">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="flex gap-1">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <Star key={star} size={16} fill={star <= Math.round(avgRating) ? "#fbbf24" : "none"} className={star <= Math.round(avgRating) ? "text-amber-400" : "text-slate-300"} />
-                    ))}
-                  </div>
-                </div>
-                <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-slate-900">
+                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-[#1F649C] mb-6">
                   {roomType.roomTypeName || "Loại phòng"}
                 </h1>
+                <div className="flex items-center flex-wrap gap-4 text-[15px] font-bold text-slate-700">
+                  <div className="flex items-center gap-1">
+                    <Star size={18} className="fill-amber-400 text-amber-400" />
+                    <span>{avgRating > 0 ? avgRating.toFixed(1) : "Mới"}</span>
+                    {totalReviews > 0 && <span className="text-slate-500 underline ml-1 decoration-slate-300 hover:text-slate-900 transition-colors cursor-pointer" onClick={() => scrollToSection('reviews')}>({totalReviews} đánh giá)</span>}
+                  </div>
+                  <span className="text-slate-300">•</span>
+                  <div className="flex items-center gap-1.5">
+                    <Users size={18} className="text-slate-400" />
+                    <span>Tối đa {roomType.capacityAdults} NL{roomType.capacityChildren > 0 ? `, ${roomType.capacityChildren} TE` : ''}</span>
+                  </div>
+                  <span className="text-slate-300">•</span>
+                  <div className="flex items-center gap-1.5">
+                    <BedDouble size={18} className="text-slate-400" />
+                    <span>{roomType.bedType || "1 giường đôi lớn"}</span>
+                  </div>
+                  {roomType.size && (
+                    <>
+                      <span className="text-slate-300">•</span>
+                      <div className="flex items-center gap-1.5">
+                        <Maximize2 size={18} className="text-slate-400" />
+                        <span>{roomType.size} m²</span>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
-              <button
-                type="button"
-                onClick={handleToggleFavorite}
-                className={`flex h-12 w-12 items-center justify-center rounded-full border transition ${
-                  isFavorite
-                    ? "border-rose-500 bg-rose-50 text-rose-500"
-                    : "border-slate-200 bg-white text-slate-400 hover:text-rose-500 hover:border-rose-200"
-                }`}
-                aria-label={isFavorite ? "Bỏ khỏi yêu thích" : "Thêm vào yêu thích"}
-              >
-                <Heart size={22} fill={isFavorite ? "currentColor" : "none"} />
-              </button>
             </div>
 
-            <div className="mb-8 space-y-2">
-              <div 
-                className="grid grid-cols-1 sm:grid-cols-3 gap-2 overflow-hidden rounded-2xl cursor-pointer group" 
-                onClick={() => { setIsGalleryOpen(true); setCurrentImageIndex(0); }}
-              >
-                <div className="col-span-1 sm:col-span-2 h-[300px] sm:h-[460px] overflow-hidden">
+            <div className="mb-10">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-2 h-[300px] sm:h-[400px] md:h-[500px] rounded-[2rem] overflow-hidden group">
+                <div
+                  className="md:col-span-2 h-full cursor-pointer overflow-hidden relative"
+                  onClick={() => { setIsGalleryOpen(true); setCurrentImageIndex(0); }}
+                >
                   <img src={imageUrls[0]} alt="Phòng chính" className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                  <div className="absolute inset-0 bg-black/0 transition-colors hover:bg-black/10" />
                 </div>
-                <div className="hidden sm:flex flex-col gap-2 h-[460px]">
-                  <div className="h-1/2 overflow-hidden">
+                <div className="hidden md:flex flex-col gap-2 h-full">
+                  <div className="h-1/2 overflow-hidden cursor-pointer relative" onClick={() => { setIsGalleryOpen(true); setCurrentImageIndex(1); }}>
                     <img src={imageUrls[1] || fallbackImage} alt="Góc khác" className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                    <div className="absolute inset-0 bg-black/0 transition-colors hover:bg-black/10" />
                   </div>
-                  <div className="h-1/2 overflow-hidden">
-                    <img src={imageUrls[2] || fallbackImage} alt="Tiện ích" className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                  <div className="h-1/2 overflow-hidden cursor-pointer relative" onClick={() => { setIsGalleryOpen(true); setCurrentImageIndex(2); }}>
+                    <img src={imageUrls[2] || fallbackImage} alt="Góc khác" className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                    <div className="absolute inset-0 bg-black/0 transition-colors hover:bg-black/10" />
+                  </div>
+                </div>
+                <div className="hidden md:flex flex-col gap-2 h-full">
+                  <div className="h-1/2 overflow-hidden cursor-pointer relative" onClick={() => { setIsGalleryOpen(true); setCurrentImageIndex(3); }}>
+                    <img src={imageUrls[3] || fallbackImage} alt="Góc khác" className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                    <div className="absolute inset-0 bg-black/0 transition-colors hover:bg-black/10" />
+                  </div>
+                  <div className="h-1/2 overflow-hidden cursor-pointer relative" onClick={() => { setIsGalleryOpen(true); setCurrentImageIndex(4); }}>
+                    <img src={imageUrls[4] || fallbackImage} alt="Góc khác" className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/20 hover:bg-black/40 transition-colors text-white font-bold backdrop-blur-[2px]">
+                      {imageUrls.length > 5 ? `+${imageUrls.length - 5} Ảnh` : 'Xem tất cả'}
+                    </div>
                   </div>
                 </div>
               </div>
-
-              {imageUrls.length > 3 && (
-                <div className="grid grid-cols-5 gap-2 h-32">
-                  {imageUrls.slice(3, 8).map((url, idx) => {
-                    const isLast = idx === 4;
-                    const remaining = imageUrls.length - 8;
-                    return (
-                      <div 
-                        key={idx} 
-                        className="relative h-full overflow-hidden rounded-xl cursor-pointer group"
-                        onClick={() => { setIsGalleryOpen(true); setCurrentImageIndex(idx + 3); }}
-                      >
-                        <img src={url} alt={`Ảnh ${idx + 4}`} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" />
-                        {isLast && remaining > 0 && (
-                          <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-white font-black text-xl backdrop-blur-[2px]">
-                            +{remaining} ảnh
-                          </div>
-                        )}
-                        <div className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/10" />
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
             </div>
 
             <div className="py-2">
@@ -599,10 +582,10 @@ const RoomDetailPage = () => {
           {/* AVAILABILITY SECTION */}
           <div id="availability" className="scroll-mt-40 space-y-8">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-slate-100 pb-8">
-              <h2 className="text-3xl font-black tracking-tight text-slate-900">Tình trạng phòng trống</h2>
-              
+              <h2 className="text-3xl font-black tracking-tight text-[#1F649C]">Tình trạng phòng trống</h2>
+
               <div className="flex-1 max-w-2xl">
-                <div className="relative flex items-center gap-2 rounded-[2rem] border border-slate-200 bg-white p-2 shadow-2xl transition-all hover:border-blue-200">
+                <div className="relative flex items-center gap-2 rounded-[2rem] border border-slate-200 bg-white p-2 shadow-xl shadow-slate-200/50 transition-all hover:border-slate-300 hover:shadow-2xl hover:shadow-slate-200/60">
                   <div className="flex-1">
                     <DatePicker
                       selectsRange={true}
@@ -617,7 +600,7 @@ const RoomDetailPage = () => {
                         };
                         handleFilterChange("checkIn", start ? `${toDateStr(start)}T14:00` : "");
                         handleFilterChange("checkOut", end ? `${toDateStr(end)}T12:00` : "");
-                        
+
                         // Immediately apply dates for room fetching
                         if (start && end) {
                           setAppliedFilters(prev => ({
@@ -633,7 +616,7 @@ const RoomDetailPage = () => {
                       className="w-full"
                     />
                   </div>
-                  
+
                   <div className="flex items-center gap-4 border-l border-slate-100 pl-4 pr-2">
                     {selectedRoom && (
                       <div className="text-right hidden sm:block">
@@ -656,11 +639,10 @@ const RoomDetailPage = () => {
 
             {submitMessage && (
               <div
-                className={`rounded-2xl px-6 py-4 text-sm font-bold shadow-sm ${
-                  submitMessage.type === "error"
+                className={`rounded-2xl px-6 py-4 text-sm font-bold shadow-sm ${submitMessage.type === "error"
                     ? "bg-rose-50 text-rose-600 border border-rose-100"
                     : "bg-emerald-50 text-emerald-600 border border-emerald-100"
-                }`}
+                  }`}
               >
                 {submitMessage.text}
               </div>
@@ -676,37 +658,37 @@ const RoomDetailPage = () => {
                     </div>
                   </div>
                 )}
-                
+
                 {/* Desktop Table - Hidden on small screens */}
-                <div className="hidden lg:block rounded-t-xl rounded-b border border-slate-300 shadow-sm overflow-hidden">
+                <div className="hidden lg:block rounded-3xl border border-slate-200 shadow-xl shadow-slate-200/40 overflow-hidden bg-white">
                   <table className="w-full text-left text-sm text-slate-700">
-                    <thead className="bg-[#003b95] text-white">
+                    <thead className="bg-[#1F649C] border-b border-[#154c79]">
                       <tr>
-                        <th className="px-4 py-3 font-bold border-r border-[#00224f] w-[35%]">Số phòng cụ thể</th>
-                        <th className="px-3 py-3 font-bold border-r border-[#00224f] text-center w-[15%]">Số lượng</th>
-                        <th className="px-4 py-3 font-bold border-r border-[#00224f] bg-[#00224f] w-[25%]">Giá cho {stayDays} đêm</th>
-                        <th className="px-4 py-3 font-bold w-[25%]">Tùy chọn cho bạn</th>
+                        <th className="px-6 py-4 font-black uppercase tracking-wider text-[11px] text-white w-[35%]">Số phòng cụ thể</th>
+                        <th className="px-6 py-4 font-black uppercase tracking-wider text-[11px] text-white text-center w-[15%]">Số lượng khách</th>
+                        <th className="px-6 py-4 font-black uppercase tracking-wider text-[11px] text-white w-[25%]">Giá cho {stayDays} đêm</th>
+                        <th className="px-6 py-4 font-black uppercase tracking-wider text-[11px] text-white w-[25%]">Tùy chọn cho bạn</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-300 bg-white">
+                    <tbody className="divide-y divide-slate-100 bg-white">
                       {roomList.map((room) => {
                         const isSelected = room.id === selectedRoomId;
                         const isTrulyAvailable = room.isTrulyAvailable;
 
                         return (
                           <tr key={room.id} className={`${isSelected ? "bg-blue-50/50" : "hover:bg-slate-50"} ${!isTrulyAvailable ? "opacity-75" : ""}`}>
-                            <td className="px-4 py-4 border-r border-slate-300 align-top">
-                              <div className="text-lg font-bold text-blue-700 hover:underline cursor-pointer">
+                            <td className="px-6 py-6 border-r border-slate-100 align-top">
+                              <div className="text-xl font-black text-[#1F649C] hover:text-blue-700 transition-colors">
                                 Phòng {room.roomNumber}
                               </div>
-                              <div className="mt-2 text-xs text-slate-700 space-y-1">
-                                <div>Giường: <span className="font-semibold">{roomType.bedType || "1 giường đôi lớn"}</span></div>
-                                <div>Diện tích: <span className="font-semibold">{roomType.size || 25} m²</span></div>
+                              <div className="mt-2.5 text-[13px] text-slate-500 font-medium space-y-1">
+                                <div className="flex items-center gap-1.5"><BedDouble size={14} /> Giường: <span className="font-bold text-slate-700">{roomType.bedType || "1 giường đôi lớn"}</span></div>
+                                <div className="flex items-center gap-1.5"><Maximize2 size={14} /> Diện tích: <span className="font-bold text-slate-700">{roomType.size || 25} m²</span></div>
                               </div>
-                              <div className="mt-4 flex flex-wrap gap-2">
+                              <div className="mt-5 flex flex-wrap gap-1.5">
                                 {[...(room.roomSpecificAmenities || []), ...(room.roomTypeAmenities || [])].slice(0, 8).map(amenity => (
-                                  <span key={amenity.id || amenity.name} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-[11px] font-bold text-slate-600 bg-slate-50/50 shadow-sm transition hover:bg-white hover:shadow-md">
-                                    <span className="text-blue-500">
+                                  <span key={amenity.id || amenity.name} className="inline-flex items-center gap-1.5 rounded-full border border-slate-100 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-slate-600 bg-slate-50 transition hover:bg-white hover:border-slate-300">
+                                    <span className="text-slate-400">
                                       {getAmenityIcon(amenity.name, amenity.iconUrl)}
                                     </span>
                                     {amenity.name}
@@ -714,26 +696,26 @@ const RoomDetailPage = () => {
                                 ))}
                               </div>
                             </td>
-                            <td className="px-4 py-4 border-r border-slate-300 align-top text-center">
+                            <td className="px-6 py-6 border-r border-slate-100 align-top text-center">
                               <div className="flex flex-col items-center justify-center gap-1 text-slate-700 mt-1">
                                 <div className="flex items-center gap-1.5">
-                                  <Users size={18} className="text-slate-600" />
-                                  <span className="font-bold text-sm">{roomType.capacityAdults} Người lớn</span>
+                                  <Users size={18} className="text-slate-400" />
+                                  <span className="font-black text-[15px]">{roomType.capacityAdults} Người lớn</span>
                                 </div>
                                 {roomType.capacityChildren > 0 && (
                                   <div className="flex items-center gap-1.5">
-                                    <span className="font-bold text-xs text-slate-500">+{roomType.capacityChildren} Trẻ em</span>
+                                    <span className="font-black text-[13px] text-slate-400">+{roomType.capacityChildren} Trẻ em</span>
                                   </div>
                                 )}
                               </div>
                             </td>
-                            <td className="px-4 py-4 border-r border-slate-300 align-middle">
-                              <div className="text-xl font-bold text-slate-900">{formatCurrency(totalPrice)}</div>
-                              <div className="mt-1.5 text-[13px] font-semibold text-slate-500">
+                            <td className="px-6 py-6 border-r border-slate-100 align-middle">
+                              <div className="text-2xl font-black text-slate-900 tracking-tight">{formatCurrency(totalPrice)}</div>
+                              <div className="mt-1.5 text-[13px] font-bold text-slate-400">
                                 Tổng cộng cho {stayDays} đêm
                               </div>
                             </td>
-                            <td className="px-4 py-4 align-middle">
+                            <td className="px-6 py-6 align-middle">
                               {!isTrulyAvailable ? (
                                 <div className="space-y-2">
                                   <div className="text-center text-xs font-black uppercase tracking-wider text-rose-600 bg-rose-50 py-2 rounded-lg border border-rose-100">
@@ -748,7 +730,7 @@ const RoomDetailPage = () => {
                                   <Check size={18} /> Đang chọn
                                 </button>
                               ) : (
-                                <button type="button" onClick={() => setSelectedRoomId(room.id)} className="w-full rounded border border-blue-600 bg-white py-2.5 font-bold text-blue-600 shadow-sm hover:bg-blue-50 transition">
+                                <button type="button" onClick={() => setSelectedRoomId(room.id)} className="w-full rounded-2xl border-2 border-slate-900 bg-white py-3.5 font-black text-slate-900 shadow-sm hover:bg-slate-900 hover:text-white transition-all active:scale-95">
                                   Chọn phòng này
                                 </button>
                               )}
@@ -767,15 +749,14 @@ const RoomDetailPage = () => {
                     const isTrulyAvailable = room.isTrulyAvailable;
 
                     return (
-                      <div 
-                        key={room.id} 
-                        className={`rounded-2xl border-2 p-5 transition-all ${
-                          isSelected ? "border-blue-600 bg-blue-50/30 shadow-md" : "border-slate-200 bg-white"
-                        } ${!isTrulyAvailable ? "opacity-75" : ""}`}
+                      <div
+                        key={room.id}
+                        className={`rounded-2xl border-2 p-5 transition-all ${isSelected ? "border-blue-600 bg-blue-50/30 shadow-md" : "border-slate-200 bg-white"
+                          } ${!isTrulyAvailable ? "opacity-75" : ""}`}
                       >
                         <div className="flex items-start justify-between mb-4">
                           <div className="flex flex-col gap-1">
-                            <h3 className="text-xl font-black text-blue-700">Phòng {room.roomNumber}</h3>
+                            <h3 className="text-xl font-black text-[#1F649C]">Phòng {room.roomNumber}</h3>
                             <div className="flex items-center gap-3">
                               <div className="flex items-center gap-1.5 text-slate-600 font-bold text-sm">
                                 <Users size={16} />
@@ -802,18 +783,18 @@ const RoomDetailPage = () => {
                         </div>
 
                         {!isTrulyAvailable ? (
-                          <div className="rounded-xl bg-rose-50 border border-rose-100 py-3 text-center text-xs font-black uppercase text-rose-600">
+                          <div className="rounded-2xl bg-rose-50 border border-rose-100 py-3.5 text-center text-[13px] font-black uppercase text-rose-600">
                             Hết phòng
                           </div>
                         ) : isSelected ? (
-                          <div className="flex h-12 items-center justify-center gap-2 rounded-xl bg-emerald-600 font-black text-white shadow-lg">
+                          <div className="flex h-14 items-center justify-center gap-2 rounded-2xl bg-emerald-600 font-black text-white shadow-lg">
                             <Check size={20} /> Đang chọn
                           </div>
                         ) : (
-                          <button 
-                            type="button" 
+                          <button
+                            type="button"
                             onClick={() => setSelectedRoomId(room.id)}
-                            className="flex h-12 w-full items-center justify-center rounded-xl border-2 border-blue-600 font-black text-blue-600 transition active:scale-95 hover:bg-blue-50"
+                            className="flex h-14 w-full items-center justify-center rounded-2xl border-2 border-slate-900 bg-white font-black text-slate-900 shadow-sm hover:bg-slate-900 hover:text-white transition-all active:scale-95"
                           >
                             Chọn phòng này
                           </button>
@@ -842,25 +823,25 @@ const RoomDetailPage = () => {
           <div id="amenities" className="scroll-mt-40 space-y-12">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-6">
               <div>
-                <h2 className="text-3xl font-black text-slate-900">Tiện nghi của chỗ nghỉ</h2>
+                <h2 className="text-3xl font-black text-[#1F649C]">Tiện nghi của chỗ nghỉ</h2>
                 <p className="text-sm font-bold text-slate-500 mt-1 uppercase tracking-wider">Mọi thứ bạn cần cho một kỳ nghỉ hoàn hảo</p>
               </div>
             </div>
 
             {/* Amenity Summary Grid matching user's reference */}
             <div className="flex flex-wrap items-center gap-x-10 gap-y-6 pb-6">
-               {allAmenities.length > 0 ? (
-                 allAmenities.slice(0, 15).map((amenity) => (
-                   <div key={amenity.id || amenity.name} className="flex items-center gap-3 text-slate-700 hover:text-emerald-600 transition-colors cursor-default">
-                      <div className="text-emerald-600 flex-shrink-0 scale-110">
-                         {getAmenityIcon(amenity.name, amenity.iconUrl)}
-                      </div>
-                      <span className="text-[15px] font-semibold leading-none">{amenity.name}</span>
-                   </div>
-                 ))
-               ) : null}
+              {allAmenities.length > 0 ? (
+                allAmenities.slice(0, 15).map((amenity) => (
+                  <div key={amenity.id || amenity.name} className="flex items-center gap-3 text-slate-700 hover:text-emerald-600 transition-colors cursor-default">
+                    <div className="text-emerald-600 flex-shrink-0 scale-110">
+                      {getAmenityIcon(amenity.name, amenity.iconUrl)}
+                    </div>
+                    <span className="text-[15px] font-semibold leading-none">{amenity.name}</span>
+                  </div>
+                ))
+              ) : null}
             </div>
-            
+
             <div className="grid gap-x-12 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
               {allAmenities.length > 0 ? (
                 allAmenities.map((amenity) => (
@@ -871,7 +852,7 @@ const RoomDetailPage = () => {
                       </div>
                       <h3 className="text-base font-bold text-slate-900">{amenity.name}</h3>
                     </div>
-                    
+
                     <ul className="space-y-2.5">
                       {(amenity.details && amenity.details.length > 0) ? (
                         amenity.details.map((detail) => (
@@ -891,9 +872,9 @@ const RoomDetailPage = () => {
                     </ul>
                   </div>
                 )
-              )) : (
+                )) : (
                 <div className="col-span-full py-16 text-center text-slate-400 font-bold border-2 border-dashed border-slate-100 rounded-[2rem]">
-                   Đang tải thông tin tiện nghi...
+                  Đang tải thông tin tiện nghi...
                 </div>
               )}
             </div>
@@ -901,8 +882,8 @@ const RoomDetailPage = () => {
 
           {/* REVIEWS SECTION */}
           <div id="reviews" className="scroll-mt-40 space-y-10">
-            <h2 className="text-2xl font-black text-slate-900">Đánh giá của khách</h2>
-            
+            <h2 className="text-2xl font-black text-[#1F649C]">Đánh giá của khách</h2>
+
             <div className="grid gap-10 lg:grid-cols-[1fr_2fr]">
               <div className="space-y-6">
                 <div className="flex items-center gap-5">
@@ -923,12 +904,12 @@ const RoomDetailPage = () => {
                     { label: "Sạch sẽ", key: "cleanlinessRating" },
                     { label: "Vị trí", key: "locationRating" },
                   ].map((cat) => {
-                    const catAvg = roomType[`${cat.key}Avg`] > 0 
+                    const catAvg = roomType[`${cat.key}Avg`] > 0
                       ? roomType[`${cat.key}Avg`]
-                      : (reviews.length > 0 
-                          ? reviews.reduce((acc, r) => acc + (r[cat.key] || 0), 0) / reviews.filter(r => r[cat.key]).length || 0
-                          : 0);
-                    
+                      : (reviews.length > 0
+                        ? reviews.reduce((acc, r) => acc + (r[cat.key] || 0), 0) / reviews.filter(r => r[cat.key]).length || 0
+                        : 0);
+
                     return (
                       <div key={cat.key} className="space-y-2">
                         <div className="flex justify-between text-sm font-bold text-slate-700">
@@ -939,17 +920,17 @@ const RoomDetailPage = () => {
                           </div>
                         </div>
                         <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
-                          <div 
-                            className="h-full bg-amber-400 transition-all duration-1000" 
+                          <div
+                            className="h-full bg-amber-400 transition-all duration-1000"
                             style={{ width: `${(catAvg / 5) * 100}%` }}
                           />
                         </div>
                       </div>
                     );
                   })}
-                  
+
                   {totalReviews > 0 && (
-                    <button 
+                    <button
                       onClick={() => setIsReviewDrawerOpen(true)}
                       className="mt-6 w-full rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 hover:border-blue-300 hover:text-blue-600"
                     >
@@ -966,10 +947,10 @@ const RoomDetailPage = () => {
                       <div className="flex items-start justify-between mb-4">
                         <div className="flex items-center gap-3">
                           {review.avatarUrl ? (
-                            <img 
-                              src={review.avatarUrl.startsWith('http') ? review.avatarUrl : `http://localhost:5000${review.avatarUrl}`} 
-                              alt={review.user} 
-                              className="h-12 w-12 rounded-full object-cover border border-slate-200" 
+                            <img
+                              src={review.avatarUrl.startsWith('http') ? review.avatarUrl : `http://localhost:5000${review.avatarUrl}`}
+                              alt={review.user}
+                              className="h-12 w-12 rounded-full object-cover border border-slate-200"
                             />
                           ) : (
                             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-lg font-bold text-slate-600">
@@ -986,7 +967,7 @@ const RoomDetailPage = () => {
                           <Star size={12} fill="currentColor" />
                         </div>
                       </div>
-                      
+
                       {review.comment && (
                         <p className="text-sm font-medium leading-relaxed text-slate-600 italic line-clamp-3">"{review.comment}"</p>
                       )}
@@ -1009,10 +990,10 @@ const RoomDetailPage = () => {
           <div id="other-rooms" className="scroll-mt-40 space-y-10 pt-12 border-t border-slate-100">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-3xl font-black text-slate-900 tracking-tight">Chỗ nghỉ khác bạn có thể xem</h2>
+                <h2 className="text-3xl font-black text-[#1F649C] tracking-tight">Chỗ nghỉ khác bạn có thể xem</h2>
                 <p className="text-sm font-bold text-slate-500 mt-1 uppercase tracking-wider">Khám phá các không gian nghỉ dưỡng tuyệt vời khác</p>
               </div>
-              <button 
+              <button
                 onClick={() => navigate("/booking")}
                 className="group flex items-center gap-2 text-sm font-bold text-blue-600 transition-colors hover:text-blue-700"
               >
@@ -1023,8 +1004,8 @@ const RoomDetailPage = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {otherRooms.slice(0, 4).map((rt) => (
-                <article 
-                  key={rt.id} 
+                <article
+                  key={rt.id}
                   onClick={() => {
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                     navigate(`/room-types/${rt.id}`);
@@ -1037,16 +1018,8 @@ const RoomDetailPage = () => {
                       alt={rt.name}
                       className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
                     />
-                    <div className="absolute right-3 top-3">
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); toggleFavoriteRoomType(rt.id); }}
-                        className={`flex h-10 w-10 items-center justify-center rounded-full bg-white/90 shadow-lg backdrop-blur-sm transition-all hover:bg-white active:scale-90 ${isFavoriteRoomType(rt.id) ? 'text-red-500' : 'text-slate-400'}`}
-                      >
-                        <Heart size={20} fill={isFavoriteRoomType(rt.id) ? "currentColor" : "none"} />
-                      </button>
-                    </div>
                   </div>
-                  
+
                   <div className="p-4">
                     <div className="flex items-center gap-2 mb-2">
                       <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Khách sạn</span>
@@ -1056,9 +1029,9 @@ const RoomDetailPage = () => {
                         ))}
                       </div>
                     </div>
-                    
+
                     <h3 className="text-lg font-black text-slate-900 line-clamp-1 group-hover:text-blue-600 transition-colors">{rt.name}</h3>
-                    
+
                     <div className="mt-4 flex items-center gap-3">
                       <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600 text-sm font-black text-white shadow-md shadow-blue-100">
                         {rt.rating ? Number(rt.rating).toFixed(1).replace('.', ',') : "0,0"}
@@ -1087,11 +1060,11 @@ const RoomDetailPage = () => {
 
       {/* REVIEW DRAWER OVERLAY */}
       {isReviewDrawerOpen && (
-        <div 
+        <div
           className="fixed inset-0 z-[100] flex justify-end bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300"
           onClick={() => setIsReviewDrawerOpen(false)}
         >
-          <div 
+          <div
             className="relative flex flex-col w-full max-w-2xl bg-white h-full shadow-2xl animate-in slide-in-from-right duration-500"
             onClick={(e) => e.stopPropagation()}
           >
@@ -1131,12 +1104,12 @@ const RoomDetailPage = () => {
                   { label: "Sạch sẽ", key: "cleanlinessRating" },
                   { label: "Vị trí", key: "locationRating" },
                 ].map((cat) => {
-                  const catAvg = roomType[`${cat.key}Avg`] > 0 
+                  const catAvg = roomType[`${cat.key}Avg`] > 0
                     ? roomType[`${cat.key}Avg`]
-                    : (reviews.length > 0 
-                        ? reviews.reduce((acc, r) => acc + (r[cat.key] || 0), 0) / reviews.filter(r => r[cat.key]).length || 0
-                        : 0);
-                  
+                    : (reviews.length > 0
+                      ? reviews.reduce((acc, r) => acc + (r[cat.key] || 0), 0) / reviews.filter(r => r[cat.key]).length || 0
+                      : 0);
+
                   return (
                     <div key={cat.key} className="space-y-1.5">
                       <div className="flex justify-between text-[11px] font-black uppercase tracking-wider text-slate-500">
@@ -1144,7 +1117,7 @@ const RoomDetailPage = () => {
                         <span className="text-amber-500">{catAvg > 0 ? catAvg.toFixed(1) : "0.0"}</span>
                       </div>
                       <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
-                        <div 
+                        <div
                           className="h-full bg-amber-400 transition-all duration-1000"
                           style={{ width: `${(catAvg / 5) * 100}%` }}
                         />
@@ -1159,7 +1132,7 @@ const RoomDetailPage = () => {
                 <h4 className="text-sm font-bold text-slate-900">Đánh giá</h4>
                 <div className="flex items-center gap-3">
                   <span className="text-[13px] text-slate-500">Sắp xếp đánh giá theo:</span>
-                  <select 
+                  <select
                     value={reviewSort}
                     onChange={(e) => { setReviewSort(e.target.value); setReviewPage(1); }}
                     className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-[13px] font-bold text-slate-700 outline-none focus:border-amber-400"
@@ -1196,8 +1169,8 @@ const RoomDetailPage = () => {
                           <div>
                             <p className="text-sm font-black text-slate-900">{review.user}</p>
                             <div className="flex items-center gap-1.5">
-                               <span className="text-xs">🇻🇳</span>
-                               <span className="text-[11px] font-bold text-slate-400">Việt Nam</span>
+                              <span className="text-xs">🇻🇳</span>
+                              <span className="text-[11px] font-bold text-slate-400">Việt Nam</span>
                             </div>
                           </div>
                         </div>
@@ -1209,7 +1182,7 @@ const RoomDetailPage = () => {
 
                       <div className="pl-13">
                         <div className="flex items-center gap-2 mb-2 text-xs font-bold text-slate-400">
-                           <span>Ngày đánh giá: {review.date}</span>
+                          <span>Ngày đánh giá: {review.date}</span>
                         </div>
                         <p className="text-[15px] leading-relaxed text-slate-700">
                           {review.comment || "Không có nhận xét chi tiết."}
@@ -1245,30 +1218,29 @@ const RoomDetailPage = () => {
               {/* Pagination */}
               {drawerReviewsQuery.data?.totalPages > 1 && (
                 <div className="flex items-center justify-center gap-2 py-8 border-t border-slate-100">
-                  <button 
+                  <button
                     disabled={reviewPage === 1}
                     onClick={() => setReviewPage(p => Math.max(1, p - 1))}
                     className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 disabled:opacity-30"
                   >
                     <ChevronLeft size={20} />
                   </button>
-                  
+
                   {[...Array(drawerReviewsQuery.data.totalPages)].map((_, i) => {
                     const p = i + 1;
                     return (
-                      <button 
+                      <button
                         key={p}
                         onClick={() => setReviewPage(p)}
-                        className={`flex h-10 w-10 items-center justify-center rounded-xl text-sm font-black transition ${
-                          reviewPage === p ? "bg-amber-400 text-white shadow-lg" : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
-                        }`}
+                        className={`flex h-10 w-10 items-center justify-center rounded-xl text-sm font-black transition ${reviewPage === p ? "bg-amber-400 text-white shadow-lg" : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
+                          }`}
                       >
                         {p}
                       </button>
                     );
                   })}
 
-                  <button 
+                  <button
                     disabled={reviewPage === drawerReviewsQuery.data.totalPages}
                     onClick={() => setReviewPage(p => Math.min(drawerReviewsQuery.data.totalPages, p + 1))}
                     className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 disabled:opacity-30"
@@ -1284,11 +1256,11 @@ const RoomDetailPage = () => {
 
       {/* GALLERY MODAL OVERLAY */}
       {isGalleryOpen && (
-        <div 
+        <div
           className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/95 backdrop-blur-sm p-1 sm:p-2 md:p-4 animate-in fade-in duration-300"
           onClick={() => setIsGalleryOpen(false)}
         >
-          <div 
+          <div
             className="relative flex flex-col w-full h-full max-w-[98%] max-h-[96%] bg-white rounded-xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300"
             onClick={(e) => e.stopPropagation()}
           >
@@ -1336,7 +1308,7 @@ const RoomDetailPage = () => {
               </div>
 
               {/* Sidebar matching Reference Image */}
-              <div 
+              <div
                 className="w-[440px] border-l bg-white p-8 hidden lg:block overflow-y-auto no-scrollbar"
                 style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
               >
@@ -1363,20 +1335,20 @@ const RoomDetailPage = () => {
                         </p>
                         <div className="flex items-center gap-3">
                           <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-slate-100 border border-slate-100">
-                             {review.avatarUrl ? (
-                               <img src={review.avatarUrl.startsWith('http') ? review.avatarUrl : `http://localhost:5000${review.avatarUrl}`} alt={review.user} className="h-full w-full object-cover" />
-                             ) : (
-                               <div className="flex h-full w-full items-center justify-center bg-green-600 text-[11px] font-black text-white uppercase">
-                                 {review.user?.[0] || 'U'}
-                               </div>
-                             )}
+                            {review.avatarUrl ? (
+                              <img src={review.avatarUrl.startsWith('http') ? review.avatarUrl : `http://localhost:5000${review.avatarUrl}`} alt={review.user} className="h-full w-full object-cover" />
+                            ) : (
+                              <div className="flex h-full w-full items-center justify-center bg-green-600 text-[11px] font-black text-white uppercase">
+                                {review.user?.[0] || 'U'}
+                              </div>
+                            )}
                           </div>
                           <div className="flex flex-col">
-                             <span className="text-[13px] font-bold text-slate-900">{review.user}</span>
-                             <div className="flex items-center gap-1.5 opacity-70">
-                                <span className="text-[12px]">🇻🇳</span>
-                               <span className="text-[11px] font-bold text-slate-500">Việt Nam</span>
-                             </div>
+                            <span className="text-[13px] font-bold text-slate-900">{review.user}</span>
+                            <div className="flex items-center gap-1.5 opacity-70">
+                              <span className="text-[12px]">🇻🇳</span>
+                              <span className="text-[11px] font-bold text-slate-500">Việt Nam</span>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -1390,20 +1362,19 @@ const RoomDetailPage = () => {
 
             {/* Thumbnail Strip - Fixed centering and hidden scrollbar */}
             <div className="h-24 border-t bg-slate-50/30 p-2">
-              <div 
+              <div
                 ref={thumbnailRef}
                 className="relative flex h-full items-center gap-2 overflow-x-auto no-scrollbar"
                 style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
               >
                 {/* Spacer to allow centering first/last items */}
-                <div className="flex-shrink-0 w-[45%]" /> 
+                <div className="flex-shrink-0 w-[45%]" />
                 {imageUrls.map((url, i) => (
                   <button
                     key={i}
                     onClick={() => setCurrentImageIndex(i)}
-                    className={`relative h-full aspect-[4/3] flex-shrink-0 overflow-hidden rounded-md transition-all duration-300 ${
-                      i === currentImageIndex ? "ring-2 ring-amber-400 scale-105 z-10 shadow-lg" : "opacity-40 hover:opacity-100"
-                    }`}
+                    className={`relative h-full aspect-[4/3] flex-shrink-0 overflow-hidden rounded-md transition-all duration-300 ${i === currentImageIndex ? "ring-2 ring-amber-400 scale-105 z-10 shadow-lg" : "opacity-40 hover:opacity-100"
+                      }`}
                   >
                     <img src={url} alt="" className="h-full w-full object-cover" />
                   </button>

@@ -42,35 +42,37 @@ const CategoryIcon = ({ name, iconUrl }) => {
 
 const ServiceCategories = ({ categories, selectedCategoryId, onCategorySelect }) => {
   return (
-    <div className="flex items-center justify-center gap-10 overflow-x-auto pb-6 no-scrollbar">
-      <button
-        onClick={() => onCategorySelect(null)}
-        className={`flex flex-col items-center gap-3 min-w-[120px] transition-all ${selectedCategoryId === null ? "text-[#0194f3]" : "text-slate-500 hover:text-slate-900"
-          }`}
-      >
-        <div className={`flex size-20 items-center justify-center rounded-[28px] transition-all ${selectedCategoryId === null ? "bg-[#0194f3]/10 scale-110 shadow-md" : "bg-white shadow-sm ring-1 ring-slate-100"
-          }`}>
-          <LayoutGrid size={32} />
-        </div>
-        <span className="text-[13px] font-black uppercase tracking-tight text-center">Tất cả</span>
-      </button>
-
-      {categories.map((cat) => (
+    <div className="w-full overflow-x-auto pb-6 no-scrollbar">
+      <div className="flex items-center justify-start md:justify-center gap-4 sm:gap-6 md:gap-10 min-w-max px-4">
         <button
-          key={cat.id}
-          onClick={() => onCategorySelect(cat.id)}
-          className={`flex flex-col items-center gap-3 min-w-[120px] transition-all ${selectedCategoryId === cat.id ? "text-[#0194f3]" : "text-slate-500 hover:text-slate-900"
+          onClick={() => onCategorySelect(null)}
+          className={`flex flex-col items-center gap-2 md:gap-3 min-w-[80px] md:min-w-[120px] transition-all ${selectedCategoryId === null ? "text-[#0194f3]" : "text-slate-500 hover:text-slate-900"
             }`}
         >
-          <div className={`flex size-20 items-center justify-center rounded-[28px] transition-all overflow-hidden ${selectedCategoryId === cat.id ? "bg-[#0194f3]/10 scale-110 shadow-md" : "bg-white shadow-sm ring-1 ring-slate-100"
+          <div className={`flex size-16 md:size-20 items-center justify-center rounded-2xl md:rounded-[28px] transition-all ${selectedCategoryId === null ? "bg-[#0194f3]/10 scale-105 md:scale-110 shadow-md" : "bg-white shadow-sm ring-1 ring-slate-100"
             }`}>
-            <CategoryIcon name={cat.name} iconUrl={cat.iconUrl} />
+            <LayoutGrid className="size-6 md:size-8" />
           </div>
-          <span className="text-[13px] font-black uppercase tracking-tight text-center truncate w-full px-2">
-            {cat.name}
-          </span>
+          <span className="text-[11px] md:text-[13px] font-black uppercase tracking-tight text-center">Tất cả</span>
         </button>
-      ))}
+
+        {categories.map((cat) => (
+          <button
+            key={cat.id}
+            onClick={() => onCategorySelect(cat.id)}
+            className={`flex flex-col items-center gap-2 md:gap-3 min-w-[80px] md:min-w-[120px] transition-all ${selectedCategoryId === cat.id ? "text-[#0194f3]" : "text-slate-500 hover:text-slate-900"
+              }`}
+          >
+            <div className={`flex size-16 md:size-20 items-center justify-center rounded-2xl md:rounded-[28px] transition-all overflow-hidden ${selectedCategoryId === cat.id ? "bg-[#0194f3]/10 scale-105 md:scale-110 shadow-md" : "bg-white shadow-sm ring-1 ring-slate-100"
+              }`}>
+              <CategoryIcon name={cat.name} iconUrl={cat.iconUrl} />
+            </div>
+            <span className="text-[11px] md:text-[13px] font-black uppercase tracking-tight text-center truncate w-full px-1 md:px-2">
+              {cat.name}
+            </span>
+          </button>
+        ))}
+      </div>
     </div>
   );
 };
