@@ -689,7 +689,7 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
         var newStaffAccounts = 0;
 
         // --- Receptionist Real-time Action Lists ---
-        var today = DateTime.UtcNow.Date;
+        var today = DateTime.UtcNow.AddHours(7).Date;
         var tomorrow = today.AddDays(1);
 
         var upcomingCheckInsRaw = await _context.BookingDetails
@@ -701,7 +701,7 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
                 .ThenInclude(b => b!.Invoices)
             .Include(x => x.Room)
                 .ThenInclude(r => r!.RoomType)
-            .Where(x => x.CheckInDate >= today && x.CheckInDate <= tomorrow 
+            .Where(x => x.CheckInDate >= today && x.CheckInDate < tomorrow 
                 && (x.Booking!.Status == "Confirmed" || x.Booking.Status == "Pending"))
             .OrderBy(x => x.CheckInDate)
             .Take(10)
@@ -725,8 +725,8 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
             .Include(x => x.Booking)
                 .ThenInclude(b => b!.Invoices)
             .Include(x => x.Room)
-            .Where(x => x.CheckOutDate >= today && x.CheckOutDate <= tomorrow 
-                && x.Booking!.Status == "In_Progress")
+            .Where(x => x.CheckOutDate >= today && x.CheckOutDate < tomorrow 
+                && (x.Booking!.Status == "In_Progress" || x.Booking.Status == "CheckedIn"))
             .OrderBy(x => x.CheckOutDate)
             .Take(10)
             .Select(x => new
@@ -748,7 +748,7 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
             .Include(x => x.Guest)
             .Include(x => x.BookingDetails)
                 .ThenInclude(bd => bd.Room)
-            .Where(x => x.CreatedAt >= today)
+            .Where(x => x.CreatedAt >= today && x.CreatedAt < tomorrow)
             .OrderByDescending(x => x.CreatedAt)
             .Take(10)
             .Select(x => new
@@ -848,7 +848,9 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
 
         var recentNotifications = await _context.Notifications
             .AsNoTracking()
-            .Where(x => x.CreatedAt.HasValue && x.CreatedAt.Value >= start && x.CreatedAt.Value <= end)
+            .Where(x => x.CreatedAt.HasValue && x.CreatedAt.Value >= start && x.CreatedAt.Value <= end
+                     && x.Title != "Tích điểm thành công!"
+                     && x.Title != "Thăng hạng thành viên!")
             .OrderByDescending(x => x.CreatedAt)
             .Take(10)
             .ToListAsync(cancellationToken);

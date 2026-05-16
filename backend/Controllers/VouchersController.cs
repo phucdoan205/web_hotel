@@ -251,12 +251,13 @@ namespace backend.Controllers
         [HttpGet("public")]
         public async Task<ActionResult<IEnumerable<VoucherDTO>>> GetPublicVouchers()
         {
-            var now = DateTime.UtcNow;
+            var today = DateTime.UtcNow.AddHours(7).Date;
             var list = await _context
                 .Vouchers.Where(v =>
                     v.IsActive
-                    && (v.ValidFrom == null || v.ValidFrom <= now)
-                    && (v.ValidTo == null || v.ValidTo >= now)
+                    && !v.IsPrivate
+                    && (v.ValidFrom == null || v.ValidFrom <= today)
+                    && (v.ValidTo == null || v.ValidTo >= today)
                 )
                 .OrderByDescending(v => v.Id)
                 .Take(12) 

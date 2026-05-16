@@ -682,39 +682,47 @@ export const groupAuditLogs = (logs, formatDate) => {
     const events = log.events || [];
     if (events.length === 0) return;
 
-    const dateLabel = log.logDate ? formatDate(log.logDate) : "Không rõ ngày";
     const userId = log.userId || "0";
     const userName = log.userName || "Hệ thống";
     const roleName = log.roleName || "Hệ thống";
 
-    const key = `${dateLabel}-${userId}-${userName}`;
+    events.forEach((event) => {
+      const dateLabel = event.timestamp ? formatDate(event.timestamp) : (log.logDate ? formatDate(log.logDate) : "Không rõ ngày");
+      const key = `${dateLabel}-${userId}-${userName}`;
 
-    if (!grouped.has(key)) {
-      grouped.set(key, {
-        key,
-        dateLabel,
-        userName,
-        roleName,
-        events: [],
-      });
-    }
+      if (!grouped.has(key)) {
+        grouped.set(key, {
+          key,
+          dateLabel,
+          userName,
+          roleName,
+          events: [],
+        });
+      }
 
-    grouped.get(key).events.push(...events);
+      grouped.get(key).events.push(event);
+    });
   });
 
-  return Array.from(grouped.values()).map((group) => {
-    const events = [...group.events].sort((a, b) => {
-      const timeA = new Date(a.timestamp).getTime();
-      const timeB = new Date(b.timestamp).getTime();
+  return Array.from(grouped.values())
+    .map((group) => {
+      const events = [...group.events].sort((a, b) => {
+        const timeA = new Date(a.timestamp).getTime();
+        const timeB = new Date(b.timestamp).getTime();
+        return timeB - timeA;
+      });
+
+      return {
+        ...group,
+        events,
+        summary: events[0]?.summary || "Nhật ký hoạt động hệ thống.",
+      };
+    })
+    .sort((a, b) => {
+      const timeA = a.events[0] ? new Date(a.events[0].timestamp).getTime() : 0;
+      const timeB = b.events[0] ? new Date(b.events[0].timestamp).getTime() : 0;
       return timeB - timeA;
     });
-
-    return {
-      ...group,
-      events,
-      summary: events[0]?.summary || "Nhật ký hoạt động hệ thống.",
-    };
-  });
 };
 
 export const filterAuditLogs = (logs, filters) => {

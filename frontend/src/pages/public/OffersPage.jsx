@@ -136,7 +136,7 @@ const OffersPage = () => {
         ) : sortedVouchers.length > 0 ? (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2">
             {sortedVouchers.map((voucher) => {
-              const isExpired = voucher.validTo && new Date(voucher.validTo) < new Date();
+              const isExpired = voucher.validTo && new Date(voucher.validTo).setHours(23, 59, 59, 999) < new Date();
               const saved = isVoucherSaved(voucher.id);
               const themeColor = voucher.id % 2 === 0 ? "blue" : "orange";
 

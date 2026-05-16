@@ -66,11 +66,13 @@ namespace backend.Data.Interceptors
             {
                 GenerateNotifications(context, events);
 
-                var today = DateTime.UtcNow.Date;
+                // Lấy thời điểm bắt đầu của ngày hiện tại theo giờ Việt Nam (UTC+7)
+                var nowUtc = DateTime.UtcNow;
+                var startOfVnDayUtc = nowUtc.AddHours(7).Date.AddHours(-7);
 
-                // Tìm log của user này trong ngày hôm nay
+                // Tìm log của user này trong ngày hôm nay (theo giờ VN)
                 var existingLog = await context.AuditLogs
-                    .FirstOrDefaultAsync(l => l.UserId == userId && l.LogDate >= today, cancellationToken);
+                    .FirstOrDefaultAsync(l => l.UserId == userId && l.LogDate >= startOfVnDayUtc, cancellationToken);
 
                 if (existingLog != null)
                 {

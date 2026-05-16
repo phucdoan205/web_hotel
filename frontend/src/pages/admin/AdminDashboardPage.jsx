@@ -1458,8 +1458,16 @@ export default function AdminDashboardPage() {
         type: n.type || "Info"
       }));
 
-    return [...global, ...personal].sort((a, b) => new Date(b.time) - new Date(a.time)).slice(0, 10);
-  }, [summary.tasks?.notifications, personalNotifications]);
+    let allNotifs = [...global, ...personal];
+    if (role === "Receptionist" || role === "Manager" || role === "Admin") {
+      allNotifs = allNotifs.filter(n => 
+        n.title !== "Tích điểm thành công!" && 
+        n.title !== "Thăng hạng thành viên!"
+      );
+    }
+
+    return allNotifs.sort((a, b) => new Date(b.time) - new Date(a.time)).slice(0, 10);
+  }, [summary.tasks?.notifications, personalNotifications, role]);
 
   const hasRooms = !!(summary.rooms);
   const hasRev = !!(summary.revenue);
