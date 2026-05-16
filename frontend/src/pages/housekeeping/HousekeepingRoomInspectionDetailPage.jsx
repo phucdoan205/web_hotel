@@ -215,7 +215,7 @@ export default function HousekeepingRoomInspectionDetailPage() {
               </label>
             </div>
 
-            <div className="mt-8 overflow-x-auto">
+            <div className="mt-8 overflow-x-auto no-scrollbar">
               <table className="w-full min-w-[860px] text-left">
                 <thead className="border-b border-gray-100">
                   <tr>
@@ -281,3 +281,4 @@ export default function HousekeepingRoomInspectionDetailPage() {
     </div>
   );
 }
+

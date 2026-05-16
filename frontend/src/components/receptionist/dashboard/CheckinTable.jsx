@@ -35,7 +35,7 @@ const CheckInTable = () => {
           View all
         </button>
       </div>
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto no-scrollbar">
         <table className="w-full text-left">
           <thead>
             <tr className="bg-gray-50/50">
@@ -91,3 +91,4 @@ const CheckInTable = () => {
 };
 
 export default CheckInTable;
+

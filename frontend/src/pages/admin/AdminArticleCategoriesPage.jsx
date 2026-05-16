@@ -170,7 +170,7 @@ const AdminArticleCategoriesPage = () => {
           </div>
         ) : (
           <>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto no-scrollbar">
               <table className="w-full border-collapse text-left">
                 <thead>
                   <tr className="border-b border-slate-100 bg-slate-50/50 text-[11px] font-black uppercase tracking-widest text-slate-400">
@@ -323,3 +323,4 @@ const AdminArticleCategoriesPage = () => {
 };
 
 export default AdminArticleCategoriesPage;
+

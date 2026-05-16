@@ -18,7 +18,7 @@ const BookingTable = ({ bookings = [] }) => {
         </div>
       </div>
 
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto no-scrollbar">
         <table className="w-full text-left">
           <thead>
             <tr className="border-b border-gray-50 text-xs font-semibold uppercase tracking-wider text-gray-400">
@@ -66,3 +66,4 @@ const BookingTable = ({ bookings = [] }) => {
 };
 
 export default BookingTable;
+

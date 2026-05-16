@@ -315,52 +315,115 @@ export default function LossDamageManagementSection({
         </div>
 
         {isLoading ? (
-          <div className="mt-8 space-y-4"><div className="h-16 animate-pulse rounded-3xl bg-gray-100" /><div className="h-16 animate-pulse rounded-3xl bg-gray-100" /><div className="h-16 animate-pulse rounded-3xl bg-gray-100" /></div>
+          <div className="mt-8 space-y-4">
+            <div className="h-16 animate-pulse rounded-3xl bg-gray-100" />
+            <div className="h-16 animate-pulse rounded-3xl bg-gray-100" />
+            <div className="h-16 animate-pulse rounded-3xl bg-gray-100" />
+          </div>
         ) : error ? (
-          <div className="mt-8 rounded-[1.5rem] border border-rose-100 bg-rose-50 px-5 py-4 text-sm font-bold text-rose-700">{parseApiError(error, "Không tải được báo cáo thất thoát & đền bù.")}</div>
+          <div className="mt-8 rounded-[1.5rem] border border-rose-100 bg-rose-50 px-5 py-4 text-sm font-bold text-rose-700">
+            {parseApiError(error, "Không tải được báo cáo thất thoát & đền bù.")}
+          </div>
         ) : (
-          <div className="mt-8 overflow-x-auto">
-            <table className="w-full min-w-[1320px] text-left">
-              <thead className="border-b border-gray-100">
-                <tr>
-                  {["Phòng", "Vật tư", "Ảnh", "Số lượng", "Đơn giá", "Tổng tiền", "Thời gian báo cáo", "Trạng thái", "Hành động"].map((heading) => (
-                    <th key={heading} className="px-4 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400 first:px-0">{heading}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {(activeTab === "loss-damage" ? filteredPendingReports : filteredProcessedReports).length === 0 ? (
-                  <tr><td colSpan={9} className="px-0 py-8 text-center text-sm font-bold text-gray-400">{activeTab === "loss-damage" ? "Chưa có báo cáo hư hỏng / đền bù nào." : "Chưa có báo cáo đã xử lý nào."}</td></tr>
-                ) : (
-                  (activeTab === "loss-damage" ? filteredPendingReports : filteredProcessedReports).map((item) => {
-                    const resolution = getResolutionBadge(item.resolutionType);
-                    return (
-                      <tr key={item.id}>
-                        <td className="px-0 py-4"><p className="text-sm font-black text-gray-900">Phòng {item.roomNumber}</p></td>
-                        <td className="px-4 py-4"><p className="text-sm font-black text-gray-900">{item.equipmentName}</p><p className="mt-1 text-xs font-bold text-gray-400">{item.equipmentCode || "Không có mã"}</p></td>
-                        <td className="px-4 py-4">
+          <div className="mt-8">
+            {/* Mobile Card View */}
+            <div className="block lg:hidden divide-y divide-gray-100">
+              {(activeTab === "loss-damage" ? filteredPendingReports : filteredProcessedReports).length === 0 ? (
+                <div className="py-8 text-center text-sm font-bold text-gray-400">
+                  {activeTab === "loss-damage" ? "Chưa có báo cáo hư hỏng / đền bù nào." : "Chưa có báo cáo đã xử lý nào."}
+                </div>
+              ) : (
+                (activeTab === "loss-damage" ? filteredPendingReports : filteredProcessedReports).map((item) => {
+                  const resolution = getResolutionBadge(item.resolutionType);
+                  return (
+                    <div key={item.id} className="py-5 space-y-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-start gap-3">
                           {item.imageUrl ? (
-                            <img src={item.imageUrl} alt={item.equipmentName} className="h-14 w-14 rounded-2xl object-cover ring-1 ring-gray-100" />
+                            <img src={item.imageUrl} alt={item.equipmentName} className="h-16 w-16 rounded-2xl object-cover ring-1 ring-gray-100" />
                           ) : (
-                            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
+                            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
                               <ImageIcon className="size-4" />
                             </div>
                           )}
-                        </td>
-                        <td className="px-4 py-4 text-sm font-black text-gray-900">{item.quantity}</td>
-                        <td className="px-4 py-4 text-sm font-black text-gray-500">{Number(item.unitPenalty ?? 0).toLocaleString("vi-VN")} đ</td>
-                        <td className="px-4 py-4 text-sm font-black text-amber-700">{Number(item.penaltyAmount ?? 0).toLocaleString("vi-VN")} đ</td>
-                        <td className="px-4 py-4 text-sm font-bold text-gray-500">{formatVietnamDateTime(item.createdAt)}</td>
-                        <td className="px-4 py-4">
-                          <span className={`rounded-full px-3 py-2 text-[10px] font-black uppercase tracking-wide ${resolution.className}`}>{resolution.label}</span>
-                        </td>
-                        <td className="px-4 py-4">{renderActionButtons(item, activeTab === "processed")}</td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
+                          <div className="min-w-0">
+                            <p className="text-sm font-black text-gray-900">Phòng {item.roomNumber}</p>
+                            <p className="mt-1 text-sm font-black text-gray-700 leading-snug line-clamp-2">{item.equipmentName}</p>
+                            <p className="mt-0.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider">{item.equipmentCode || "N/A"}</p>
+                          </div>
+                        </div>
+                        <span className={`rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-wide shrink-0 ${resolution.className}`}>
+                          {resolution.label}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="rounded-2xl bg-slate-50 p-3">
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Số lượng</p>
+                          <p className="text-base font-black text-slate-900">{item.quantity}</p>
+                        </div>
+                        <div className="rounded-2xl bg-rose-50 p-3">
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-rose-600 mb-1">Tổng đền bù</p>
+                          <p className="text-base font-black text-rose-700">{Number(item.penaltyAmount ?? 0).toLocaleString("vi-VN")} đ</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-2">
+                        <div className="text-[10px] font-bold text-gray-400">
+                          {formatVietnamDateTime(item.createdAt)}
+                        </div>
+                        {renderActionButtons(item, activeTab === "processed")}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden lg:block overflow-x-auto no-scrollbar">
+              <table className="w-full min-w-[1320px] text-left">
+                <thead className="border-b border-gray-100">
+                  <tr>
+                    {["Phòng", "Vật tư", "Ảnh", "Số lượng", "Đơn giá", "Tổng tiền", "Thời gian báo cáo", "Trạng thái", "Hành động"].map((heading) => (
+                      <th key={heading} className="px-4 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400 first:px-0">{heading}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {(activeTab === "loss-damage" ? filteredPendingReports : filteredProcessedReports).length === 0 ? (
+                    <tr><td colSpan={9} className="px-0 py-8 text-center text-sm font-bold text-gray-400">{activeTab === "loss-damage" ? "Chưa có báo cáo hư hỏng / đền bù nào." : "Chưa có báo cáo đã xử lý nào."}</td></tr>
+                  ) : (
+                    (activeTab === "loss-damage" ? filteredPendingReports : filteredProcessedReports).map((item) => {
+                      const resolution = getResolutionBadge(item.resolutionType);
+                      return (
+                        <tr key={item.id}>
+                          <td className="px-0 py-4"><p className="text-sm font-black text-gray-900">Phòng {item.roomNumber}</p></td>
+                          <td className="px-4 py-4"><p className="text-sm font-black text-gray-900">{item.equipmentName}</p><p className="mt-1 text-xs font-bold text-gray-400">{item.equipmentCode || "Không có mã"}</p></td>
+                          <td className="px-4 py-4">
+                            {item.imageUrl ? (
+                              <img src={item.imageUrl} alt={item.equipmentName} className="h-14 w-14 rounded-2xl object-cover ring-1 ring-gray-100" />
+                            ) : (
+                              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
+                                <ImageIcon className="size-4" />
+                              </div>
+                            )}
+                          </td>
+                          <td className="px-4 py-4 text-sm font-black text-gray-900">{item.quantity}</td>
+                          <td className="px-4 py-4 text-sm font-black text-gray-500">{Number(item.unitPenalty ?? 0).toLocaleString("vi-VN")} đ</td>
+                          <td className="px-4 py-4 text-sm font-black text-amber-700">{Number(item.penaltyAmount ?? 0).toLocaleString("vi-VN")} đ</td>
+                          <td className="px-4 py-4 text-sm font-bold text-gray-500">{formatVietnamDateTime(item.createdAt)}</td>
+                          <td className="px-4 py-4">
+                            <span className={`rounded-full px-3 py-2 text-[10px] font-black uppercase tracking-wide ${resolution.className}`}>{resolution.label}</span>
+                          </td>
+                          <td className="px-4 py-4">{renderActionButtons(item, activeTab === "processed")}</td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>
@@ -371,3 +434,4 @@ export default function LossDamageManagementSection({
     </div>
   );
 }
+

@@ -26,7 +26,7 @@ const RoomFilters = ({ activeFilter, setActiveFilter }) => {
   ];
 
   return (
-    <div className="flex gap-3 mb-8 overflow-x-auto pb-2">
+    <div className="flex gap-3 mb-8 overflow-x-auto no-scrollbar pb-2">
       {filters.map((f) => (
         <button
           key={f.id}
@@ -45,3 +45,4 @@ const RoomFilters = ({ activeFilter, setActiveFilter }) => {
 };
 
 export default RoomFilters;
+

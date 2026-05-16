@@ -129,7 +129,7 @@ const AuditTable = ({
             </button>
 
             {isOpen ? (
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto no-scrollbar">
                 <table className="min-w-full divide-y divide-slate-100">
                   <thead className="bg-slate-50/80">
                     <tr className="text-left text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
@@ -205,3 +205,4 @@ const AuditTable = ({
 };
 
 export default AuditTable;
+

@@ -546,7 +546,77 @@ export default function EquipmentManagementSection({
         ) : null}
 
         <div className="overflow-hidden rounded-[2rem] bg-white shadow-sm ring-1 ring-gray-100">
-          <div className="overflow-x-auto">
+          {/* Mobile Card View */}
+          <div className="block lg:hidden divide-y divide-gray-100">
+            {isLoading ? (
+              <div className="px-4 py-10 text-center text-sm font-semibold text-gray-400">
+                Đang tải danh sách vật tư...
+              </div>
+            ) : equipmentItems.length === 0 ? (
+              <div className="px-4 py-10 text-center text-sm font-semibold text-gray-400">
+                Chưa có vật tư nào phù hợp bộ lọc hiện tại.
+              </div>
+            ) : (
+              equipmentItems.map((item) => (
+                <div key={item.id} className="p-4 space-y-4">
+                  <div className="flex items-start gap-4">
+                    <img
+                      src={getPreviewImage(item)}
+                      alt={item.name}
+                      className="size-20 shrink-0 rounded-2xl object-cover ring-1 ring-gray-100"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-black text-blue-600 tracking-wider uppercase">{item.itemCode}</p>
+                        {canEditInventory && (
+                          <button
+                            type="button"
+                            onClick={() => openEditModal(item)}
+                            className="rounded-xl bg-slate-50 p-2 text-slate-500 active:scale-95 transition-all"
+                          >
+                            <Pencil size={16} />
+                          </button>
+                        )}
+                      </div>
+                      <p className="mt-1 text-base font-black text-slate-900 leading-snug line-clamp-2">{item.name}</p>
+                      <p className="mt-1 text-xs font-bold text-slate-500">{item.category} • {item.unit}</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="rounded-2xl bg-emerald-50 p-3">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 mb-1">Trong kho</p>
+                      <p className="text-lg font-black text-emerald-700">{formatNumber(item.inStockQuantity)}</p>
+                    </div>
+                    <div className="rounded-2xl bg-amber-50 p-3">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-amber-600 mb-1">Đang dùng</p>
+                      <p className="text-lg font-black text-amber-700">{formatNumber(item.inUseQuantity)}</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 text-sm font-medium">
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Giá nhập</p>
+                      <p className="text-slate-900 font-bold">{formatCurrency(item.basePrice)}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Giá đền bù</p>
+                      <p className="text-slate-900 font-bold">{formatCurrency(item.defaultPriceIfLost)}</p>
+                    </div>
+                  </div>
+
+                  {item.supplier && (
+                    <div className="text-[11px] font-bold text-slate-500 bg-slate-50 px-3 py-2 rounded-xl">
+                      NCC: {item.supplier}
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden lg:block overflow-x-auto no-scrollbar">
             <table className="min-w-full text-left">
               <thead className="bg-slate-50">
                 <tr>
@@ -873,4 +943,5 @@ export default function EquipmentManagementSection({
     </>
   );
 }
+
 

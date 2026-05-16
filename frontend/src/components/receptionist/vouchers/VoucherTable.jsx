@@ -28,9 +28,136 @@ const VoucherTable = ({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
   return (
-    <div className="rounded-[2.5rem] border border-gray-50 bg-white shadow-sm">
-      <div>
-        <table className="min-w-[1120px] w-full table-fixed text-left">
+    <div className="rounded-[2.5rem] border border-gray-50 bg-white shadow-sm overflow-hidden">
+      {/* Mobile Card View */}
+      <div className="block lg:hidden divide-y divide-gray-50">
+        {data.map((voucher, index) => {
+          const canToggle =
+            (voucher.isActive && canDisable) || (!voucher.isActive && canEnable);
+
+          return (
+            <div key={voucher.id ?? index} className="p-5 space-y-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-black text-blue-600 tracking-wider uppercase">{voucher.code}</p>
+                  <p className="mt-1 text-base font-black text-slate-900 line-clamp-2 leading-snug">
+                    {voucher.name || "Chưa đặt tên"}
+                  </p>
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
+                  {canView && (
+                    <button
+                      type="button"
+                      onClick={() => onView && onView(voucher)}
+                      className="rounded-xl bg-blue-50 p-2 text-blue-600 active:scale-95 transition-all"
+                    >
+                      <Eye size={18} />
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setOpenDropdownId(openDropdownId === voucher.id ? null : voucher.id)}
+                    className="rounded-xl bg-slate-50 p-2 text-slate-500 active:scale-95 transition-all"
+                  >
+                    <MoreVertical size={18} />
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Ưu đãi</p>
+                  <div className="text-sm font-black text-slate-900">
+                    {voucher.discountType === "PERCENT"
+                      ? `${voucher.discountValue}%`
+                      : `${voucher.discountValue?.toLocaleString()} VND`}
+                  </div>
+                  <div className="text-[10px] font-medium text-slate-500">
+                    Tối thiểu: {voucher.minBookingValue?.toLocaleString() ?? "0"} VND
+                  </div>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Số lần sử dụng</p>
+                  <span className="inline-block rounded-full bg-slate-100 px-3 py-1 text-[10px] font-black text-slate-700">
+                    {voucher.usageCount ?? 0} / {voucher.usageLimit ?? "∞"}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-2">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Hiệu lực</p>
+                  <p className="text-[11px] font-bold text-slate-600">
+                    {voucher.validFrom ? new Date(voucher.validFrom).toLocaleDateString("vi-VN") : "N/A"} -{" "}
+                    {voucher.validTo ? new Date(voucher.validTo).toLocaleDateString("vi-VN") : "N/A"}
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  {canToggle ? (
+                    <button
+                      type="button"
+                      onClick={() => typeof onToggle === "function" && onToggle(voucher)}
+                      className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors ${
+                        voucher.isActive ? "bg-blue-500" : "bg-rose-400"
+                      }`}
+                    >
+                      <span
+                        className={`absolute top-1 size-5 rounded-full bg-white shadow-sm transition-all ${
+                          voucher.isActive ? "left-6" : "left-1"
+                        }`}
+                      />
+                    </button>
+                  ) : null}
+                  <span
+                    className={`text-xs font-black uppercase tracking-wide ${
+                      voucher.isDeleted
+                        ? "text-gray-500"
+                        : voucher.isActive
+                          ? "text-blue-600"
+                          : "text-rose-500"
+                    }`}
+                  >
+                    {voucher.isDeleted ? "Deleted" : voucher.isActive ? "Active" : "Deactive"}
+                  </span>
+                </div>
+              </div>
+
+              {openDropdownId === voucher.id && (
+                <div className="grid grid-cols-2 gap-2 pt-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                  {canEdit && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onEdit && onEdit(voucher);
+                        setOpenDropdownId(null);
+                      }}
+                      className="flex items-center justify-center gap-2 rounded-xl bg-sky-50 py-2.5 text-xs font-black text-sky-700 active:scale-[0.98] transition-all"
+                    >
+                      <Pencil size={14} /> Chỉnh sửa
+                    </button>
+                  )}
+                  {canSend && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onSend && onSend(voucher);
+                        setOpenDropdownId(null);
+                      }}
+                      className="flex items-center justify-center gap-2 rounded-xl bg-indigo-50 py-2.5 text-xs font-black text-indigo-700 active:scale-[0.98] transition-all"
+                    >
+                      <Send size={14} /> Gửi voucher
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Desktop Table View */}
+      <div className="hidden lg:block">
+        <table className="min-w-full w-full table-fixed text-left">
           <thead className="border-b border-gray-50 bg-gray-50/50">
             <tr className="text-[10px] font-black uppercase tracking-[0.15em] text-gray-400">
               <th className="w-[12%] px-8 py-5">Mã</th>

@@ -113,7 +113,7 @@ const MembershipPage = () => {
           </div>
 
           {/* Tier Navigation Tabs */}
-          <div className="mb-8 overflow-x-auto pt-4 pb-2 scrollbar-hide">
+          <div className="mb-8 overflow-x-auto no-scrollbar pt-4 pb-2 scrollbar-hide">
             <div className="flex gap-4 min-w-max px-2">
               {memberships.map((m) => {
                 const isActive = selectedTier?.id === m.id;
@@ -275,3 +275,4 @@ const MembershipPage = () => {
 };
 
 export default MembershipPage;
+

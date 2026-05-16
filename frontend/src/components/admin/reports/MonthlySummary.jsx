@@ -36,7 +36,7 @@ const MonthlySummary = () => {
         </button>
       </div>
 
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto no-scrollbar">
         <table className="w-full text-left">
           <thead>
             <tr className="text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-50">
@@ -80,3 +80,4 @@ const MonthlySummary = () => {
 };
 
 export default MonthlySummary;
+

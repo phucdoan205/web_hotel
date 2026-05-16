@@ -104,66 +104,125 @@ const AdminInvoiceListPage = () => {
           </div>
         ) : (
           <div className="overflow-hidden rounded-[1.75rem] border border-slate-200">
-            <table className="min-w-full divide-y divide-slate-200">
-              <thead className="bg-sky-50">
-                <tr className="text-left text-xs font-black uppercase tracking-[0.2em] text-slate-500">
-                  <th className="px-5 py-4">Hóa đơn</th>
-                  <th className="px-5 py-4">Khách</th>
-                  <th className="px-5 py-4">Tổng tiền</th>
-                  <th className="px-5 py-4">Trạng thái</th>
-                  <th className="px-5 py-4">Tạo lúc</th>
-                  <th className="px-5 py-4 text-right">Hành động</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 bg-white">
-                {filteredInvoices.map((invoice) => (
-                  <tr key={invoice.id}>
-                    <td className="px-5 py-4">
+            {/* Mobile Card View */}
+            <div className="block lg:hidden divide-y divide-slate-100 bg-white">
+              {filteredInvoices.map((invoice) => (
+                <div key={invoice.id} className="p-4 space-y-4">
+                  <div className="flex items-start justify-between">
+                    <div>
                       <p className="font-black text-slate-900">{invoice.code}</p>
-                      <p className="mt-1 text-sm text-slate-500">
-                        Booking {invoice.bookingCode} - Phòng {invoice.roomNumber}
+                      <p className="mt-1 text-xs font-medium text-slate-500">
+                        Booking {invoice.bookingCode} • Phòng {invoice.roomNumber}
                       </p>
-                    </td>
-                    <td className="px-5 py-4 text-sm font-semibold text-slate-700">{invoice.guestName}</td>
-                    <td className="px-5 py-4 text-sm font-black text-slate-900">{formatCurrency(invoice.totalAmount)}</td>
-                    <td className="px-5 py-4">
-                      <span
-                        className={`inline-flex rounded-full px-3 py-1 text-xs font-black ${
-                          statusClasses[invoice.status] || statusClasses.Paying
-                        }`}
-                      >
-                        {invoice.status}
-                      </span>
-                    </td>
-                    <td className="px-5 py-4 text-sm font-medium text-slate-500">
+                    </div>
+                    <span
+                      className={`inline-flex rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-wide ${
+                        statusClasses[invoice.status] || statusClasses.Paying
+                      }`}
+                    >
+                      {invoice.status}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between text-sm">
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5">Khách hàng</p>
+                      <p className="font-bold text-slate-700">{invoice.guestName}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5">Tổng tiền</p>
+                      <p className="font-black text-slate-900">{formatCurrency(invoice.totalAmount)}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2">
+                    <span className="text-[10px] font-medium text-slate-400">
                       {formatVietnamDateTime(invoice.createdAt)}
-                    </td>
-                    <td className="px-5 py-4">
-                      <div className="flex justify-end gap-2">
-                        <Link
-                          to={`/admin/invoices/${invoice.id}`}
-                          className="inline-flex items-center gap-2 rounded-2xl bg-sky-100 px-4 py-2.5 text-sm font-bold text-sky-700 transition hover:bg-sky-200"
+                    </span>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => navigate(`/admin/invoices/${invoice.id}`)}
+                        className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-50 text-sky-700 active:scale-95 transition-all"
+                      >
+                        <Eye size={18} />
+                      </button>
+                      {canPayInvoice && invoice.status !== "Completed" && (
+                        <button
+                          onClick={() => navigate(`/admin/invoices/${invoice.id}/payment`)}
+                          className="flex items-center gap-2 rounded-xl bg-sky-600 px-4 py-2 text-xs font-black text-white shadow-sm active:scale-95 transition-all"
                         >
-                          <Eye size={16} />
-                          Xem
-                        </Link>
-                        {canPayInvoice ? (
-                          <button
-                            type="button"
-                            onClick={() => navigate(`/admin/invoices/${invoice.id}/payment`)}
-                            disabled={invoice.status === "Completed"}
-                            className="inline-flex items-center gap-2 rounded-2xl bg-sky-600 px-4 py-2.5 text-sm font-black text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:bg-sky-300"
-                          >
-                            <CreditCard size={16} />
-                            {invoice.status === "Completed" ? "Completed" : "Thanh toán"}
-                          </button>
-                        ) : null}
-                      </div>
-                    </td>
+                          Thanh toán
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden lg:block overflow-x-auto no-scrollbar">
+              <table className="min-w-full divide-y divide-slate-200">
+                <thead className="bg-sky-50">
+                  <tr className="text-left text-xs font-black uppercase tracking-[0.2em] text-slate-500">
+                    <th className="px-5 py-4">Hóa đơn</th>
+                    <th className="px-5 py-4">Khách</th>
+                    <th className="px-5 py-4">Tổng tiền</th>
+                    <th className="px-5 py-4">Trạng thái</th>
+                    <th className="px-5 py-4">Tạo lúc</th>
+                    <th className="px-5 py-4 text-right">Hành động</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-slate-100 bg-white">
+                  {filteredInvoices.map((invoice) => (
+                    <tr key={invoice.id}>
+                      <td className="px-5 py-4">
+                        <p className="font-black text-slate-900">{invoice.code}</p>
+                        <p className="mt-1 text-sm text-slate-500">
+                          Booking {invoice.bookingCode} - Phòng {invoice.roomNumber}
+                        </p>
+                      </td>
+                      <td className="px-5 py-4 text-sm font-semibold text-slate-700">{invoice.guestName}</td>
+                      <td className="px-5 py-4 text-sm font-black text-slate-900">{formatCurrency(invoice.totalAmount)}</td>
+                      <td className="px-5 py-4">
+                        <span
+                          className={`inline-flex rounded-full px-3 py-1 text-xs font-black ${
+                            statusClasses[invoice.status] || statusClasses.Paying
+                          }`}
+                        >
+                          {invoice.status}
+                        </span>
+                      </td>
+                      <td className="px-5 py-4 text-sm font-medium text-slate-500">
+                        {formatVietnamDateTime(invoice.createdAt)}
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="flex justify-end gap-2">
+                          <Link
+                            to={`/admin/invoices/${invoice.id}`}
+                            className="inline-flex items-center gap-2 rounded-2xl bg-sky-100 px-4 py-2.5 text-sm font-bold text-sky-700 transition hover:bg-sky-200"
+                          >
+                            <Eye size={16} />
+                            Xem
+                          </Link>
+                          {canPayInvoice ? (
+                            <button
+                              type="button"
+                              onClick={() => navigate(`/admin/invoices/${invoice.id}/payment`)}
+                              disabled={invoice.status === "Completed"}
+                              className="inline-flex items-center gap-2 rounded-2xl bg-sky-600 px-4 py-2.5 text-sm font-black text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:bg-sky-300"
+                            >
+                              <CreditCard size={16} />
+                              {invoice.status === "Completed" ? "Completed" : "Thanh toán"}
+                            </button>
+                          ) : null}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>

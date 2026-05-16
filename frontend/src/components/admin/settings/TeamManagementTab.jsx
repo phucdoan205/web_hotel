@@ -120,7 +120,7 @@ const TeamManagementTab = () => {
       </div>
 
       <div className="overflow-hidden rounded-[2rem] border border-sky-100 bg-white shadow-xl shadow-sky-100/50">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto no-scrollbar">
           <table className="min-w-[760px] w-full">
             <thead className="border-b border-sky-100 bg-sky-50/80">
               <tr>
@@ -178,3 +178,4 @@ const TeamManagementTab = () => {
 };
 
 export default TeamManagementTab;
+

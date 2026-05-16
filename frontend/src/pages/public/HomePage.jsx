@@ -184,7 +184,7 @@ const HomePage = () => {
           <div className="relative group/recent">
             <div 
               ref={recentCarouselRef}
-              className="no-scrollbar flex gap-4 overflow-x-auto pb-4 scroll-smooth"
+              className="no-scrollbar flex gap-4 overflow-x-auto no-scrollbar pb-4 scroll-smooth"
             >
               {recentlyViewed.map((rt) => (
                 <article 
@@ -358,7 +358,7 @@ const HomePage = () => {
           <div 
             ref={carouselRef}
             id="property-carousel"
-            className="no-scrollbar flex gap-4 overflow-x-auto pb-4 scroll-smooth"
+            className="no-scrollbar flex gap-4 overflow-x-auto no-scrollbar pb-4 scroll-smooth"
           >
             {roomTypesData?.items?.map((rt) => (
               <article 
@@ -488,3 +488,4 @@ const HomePage = () => {
 };
 
 export default HomePage;
+

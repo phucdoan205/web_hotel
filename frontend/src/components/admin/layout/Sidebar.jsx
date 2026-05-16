@@ -170,7 +170,7 @@ function SidebarLink({ item, pathname, className = "" }) {
   );
 }
 
-export default function Sidebar({ isOpen }) {
+export default function Sidebar({ isOpen, onClose }) {
   const location = useLocation();
   const auth = useStoredAuth();
   const [openGroups, setOpenGroups] = useState({});
@@ -218,14 +218,24 @@ export default function Sidebar({ isOpen }) {
         isOpen ? "translate-x-0" : "-translate-x-full"
       }`}
     >
-      <div className="mb-8 flex items-center gap-3">
-        <div className="rounded-xl bg-white p-2.5 text-[#1F649C] shadow-inner">
-          <Hotel className="size-6" />
+      <div className="mb-8 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="rounded-xl bg-white p-2.5 text-[#1F649C] shadow-inner">
+            <Hotel className="size-6" />
+          </div>
+          <div className="flex flex-col">
+            <span className="text-xl font-extrabold leading-tight tracking-tight text-white">HPT</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-blue-200">Premium ERP</span>
+          </div>
         </div>
-        <div className="flex flex-col">
-          <span className="text-xl font-extrabold leading-tight tracking-tight text-white">HPT</span>
-          <span className="text-[10px] font-bold uppercase tracking-widest text-blue-200">Premium ERP</span>
-        </div>
+        {onClose && (
+          <button 
+            onClick={onClose}
+            className="lg:hidden flex h-8 w-8 items-center justify-center rounded-lg bg-white/10 text-white hover:bg-white/20 transition-colors"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
+        )}
       </div>
 
       <nav className="flex-1 overflow-y-auto pr-1 sidebar-hide-scrollbar">

@@ -373,7 +373,7 @@ const AttractionDetailPage = () => {
             
             {/* Thumbnail Strip */}
             {imageUrls.length > 1 && (
-              <div className="h-24 border-t bg-white p-2 flex items-center justify-center gap-2 overflow-x-auto">
+              <div className="h-24 border-t bg-white p-2 flex items-center justify-center gap-2 overflow-x-auto no-scrollbar">
                 {imageUrls.map((url, i) => (
                   <button
                     key={i}
@@ -395,3 +395,4 @@ const AttractionDetailPage = () => {
 };
 
 export default AttractionDetailPage;
+

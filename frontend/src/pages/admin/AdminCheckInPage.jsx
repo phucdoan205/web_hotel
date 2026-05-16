@@ -364,7 +364,7 @@ const AdminCheckInPage = () => {
           ) : isError ? (
             <div className="py-10 text-center text-red-400">Không tải được lịch đặt phòng trong tuần.</div>
           ) : (
-            <div className="overflow-x-auto rounded-[1.75rem] border-2 border-slate-400 bg-white shadow-md">
+            <div className="overflow-x-auto no-scrollbar rounded-[1.75rem] border-2 border-slate-400 bg-white shadow-md">
               <div className="border-b-2 border-slate-400 bg-slate-50 px-4 py-3 text-lg font-black text-slate-900">
                 {weekRangeLabel}
               </div>
@@ -485,3 +485,4 @@ const AdminCheckInPage = () => {
 };
 
 export default AdminCheckInPage;
+

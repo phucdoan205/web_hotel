@@ -634,7 +634,7 @@ export default function RoomInventoryModal({
                 </p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto no-scrollbar">
                 <table className="min-w-full text-sm">
                   <thead className="bg-slate-50">
                     <tr className="border-b border-slate-100 text-left text-xs font-black uppercase tracking-widest text-slate-400">
@@ -737,3 +737,4 @@ export default function RoomInventoryModal({
     </div>
   );
 }
+

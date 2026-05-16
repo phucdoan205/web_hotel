@@ -95,7 +95,92 @@ const BookingList = ({ filters, onPageChange }) => {
   return (
     <>
       <div className="overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm">
-        <div className="overflow-x-auto">
+        {/* Mobile Card View */}
+        <div className="block lg:hidden divide-y divide-gray-100">
+          {isLoading ? (
+            <div className="py-12 text-center text-gray-500">Đang tải...</div>
+          ) : bookings.length === 0 ? (
+            <div className="py-12 text-center text-gray-500">Chưa có booking nào</div>
+          ) : (
+            bookings.map((booking) => {
+              const bookingDetails = booking.bookingDetails || [];
+              const deleteLocked = isBookingDeleteLocked(booking);
+
+              return (
+                <div key={booking.id} className="p-4 space-y-4">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <div className="text-sm font-black text-blue-600">{booking.bookingCode}</div>
+                      <div className="mt-1 text-base font-black text-slate-900">
+                        {booking.guestName || booking.guest?.name || "--"}
+                      </div>
+                    </div>
+                    <span
+                      className={`rounded-full px-4 py-1 text-[10px] font-black uppercase tracking-wide ${getStatusStyle(
+                        booking.status,
+                      )}`}
+                    >
+                      {getStatusLabel(booking.status)}
+                    </span>
+                  </div>
+
+                  <div className="space-y-3">
+                    {bookingDetails.map((detail, index) => (
+                      <div key={`${booking.id}-detail-${index}`} className="rounded-2xl bg-slate-50 p-3 flex items-center justify-between">
+                        <div>
+                          <div className="text-sm font-bold text-slate-800">
+                            {detail.roomTypeName || detail.roomType?.name || "--"}
+                          </div>
+                          <div className="text-[11px] font-medium text-slate-500">
+                            Phòng {detail.room?.roomNumber || detail.roomNumber || "--"}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-xs font-bold text-slate-700">
+                            {detail.checkInDate ? formatVietnamDate(detail.checkInDate) : "--"}
+                          </div>
+                          <div className="text-[10px] text-slate-400 font-medium uppercase tracking-tighter">Check-in</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2">
+                    {bookingDetails.length > 1 && (
+                      <div className="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full">
+                        {bookingDetails.length} phòng
+                      </div>
+                    )}
+                    <div className="flex flex-1 justify-end gap-2">
+                      {canViewBookings && (
+                        <button
+                          onClick={() => {
+                            setSelectedBooking(booking);
+                            setIsDetailOpen(true);
+                          }}
+                          className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-50 text-sky-600 active:scale-95 transition-all"
+                        >
+                          <Eye size={18} />
+                        </button>
+                      )}
+                      {!deleteLocked && canDeleteBookings && (
+                        <button
+                          onClick={() => setCancelTarget(booking)}
+                          className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-50 text-rose-600 active:scale-95 transition-all"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* Desktop Table View */}
+        <div className="hidden lg:block overflow-x-auto no-scrollbar">
           <table className="w-full">
             <thead className="bg-gray-100">
               <tr className="text-sm font-black uppercase tracking-widest text-gray-500">
@@ -304,3 +389,4 @@ const BookingList = ({ filters, onPageChange }) => {
 };
 
 export default BookingList;
+

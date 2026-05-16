@@ -334,7 +334,76 @@ const AdminArticlePage = () => {
         ) : null}
 
         <div className="rounded-[2rem] bg-white shadow-sm ring-1 ring-gray-100">
-          <div>
+          {/* Mobile Card View */}
+          <div className="block lg:hidden divide-y divide-gray-100">
+            {loading ? (
+              <div className="px-4 py-10 text-center text-sm font-semibold text-gray-400">
+                Đang tải bài viết...
+              </div>
+            ) : sortedArticles.length === 0 ? (
+              <div className="px-4 py-10 text-center text-sm font-semibold text-gray-400">
+                Không có bài viết phù hợp bộ lọc.
+              </div>
+            ) : (
+              sortedArticles
+                .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+                .map((article) => (
+                  <div key={article.id} className="p-4 space-y-4">
+                    <div className="flex items-start gap-3">
+                      <img
+                        src={article.thumbnailUrl || "https://placehold.co/120x120/e2e8f0/64748b?text=News"}
+                        alt={article.title}
+                        className="size-16 shrink-0 rounded-2xl object-cover ring-1 ring-gray-100"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="line-clamp-2 text-sm font-black text-slate-900 leading-snug">{article.title}</p>
+                          <ArticleActionMenu
+                            article={article}
+                            onApprove={handleApprove}
+                            onEdit={(id) => navigate(`/admin/articles/${id}/edit`)}
+                            onAction={openActionDialog}
+                            canEditContent={canEditContent}
+                            canPublishContent={canPublishContent}
+                            canDeleteContent={canDeleteContent}
+                          />
+                        </div>
+                        <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs font-semibold text-slate-500">
+                          <span>{article.authorName || "Ẩn danh"}</span>
+                          <span className="text-slate-300">•</span>
+                          <span>{article.categoryName || "Không danh mục"}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Trạng thái</div>
+                        <span className={`inline-flex rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-wide ${getStatusBadgeClass(article)}`}>
+                          {getStatusLabel(article)}
+                        </span>
+                      </div>
+                      <div>
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Ngày hiển thị</div>
+                        <div className="text-xs font-semibold text-slate-600">
+                          {getDisplayTime(article) ? formatPreservedApiDateTime(getDisplayTime(article)) : "Chưa hiển thị"}
+                        </div>
+                      </div>
+                    </div>
+
+                    {article.attractionName && (
+                      <div className="flex items-center gap-1.5 rounded-xl bg-sky-50 px-3 py-2 text-xs font-bold text-sky-700">
+                        <MapPin className="size-3.5" />
+                        <span>{article.attractionName}</span>
+                      </div>
+                    )}
+                  </div>
+                ))
+            )}
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden lg:block overflow-x-auto no-scrollbar">
             <table className="min-w-full table-fixed text-left">
               <thead className="bg-slate-50">
                 <tr>

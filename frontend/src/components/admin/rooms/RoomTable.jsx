@@ -191,7 +191,108 @@ export default function RoomTable({
       </div>
 
       <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm">
-        <div className="overflow-x-auto">
+        {/* Mobile Card View */}
+        <div className="block lg:hidden divide-y divide-slate-100">
+          {loading ? (
+            Array.from({ length: 3 }).map((_, index) => (
+              <div key={index} className="p-4 space-y-3">
+                <div className="flex gap-3">
+                  <div className="h-16 w-20 animate-pulse rounded-2xl bg-slate-100" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 w-24 animate-pulse rounded bg-slate-100" />
+                    <div className="h-3 w-32 animate-pulse rounded bg-slate-100" />
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <div className="h-8 flex-1 animate-pulse rounded-xl bg-slate-100" />
+                  <div className="h-8 flex-1 animate-pulse rounded-xl bg-slate-100" />
+                </div>
+              </div>
+            ))
+          ) : rooms.length === 0 ? (
+            <div className="px-6 py-16 text-center">
+              <div className="mx-auto flex max-w-sm flex-col items-center gap-3">
+                <div className="rounded-2xl bg-slate-100 p-4 text-slate-400">
+                  <ImagePlus className="size-6" />
+                </div>
+                <p className="text-lg font-black text-slate-900">{text.emptyTitle}</p>
+                <p className="text-sm font-medium text-slate-500">{text.emptyDesc}</p>
+              </div>
+            </div>
+          ) : (
+            rooms.map((room) => (
+              <div key={room.id} className="p-4 space-y-4">
+                <div className="flex items-start gap-4">
+                  {room.imageUrls?.[0] ? (
+                    <img
+                      src={room.imageUrls[0]}
+                      alt={room.roomNumber}
+                      className="h-16 w-20 shrink-0 rounded-2xl object-cover ring-1 ring-slate-200"
+                    />
+                  ) : (
+                    <div className="flex h-16 w-20 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
+                      <ImagePlus className="size-5" />
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <h3 className="truncate text-base font-black text-slate-900">
+                        {text.roomNumber} {room.roomNumber}
+                      </h3>
+                      <button
+                        type="button"
+                        onClick={(e) => handleOpenMenu(e, room)}
+                        className="rounded-xl bg-slate-50 p-2 text-slate-500 active:scale-95"
+                      >
+                        <MoreHorizontal className="size-4" />
+                      </button>
+                    </div>
+                    <p className="truncate text-xs font-bold text-slate-500">
+                      {room.roomTypeName || text.noType} • {text.floor} {room.floor ?? "-"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{text.status}</span>
+                    <span className={`inline-flex w-fit rounded-full px-3 py-1 text-[10px] font-black ${getBadgeClass(room.status)}`}>
+                      {room.status || "N/A"}
+                    </span>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{text.cleaning}</span>
+                    <span className={`inline-flex w-fit rounded-full px-3 py-1 text-[10px] font-black ${getBadgeClass(room.cleaningStatus)}`}>
+                      {room.cleaningStatus || "N/A"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  {canEditRooms && (
+                    <button
+                      type="button"
+                      onClick={() => onEdit(room)}
+                      className="flex-1 rounded-xl bg-sky-600 py-2.5 text-xs font-black text-white shadow-sm transition-all active:scale-[0.98]"
+                    >
+                      {text.edit}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={(e) => handleOpenMenu(e, room)}
+                    className="flex-1 rounded-xl border border-slate-200 py-2.5 text-xs font-black text-slate-700 shadow-sm transition-all active:scale-[0.98]"
+                  >
+                    Tùy chọn khác
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Desktop Table View */}
+        <div className="hidden lg:block overflow-x-auto no-scrollbar">
           <table className="min-w-full divide-y divide-slate-200">
             <thead className="bg-slate-50">
               <tr>
@@ -467,3 +568,5 @@ export default function RoomTable({
     </div>
   );
 }
+
+

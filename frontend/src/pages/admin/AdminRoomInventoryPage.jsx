@@ -87,7 +87,7 @@ const AdminRoomInventoryPage = () => {
       <RoomStats />
 
       {/* Filter Tabs */}
-      <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-2">
+      <div className="flex items-center gap-2 mb-6 overflow-x-auto no-scrollbar pb-2">
         {categories.map((cat, idx) => (
           <button
             key={idx}
@@ -169,3 +169,4 @@ const AdminRoomInventoryPage = () => {
 };
 
 export default AdminRoomInventoryPage;
+

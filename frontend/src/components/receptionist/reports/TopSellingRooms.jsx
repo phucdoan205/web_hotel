@@ -44,7 +44,7 @@ const TopSellingRooms = () => {
         </button>
       </div>
 
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto no-scrollbar">
         <table className="w-full">
           <thead className="bg-gray-50/50">
             <tr className="text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
@@ -105,3 +105,4 @@ const TopSellingRooms = () => {
 };
 
 export default TopSellingRooms;
+

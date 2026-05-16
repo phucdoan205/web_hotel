@@ -340,7 +340,7 @@ const ServiceDetailPage = () => {
 
             <div
               ref={scrollContainerRef}
-              className="flex gap-2 overflow-x-auto pb-2 scroll-smooth"
+              className="flex gap-2 overflow-x-auto no-scrollbar pb-2 scroll-smooth"
               style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
             >
               <style>{`
@@ -973,7 +973,7 @@ const ServiceDetailPage = () => {
             </div>
 
             {imageUrls.length > 1 && (
-              <div className="flex h-24 items-center justify-center gap-2 overflow-x-auto border-t bg-white p-2">
+              <div className="flex h-24 items-center justify-center gap-2 overflow-x-auto no-scrollbar border-t bg-white p-2">
                 {imageUrls.map((url, index) => (
                   <button
                     key={index}
@@ -997,3 +997,4 @@ const ServiceDetailPage = () => {
 };
 
 export default ServiceDetailPage;
+

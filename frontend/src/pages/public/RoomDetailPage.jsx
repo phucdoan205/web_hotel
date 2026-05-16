@@ -479,7 +479,7 @@ const RoomDetailPage = () => {
 
       {/* Sticky Tabs */}
       <div className="sticky top-[80px] z-30 mb-10 flex items-center justify-center pointer-events-none transition-all">
-        <div className="bg-white/80 backdrop-blur-xl shadow-xl shadow-slate-200/50 border border-slate-200/50 rounded-full p-1.5 flex gap-1 pointer-events-auto overflow-x-auto max-w-full">
+        <div className="bg-white/80 backdrop-blur-xl shadow-xl shadow-slate-200/50 border border-slate-200/50 rounded-full p-1.5 flex gap-1 pointer-events-auto overflow-x-auto no-scrollbar max-w-full">
           {[
             { id: "overview", label: "Tổng quan" },
             { id: "availability", label: "Tình trạng phòng" },
@@ -1390,3 +1390,4 @@ const RoomDetailPage = () => {
 };
 
 export default RoomDetailPage;
+
