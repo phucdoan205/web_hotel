@@ -34,7 +34,7 @@ export const useSearchNavigation = () => {
   };
 
   const handleSearch = () => {
-    navigate("/booking", { state: searchParams });
+    navigate("/booking-wizard", { state: searchParams });
   };
 
   return {

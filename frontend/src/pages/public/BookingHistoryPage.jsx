@@ -88,7 +88,7 @@ const BookingCard = ({ booking, onCancel, navigate }) => {
     if (status !== "Pending" || isHoldExpired || !booking.createdAt) return;
     const expire = new Date(booking.createdAt).getTime() + HOLD_MINUTES * 60 * 1000;
     const ms = expire - Date.now();
-    if (ms <= 0) { setIsHoldExpired(true); return; }
+    if (ms <= 0) { return; }
     const timer = setTimeout(() => setIsHoldExpired(true), ms);
     return () => clearTimeout(timer);
   }, [booking.createdAt, status, isHoldExpired]);
@@ -143,7 +143,7 @@ const BookingCard = ({ booking, onCancel, navigate }) => {
           {canPay ? (
             <button
               type="button"
-              onClick={() => navigate(`/booking-history/${booking.id}/payment`)}
+              onClick={() => navigate('/booking-wizard', { state: { resumeBooking: booking } })}
               className="inline-flex h-11 min-w-[132px] items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 text-sm font-bold text-white transition hover:bg-blue-700"
             >
               <CreditCard size={16} />

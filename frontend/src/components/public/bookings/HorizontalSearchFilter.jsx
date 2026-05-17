@@ -206,7 +206,7 @@ const HorizontalSearchFilter = ({
           className="flex min-h-[64px] items-center justify-center gap-3 rounded-xl bg-gradient-to-r from-[#0194f3] to-[#0070bc] px-10 text-base font-black text-white shadow-lg shadow-blue-500/30 transition-all hover:scale-[1.02] hover:shadow-blue-500/40 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:scale-100 lg:w-auto"
         >
           <Search size={22} />
-          {isSearching ? "Đang tìm..." : "Tìm kiếm"}
+          {isSearching ? "Đang xử lý..." : "Đặt phòng"}
         </button>
       </form>
     </div>

@@ -53,8 +53,8 @@ import AdminVoucherPage from "../pages/admin/AdminVoucherPage";
 import AdminMembershipPage from "../pages/admin/AdminMembershipPage";
 
 import BookingPage from "../pages/public/BookingPage";
+import BookingWizardPage from "../pages/public/BookingWizardPage";
 import BookingDetailPage from "../pages/public/BookingDetailPage";
-import BookingPaymentPage from "../pages/public/BookingPaymentPage";
 import RoomDetailPage from "../pages/public/RoomDetailPage";
 import BookingHistoryPage from "../pages/public/BookingHistoryPage";
 import AccountPlaceholderPage from "../pages/public/AccountPlaceholderPage";
@@ -95,9 +95,9 @@ const AppRoutes = () => {
         <Route path="hotels" element={<HomePage />} />
         <Route path="hotels/:id" element={<HotelListPage />} />
         <Route path="booking" element={<BookingPage />} />
+        <Route path="booking-wizard" element={<BookingWizardPage />} />
         <Route path="booking/:id" element={<BookingDetailPage />} />
         <Route path="booking-history" element={<BookingHistoryPage />} />
-        <Route path="booking-history/:id/payment" element={<BookingPaymentPage />} />
         <Route path="room-types/:id" element={<RoomDetailPage />} />
         <Route path="profile">
           <Route index element={<AccountProfilePage />} />

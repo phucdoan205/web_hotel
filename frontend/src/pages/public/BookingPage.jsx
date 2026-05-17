@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowDownWideNarrow, MapPin, ShieldCheck, Star } from "lucide-react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import HorizontalSearchFilter from "../../components/public/bookings/HorizontalSearchFilter";
 import BookingCard from "../../components/public/bookings/BookingCard";
@@ -123,6 +123,7 @@ const sortRoomTypes = (roomTypes, sortBy, numberOfNights) => {
 
 const BookingPage = () => {
   const location = useLocation();
+  const navigate = useNavigate();
 
   const [filters, setFilters] = useState(() => {
     if (location.state) {
@@ -238,7 +239,7 @@ const BookingPage = () => {
 
   const handleSearch = (event) => {
     if (event) event.preventDefault();
-    setAppliedFilters(filters);
+    navigate("/booking-wizard", { state: filters });
   };
 
   return (
