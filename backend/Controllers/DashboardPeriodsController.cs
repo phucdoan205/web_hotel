@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using backend.DTOs.Dashboard;
 using backend.Services;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace backend.Controllers;
 
@@ -12,10 +13,12 @@ namespace backend.Controllers;
 public class DashboardPeriodsController : ControllerBase
 {
     private readonly IRoleDashboardPeriodService _dashboardService;
+    private readonly IMemoryCache _cache;
 
-    public DashboardPeriodsController(IRoleDashboardPeriodService dashboardService)
+    public DashboardPeriodsController(IRoleDashboardPeriodService dashboardService, IMemoryCache cache)
     {
         _dashboardService = dashboardService;
+        _cache = cache;
     }
 
     [HttpGet("current")]
@@ -25,6 +28,13 @@ public class DashboardPeriodsController : ControllerBase
         CancellationToken cancellationToken = default)
     {
         var resolvedRoleName = ResolveRoleName(roleName);
+        var cacheKey = $"Dashboard_Current_{resolvedRoleName}_{periodType}";
+
+        if (_cache.TryGetValue(cacheKey, out DashboardPeriodResponseDto? cachedDashboard))
+        {
+            return Ok(cachedDashboard);
+        }
+
         var dashboard = await _dashboardService.GetRealtimeDashboardAsync(
             resolvedRoleName,
             periodType,
@@ -45,6 +55,11 @@ public class DashboardPeriodsController : ControllerBase
                 resolvedRoleName,
                 periodType,
                 cancellationToken);
+        }
+
+        if (dashboard != null)
+        {
+            _cache.Set(cacheKey, dashboard, TimeSpan.FromSeconds(15));
         }
 
         return dashboard == null
@@ -99,6 +114,8 @@ public class DashboardPeriodsController : ControllerBase
             null,
             cancellationToken);
 
+        _cache.Remove($"Dashboard_Current_{request.RoleName}_{request.PeriodType}");
+
         return Ok(new { message = "Đã rebuild dashboard theo kỳ." });
     }
 
@@ -106,6 +123,17 @@ public class DashboardPeriodsController : ControllerBase
     public async Task<IActionResult> RebuildAllCurrent(CancellationToken cancellationToken = default)
     {
         await _dashboardService.RebuildAllCurrentDashboardsAsync(ResolveUserId(), cancellationToken);
+        
+        var roles = new[] { "Admin", "Manager", "Receptionist", "Accountant", "Housekeeping", "WarehouseStaff", "Warehouse" };
+        var periods = new[] { "DAILY", "MONTHLY", "QUARTERLY", "YEARLY" };
+        foreach(var r in roles)
+        {
+            foreach(var p in periods)
+            {
+                _cache.Remove($"Dashboard_Current_{r}_{p}");
+            }
+        }
+
         return Ok(new { message = "Đã rebuild toàn bộ dashboard hiện tại." });
     }
 
