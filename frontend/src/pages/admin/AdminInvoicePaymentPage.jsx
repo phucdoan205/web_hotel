@@ -13,6 +13,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import toast from "react-hot-toast";
 import { invoicesApi } from "../../api/admin/invoicesApi";
 
 const currencyFormatter = new Intl.NumberFormat("vi-VN");
@@ -35,8 +36,6 @@ const AdminInvoicePaymentPage = () => {
   const { invoiceId } = useParams();
   const [searchParams] = useSearchParams();
   const [paymentMethod, setPaymentMethod] = useState("qrpay");
-  const [momoView, setMomoView] = useState("hosted");
-  const [copied, setCopied] = useState(false);
   const completedInvoiceRef = useRef(false);
 
   const resultCode = searchParams.get("resultCode");
@@ -52,6 +51,7 @@ const AdminInvoicePaymentPage = () => {
   });
 
   const invoice = invoiceQuery.data;
+
   const qrTransferContent = useMemo(
     () => `HOTEL INVOICE ${invoice?.code || invoiceId} ${formatCurrency(invoice?.totalAmount || 0)}`,
     [invoice?.code, invoice?.totalAmount, invoiceId],
@@ -85,16 +85,10 @@ const AdminInvoicePaymentPage = () => {
       queryClient.invalidateQueries({ queryKey: ["departures"] });
       queryClient.invalidateQueries({ queryKey: ["checkout-bookings"] });
 
-      navigate("/admin/invoices", {
-        replace: true,
-        state: {
-          notice: {
-            type: "success",
-            title: "Đã thanh toán hóa đơn",
-            message: `${completedInvoice.code || "Hóa đơn"} đã chuyển sang Completed.`,
-          },
-        },
-      });
+      toast.success(`${completedInvoice.code || "Hóa đơn"} đã chuyển sang Completed.`);
+      setTimeout(() => {
+        navigate("/admin/check-out");
+      }, 1000);
     },
   });
 
@@ -118,24 +112,9 @@ const AdminInvoicePaymentPage = () => {
     momoPaymentQuery.refetch();
   };
 
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(qrTransferContent);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 2000);
-    } catch {
-      setCopied(false);
-    }
-  };
-
   const openExternalLink = (url) => {
     if (!url) return;
     window.open(url, "_blank", "noopener,noreferrer");
-  };
-
-  const openCurrentWindow = (url) => {
-    if (!url) return;
-    window.location.href = url;
   };
 
   useEffect(() => {
@@ -294,36 +273,21 @@ const AdminInvoicePaymentPage = () => {
                 <div>
                   <p className="text-xs font-bold uppercase tracking-[0.25em] text-pink-400">MoMo</p>
                   <p className="mt-2 text-2xl font-black text-slate-900">Thanh toán hóa đơn qua MoMo</p>
-                  <p className="mt-2 text-sm text-slate-500">
-                    Tạo giao dịch trước, sau đó bạn có thể mở cổng thanh toán hoặc quét QR ngay trên trang này.
-                  </p>
                 </div>
-                <div className="rounded-2xl bg-pink-100 p-3 text-pink-600">
-                  <Smartphone size={24} />
-                </div>
-              </div>
-
-              <div className="mt-6 inline-flex rounded-2xl bg-pink-50 p-1">
-                <button
-                  type="button"
-                  onClick={() => setMomoView("hosted")}
-                  className={`rounded-2xl px-4 py-2 text-sm font-bold transition ${momoView === "hosted"
-                      ? "bg-pink-600 text-white shadow-sm"
-                      : "text-pink-700 hover:bg-pink-100"
-                    }`}
-                >
-                  Trang thanh toán MoMo
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setMomoView("qr")}
-                  className={`rounded-2xl px-4 py-2 text-sm font-bold transition ${momoView === "qr"
-                      ? "bg-pink-600 text-white shadow-sm"
-                      : "text-pink-700 hover:bg-pink-100"
-                    }`}
-                >
-                  QR MoMo
-                </button>
+                {momoPayment?.payUrl ? (
+                  <button
+                    type="button"
+                    onClick={() => openExternalLink(momoPayment.payUrl)}
+                    className="rounded-2xl bg-pink-100 p-3 text-pink-600 hover:bg-pink-200 transition-colors shadow-sm"
+                    title="Mở trang thanh toán MoMo trong tab mới"
+                  >
+                    <ExternalLink size={24} />
+                  </button>
+                ) : (
+                  <div className="rounded-2xl bg-pink-100 p-3 text-pink-600">
+                    <Smartphone size={24} />
+                  </div>
+                )}
               </div>
 
               {momoPaymentQuery.isLoading ? (
@@ -348,91 +312,38 @@ const AdminInvoicePaymentPage = () => {
                 </div>
               ) : momoPayment ? (
                 <>
-                  {momoView === "hosted" ? (
-                    <div className="mt-6 rounded-[30px] border border-pink-100 bg-gradient-to-br from-pink-50 via-white to-rose-50 p-6">
-                      <p className="text-xs font-bold uppercase tracking-[0.25em] text-pink-400">
-                        Cổng thanh toán test
-                      </p>
-                      <p className="mt-3 text-3xl font-black text-slate-900">Mở trang thanh toán MoMo</p>
-                      <p className="mt-2 text-sm text-slate-600">
-                        Trang sẽ đứng yên tại đây cho đến khi bạn chủ động mở cổng thanh toán.
-                      </p>
-
-                      <div className="mt-5 rounded-3xl bg-white p-5 shadow-sm">
-                        <p className="text-sm text-slate-500">Số tiền</p>
-                        <p className="mt-1 text-3xl font-black text-pink-600">
-                          {formatCurrency(momoPayment.amount)}
-                        </p>
-                        <p className="mt-4 text-sm text-slate-500">Order ID</p>
-                        <p className="mt-1 break-all font-bold text-slate-900">{momoPayment.orderId}</p>
-                        <p className="mt-4 text-sm text-slate-500">Kết quả tạo giao dịch</p>
-                        <p className="mt-1 font-bold text-slate-900">{momoPayment.message}</p>
-                      </div>
-
-                      <div className="mt-5 grid gap-3 md:grid-cols-2">
-                        <button
-                          type="button"
-                          onClick={() => openCurrentWindow(momoPayment.payUrl)}
-                          className="inline-flex items-center justify-center gap-2 rounded-2xl bg-pink-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-pink-700"
-                        >
-                          <ExternalLink size={16} />
-                          Mở cùng tab này
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => openExternalLink(momoPayment.payUrl)}
-                          className="inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-bold text-white transition hover:bg-black"
-                        >
-                          <ExternalLink size={16} />
-                          Mở tab mới
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="mt-6 flex justify-center">
-                        <div className="flex min-h-72 min-w-72 items-center justify-center rounded-[28px] border-[10px] border-pink-100 bg-white p-3 shadow-inner">
-                          {momoQrImageUrl ? (
-                            <img
-                              src={momoQrImageUrl}
-                              alt="Mã QR thanh toán MoMo"
-                              className="h-72 w-72 rounded-2xl object-contain"
-                            />
-                          ) : (
-                            <div className="flex h-72 w-72 items-center justify-center rounded-2xl bg-slate-100 text-slate-500">
-                              <QrCode size={60} />
-                            </div>
-                          )}
+                  <div className="mt-6 flex justify-center">
+                    <div className="flex min-h-72 min-w-72 items-center justify-center rounded-[28px] border-[10px] border-pink-100 bg-white p-3 shadow-inner">
+                      {momoQrImageUrl ? (
+                        <img
+                          src={momoQrImageUrl}
+                          alt="Mã QR thanh toán MoMo"
+                          className="h-72 w-72 rounded-2xl object-contain"
+                        />
+                      ) : (
+                        <div className="flex h-72 w-72 items-center justify-center rounded-2xl bg-slate-100 text-slate-500">
+                          <QrCode size={60} />
                         </div>
-                      </div>
+                      )}
+                    </div>
+                  </div>
 
-                      <div className="mt-6 rounded-3xl bg-pink-50 px-5 py-4 text-center">
-                        <p className="text-sm text-pink-700">Quét mã bằng ứng dụng MoMo để thanh toán</p>
-                        <p className="mt-2 text-3xl font-black text-pink-600">{formatCurrency(momoPayment.amount)}</p>
-                        <p className="mt-2 text-xs font-semibold text-pink-500">
-                          Order ID: {momoPayment.orderId}
-                        </p>
-                      </div>
-                    </>
-                  )}
-
-                  <div className="hidden">
-                    <p>
-                      Kết quả MoMo: <span className="font-bold text-slate-900">{momoPayment.message}</span>
+                  <div className="mt-6 rounded-3xl bg-pink-50 px-5 py-4 text-center">
+                    <p className="text-sm text-pink-700">Quét mã bằng ứng dụng MoMo để thanh toán</p>
+                    <p className="mt-2 text-3xl font-black text-pink-600">{formatCurrency(momoPayment.amount)}</p>
+                    <p className="mt-2 text-xs font-semibold text-pink-500">
+                      Order ID: {momoPayment.orderId}
                     </p>
-                    {momoPayment.deeplink ? (
-                      <button
-                        type="button"
-                        onClick={() => openExternalLink(momoPayment.deeplink)}
-                        className="mt-3 inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-3 font-bold text-slate-700 shadow-sm transition hover:bg-slate-100"
-                      >
-                        <Smartphone size={16} />
-                        Mở deeplink MoMo
-                      </button>
-                    ) : null}
-                    {momoPayment.payUrl ? (
-                      <p className="mt-3 break-all text-xs text-slate-500">{momoPayment.payUrl}</p>
-                    ) : null}
+                  </div>
+
+                  <div className="mt-4">
+                    <button
+                      type="button"
+                      onClick={() => momoPaymentQuery.refetch()}
+                      className="w-full rounded-2xl bg-white border border-pink-200 py-3.5 text-sm font-black text-pink-700 shadow-sm transition hover:bg-pink-50 hover:border-pink-300 text-center flex items-center justify-center shadow-md hover:shadow-lg"
+                    >
+                      Tạo lại giao dịch MoMo
+                    </button>
                   </div>
                 </>
               ) : null}
@@ -485,33 +396,18 @@ const AdminInvoicePaymentPage = () => {
                 </div>
               </div>
 
-              <div className="mt-4 flex flex-wrap gap-3">
-                <button
-                  type="button"
-                  onClick={handleCopy}
-                  className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-bold text-white transition hover:bg-black"
-                >
-                  <Copy size={16} />
-                  {copied ? "Đã sao chép" : "Sao chép nội dung"}
-                </button>
+              <div className="mt-4">
                 <button
                   type="button"
                   onClick={() => completeInvoiceMutation.mutate()}
                   disabled={invoice.status === "Completed" || completeInvoiceMutation.isPending}
-                  className="rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-black text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300"
+                  className="w-full rounded-2xl bg-emerald-600 px-4 py-3.5 text-sm font-black text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300 text-center flex items-center justify-center shadow-md hover:shadow-lg"
                 >
                   {invoice.status === "Completed"
                     ? "Đã thanh toán"
                     : completeInvoiceMutation.isPending
                       ? "Đang xác nhận..."
                       : "Xác nhận đã thanh toán"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => navigate("/admin/invoices")}
-                  className="rounded-2xl bg-sky-100 px-4 py-3 text-sm font-bold text-sky-700 transition hover:bg-sky-200"
-                >
-                  Hoàn tất
                 </button>
               </div>
             </div>

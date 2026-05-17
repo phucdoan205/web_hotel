@@ -257,6 +257,8 @@ const ReceptionistPOSServicePage = () => {
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
       setApplyForm((current) => ({ ...current, serviceId: "", quantity: 1, isPaid: false }));
       setNotice({ type: "success", message: "Đã áp dụng dịch vụ cho phòng đang lưu trú." });
+      setActiveTab("history");
+      setSearchParams({ tab: "history" });
     },
     onError: (error) => {
       setNotice({ type: "error", message: error?.response?.data || "Không thể áp dụng dịch vụ." });

@@ -32,22 +32,45 @@ const AdminInvoiceDetailPage = () => {
   const booking = bookingQuery.data;
 
   const serviceUsagesQuery = useQuery({
-    queryKey: ["invoice-service-items", invoice?.detailId, invoice?.status, invoice?.createdAt],
+    queryKey: ["invoice-service-items", invoice?.detailId, invoice?.status, invoice?.createdAt, invoice?.totalServiceAmount],
     queryFn: async () => {
       const items = await servicesApi.getUsageHistory({
         bookingDetailId: invoice.detailId,
       });
 
-      return items.filter((item) => {
-        if (item.bookingDetailId !== invoice.detailId) return false;
+      // If the invoice is still in Paying or other open states (meaning not completed),
+      // we check the actual payment status directly from DB.
+      if (invoice.status !== "Completed") {
+        return items.map(item => ({
+          ...item,
+          isPaidBeforeCheckout: item.paymentStatus === "Paid"
+        }));
+      }
 
-        const usedAtTime = item.usedAt ? new Date(item.usedAt).getTime() : 0;
-        const invoiceCreatedTime = invoice.createdAt ? new Date(invoice.createdAt).getTime() : Number.MAX_SAFE_INTEGER;
+      // If completed, ALL services in this room have been marked "Paid".
+      // We run the subset sum algorithm to match which items belong to this invoice's totalServiceAmount.
+      const targetAmount = Number(invoice.totalServiceAmount || 0);
+      const sortedItems = [...items].sort((a, b) => new Date(b.usedAt).getTime() - new Date(a.usedAt).getTime());
 
-        return usedAtTime <= invoiceCreatedTime;
-      });
+      const checkoutItemIds = new Set();
+      let currentSum = 0;
+
+      for (const item of sortedItems) {
+        if (currentSum + item.lineTotal <= targetAmount) {
+          checkoutItemIds.add(item.id);
+          currentSum += item.lineTotal;
+        }
+        if (currentSum === targetAmount) break;
+      }
+
+      // If subset sum matched exactly, we tag them. Otherwise fallback to marking all as part of checkout.
+      const exactMatch = currentSum === targetAmount;
+      return items.map(item => ({
+        ...item,
+        isPaidBeforeCheckout: exactMatch ? !checkoutItemIds.has(item.id) : false
+      }));
     },
-    enabled: Boolean(invoice?.detailId),
+    enabled: Boolean(invoice?.detailId && invoice?.totalServiceAmount !== undefined),
   });
 
   const serviceItems = useMemo(() => serviceUsagesQuery.data || [], [serviceUsagesQuery.data]);
@@ -159,19 +182,31 @@ const AdminInvoiceDetailPage = () => {
           {serviceUsagesQuery.isLoading ? (
             <div className="border-t border-slate-100 px-5 py-5 text-sm text-slate-500">Đang tải chi tiết dịch vụ...</div>
           ) : serviceItems.length > 0 ? (
-            serviceItems.map((item) => (
-              <div
-                key={item.id}
-                className="grid grid-cols-[1.7fr_1fr_1fr_1fr] gap-4 border-t border-slate-100 px-5 py-5 text-sm font-semibold text-slate-700"
-              >
-                <div>{item.serviceName}</div>
-                <div>{formatCurrency(item.unitPrice)}</div>
-                <div>{item.quantity}</div>
-                <div className="text-right font-black text-slate-900">
-                  {formatCurrency(item.lineTotal || item.quantity * item.unitPrice)}
+            serviceItems.map((item) => {
+              const isPaidBefore = item.isPaidBeforeCheckout;
+              return (
+                <div
+                  key={item.id}
+                  className={`grid grid-cols-[1.7fr_1fr_1fr_1fr] gap-4 border-t border-slate-100 px-5 py-5 text-sm font-semibold transition hover:bg-slate-50 ${isPaidBefore ? "opacity-60 bg-slate-50/50" : "text-slate-700"}`}
+                >
+                  <div className="flex flex-col">
+                    <span className={`font-semibold ${isPaidBefore ? "text-slate-400 line-through" : "text-slate-800"}`}>
+                      {item.serviceName}
+                    </span>
+                    {isPaidBefore && (
+                      <span className="w-fit mt-1 inline-flex items-center rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-500">
+                        Đã trả trước
+                      </span>
+                    )}
+                  </div>
+                  <div className={`font-medium ${isPaidBefore ? "text-slate-400 line-through" : "text-slate-600"}`}>{formatCurrency(item.unitPrice)}</div>
+                  <div className={`font-medium ${isPaidBefore ? "text-slate-400" : "text-slate-600"}`}>{item.quantity}</div>
+                  <div className={`text-right font-black ${isPaidBefore ? "text-slate-400 line-through" : "text-slate-900"}`}>
+                    {formatCurrency(item.lineTotal || item.quantity * item.unitPrice)}
+                  </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           ) : (
             <div className="border-t border-slate-100 px-5 py-5 text-sm text-slate-500">Không có dịch vụ nào trong hóa đơn này.</div>
           )}
@@ -190,7 +225,7 @@ const AdminInvoiceDetailPage = () => {
             <span className="text-white/80">Voucher {invoice.voucherCode ? `(${invoice.voucherCode})` : ""}</span>
             <span className="font-bold text-cyan-100">- {formatCurrency(invoice.discountAmount)}</span>
           </div>
-          
+
           {(() => {
             const calculatedTotal = Math.max(0, (invoice.totalRoomAmount || invoice.subtotal || 0) + (invoice.totalServiceAmount || 0) - (invoice.discountAmount || 0));
             const finalTotal = invoice.finalTotal || invoice.totalAmount || 0;

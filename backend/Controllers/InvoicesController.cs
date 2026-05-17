@@ -118,7 +118,10 @@ namespace backend.Controllers
             [FromQuery] int? bookingDetailId = null,
             [FromQuery] string? status = null)
         {
-            var query = _context.Invoices.AsNoTracking().AsQueryable();
+            var query = _context.Invoices
+                .AsNoTracking()
+                .Where(i => i.TotalRoomAmount > 0 || i.BookingDetailId == null)
+                .AsQueryable();
 
             if (bookingId.HasValue)
             {
@@ -200,11 +203,9 @@ namespace backend.Controllers
                 return BadRequest("Chỉ có thể tạo hóa đơn cho phòng đã check-out.");
             }
 
-            var duplicatedInvoice = await _context.Invoices
-                .AsNoTracking()
-                .FirstOrDefaultAsync(item => item.BookingDetailId == dto.BookingDetailId.Value);
-
-            if (duplicatedInvoice != null)
+            var invoiceExists = await _context.Invoices
+                .AnyAsync(i => i.BookingDetailId == dto.BookingDetailId && i.Status != "Cancelled" && i.TotalRoomAmount > 0);
+            if (invoiceExists)
             {
                 return Conflict("Phòng này đã có hóa đơn.");
             }

@@ -88,11 +88,15 @@ const AdminInvoiceCreatePage = () => {
     enabled: Boolean(bookingId),
   });
 
-  const unpaidServicesQuery = useQuery({
-    queryKey: ["invoice-unpaid-services", detailId],
-    queryFn: () => servicesApi.getUsageHistory({ bookingDetailId: detailId, paymentStatus: "unpaid" }),
+  const allServicesQuery = useQuery({
+    queryKey: ["invoice-services", detailId],
+    queryFn: () => servicesApi.getUsageHistory({ bookingDetailId: detailId }),
     enabled: Boolean(detailId),
   });
+
+  const allServiceItems = allServicesQuery.data || [];
+  const unpaidServiceItems = allServiceItems.filter(s => s.paymentStatus !== "Paid");
+  const serviceSubtotal = unpaidServiceItems.reduce((total, item) => total + Number(item.lineTotal || 0), 0);
 
   const booking = bookingQuery.data;
   const detail = useMemo(
@@ -106,11 +110,6 @@ const AdminInvoiceCreatePage = () => {
   const roomRate = getRoomEntryPrice(booking || {}, detail || {});
   const stayedDays = calculateStayedDays(detail?.checkInDate, currentTime);
   const subtotal = roomRate * stayedDays;
-  const serviceSubtotal = (unpaidServicesQuery.data || []).reduce(
-    (total, item) => total + Number(item.lineTotal || 0),
-    0,
-  );
-  const unpaidServiceItems = useMemo(() => unpaidServicesQuery.data || [], [unpaidServicesQuery.data]);
   const availableVouchers = useMemo(
     () => vouchers.filter((voucher) => isVoucherApplicable(voucher, subtotal, currentTime)),
     [currentTime, subtotal, vouchers],
@@ -121,11 +120,11 @@ const AdminInvoiceCreatePage = () => {
   const allInvoices = allInvoicesQuery.data || [];
   
   const totalDepositPaid = allInvoices
-    .filter((inv) => inv.bookingDetailId === null && inv.status === "Completed")
+    .filter((inv) => inv.detailId === null && inv.status === "Completed")
     .reduce((sum, inv) => sum + (inv.finalTotal || 0), 0);
 
   const depositAlreadyUsed = allInvoices
-    .filter((inv) => inv.bookingDetailId !== null && inv.status !== "Cancelled")
+    .filter((inv) => inv.detailId !== null && inv.status !== "Cancelled")
     .reduce(
       (sum, inv) =>
         sum +
@@ -139,7 +138,7 @@ const AdminInvoiceCreatePage = () => {
   const depositToApply = Math.min(remainingDeposit, calculatedSubtotal);
 
   const totalAmount = Math.max(0, calculatedSubtotal - depositToApply);
-  const invoiceExists = allInvoices.some((inv) => inv.bookingDetailId === detailId && inv.status !== "Cancelled");
+  const invoiceExists = allInvoices.some((inv) => inv.detailId === detailId && inv.status !== "Cancelled");
 
   const createInvoiceMutation = useMutation({
     mutationFn: () =>
@@ -160,6 +159,7 @@ const AdminInvoiceCreatePage = () => {
       }),
     onSuccess: (invoice) => {
       markBookingDetailInvoiced(bookingId, detailId);
+      queryClient.invalidateQueries({ queryKey: ["booking-invoices", bookingId] });
       queryClient.invalidateQueries({ queryKey: ["invoice-exists", bookingId, detailId] });
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
       queryClient.invalidateQueries({ queryKey: ["service-history"] });
@@ -168,14 +168,13 @@ const AdminInvoiceCreatePage = () => {
       queryClient.invalidateQueries({ queryKey: ["in-house"] });
       queryClient.invalidateQueries({ queryKey: ["departures"] });
       queryClient.invalidateQueries({ queryKey: ["checkout-bookings"] });
-      setConfirmAction("");
-      navigate("/admin/invoices", {
+      navigate(`/admin/invoices/${invoice.id}/payment`, {
         replace: true,
         state: {
           notice: {
             type: "success",
             title: "Đã lưu hóa đơn",
-            message: `Hóa đơn ${invoice.code} đã được tạo và đang ở trạng thái Paying.`,
+            message: `Hóa đơn ${invoice.code} đã được tạo thành công, vui lòng tiến hành thanh toán.`,
           },
         },
       });
@@ -238,7 +237,7 @@ const AdminInvoiceCreatePage = () => {
               disabled={
                 invoiceExists ||
                 allInvoicesQuery.isLoading ||
-                unpaidServicesQuery.isLoading ||
+                allServicesQuery.isLoading ||
                 createInvoiceMutation.isPending
               }
               className="inline-flex items-center gap-2 rounded-2xl bg-sky-600 px-5 py-3 text-sm font-black text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:bg-sky-300"
@@ -345,30 +344,48 @@ const AdminInvoiceCreatePage = () => {
                   </p>
                 </div>
 
-                <div className="grid grid-cols-[1.7fr_1fr_1fr_1fr] gap-4 bg-sky-50 px-5 py-4 text-xs font-black uppercase tracking-[0.2em] text-slate-500">
-                  <div>Dịch vụ</div>
-                  <div>Đơn giá</div>
-                  <div>Số lượng</div>
-                  <div className="text-right">Thành tiền</div>
-                </div>
+                <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 shadow-inner">
+                  <div className="grid grid-cols-4 gap-4 bg-slate-100 px-5 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">
+                    <div>Dịch vụ</div>
+                    <div>Đơn giá</div>
+                    <div>Số lượng</div>
+                    <div className="text-right">Thành tiền</div>
+                  </div>
 
-                {unpaidServicesQuery.isLoading ? (
-                  <div className="px-5 py-5 text-sm text-slate-500">Đang tải chi tiết dịch vụ...</div>
-                ) : unpaidServiceItems.length > 0 ? (
-                  unpaidServiceItems.map((item) => (
-                    <div
-                      key={item.id}
-                      className="grid grid-cols-[1.7fr_1fr_1fr_1fr] gap-4 border-t border-slate-100 px-5 py-5 text-sm font-semibold text-slate-700"
-                    >
-                      <div>{item.serviceName}</div>
-                      <div>{formatCurrency(item.unitPrice)}</div>
-                      <div>{item.quantity}</div>
-                      <div className="text-right font-black text-slate-900">{formatCurrency(item.lineTotal)}</div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="px-5 py-5 text-sm text-slate-500">Không có dịch vụ chưa thanh toán.</div>
-                )}
+                  {allServicesQuery.isLoading ? (
+                    <div className="px-5 py-5 text-sm text-slate-500">Đang tải chi tiết dịch vụ...</div>
+                  ) : allServiceItems.length > 0 ? (
+                    allServiceItems.map((item) => {
+                      const isPaidBefore = item.paymentStatus === "Paid";
+                      return (
+                        <div
+                          key={item.id}
+                          className={`grid grid-cols-4 items-center gap-4 border-t border-slate-200 px-5 py-4 text-sm transition hover:bg-slate-100 ${isPaidBefore ? "opacity-60 bg-slate-50/50" : ""}`}
+                        >
+                          <div className="flex flex-col">
+                            <span className={`font-semibold ${isPaidBefore ? "text-slate-400 line-through" : "text-slate-800"}`}>
+                              {item.serviceName}
+                            </span>
+                            {isPaidBefore && (
+                              <span className="w-fit mt-1 inline-flex items-center rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-500">
+                                Đã trả trước
+                              </span>
+                            )}
+                          </div>
+                          <div className={`font-medium ${isPaidBefore ? "text-slate-400 line-through" : "text-slate-600"}`}>
+                            {formatCurrency(item.unitPrice)}
+                          </div>
+                          <div className={`font-medium ${isPaidBefore ? "text-slate-400" : "text-slate-600"}`}>x {item.quantity}</div>
+                          <div className={`text-right font-black ${isPaidBefore ? "text-slate-400 line-through" : "text-slate-900"}`}>
+                            {formatCurrency(item.lineTotal)}
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="px-5 py-5 text-sm text-slate-500">Không có dịch vụ nào.</div>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -430,7 +447,11 @@ const AdminInvoiceCreatePage = () => {
             </div>
             <div className="rounded-[1.5rem] bg-white/15 p-4 backdrop-blur-sm">
               <p className="text-sm font-semibold text-white/80">Trừ tiền cọc</p>
-              <p className="mt-2 text-3xl font-black text-cyan-100">- {formatCurrency(depositToApply)}</p>
+              <div className="mt-1 flex items-center justify-between text-xs font-semibold text-white/60">
+                <span>Tổng cọc: {formatCurrency(totalDepositPaid)}</span>
+                <span>Khả dụng: {formatCurrency(remainingDeposit)}</span>
+              </div>
+              <p className="mt-1 text-3xl font-black text-cyan-100">- {formatCurrency(depositToApply)}</p>
             </div>
             <div className="rounded-[1.5rem] bg-white p-4 text-sky-900">
               <p className="text-sm font-semibold text-sky-700">Cần thanh toán</p>
