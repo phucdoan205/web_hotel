@@ -244,7 +244,7 @@ namespace backend.Controllers
             {
                 BookingDetailId = bookingDetail?.Id,
                 OrderDate = DateTime.UtcNow,
-                Status = "Unpaid",
+                Status = request.IsPaid ? "Paid" : "Unpaid",
                 TotalAmount = service.Price * request.Quantity
             };
 
@@ -258,6 +258,35 @@ namespace backend.Controllers
 
             _context.OrderServices.Add(orderService);
             _context.OrderServiceDetails.Add(orderServiceDetail);
+
+            if (request.IsPaid && bookingDetail != null)
+            {
+                var invoice = new Invoice
+                {
+                    BookingId = bookingDetail.BookingId,
+                    BookingDetailId = bookingDetail.Id,
+                    Code = $"DVK-{DateTime.UtcNow:HHmmss}",
+                    BookingCode = bookingDetail.Booking?.BookingCode,
+                    RoomName = service.Name,
+                    TotalServiceAmount = orderService.TotalAmount,
+                    FinalTotal = orderService.TotalAmount,
+                    Status = "Completed",
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                    PaidAt = DateTime.UtcNow
+                };
+                _context.Invoices.Add(invoice);
+                
+                var payment = new Payment
+                {
+                    Invoice = invoice,
+                    AmountPaid = orderService.TotalAmount ?? 0,
+                    PaymentDate = DateTime.UtcNow,
+                    Status = "Completed"
+                };
+                _context.Payments.Add(payment);
+            }
+
             await _context.SaveChangesAsync();
 
             orderService.BookingDetail = bookingDetail;

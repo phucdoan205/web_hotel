@@ -73,25 +73,27 @@ const formatCurrency = (value) =>
 // Card booking — tách ra thành component để dùng hook
 const BookingCard = ({ booking, onCancel, navigate }) => {
   const firstDetail = booking.bookingDetails?.[0];
-  const status = resolveUserBookingStatus(booking);
+  const originalStatus = resolveUserBookingStatus(booking);
   const totalAmount = getBookingTotalAmount(booking.bookingDetails || []);
   const stayNights = getBookingDetailNights(firstDetail);
 
   // Theo dõi xem hold 10 phút có hết chưa
   const [isHoldExpired, setIsHoldExpired] = useState(() => {
-    if (!booking.createdAt || status !== "Pending") return false;
+    if (!booking.createdAt || originalStatus !== "Pending") return false;
     const expire = new Date(booking.createdAt).getTime() + HOLD_MINUTES * 60 * 1000;
     return Date.now() >= expire;
   });
 
+  const status = isHoldExpired && originalStatus === "Pending" ? "Cancelled" : originalStatus;
+
   useEffect(() => {
-    if (status !== "Pending" || isHoldExpired || !booking.createdAt) return;
+    if (originalStatus !== "Pending" || isHoldExpired || !booking.createdAt) return;
     const expire = new Date(booking.createdAt).getTime() + HOLD_MINUTES * 60 * 1000;
     const ms = expire - Date.now();
     if (ms <= 0) { return; }
     const timer = setTimeout(() => setIsHoldExpired(true), ms);
     return () => clearTimeout(timer);
-  }, [booking.createdAt, status, isHoldExpired]);
+  }, [booking.createdAt, originalStatus, isHoldExpired]);
 
   const canPay = !isHoldExpired && canUserPayBooking(booking);
   const canCancel = !isHoldExpired && canUserCancelBooking(booking);

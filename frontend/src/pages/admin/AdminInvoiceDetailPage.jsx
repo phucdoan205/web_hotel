@@ -187,13 +187,29 @@ const AdminInvoiceDetailPage = () => {
             <span className="font-bold">{formatCurrency(invoice.totalServiceAmount)}</span>
           </div>
           <div className="flex items-center justify-between text-sm">
-            <span className="text-white/80">Voucher {invoice.voucher?.code ? `(${invoice.voucher.code})` : ""}</span>
+            <span className="text-white/80">Voucher {invoice.voucherCode ? `(${invoice.voucherCode})` : ""}</span>
             <span className="font-bold text-cyan-100">- {formatCurrency(invoice.discountAmount)}</span>
           </div>
+          
+          {(() => {
+            const calculatedTotal = Math.max(0, (invoice.totalRoomAmount || invoice.subtotal || 0) + (invoice.totalServiceAmount || 0) - (invoice.discountAmount || 0));
+            const finalTotal = invoice.finalTotal || invoice.totalAmount || 0;
+            const depositDeducted = Math.max(0, calculatedTotal - finalTotal);
+            if (depositDeducted > 0) {
+              return (
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-white/80">Trừ tiền cọc</span>
+                  <span className="font-bold text-cyan-100">- {formatCurrency(depositDeducted)}</span>
+                </div>
+              );
+            }
+            return null;
+          })()}
+
           <div className="h-px bg-white/15" />
           <div className="flex items-center justify-between">
-            <span className="text-sm font-semibold text-white/80">Tổng thanh toán</span>
-            <span className="text-3xl font-black">{formatCurrency(invoice.totalAmount)}</span>
+            <span className="text-sm font-semibold text-white/80">Thực thu</span>
+            <span className="text-3xl font-black">{formatCurrency(invoice.finalTotal || invoice.totalAmount)}</span>
           </div>
         </div>
 

@@ -5,5 +5,6 @@ namespace backend.DTOs.Service
         public int? BookingDetailId { get; set; }
         public int? ServiceId { get; set; }
         public int Quantity { get; set; }
+        public bool IsPaid { get; set; }
     }
 }

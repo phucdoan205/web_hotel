@@ -212,6 +212,7 @@ const ReceptionistPOSServicePage = () => {
     bookingDetailId: "",
     serviceId: "",
     quantity: 1,
+    isPaid: false,
   });
   const [categoryForm, setCategoryForm] = useState(emptyCategoryForm);
   const [historyFilter, setHistoryFilter] = useState({
@@ -254,7 +255,7 @@ const ReceptionistPOSServicePage = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["service-history"] });
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
-      setApplyForm((current) => ({ ...current, serviceId: "", quantity: 1 }));
+      setApplyForm((current) => ({ ...current, serviceId: "", quantity: 1, isPaid: false }));
       setNotice({ type: "success", message: "Đã áp dụng dịch vụ cho phòng đang lưu trú." });
     },
     onError: (error) => {
@@ -394,6 +395,7 @@ const ReceptionistPOSServicePage = () => {
       bookingDetailId: Number(applyForm.bookingDetailId),
       serviceId: Number(applyForm.serviceId),
       quantity: Number(applyForm.quantity),
+      isPaid: applyForm.isPaid,
     });
   };
 
@@ -530,6 +532,16 @@ const ReceptionistPOSServicePage = () => {
                     onChange={(event) => setApplyForm((current) => ({ ...current, quantity: event.target.value }))}
                     className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-sky-400"
                   />
+                </label>
+
+                <label className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    checked={applyForm.isPaid}
+                    onChange={(event) => setApplyForm((current) => ({ ...current, isPaid: event.target.checked }))}
+                    className="h-5 w-5 rounded-md border-slate-300 text-sky-600 focus:ring-sky-500"
+                  />
+                  <span className="text-sm font-bold text-slate-700">Đã thu tiền mặt/chuyển khoản trực tiếp</span>
                 </label>
 
                 <button

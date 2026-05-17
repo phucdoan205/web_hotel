@@ -38,9 +38,47 @@ namespace backend.Controllers
             {
                 using var reader = new StreamReader(Request.Body);
                 var body = await reader.ReadToEndAsync();
-                
-                // TODO: Verify HMAC if needed. In SePay, sometimes it's passed in the headers.
-                // For now, let's just parse the payload
+
+                // Verify Webhook Signature
+                var secretKey = _configuration["Sepay:WebhookSecret"];
+                if (!string.IsNullOrEmpty(secretKey))
+                {
+                    // Allow either API Key in Authorization header or HMAC-SHA256 signature
+                    var authHeader = Request.Headers["Authorization"].ToString();
+                    var isAuthMatched = authHeader.Equals($"Apikey {secretKey}", StringComparison.OrdinalIgnoreCase) || 
+                                        authHeader.Equals($"Bearer {secretKey}", StringComparison.OrdinalIgnoreCase);
+
+                    // Check X-SePay-Signature if auth header doesn't match
+                    if (!isAuthMatched)
+                    {
+                        var signatureHeader = Request.Headers["X-SePay-Signature"].ToString();
+                        var timestamp = Request.Headers["X-SePay-Timestamp"].ToString();
+
+                        if (!string.IsNullOrEmpty(signatureHeader) && !string.IsNullOrEmpty(timestamp))
+                        {
+                            var message = $"{timestamp}.{body}";
+                            var keyBytes = Encoding.UTF8.GetBytes(secretKey);
+                            var messageBytes = Encoding.UTF8.GetBytes(message);
+
+                            using var hmac = new HMACSHA256(keyBytes);
+                            var hashBytes = hmac.ComputeHash(messageBytes);
+                            var computedHash = BitConverter.ToString(hashBytes).Replace("-", "").ToLower();
+
+                            var expectedSignature = $"sha256={computedHash}";
+                            if (!signatureHeader.Equals(expectedSignature, StringComparison.OrdinalIgnoreCase))
+                            {
+                                _logger.LogWarning("Sepay Webhook: Invalid HMAC signature.");
+                                return Unauthorized(new { success = false, message = "Invalid signature" });
+                            }
+                        }
+                        else
+                        {
+                            _logger.LogWarning("Sepay Webhook: Missing auth/signature headers.");
+                            return Unauthorized(new { success = false, message = "Missing signature" });
+                        }
+                    }
+                }
+
                 var payload = JsonSerializer.Deserialize<SepayWebhookDTO>(body, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
                 if (payload == null || payload.transferType != "in")
                 {
@@ -49,33 +87,65 @@ namespace backend.Controllers
 
                 _logger.LogInformation("Received Sepay Webhook: Amount={Amount}, Content={Content}", payload.transferAmount, payload.content);
 
-                // Parse Booking Code from content (assuming user enters something like 'Thanh toan HD123' or just 'HD123')
-                // Let's find any booking code matching our format (e.g. BOOKING-...) or just search all pending bookings.
-                // Or better, let's look for the BookingId or BookingCode in the content.
-                var bookings = await _context.Bookings
-                    .Include(b => b.BookingDetails)
-                    .Where(b => b.Status != "Cancelled")
+                // First try to find by InvoiceCode exactly
+                var invoices = await _context.Invoices
+                    .Include(i => i.Booking)
+                        .ThenInclude(b => b.BookingDetails)
+                    .Where(i => i.Status != "Completed" && i.Status != "Cancelled")
                     .ToListAsync();
-
+                    
+                Invoice? matchedInvoice = null;
                 Booking? matchedBooking = null;
-                foreach (var b in bookings)
+
+                foreach(var inv in invoices)
                 {
-                    if (payload.content.Contains(b.BookingCode, StringComparison.OrdinalIgnoreCase))
+                    if (payload.content.Contains("DH" + inv.Code, StringComparison.OrdinalIgnoreCase) || 
+                        payload.content.Contains(inv.Code, StringComparison.OrdinalIgnoreCase))
                     {
-                        matchedBooking = b;
+                        matchedInvoice = inv;
+                        matchedBooking = inv.Booking;
                         break;
+                    }
+                }
+
+                // If not found by invoice code, try to find by booking code
+                if (matchedInvoice == null)
+                {
+                    var bookings = await _context.Bookings
+                        .Include(b => b.BookingDetails)
+                        .Where(b => b.Status != "Cancelled")
+                        .ToListAsync();
+
+                    foreach (var b in bookings)
+                    {
+                        // Check for exact matching with DH prefix or just the booking code
+                        if (payload.content.Contains("DH" + b.BookingCode, StringComparison.OrdinalIgnoreCase) || 
+                            payload.content.Contains(b.BookingCode, StringComparison.OrdinalIgnoreCase))
+                        {
+                            matchedBooking = b;
+                            break;
+                        }
+                    }
+
+                    if (matchedBooking != null)
+                    {
+                        matchedInvoice = invoices.FirstOrDefault(i => i.BookingId == matchedBooking.Id);
+                        if (matchedInvoice == null)
+                        {
+                            matchedInvoice = await _context.Invoices
+                                .FirstOrDefaultAsync(i => i.BookingId == matchedBooking.Id && i.Status != "Completed");
+                        }
                     }
                 }
 
                 if (matchedBooking == null)
                 {
-                    _logger.LogWarning("Sepay Webhook: Could not find booking matching content: {Content}", payload.content);
-                    return Ok(new { success = true, message = "No matching booking found" }); // Return 200 so SePay doesn't retry
+                    _logger.LogWarning("Sepay Webhook: Could not find booking or invoice matching content: {Content}", payload.content);
+                    return Ok(new { success = true, message = "No matching booking or invoice found" }); // Return 200 so SePay doesn't retry
                 }
 
                 // Create payment record and complete invoices/booking
-                var invoice = await _context.Invoices
-                    .FirstOrDefaultAsync(i => i.BookingId == matchedBooking.Id && i.Status != "Completed");
+                var invoice = matchedInvoice;
 
                 if (invoice != null && invoice.Status != "Completed")
                 {
@@ -116,6 +186,32 @@ namespace backend.Controllers
                         if (detail.Status == "Pending") detail.Status = "Confirmed";
                     }
                     matchedBooking.Status = ResolveBookingStatusFromDetails(matchedBooking.BookingDetails);
+                    
+                    var depositInvoice = new Invoice
+                    {
+                        BookingId = matchedBooking.Id,
+                        BookingDetailId = null,
+                        Code = $"CQC-{matchedBooking.BookingCode}-{paidAt:HHmmss}",
+                        BookingCode = matchedBooking.BookingCode,
+                        RoomName = "Đặt cọc Booking",
+                        Status = "Completed",
+                        FinalTotal = payload.transferAmount,
+                        CreatedAt = paidAt,
+                        UpdatedAt = paidAt,
+                        PaidAt = paidAt
+                    };
+                    _context.Invoices.Add(depositInvoice);
+                    await _context.SaveChangesAsync();
+
+                    _context.Payments.Add(new Payment
+                    {
+                        InvoiceId = depositInvoice.Id,
+                        AmountPaid = payload.transferAmount,
+                        TransactionCode = payload.referenceCode ?? payload.id.ToString(),
+                        PaymentDate = paidAt,
+                        Status = "Completed"
+                    });
+                    
                     await _context.SaveChangesAsync();
                     
                     if (matchedBooking.UserId.HasValue)

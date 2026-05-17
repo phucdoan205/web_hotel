@@ -221,7 +221,25 @@ namespace backend.Controllers
                 .SumAsync(detail => (decimal?)(detail.Quantity * detail.UnitPrice)) ?? 0;
             var totalRoomAmount = dto.TotalRoomAmount ?? 0;
             var discountAmount = dto.DiscountAmount ?? 0;
-            var finalTotal = Math.Max(0, totalRoomAmount + totalServiceAmount - discountAmount);
+            var calculatedSubtotal = Math.Max(0, totalRoomAmount + totalServiceAmount - discountAmount);
+
+            var totalDepositPaid = await _context.Invoices
+                .AsNoTracking()
+                .Where(i => i.BookingId == booking.Id && i.BookingDetailId == null && i.Status == "Completed")
+                .SumAsync(i => i.FinalTotal ?? 0);
+
+            var usedInvoices = await _context.Invoices
+                .AsNoTracking()
+                .Where(i => i.BookingId == booking.Id && i.BookingDetailId != null && i.Status != "Cancelled")
+                .Select(i => new { i.TotalRoomAmount, i.TotalServiceAmount, i.DiscountAmount, i.FinalTotal })
+                .ToListAsync();
+
+            var depositAlreadyUsed = usedInvoices.Sum(i => Math.Max(0, (i.TotalRoomAmount ?? 0) + (i.TotalServiceAmount ?? 0) - (i.DiscountAmount ?? 0)) - (i.FinalTotal ?? 0));
+
+            var remainingDeposit = Math.Max(0, totalDepositPaid - depositAlreadyUsed);
+            var depositToApply = Math.Min(remainingDeposit, calculatedSubtotal);
+
+            var finalTotal = Math.Max(0, calculatedSubtotal - depositToApply);
 
             var invoice = new Invoice
             {

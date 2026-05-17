@@ -29,6 +29,11 @@ export const userBookingsApi = {
     return response.data;
   },
 
+  unlockBooking: async (bookingId) => {
+    const response = await apiClient.patch(`/user-bookings/${bookingId}/unlock`);
+    return response.data;
+  },
+
   confirmPayment: async (bookingId, payload = {}) => {
     const response = await apiClient.patch(`/user-bookings/${bookingId}/confirm-payment`, payload);
     return response.data;

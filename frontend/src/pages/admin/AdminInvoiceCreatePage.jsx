@@ -82,10 +82,10 @@ const AdminInvoiceCreatePage = () => {
     enabled: Boolean(bookingId),
   });
 
-  const existingInvoicesQuery = useQuery({
-    queryKey: ["invoice-exists", bookingId, detailId],
-    queryFn: () => invoicesApi.getInvoices({ bookingId, bookingDetailId: detailId }),
-    enabled: Boolean(bookingId && detailId),
+  const allInvoicesQuery = useQuery({
+    queryKey: ["booking-invoices", bookingId],
+    queryFn: () => invoicesApi.getInvoices({ bookingId }),
+    enabled: Boolean(bookingId),
   });
 
   const unpaidServicesQuery = useQuery({
@@ -118,8 +118,28 @@ const AdminInvoiceCreatePage = () => {
   const selectedVoucher =
     availableVouchers.find((voucher) => String(voucher.id) === String(selectedVoucherId)) || null;
   const discountAmount = calculateVoucherDiscount(selectedVoucher, subtotal);
-  const totalAmount = Math.max(0, subtotal + serviceSubtotal - discountAmount);
-  const invoiceExists = (existingInvoicesQuery.data || []).length > 0;
+  const allInvoices = allInvoicesQuery.data || [];
+  
+  const totalDepositPaid = allInvoices
+    .filter((inv) => inv.bookingDetailId === null && inv.status === "Completed")
+    .reduce((sum, inv) => sum + (inv.finalTotal || 0), 0);
+
+  const depositAlreadyUsed = allInvoices
+    .filter((inv) => inv.bookingDetailId !== null && inv.status !== "Cancelled")
+    .reduce(
+      (sum, inv) =>
+        sum +
+        Math.max(0, (inv.totalRoomAmount || 0) + (inv.totalServiceAmount || 0) - (inv.discountAmount || 0)) -
+        (inv.finalTotal || 0),
+      0
+    );
+
+  const remainingDeposit = Math.max(0, totalDepositPaid - depositAlreadyUsed);
+  const calculatedSubtotal = Math.max(0, subtotal + serviceSubtotal - discountAmount);
+  const depositToApply = Math.min(remainingDeposit, calculatedSubtotal);
+
+  const totalAmount = Math.max(0, calculatedSubtotal - depositToApply);
+  const invoiceExists = allInvoices.some((inv) => inv.bookingDetailId === detailId && inv.status !== "Cancelled");
 
   const createInvoiceMutation = useMutation({
     mutationFn: () =>
@@ -217,7 +237,7 @@ const AdminInvoiceCreatePage = () => {
               onClick={() => setConfirmAction("save")}
               disabled={
                 invoiceExists ||
-                existingInvoicesQuery.isLoading ||
+                allInvoicesQuery.isLoading ||
                 unpaidServicesQuery.isLoading ||
                 createInvoiceMutation.isPending
               }
@@ -408,8 +428,12 @@ const AdminInvoiceCreatePage = () => {
               <p className="text-sm font-semibold text-white/80">Giảm voucher</p>
               <p className="mt-2 text-3xl font-black text-cyan-100">- {formatCurrency(discountAmount)}</p>
             </div>
+            <div className="rounded-[1.5rem] bg-white/15 p-4 backdrop-blur-sm">
+              <p className="text-sm font-semibold text-white/80">Trừ tiền cọc</p>
+              <p className="mt-2 text-3xl font-black text-cyan-100">- {formatCurrency(depositToApply)}</p>
+            </div>
             <div className="rounded-[1.5rem] bg-white p-4 text-sky-900">
-              <p className="text-sm font-semibold text-sky-700">Tổng thanh toán</p>
+              <p className="text-sm font-semibold text-sky-700">Cần thanh toán</p>
               <p className="mt-2 text-4xl font-black">{formatCurrency(totalAmount)}</p>
               <p className="mt-3 text-sm font-semibold text-sky-700">Trạng thái sau khi lưu: Paying</p>
             </div>

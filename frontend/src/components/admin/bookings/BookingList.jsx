@@ -41,6 +41,7 @@ const BookingList = ({ filters, onPageChange }) => {
       return response;
     },
     keepPreviousData: true,
+    refetchInterval: 5000,
   });
 
   const cancelMutation = useMutation({

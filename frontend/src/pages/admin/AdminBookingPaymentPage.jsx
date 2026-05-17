@@ -31,6 +31,11 @@ const buildQuickChartQrUrl = (value) => {
   return `https://quickchart.io/qr?size=320&margin=2&text=${encodeURIComponent(value)}`;
 };
 
+const buildSepayQrUrl = (amount, description) => {
+  if (!amount || !description) return "";
+  return `https://qr.sepay.vn/img?acc=96247GXSXM&bank=BIDV&amount=${amount}&des=${description}`;
+};
+
 const AdminBookingPaymentPage = () => {
   const canPayInvoice = hasPermission("PAY_INVOICE");
   const navigate = useNavigate();
@@ -198,6 +203,11 @@ const AdminBookingPaymentPage = () => {
     [momoPayment?.qrCodeUrl],
   );
 
+  const sepayQrUrl = useMemo(
+    () => booking ? buildSepayQrUrl(totalDepositAmount, `DH${booking.bookingCode}`) : "",
+    [booking, totalDepositAmount]
+  );
+
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(bankTransferContent);
@@ -270,11 +280,10 @@ const AdminBookingPaymentPage = () => {
 
       {confirmMessage ? (
         <div
-          className={`rounded-3xl px-5 py-4 ${
-            confirmMessage.toLowerCase().includes("không") || confirmMessage.toLowerCase().includes("hủy")
+          className={`rounded-3xl px-5 py-4 ${confirmMessage.toLowerCase().includes("không") || confirmMessage.toLowerCase().includes("hủy")
               ? "border border-amber-200 bg-amber-50 text-amber-900"
               : "border border-emerald-200 bg-emerald-50 text-emerald-900"
-          }`}
+            }`}
         >
           <div className="flex items-center gap-3">
             <CircleCheckBig className="text-emerald-600" size={22} />
@@ -304,11 +313,10 @@ const AdminBookingPaymentPage = () => {
             <button
               type="button"
               onClick={() => setPaymentMethod("momo")}
-              className={`w-full rounded-3xl border px-4 py-4 text-left transition ${
-                paymentMethod === "momo"
+              className={`w-full rounded-3xl border px-4 py-4 text-left transition ${paymentMethod === "momo"
                   ? "border-pink-300 bg-pink-50 shadow-sm"
                   : "border-slate-200 bg-white hover:border-pink-200"
-              }`}
+                }`}
             >
               <div className="flex items-center gap-3">
                 <div className="rounded-2xl bg-pink-100 p-3 text-pink-600">
@@ -324,11 +332,10 @@ const AdminBookingPaymentPage = () => {
             <button
               type="button"
               onClick={() => setPaymentMethod("qrpay")}
-              className={`w-full rounded-3xl border px-4 py-4 text-left transition ${
-                paymentMethod === "qrpay"
+              className={`w-full rounded-3xl border px-4 py-4 text-left transition ${paymentMethod === "qrpay"
                   ? "border-sky-300 bg-sky-50 shadow-sm"
                   : "border-slate-200 bg-white hover:border-sky-200"
-              }`}
+                }`}
             >
               <div className="flex items-center gap-3">
                 <div className="rounded-2xl bg-sky-100 p-3 text-sky-600">
@@ -417,22 +424,20 @@ const AdminBookingPaymentPage = () => {
                 <button
                   type="button"
                   onClick={() => setMomoView("hosted")}
-                  className={`rounded-2xl px-4 py-2 text-sm font-bold transition ${
-                    momoView === "hosted"
+                  className={`rounded-2xl px-4 py-2 text-sm font-bold transition ${momoView === "hosted"
                       ? "bg-pink-600 text-white shadow-sm"
                       : "text-pink-700 hover:bg-pink-100"
-                  }`}
+                    }`}
                 >
                   Trang thanh toán MoMo
                 </button>
                 <button
                   type="button"
                   onClick={() => setMomoView("qr")}
-                  className={`rounded-2xl px-4 py-2 text-sm font-bold transition ${
-                    momoView === "qr"
+                  className={`rounded-2xl px-4 py-2 text-sm font-bold transition ${momoView === "qr"
                       ? "bg-pink-600 text-white shadow-sm"
                       : "text-pink-700 hover:bg-pink-100"
-                  }`}
+                    }`}
                 >
                   QR MoMo
                 </button>
@@ -565,12 +570,16 @@ const AdminBookingPaymentPage = () => {
               <div className="mt-4 rounded-[28px] border border-slate-200 bg-white px-5 py-5 shadow-inner">
                 <div className="flex items-center justify-between text-lg font-black text-slate-800">
                   <span className="text-red-500">VIETQR</span>
-                  <span className="text-blue-700">QR PAY</span>
+                  <span className="text-blue-700">SEPAY</span>
                 </div>
 
                 <div className="mt-4 flex justify-center">
                   <div className="flex h-80 w-80 items-center justify-center rounded-[30px] border-[12px] border-slate-100 bg-slate-50 p-4 shadow-sm">
-                    <QrCode size={92} className="text-slate-300" />
+                    {sepayQrUrl ? (
+                      <img src={sepayQrUrl} alt="SePay QR Code" className="h-full w-full object-contain" />
+                    ) : (
+                      <QrCode size={92} className="text-slate-300" />
+                    )}
                   </div>
                 </div>
 

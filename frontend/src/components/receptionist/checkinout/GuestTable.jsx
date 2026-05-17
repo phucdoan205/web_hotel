@@ -350,8 +350,8 @@ const GuestTable = ({
                         // otherwise show 'Chờ xác nhận' so receptionist can pay the room.
                       }
                       {entry.detail?.status === "Confirmed" || getRoomEntryPaidState(entry)
-                        ? "Cho nhan phong"
-                        : "Cho xac nhan"}
+                        ? "Chờ nhận phòng"
+                        : "Chờ xác nhận"}
                     </span>
                   ) : entry.checkedOut ? (
                     <span className="inline-flex rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700 ring-1 ring-emerald-200">
@@ -425,20 +425,16 @@ const GuestTable = ({
                   <>
                     {roomCheckedIn ? (
                       <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700">
-                        Phong nay da check in.
+                        Phòng này đã check in.
                       </div>
-                    ) : roomPaid ? (
-                      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700">
-                        Phong nay da thanh toan 1 dem.
-                      </div>
-                    ) : canPayInvoice ? (
+                    ) : canPayInvoice && !roomPaid ? (
                       <button
                         type="button"
                         onClick={() => handleOpenPayment(entry.bookingId, entry.detailId)}
                         className="flex w-full items-center justify-center gap-2 rounded-2xl bg-sky-600 px-4 py-3 text-sm font-black text-white transition hover:bg-sky-700"
                       >
                         <QrCode size={18} />
-                        Thanh toan QR phong {entry.roomNumber}
+                        Thanh toán QR phòng {entry.roomNumber}
                       </button>
                     ) : null}
                     {canCheckInBooking ? (

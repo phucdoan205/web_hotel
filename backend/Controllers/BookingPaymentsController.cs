@@ -307,6 +307,33 @@ namespace backend.Controllers
                             if (detail.Status == "Pending") detail.Status = "Confirmed";
                         }
                         booking.Status = ResolveBookingStatusFromDetails(booking.BookingDetails);
+                        
+                        var paidAt = DateTime.UtcNow;
+                        var depositInvoice = new Invoice
+                        {
+                            BookingId = booking.Id,
+                            BookingDetailId = null,
+                            Code = $"CQC-{booking.BookingCode}-{paidAt:HHmmss}",
+                            BookingCode = booking.BookingCode,
+                            RoomName = "Đặt cọc Booking",
+                            Status = "Completed",
+                            FinalTotal = payload.Amount,
+                            CreatedAt = paidAt,
+                            UpdatedAt = paidAt,
+                            PaidAt = paidAt
+                        };
+                        _context.Invoices.Add(depositInvoice);
+                        await _context.SaveChangesAsync(cancellationToken);
+
+                        _context.Payments.Add(new Payment
+                        {
+                            InvoiceId = depositInvoice.Id,
+                            AmountPaid = payload.Amount,
+                            TransactionCode = payload.TransId?.ToString() ?? payload.OrderId,
+                            PaymentDate = paidAt,
+                            Status = "Completed"
+                        });
+                        
                         await _context.SaveChangesAsync(cancellationToken);
 
                         // Award Membership Points

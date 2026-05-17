@@ -102,6 +102,39 @@ namespace backend.Controllers
             return "Pending";
         }
 
+        private async Task CancelExpiredBookingsAsync(IEnumerable<Booking> bookings)
+        {
+            var holdCutoff = DateTime.UtcNow.AddMinutes(-10);
+            var expiredBookings = bookings.Where(b => b.Status == "Pending" && b.CreatedAt <= holdCutoff).ToList();
+            if (expiredBookings.Any())
+            {
+                var ids = expiredBookings.Select(b => b.Id).ToList();
+                var dbBookings = await _context.Bookings.Include(b => b.BookingDetails).Where(b => ids.Contains(b.Id)).ToListAsync();
+                foreach (var dbBooking in dbBookings)
+                {
+                    dbBooking.Status = "Cancelled";
+                    foreach (var detail in dbBooking.BookingDetails)
+                    {
+                        detail.Status = "Cancelled";
+                    }
+                }
+                await _context.SaveChangesAsync();
+
+                // Update the memory objects so the response is immediately correct
+                foreach (var b in expiredBookings)
+                {
+                    b.Status = "Cancelled";
+                    if (b.BookingDetails != null)
+                    {
+                        foreach (var detail in b.BookingDetails)
+                        {
+                            detail.Status = "Cancelled";
+                        }
+                    }
+                }
+            }
+        }
+
         private async Task ApplyInvoicePaymentStatusesAsync(IEnumerable<Booking> bookings)
         {
             var bookingList = bookings.Where(booking => booking != null).ToList();
@@ -280,6 +313,24 @@ namespace backend.Controllers
                         item.OrderService.Status != "Paid")
                     .SumAsync(item => (decimal?)(item.Quantity * item.UnitPrice)) ?? 0;
 
+                var calculatedSubtotal = totalRoomAmount + totalServiceAmount;
+
+                var totalDepositPaid = await _context.Invoices
+                    .Where(i => i.BookingId == booking.Id && i.BookingDetailId == null && i.Status == "Completed")
+                    .SumAsync(i => i.FinalTotal ?? 0);
+
+                var usedInvoices = await _context.Invoices
+                    .Where(i => i.BookingId == booking.Id && i.BookingDetailId != null && i.Status != "Cancelled")
+                    .Select(i => new { i.TotalRoomAmount, i.TotalServiceAmount, i.DiscountAmount, i.FinalTotal })
+                    .ToListAsync();
+
+                var depositAlreadyUsed = usedInvoices.Sum(i => Math.Max(0, (i.TotalRoomAmount ?? 0) + (i.TotalServiceAmount ?? 0) - (i.DiscountAmount ?? 0)) - (i.FinalTotal ?? 0));
+
+                var remainingDeposit = Math.Max(0, totalDepositPaid - depositAlreadyUsed);
+                var depositToApply = Math.Min(remainingDeposit, calculatedSubtotal);
+
+                var finalTotal = Math.Max(0, calculatedSubtotal - depositToApply);
+
                 var invoice = new Invoice
                 {
                     BookingId = booking.Id,
@@ -297,7 +348,7 @@ namespace backend.Controllers
                     TotalServiceAmount = totalServiceAmount,
                     DiscountAmount = 0,
                     TaxAmount = 0,
-                    FinalTotal = Math.Max(0, totalRoomAmount + totalServiceAmount),
+                    FinalTotal = finalTotal,
                     Status = "Paying",
                     CreatedAt = createdAt,
                     UpdatedAt = createdAt
@@ -374,6 +425,7 @@ namespace backend.Controllers
                 .Take(pageSize)
                 .ToListAsync();
 
+            await CancelExpiredBookingsAsync(bookings);
             await ApplyInvoicePaymentStatusesAsync(bookings);
 
             var dtos = _mapper.Map<List<BookingResponseDTO>>(bookings);
@@ -398,6 +450,7 @@ namespace backend.Controllers
                 return NotFound(new { message = "Khong tim thay booking cua ban." });
             }
 
+            await CancelExpiredBookingsAsync(new[] { booking });
             await ApplyInvoicePaymentStatusesAsync(new[] { booking });
 
             return Ok(_mapper.Map<BookingResponseDTO>(booking));
@@ -417,19 +470,33 @@ namespace backend.Controllers
                 return BadRequest(new { message = "Phải có ít nhất một chi tiết phòng." });
             }
 
-            var guest = await _context.Guests.FirstOrDefaultAsync(item => item.Phone == currentUser.Phone);
+            var searchPhone = dto.GuestPhone?.Trim() ?? currentUser.Phone?.Trim();
+            var guest = await _context.Guests.FirstOrDefaultAsync(item => item.Phone == searchPhone);
             if (guest == null)
             {
                 guest = new Guest
                 {
-                    Name = currentUser.FullName.Trim(),
-                    Phone = string.IsNullOrWhiteSpace(currentUser.Phone) ? null : currentUser.Phone.Trim(),
-                    Email = string.IsNullOrWhiteSpace(currentUser.Email) ? null : currentUser.Email.Trim()
+                    Name = !string.IsNullOrWhiteSpace(dto.GuestName) ? dto.GuestName.Trim() : currentUser.FullName.Trim(),
+                    Phone = searchPhone,
+                    Email = !string.IsNullOrWhiteSpace(dto.GuestEmail) ? dto.GuestEmail.Trim() : currentUser.Email?.Trim()
                 };
 
                 _context.Guests.Add(guest);
-                await _context.SaveChangesAsync();
             }
+            else
+            {
+                // Cập nhật tên nếu có truyền lên
+                if (!string.IsNullOrWhiteSpace(dto.GuestName) && guest.Name != dto.GuestName.Trim())
+                {
+                    guest.Name = dto.GuestName.Trim();
+                }
+                if (!string.IsNullOrWhiteSpace(dto.GuestEmail) && guest.Email != dto.GuestEmail.Trim())
+                {
+                    guest.Email = dto.GuestEmail.Trim();
+                }
+            }
+            
+            await _context.SaveChangesAsync();
 
             var booking = new Booking
             {
@@ -514,6 +581,38 @@ namespace backend.Controllers
                 .FirstAsync(item => item.Id == booking.Id);
 
             return CreatedAtAction(nameof(GetMyBooking), new { id = booking.Id }, _mapper.Map<BookingResponseDTO>(created));
+        }
+
+        [HttpPatch("{id:int}/unlock")]
+        public async Task<IActionResult> UnlockMyBooking(int id)
+        {
+            var currentUser = await ResolveCurrentUserAsync();
+            if (currentUser == null)
+            {
+                return Unauthorized(new { message = "Khong xac dinh duoc nguoi dung hien tai." });
+            }
+
+            var booking = await BuildOwnedBookingsQuery(currentUser.Id)
+                .FirstOrDefaultAsync(item => item.Id == id);
+
+            if (booking == null)
+            {
+                return NotFound(new { message = "Khong tim thay booking cua ban." });
+            }
+
+            if (booking.Status == "Cancelled")
+            {
+                return BadRequest(new { message = "Booking nay da bi huy truoc do." });
+            }
+
+            // Mở khóa: thực chất là xóa hẳn booking nháp này để không lưu rác trong lịch sử và không thông báo
+            if (booking.Status == "Pending")
+            {
+                _context.Bookings.Remove(booking);
+                await _context.SaveChangesAsync();
+            }
+
+            return Ok(new { message = "Unlock thanh cong." });
         }
 
         [HttpPatch("{id:int}/cancel")]
