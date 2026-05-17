@@ -25,14 +25,12 @@ public class DashboardPeriodsController : ControllerBase
         CancellationToken cancellationToken = default)
     {
         var resolvedRoleName = ResolveRoleName(roleName);
-        var dashboard = await _dashboardService.GetDashboardAsync(
+        var dashboard = await _dashboardService.GetRealtimeDashboardAsync(
             resolvedRoleName,
             periodType,
-            periodKey: null,
-            currentOnly: true,
             cancellationToken);
 
-        if (dashboard == null || (DateTime.UtcNow - dashboard.UpdatedAt).TotalMinutes > 15)
+        if (dashboard == null)
         {
             await _dashboardService.RebuildDashboardAsync(
                 resolvedRoleName,
@@ -43,11 +41,9 @@ public class DashboardPeriodsController : ControllerBase
                 null,
                 cancellationToken);
 
-            dashboard = await _dashboardService.GetDashboardAsync(
+            dashboard = await _dashboardService.GetRealtimeDashboardAsync(
                 resolvedRoleName,
                 periodType,
-                periodKey: null,
-                currentOnly: true,
                 cancellationToken);
         }
 

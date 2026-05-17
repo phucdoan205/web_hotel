@@ -16,6 +16,8 @@ import { bookingsApi } from "../../api/admin/bookingsApi";
 import {
   getBookingDepositAmount,
   getBookingDetailDeposit,
+  getBookingDetailTotal,
+  getBookingTotalAmount
 } from "../../utils/bookingPricing";
 import {
   getBookingPaymentState,
@@ -44,8 +46,9 @@ const AdminBookingPaymentPage = () => {
   const [searchParams] = useSearchParams();
   const rawDetailId = searchParams.get("detailId");
   const detailId = rawDetailId ? Number(rawDetailId) : null;
-  const [paymentMethod, setPaymentMethod] = useState("qrpay");
+  const [paymentMethod, setPaymentMethod] = useState("vnpay");
   const [momoView, setMomoView] = useState("hosted");
+  const [depositPercentage, setDepositPercentage] = useState(100);
   const [copied, setCopied] = useState(false);
   const [confirmMessage, setConfirmMessage] = useState("");
   const autoOpenedMomoRef = useRef(false);
@@ -83,21 +86,25 @@ const AdminBookingPaymentPage = () => {
   const isCancelled = booking?.status === "Cancelled";
   const mustChooseRoom = !selectedDetail && unpaidDetails.length > 1;
 
-  const totalDepositAmount = useMemo(() => {
+  const totalUnpaidAmount = useMemo(() => {
     if (!booking?.bookingDetails?.length) return 0;
 
     if (selectedDetail) {
-      return getBookingDetailDeposit(selectedDetail);
+      return getBookingDetailTotal(selectedDetail);
     }
 
     return booking.bookingDetails.reduce((sum, detail) => {
       if (isBookingDetailPaid(booking, detail.id)) return sum;
-      return sum + getBookingDetailDeposit(detail);
+      return sum + getBookingDetailTotal(detail);
     }, 0);
   }, [booking, selectedDetail]);
 
+  const totalDepositAmount = useMemo(() => {
+    return Math.round((totalUnpaidAmount * depositPercentage) / 100);
+  }, [totalUnpaidAmount, depositPercentage]);
+
   const bookingDepositAmount = useMemo(
-    () => getBookingDepositAmount(booking?.bookingDetails || []),
+    () => getBookingTotalAmount(booking?.bookingDetails || []),
     [booking],
   );
 
@@ -306,6 +313,29 @@ const AdminBookingPaymentPage = () => {
         </div>
       ) : null}
 
+      <div className="mb-6">
+        <h3 className="text-sm font-black text-slate-900 mb-4">Tùy chọn thanh toán / đặt cọc</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-2xl">
+          {[30, 40, 50, 100].map(pct => (
+            <button
+              key={pct}
+              onClick={() => setDepositPercentage(pct)}
+              className={`relative overflow-hidden rounded-xl border-2 p-3 text-center transition-all ${depositPercentage === pct ? "border-[#0194f3] bg-blue-50" : "border-slate-200 bg-white hover:border-blue-200"}`}
+            >
+              <span className={`block text-lg font-black ${depositPercentage === pct ? "text-[#0194f3]" : "text-slate-700"}`}>{pct}%</span>
+              <span className="text-[10px] font-bold text-slate-400 mt-1 uppercase">
+                {pct === 100 ? "Thanh toán đủ" : "Đặt cọc"}
+              </span>
+              {depositPercentage === pct && (
+                <div className="absolute top-0 right-0 bg-[#0194f3] text-white p-0.5 rounded-bl-lg">
+                  <Check size={12} />
+                </div>
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="grid gap-6 lg:grid-cols-[360px_minmax(0,1fr)]">
         <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
           <p className="text-xs font-bold uppercase tracking-[0.25em] text-slate-400">Hình thức thanh toán</p>
@@ -331,8 +361,8 @@ const AdminBookingPaymentPage = () => {
 
             <button
               type="button"
-              onClick={() => setPaymentMethod("qrpay")}
-              className={`w-full rounded-3xl border px-4 py-4 text-left transition ${paymentMethod === "qrpay"
+              onClick={() => setPaymentMethod("vnpay")}
+              className={`w-full rounded-3xl border px-4 py-4 text-left transition ${paymentMethod === "vnpay"
                   ? "border-sky-300 bg-sky-50 shadow-sm"
                   : "border-slate-200 bg-white hover:border-sky-200"
                 }`}
@@ -342,8 +372,8 @@ const AdminBookingPaymentPage = () => {
                   <WalletCards size={20} />
                 </div>
                 <div>
-                  <p className="font-black text-slate-900">QR Pay</p>
-                  <p className="text-sm text-slate-500">Thanh toán qua mobile banking hoặc VietQR</p>
+                  <p className="font-black text-slate-900">VNPay</p>
+                  <p className="text-sm text-slate-500">Thanh toán qua mã QR VNPay</p>
                 </div>
               </div>
             </button>
@@ -356,7 +386,7 @@ const AdminBookingPaymentPage = () => {
                 <p className="mt-1 text-lg font-black text-slate-900">Phòng {selectedRoomNumber}</p>
                 <p className="mt-1 text-sm text-slate-500">{selectedRoomType}</p>
                 <p className="mt-3 text-sm font-semibold text-orange-600">
-                  Thanh toán 1 đêm: {formatCurrency(totalDepositAmount)}
+                  Số tiền cần thanh toán: {formatCurrency(totalDepositAmount)}
                 </p>
               </div>
             ) : null}

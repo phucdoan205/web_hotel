@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.EntityFrameworkCore;
 using backend.DTOs.Dashboard;
 using backend.Helpers;
@@ -47,6 +48,78 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
             .FirstOrDefaultAsync(cancellationToken);
 
         return entity == null ? null : ToResponseDto(entity);
+    }
+
+    public async Task<DashboardPeriodResponseDto?> GetRealtimeDashboardAsync(
+        string roleName,
+        string periodType,
+        CancellationToken cancellationToken = default)
+    {
+        var period = DashboardPeriodHelper.Resolve(periodType, DateTime.UtcNow);
+        var dashboardCode = DashboardPeriodHelper.GetDashboardCode(roleName);
+        var role = await _context.Roles.AsNoTracking().FirstOrDefaultAsync(x => x.Name == roleName, cancellationToken);
+        if (role == null) return null;
+
+        var cachedEntity = await _context.RoleDashboardPeriodStates
+            .AsNoTracking()
+            .Where(x => x.RoleName == roleName
+                && x.DashboardCode == dashboardCode
+                && x.PeriodType == period.PeriodType
+                && x.IsCurrent)
+            .OrderByDescending(x => x.PeriodStart)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        var periodMetrics = await BuildMetricsAsync(periodType, period.PeriodStart, period.PeriodEnd, cancellationToken);
+        var previousMetrics = await BuildMetricsAsync(periodType, period.PreviousPeriodStart, period.PreviousPeriodEnd, cancellationToken);
+
+        var realtimeDashboardJson = BuildDashboardJson(role.Name, dashboardCode, period, periodMetrics);
+        var realtimeComparisonJson = BuildComparisonJson(role.Name, period, periodMetrics, previousMetrics);
+
+        if (cachedEntity != null)
+        {
+            try
+            {
+                var cachedObj = JsonNode.Parse(cachedEntity.DashboardJson)?.AsObject();
+                var realtimeObj = JsonNode.Parse(realtimeDashboardJson)?.AsObject();
+
+                if (cachedObj != null && realtimeObj != null)
+                {
+                    var cachedSummary = cachedObj["summary"]?.AsObject();
+                    var rtSummary = realtimeObj["summary"]?.AsObject();
+
+                    if (cachedSummary != null && cachedSummary["revenue"] != null && rtSummary != null)
+                    {
+                        rtSummary["revenue"] = cachedSummary["revenue"]?.DeepClone();
+                    }
+
+                    if (cachedObj["departmentOverview"] != null)
+                    {
+                        realtimeObj["departmentOverview"] = cachedObj["departmentOverview"]?.DeepClone();
+                    }
+
+                    realtimeDashboardJson = realtimeObj.ToJsonString(JsonOptions);
+                }
+            }
+            catch { }
+        }
+
+        return new DashboardPeriodResponseDto
+        {
+            Id = cachedEntity?.Id ?? 0,
+            RoleName = role.Name,
+            DashboardCode = dashboardCode,
+            DashboardTitle = role.Name + " Dashboard",
+            PeriodType = period.PeriodType,
+            PeriodKey = period.PeriodKey,
+            PeriodStart = period.PeriodStart,
+            PeriodEnd = period.PeriodEnd,
+            Dashboard = JsonDocument.Parse(realtimeDashboardJson).RootElement,
+            Comparison = JsonDocument.Parse(realtimeComparisonJson).RootElement,
+            Status = "OPEN",
+            IsCurrent = true,
+            Version = cachedEntity?.Version ?? 0,
+            UpdatedAt = DateTime.UtcNow
+        };
     }
 
     public async Task<IReadOnlyList<DashboardHistoryItemDto>> GetHistoryAsync(

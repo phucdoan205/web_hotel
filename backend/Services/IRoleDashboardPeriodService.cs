@@ -11,6 +11,11 @@ public interface IRoleDashboardPeriodService
         bool currentOnly,
         CancellationToken cancellationToken = default);
 
+    Task<DashboardPeriodResponseDto?> GetRealtimeDashboardAsync(
+        string roleName,
+        string periodType,
+        CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<DashboardHistoryItemDto>> GetHistoryAsync(
         string roleName,
         string periodType,

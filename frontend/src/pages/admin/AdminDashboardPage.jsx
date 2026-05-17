@@ -1400,7 +1400,8 @@ export default function AdminDashboardPage() {
   const { data: resp, isLoading, error, refetch } = useQuery({
     queryKey: ["role-dashboard", role, periodType],
     queryFn: () => dashboardApi.getCurrentDashboard(role, periodType),
-    staleTime: 2 * 60_000,
+    refetchInterval: 10000, // Real-time polling every 10s
+    staleTime: 0,
     retry: 1,
   });
 
