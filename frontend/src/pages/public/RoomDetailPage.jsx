@@ -382,10 +382,7 @@ const RoomDetailPage = () => {
     }));
   };
 
-  const handleSearchSubmit = () => {
-    // Navigate is no longer used for search button, it's now a booking button
-    handleCreateBooking();
-  };
+
 
 
   const handleCreateBooking = () => {
@@ -409,15 +406,13 @@ const RoomDetailPage = () => {
     }
 
     setSubmitMessage(null);
-    createBookingMutation.mutate({
-      bookingDetails: [
-        {
-          roomId: selectedRoom.id,
-          roomTypeId: roomType.roomTypeId,
-          checkInDate,
-          checkOutDate,
-        },
-      ],
+    navigate("/booking-wizard", {
+      state: {
+        ...appliedFilters,
+        preselectedRooms: {
+          [roomType.roomTypeId]: [selectedRoom.id]
+        }
+      }
     });
   };
 

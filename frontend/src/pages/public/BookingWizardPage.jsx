@@ -143,8 +143,11 @@ const BookingPage = () => {
       });
       return rooms;
     }
+    if (location.state?.preselectedRooms) {
+      return location.state.preselectedRooms;
+    }
     return {};
-  }); // { roomTypeId: quantity }
+  }); // { roomTypeId: array_of_room_ids }
   
   const [createdBooking, setCreatedBooking] = useState(() => location.state?.resumeBooking || null);
   const [step, setStep] = useState(() => location.state?.resumeBooking ? 3 : 1);
