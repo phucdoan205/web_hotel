@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { loginWithEmail, loginWithGoogle } from "../api/auth/authApi";
 import { saveAuth } from "../utils/authStorage";
@@ -28,20 +28,20 @@ export const useLogin = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
-  const handleChange = (event) => {
+  const handleChange = useCallback((event) => {
     const { name, value, type, checked } = event.target;
     setFormData((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
     }));
-  };
+  }, []);
 
-  const finishLogin = (authData) => {
+  const finishLogin = useCallback((authData) => {
     saveAuth(authData);
     navigate(resolveRedirectPath(authData.role));
-  };
+  }, [navigate]);
 
-  const handleSubmit = async (event) => {
+  const handleSubmit = useCallback(async (event) => {
     event.preventDefault();
     setErrorMessage("");
     setIsLoading(true);
@@ -63,9 +63,9 @@ export const useLogin = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [formData, finishLogin]);
 
-  const handleGoogleCredential = async (credential) => {
+  const handleGoogleCredential = useCallback(async (credential) => {
     setErrorMessage("");
     setIsGoogleLoading(true);
 
@@ -85,7 +85,7 @@ export const useLogin = () => {
     } finally {
       setIsGoogleLoading(false);
     }
-  };
+  }, [finishLogin]);
 
   return {
     formData,

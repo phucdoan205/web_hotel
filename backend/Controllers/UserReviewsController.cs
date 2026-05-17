@@ -250,6 +250,10 @@ namespace backend.Controllers
                 UserName = review.User?.FullName ?? "Khách ẩn danh",
                 AvatarUrl = review.User?.AvatarUrl,
                 Rating = review.Rating ?? 0,
+                AmenitiesRating = review.AmenitiesRating,
+                StaffRating = review.StaffRating,
+                CleanlinessRating = review.CleanlinessRating,
+                LocationRating = review.LocationRating,
                 Comment = review.Comment ?? string.Empty,
                 CreatedAt = review.CreatedAt
             });

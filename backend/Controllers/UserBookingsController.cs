@@ -104,7 +104,7 @@ namespace backend.Controllers
 
         private async Task CancelExpiredBookingsAsync(IEnumerable<Booking> bookings)
         {
-            var holdCutoff = DateTime.UtcNow.AddMinutes(-10);
+            var holdCutoff = DateTime.Now.AddMinutes(-10);
             var expiredBookings = bookings.Where(b => b.Status == "Pending" && b.CreatedAt <= holdCutoff).ToList();
             if (expiredBookings.Any())
             {

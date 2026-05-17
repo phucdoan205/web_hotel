@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
+  Check,
   CircleCheckBig,
   CircleDollarSign,
   Copy,
@@ -11,6 +12,7 @@ import {
   WalletCards,
 } from "lucide-react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import toast from "react-hot-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { bookingsApi } from "../../api/admin/bookingsApi";
 import {
@@ -47,11 +49,9 @@ const AdminBookingPaymentPage = () => {
   const rawDetailId = searchParams.get("detailId");
   const detailId = rawDetailId ? Number(rawDetailId) : null;
   const [paymentMethod, setPaymentMethod] = useState("vnpay");
-  const [momoView, setMomoView] = useState("hosted");
   const [depositPercentage, setDepositPercentage] = useState(100);
   const [copied, setCopied] = useState(false);
   const [confirmMessage, setConfirmMessage] = useState("");
-  const autoOpenedMomoRef = useRef(false);
   const checkInReturnPath = "/admin/check-in?tab=in";
 
   const { data: booking, isLoading } = useQuery({
@@ -160,11 +160,17 @@ const AdminBookingPaymentPage = () => {
       queryClient.invalidateQueries({ queryKey: ["arrivals"] });
       queryClient.invalidateQueries({ queryKey: ["in-house"] });
       queryClient.invalidateQueries({ queryKey: ["departures"] });
-      setConfirmMessage(
-        result?.scope === "detail"
-          ? "Đã xác nhận thanh toán cho phòng này."
-          : "Đã xác nhận thanh toán QR.",
-      );
+      
+      const successMsg = result?.scope === "detail"
+        ? "Đã xác nhận thanh toán cho phòng này."
+        : "Đã xác nhận thanh toán QR.";
+      
+      toast.success(successMsg);
+      setConfirmMessage(successMsg);
+
+      setTimeout(() => {
+        navigate(checkInReturnPath);
+      }, 1000);
     },
     onError: (error) => {
       setConfirmMessage(error.message || "Không thể xác nhận thanh toán.");
@@ -193,17 +199,7 @@ const AdminBookingPaymentPage = () => {
 
   const momoPayment = momoPaymentQuery.data;
 
-  // Tự động mở tab MoMo khi có payUrl
-  useEffect(() => {
-    if (paymentMethod !== "momo") {
-      autoOpenedMomoRef.current = false;
-      return;
-    }
-    if (momoPayment?.payUrl && !autoOpenedMomoRef.current) {
-      autoOpenedMomoRef.current = true;
-      window.open(momoPayment.payUrl, "_blank", "noopener,noreferrer");
-    }
-  }, [paymentMethod, momoPayment?.payUrl]);
+
 
   const momoQrImageUrl = useMemo(
     () => buildQuickChartQrUrl(momoPayment?.qrCodeUrl),
@@ -235,29 +231,7 @@ const AdminBookingPaymentPage = () => {
     window.location.href = url;
   };
 
-  const renderConfirmButton = () =>
-    canPayInvoice ? (
-      <button
-        type="button"
-        onClick={() => confirmOnlineMutation.mutate()}
-        disabled={
-          confirmOnlineMutation.isPending ||
-          alreadyPaid ||
-          isCancelled ||
-          totalDepositAmount <= 0 ||
-          mustChooseRoom
-        }
-        className="rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-black text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300"
-      >
-        {alreadyPaid
-          ? "Đã thanh toán"
-          : isCancelled
-            ? "Booking đã hủy"
-            : confirmOnlineMutation.isPending
-              ? "Đang xác nhận..."
-              : "Xác nhận đã thanh toán"}
-      </button>
-    ) : null;
+
 
   return (
     <div className="space-y-6 px-4 py-4">
@@ -313,28 +287,7 @@ const AdminBookingPaymentPage = () => {
         </div>
       ) : null}
 
-      <div className="mb-6">
-        <h3 className="text-sm font-black text-slate-900 mb-4">Tùy chọn thanh toán / đặt cọc</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-2xl">
-          {[30, 40, 50, 100].map(pct => (
-            <button
-              key={pct}
-              onClick={() => setDepositPercentage(pct)}
-              className={`relative overflow-hidden rounded-xl border-2 p-3 text-center transition-all ${depositPercentage === pct ? "border-[#0194f3] bg-blue-50" : "border-slate-200 bg-white hover:border-blue-200"}`}
-            >
-              <span className={`block text-lg font-black ${depositPercentage === pct ? "text-[#0194f3]" : "text-slate-700"}`}>{pct}%</span>
-              <span className="text-[10px] font-bold text-slate-400 mt-1 uppercase">
-                {pct === 100 ? "Thanh toán đủ" : "Đặt cọc"}
-              </span>
-              {depositPercentage === pct && (
-                <div className="absolute top-0 right-0 bg-[#0194f3] text-white p-0.5 rounded-bl-lg">
-                  <Check size={12} />
-                </div>
-              )}
-            </button>
-          ))}
-        </div>
-      </div>
+
 
       <div className="grid gap-6 lg:grid-cols-[360px_minmax(0,1fr)]">
         <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
@@ -417,14 +370,29 @@ const AdminBookingPaymentPage = () => {
               </div>
             ) : null}
 
-            <p className="text-sm font-bold text-slate-700">Booking</p>
-            <p className="mt-1 text-lg font-black text-slate-900">{booking?.bookingCode || "--"}</p>
-            <p className="mt-3 text-sm text-slate-500">
-              {isSingleRoomPayment ? `Phòng: ${selectedRoomNumber}` : `Khách: ${booking?.guestName || "Chưa có thông tin"}`}
-            </p>
-            <p className="mt-3 text-sm font-semibold text-orange-600">
-              Tổng tiền booking: {formatCurrency(bookingDepositAmount)}
-            </p>
+            <div className="mt-2 pt-4 border-t border-slate-200">
+              <p className="text-xs font-bold uppercase tracking-[0.1em] text-slate-400 mb-3">Tùy chọn đặt cọc</p>
+              <div className="grid grid-cols-2 gap-2">
+                {[30, 40, 50, 100].map(pct => (
+                  <button
+                    key={pct}
+                    type="button"
+                    onClick={() => setDepositPercentage(pct)}
+                    className={`relative overflow-hidden rounded-xl border-2 p-2 text-center transition-all ${depositPercentage === pct ? "border-[#0194f3] bg-blue-50" : "border-slate-200 bg-white hover:border-slate-100"}`}
+                  >
+                    <span className={`block text-sm font-black ${depositPercentage === pct ? "text-[#0194f3]" : "text-slate-700"}`}>{pct}%</span>
+                    <span className="text-[9px] font-bold text-slate-400 uppercase">
+                      {pct === 100 ? "Thanh toán đủ" : "Đặt cọc"}
+                    </span>
+                    {depositPercentage === pct && (
+                      <div className="absolute top-0 right-0 bg-[#0194f3] text-white p-0.5 rounded-bl-md">
+                        <Check size={8} />
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -441,36 +409,22 @@ const AdminBookingPaymentPage = () => {
                   <p className="mt-2 text-2xl font-black text-slate-900">
                     {isSingleRoomPayment ? "Thanh toán qua ví điện tử" : "Thanh toán booking qua MoMo"}
                   </p>
-                  <p className="mt-2 text-sm text-slate-500">
-                    API sẽ tạo request `captureWallet`, nhận `payUrl`, `deeplink` và `qrCodeUrl`.
-                  </p>
-                </div>
-                <div className="rounded-2xl bg-pink-100 p-3 text-pink-600">
-                  <CircleDollarSign size={24} />
-                </div>
-              </div>
 
-              <div className="mt-6 inline-flex rounded-2xl bg-pink-50 p-1">
-                <button
-                  type="button"
-                  onClick={() => setMomoView("hosted")}
-                  className={`rounded-2xl px-4 py-2 text-sm font-bold transition ${momoView === "hosted"
-                      ? "bg-pink-600 text-white shadow-sm"
-                      : "text-pink-700 hover:bg-pink-100"
-                    }`}
-                >
-                  Trang thanh toán MoMo
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setMomoView("qr")}
-                  className={`rounded-2xl px-4 py-2 text-sm font-bold transition ${momoView === "qr"
-                      ? "bg-pink-600 text-white shadow-sm"
-                      : "text-pink-700 hover:bg-pink-100"
-                    }`}
-                >
-                  QR MoMo
-                </button>
+                </div>
+                {momoPayment?.payUrl ? (
+                  <button
+                    type="button"
+                    onClick={() => openExternalLink(momoPayment.payUrl)}
+                    className="rounded-2xl bg-pink-100 p-3 text-pink-600 hover:bg-pink-200 transition-colors shadow-sm"
+                    title="Mở trang thanh toán MoMo trong tab mới"
+                  >
+                    <ExternalLink size={24} />
+                  </button>
+                ) : (
+                  <div className="rounded-2xl bg-pink-100 p-3 text-pink-600">
+                    <CircleDollarSign size={24} />
+                  </div>
+                )}
               </div>
 
               {momoPaymentQuery.isLoading ? (
@@ -495,89 +449,37 @@ const AdminBookingPaymentPage = () => {
                 </div>
               ) : momoPayment ? (
                 <>
-                  {momoView === "hosted" ? (
-                    <div className="mt-6 rounded-[30px] border border-pink-100 bg-gradient-to-br from-pink-50 via-white to-rose-50 p-6">
-                      <p className="text-xs font-bold uppercase tracking-[0.25em] text-pink-400">
-                        Cổng thanh toán test
-                      </p>
-                      <p className="mt-3 text-3xl font-black text-slate-900">Mở trang thanh toán MoMo</p>
-                      <p className="mt-2 text-sm text-slate-600">
-                        Bạn có thể mở cổng thanh toán MoMo khi sẵn sàng, trang này sẽ không tự chuyển nữa.
-                      </p>
-
-                      <div className="mt-5 rounded-3xl bg-white p-5 shadow-sm">
-                        <p className="text-sm text-slate-500">Số tiền</p>
-                        <p className="mt-1 text-3xl font-black text-pink-600">
-                          {formatCurrency(momoPayment.amount)}
-                        </p>
-                        <p className="mt-4 text-sm text-slate-500">Order ID</p>
-                        <p className="mt-1 break-all font-bold text-slate-900">{momoPayment.orderId}</p>
-                        <p className="mt-4 text-sm text-slate-500">Kết quả tạo giao dịch</p>
-                        <p className="mt-1 font-bold text-slate-900">{momoPayment.message}</p>
-                      </div>
-
-                      <div className="mt-5 grid gap-3 md:grid-cols-2">
-                        <button
-                          type="button"
-                          onClick={() => openCurrentWindow(momoPayment.payUrl)}
-                          className="inline-flex items-center justify-center gap-2 rounded-2xl bg-pink-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-pink-700"
-                        >
-                          <ExternalLink size={16} />
-                          Mở cùng tab này
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => openExternalLink(momoPayment.payUrl)}
-                          className="inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-bold text-white transition hover:bg-black"
-                        >
-                          <ExternalLink size={16} />
-                          Mở tab mới
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="mt-6 flex justify-center">
-                        <div className="flex min-h-72 min-w-72 items-center justify-center rounded-[28px] border-[10px] border-pink-100 bg-white p-3 shadow-inner">
-                          {momoQrImageUrl ? (
-                            <img
-                              src={momoQrImageUrl}
-                              alt="Mã QR thanh toán MoMo"
-                              className="h-72 w-72 rounded-2xl object-contain"
-                            />
-                          ) : (
-                            <div className="flex h-72 w-72 items-center justify-center rounded-2xl bg-slate-100 text-slate-500">
-                              <QrCode size={60} />
-                            </div>
-                          )}
+                  <div className="mt-6 flex justify-center">
+                    <div className="flex min-h-72 min-w-72 items-center justify-center rounded-[28px] border-[10px] border-pink-100 bg-white p-3 shadow-inner">
+                      {momoQrImageUrl ? (
+                        <img
+                          src={momoQrImageUrl}
+                          alt="Mã QR thanh toán MoMo"
+                          className="h-72 w-72 rounded-2xl object-contain"
+                        />
+                      ) : (
+                        <div className="flex h-72 w-72 items-center justify-center rounded-2xl bg-slate-100 text-slate-500">
+                          <QrCode size={60} />
                         </div>
-                      </div>
+                      )}
+                    </div>
+                  </div>
 
-                      <div className="mt-6 rounded-3xl bg-pink-50 px-5 py-4 text-center">
-                        <p className="text-sm text-pink-700">Quét mã bằng ứng dụng MoMo để thanh toán</p>
-                        <p className="mt-2 text-3xl font-black text-pink-600">{formatCurrency(momoPayment.amount)}</p>
-                        <p className="mt-2 text-xs font-semibold text-pink-500">
-                          Order ID: {momoPayment.orderId}
-                        </p>
-                      </div>
-                    </>
-                  )}
+                  <div className="mt-6 rounded-3xl bg-pink-50 px-5 py-4 text-center">
+                    <p className="text-sm text-pink-700">Quét mã bằng ứng dụng MoMo để thanh toán</p>
+                    <p className="mt-2 text-3xl font-black text-pink-600">{formatCurrency(momoPayment.amount)}</p>
+                    <p className="mt-2 text-xs font-semibold text-pink-500">
+                      Order ID: {momoPayment.orderId}
+                    </p>
+                  </div>
 
-                  <div className="mt-4 flex flex-wrap gap-3">
-                    {renderConfirmButton()}
+                  <div className="mt-4">
                     <button
                       type="button"
                       onClick={() => momoPaymentQuery.refetch()}
-                      className="rounded-2xl bg-white px-4 py-3 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-100"
+                      className="w-full rounded-2xl bg-white border border-pink-200 py-3.5 text-sm font-black text-pink-700 shadow-sm transition hover:bg-pink-50 hover:border-pink-300 text-center flex items-center justify-center shadow-md hover:shadow-lg"
                     >
-                      Tạo lại giao dịch
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => navigate(checkInReturnPath)}
-                      className="rounded-2xl bg-sky-100 px-4 py-3 text-sm font-bold text-sky-700 transition hover:bg-sky-200"
-                    >
-                      Hoàn tất
+                      Tạo lại giao dịch MoMo
                     </button>
                   </div>
                 </>
@@ -631,23 +533,29 @@ const AdminBookingPaymentPage = () => {
                 </div>
               </div>
 
-              <div className="mt-4 flex flex-wrap gap-3">
-                <button
-                  type="button"
-                  onClick={handleCopy}
-                  className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-bold text-white transition hover:bg-black"
-                >
-                  <Copy size={16} />
-                  {copied ? "Đã sao chép" : "Sao chép nội dung"}
-                </button>
-                {renderConfirmButton()}
-                <button
-                  type="button"
-                  onClick={() => navigate(checkInReturnPath)}
-                  className="rounded-2xl bg-sky-100 px-4 py-3 text-sm font-bold text-sky-700 transition hover:bg-sky-200"
-                >
-                  Hoàn tất
-                </button>
+              <div className="mt-4">
+                {canPayInvoice ? (
+                  <button
+                    type="button"
+                    onClick={() => confirmOnlineMutation.mutate()}
+                    disabled={
+                      confirmOnlineMutation.isPending ||
+                      alreadyPaid ||
+                      isCancelled ||
+                      totalDepositAmount <= 0 ||
+                      mustChooseRoom
+                    }
+                    className="w-full rounded-2xl bg-emerald-600 px-4 py-3.5 text-sm font-black text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300 text-center flex items-center justify-center shadow-md hover:shadow-lg"
+                  >
+                    {alreadyPaid
+                      ? "Đã thanh toán"
+                      : isCancelled
+                        ? "Booking đã hủy"
+                        : confirmOnlineMutation.isPending
+                          ? "Đang xác nhận..."
+                          : "Xác nhận đã thanh toán"}
+                  </button>
+                ) : null}
               </div>
             </div>
           )}

@@ -237,7 +237,7 @@ const ReceptionistVoucherPage = () => {
       </div>
 
       {showForm ? (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/30 p-6">
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/35 p-6 backdrop-blur-sm">
           <div className="w-full max-w-4xl rounded-2xl bg-white p-6">
             <h3 className="mb-3 text-lg font-black">
               {editing ? "Chỉnh sửa voucher" : "Tạo voucher mới"}
@@ -252,7 +252,7 @@ const ReceptionistVoucherPage = () => {
       ) : null}
 
       {showConfirmCreate ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-6">
+        <div className="fixed inset-0 z-[10001] flex items-center justify-center bg-black/40 p-6 backdrop-blur-[2px]">
           <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-lg">
             <h4 className="mb-3 text-lg font-black">Xác nhận tạo</h4>
             <p className="text-sm text-gray-600">Bạn có muốn tạo voucher này không?</p>
@@ -289,7 +289,7 @@ const ReceptionistVoucherPage = () => {
       ) : null}
 
       {showConfirmDelete ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-6">
+        <div className="fixed inset-0 z-[10001] flex items-center justify-center bg-black/40 p-6 backdrop-blur-[2px]">
           <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-lg">
             <h4 className="mb-3 text-lg font-black">Xác nhận xóa</h4>
             <p className="text-sm text-gray-600">
@@ -331,7 +331,7 @@ const ReceptionistVoucherPage = () => {
       ) : null}
 
       {showInvalidDate ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-6">
+        <div className="fixed inset-0 z-[10001] flex items-center justify-center bg-black/40 p-6 backdrop-blur-[2px]">
           <div className="w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-lg">
             <h4 className="mb-3 text-lg font-black">Thời gian không hợp lệ</h4>
             <p className="text-sm text-gray-600">Ngày bắt đầu phải nhỏ hơn ngày kết thúc.</p>
@@ -348,7 +348,7 @@ const ReceptionistVoucherPage = () => {
       ) : null}
 
       {showView ? (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/40 p-6 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-950/45 p-6 backdrop-blur-sm">
           <div className="relative w-full max-w-2xl overflow-hidden rounded-3xl bg-white shadow-2xl">
             <button
               onClick={() => setShowView(false)}
@@ -433,7 +433,7 @@ const ReceptionistVoucherPage = () => {
       ) : null}
 
       {errorMessage ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-6">
+        <div className="fixed inset-0 z-[10001] flex items-center justify-center bg-black/40 p-6 backdrop-blur-[2px]">
           <div className="w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-lg">
             <h4 className="mb-3 text-lg font-black">Thông báo</h4>
             <p className="text-sm text-gray-600">{errorMessage}</p>

@@ -21,6 +21,7 @@ import {
   ShieldAlert,
   Users,
   Wrench,
+  Star,
 } from "lucide-react";
 import useStoredAuth from "../../../hooks/useStoredAuth";
 import { hasPermission } from "../../../utils/permissions";
@@ -94,6 +95,13 @@ const menuItems = [
     permission: "VIEW_CONTENT",
   },
   {
+    name: "Booking",
+    icon: CalendarCheck2,
+    children: bookingChildren,
+    matchPaths: ["/admin/bookings", "/admin/check-in", "/admin/stay", "/admin/check-out"],
+    permission: "VIEW_BOOKINGS",
+  },
+  {
     name: "Quản lý phòng",
     icon: Building,
     path: "/admin/rooms",
@@ -104,22 +112,16 @@ const menuItems = [
   { name: "Vật tư", icon: Boxes, path: "/admin/equipment", permission: "VIEW_INVENTORY" },
   { name: "Thất thoát đền bù", icon: ShieldAlert, path: "/admin/loss-damage", permission: "VIEW_COMPENSATION" },
   {
-    name: "Booking",
-    icon: CalendarCheck2,
-    children: bookingChildren,
-    matchPaths: ["/admin/bookings", "/admin/check-in", "/admin/stay", "/admin/check-out"],
-    permission: "VIEW_BOOKINGS",
-  },
-  {
     name: "Hóa đơn",
     icon: Receipt,
     path: "/admin/invoices",
     matchPaths: ["/admin/invoices"],
     permission: "VIEW_INVOICES",
   },
+  { name: "Dịch vụ", icon: Wrench, path: "/admin/pos", permission: "VIEW_SERVICES" },
+  { name: "Đánh giá", icon: Star, path: "/admin/reviews", permission: "VIEW_SERVICES" },
   { name: "Voucher", icon: Gift, path: "/admin/vouchers", permission: "VIEW_VOUCHERS" },
   { name: "Thành viên", icon: Users, path: "/admin/memberships", permission: "VIEW_SERVICES" },
-  { name: "Dịch vụ", icon: Wrench, path: "/admin/pos", permission: "VIEW_SERVICES" },
   { name: "Nhật ký hệ thống", icon: History, path: "/admin/audit-log", permission: "VIEW_LOG" },
 ];
 

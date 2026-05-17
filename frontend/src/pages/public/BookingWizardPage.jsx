@@ -745,7 +745,7 @@ const BookingPage = () => {
                 ) : (
                   <div>
                     <h2 className="text-2xl font-black text-slate-900 mb-2">Thanh toán qua MoMo</h2>
-                    <p className="text-sm font-medium text-slate-500 mb-8 max-w-md mx-auto">Vui lòng quét mã QR bên dưới bằng ứng dụng MoMo để hoàn tất việc đặt phòng của bạn. Phòng của bạn sẽ được giữ trong 15 phút.</p>
+                    <p className="text-sm font-medium text-slate-500 mb-8 max-w-md mx-auto">Vui lòng quét mã QR bên dưới bằng ứng dụng MoMo để hoàn tất việc đặt phòng của bạn. Phòng của bạn sẽ được giữ trong 10 phút.</p>
 
                     {momoPaymentQuery.isLoading ? (
                       <div className="h-64 flex flex-col items-center justify-center space-y-4">

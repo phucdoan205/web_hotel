@@ -120,7 +120,7 @@ const SendVoucherModal = ({ vouchers = [], initialVoucher = null, onClose, onSen
   };
 
   return (
-    <div className="fixed inset-0 z-40 bg-black/30 flex items-center justify-center p-2">
+    <div className="fixed inset-0 z-[10000] bg-black/35 flex items-center justify-center p-2 backdrop-blur-sm animate-in fade-in duration-300">
       <div className="bg-white rounded-3xl p-8 w-full max-w-7xl mx-auto max-h-[95vh] shadow-2xl overflow-hidden flex flex-col">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-2xl font-black">Gửi voucher</h3>
@@ -289,7 +289,7 @@ const SendVoucherModal = ({ vouchers = [], initialVoucher = null, onClose, onSen
 
       {/* Confirm Dialog */}
       {showConfirmSend && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-6">
+        <div className="fixed inset-0 z-[10001] bg-black/40 flex items-center justify-center p-6 backdrop-blur-[2px]">
           <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-lg">
             <h4 className="text-lg font-black mb-3">Xác nhận gửi</h4>
             <p className="text-sm text-gray-600 mb-6">

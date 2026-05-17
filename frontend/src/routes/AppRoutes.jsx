@@ -51,6 +51,7 @@ import AdminAttractionsPage from "../pages/admin/AdminAttractionsPage";
 import AdminAttractionEditorPage from "../pages/admin/AdminAttractionEditorPage";
 import AdminVoucherPage from "../pages/admin/AdminVoucherPage";
 import AdminMembershipPage from "../pages/admin/AdminMembershipPage";
+import AdminReviewsPage from "../pages/admin/AdminReviewsPage";
 
 import BookingPage from "../pages/public/BookingPage";
 import BookingWizardPage from "../pages/public/BookingWizardPage";
@@ -404,6 +405,14 @@ const AppRoutes = () => {
           element={
             <RequirePermission permission="VIEW_SERVICES">
               <AdminMembershipPage />
+            </RequirePermission>
+          }
+        />
+        <Route
+          path="reviews"
+          element={
+            <RequirePermission permission="VIEW_SERVICES">
+              <AdminReviewsPage />
             </RequirePermission>
           }
         />

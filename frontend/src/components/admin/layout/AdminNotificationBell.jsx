@@ -171,7 +171,7 @@ const AdminNotificationBell = () => {
       </button>
 
       {isOpen ? (
-        <div className="absolute right-0 top-[calc(100%+0.75rem)] z-50 w-[24rem] overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-xl shadow-gray-200/60">
+        <div className="absolute left-[-2.5rem] sm:left-auto sm:right-0 top-[calc(100%+0.75rem)] z-50 w-[88vw] xs:w-[22rem] sm:w-[24rem] overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-xl shadow-gray-200/60">
           <div className="border-b border-gray-100 px-5 py-4">
             <h3 className="text-sm font-black text-gray-900">Notifications</h3>
             <p className="mt-1 text-xs font-semibold text-gray-400">
