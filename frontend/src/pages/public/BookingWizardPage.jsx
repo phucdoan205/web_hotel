@@ -149,6 +149,7 @@ const BookingPage = () => {
   const [createdBooking, setCreatedBooking] = useState(() => location.state?.resumeBooking || null);
   const [step, setStep] = useState(() => location.state?.resumeBooking ? 3 : 1);
   const [depositPercentage, setDepositPercentage] = useState(100);
+  const [paymentMethod, setPaymentMethod] = useState("momo");
   const [errorPopupMessage, setErrorPopupMessage] = useState(null);
 
   const profileQuery = useQuery({
@@ -308,17 +309,19 @@ const BookingPage = () => {
   const momoPaymentQuery = useQuery({
     queryKey: ["momo-payment", createdBooking?.id, depositPercentage],
     queryFn: () => {
-      // Use finalTotal calculated in frontend
       const depositAmount = Math.round((finalTotal * depositPercentage) / 100);
       return userBookingsApi.createMomoPayment(createdBooking.id, {
         amount: depositAmount,
       });
     },
-    enabled: step === 4 && !!createdBooking?.id && depositPercentage > 0,
+    enabled: step === 4 && paymentMethod === "momo" && !!createdBooking?.id && depositPercentage > 0,
     retry: false,
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
+
+  const sepayAmount = Math.round((finalTotal * depositPercentage) / 100);
+  const vnpayQrUrl = `https://qr.sepay.vn/img?acc=0347474278&bank=MBBANK&amount=${sepayAmount}&des=${createdBooking?.bookingCode}`;
 
   const handleAddRoom = (rt) => {
     setSelectedRooms(prev => {
@@ -643,11 +646,51 @@ const BookingPage = () => {
 
               {step === 4 && (
                 <div key="step4" className="rounded-2xl bg-white p-6 md:p-8 shadow-sm ring-1 ring-slate-100 text-center">
-                  <div className="inline-flex items-center justify-center p-4 bg-pink-50 rounded-full mb-6">
-                    <QrCode size={40} className="text-pink-600" />
+                  
+                  <div className="flex justify-center gap-4 mb-8">
+                    <button 
+                      onClick={() => setPaymentMethod("vnpay")}
+                      className={`flex-1 max-w-[200px] py-3 px-4 rounded-xl font-bold border-2 transition-all ${paymentMethod === "vnpay" ? "border-blue-500 bg-blue-50 text-blue-700" : "border-slate-100 text-slate-500 hover:border-blue-200"}`}
+                    >
+                      Thanh toán VNPay
+                    </button>
+                    <button 
+                      onClick={() => setPaymentMethod("momo")}
+                      className={`flex-1 max-w-[200px] py-3 px-4 rounded-xl font-bold border-2 transition-all ${paymentMethod === "momo" ? "border-pink-500 bg-pink-50 text-pink-700" : "border-slate-100 text-slate-500 hover:border-pink-200"}`}
+                    >
+                      Thanh toán MoMo
+                    </button>
                   </div>
-                  <h2 className="text-2xl font-black text-slate-900 mb-2">Thanh toán qua MoMo</h2>
-                  <p className="text-sm font-medium text-slate-500 mb-8 max-w-md mx-auto">Vui lòng quét mã QR bên dưới bằng ứng dụng MoMo để hoàn tất việc đặt phòng của bạn. Phòng của bạn sẽ được giữ trong 15 phút.</p>
+
+                  {paymentMethod === "vnpay" ? (
+                    <div>
+                      <h2 className="text-2xl font-black text-slate-900 mb-2">Thanh toán qua VNPay (Chuyển khoản)</h2>
+                      <p className="text-sm font-medium text-slate-500 mb-8 max-w-md mx-auto">Vui lòng quét mã QR bên dưới để thanh toán. Hệ thống sẽ tự động xác nhận khi nhận được tiền.</p>
+                      
+                      <div className="max-w-sm mx-auto">
+                        <div className="bg-white p-4 rounded-[2rem] border-[12px] border-blue-50 shadow-xl inline-block mb-6 relative group">
+                          <img src={vnpayQrUrl} alt="VNPay QR Code" className="size-56 rounded-xl" />
+                        </div>
+                        
+                        <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-left mb-8">
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="text-xs font-bold uppercase text-slate-400">Số tiền</span>
+                            <span className="text-lg font-black text-blue-600">{formatCurrency(sepayAmount)}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs font-bold uppercase text-slate-400">Nội dung</span>
+                            <span className="text-sm font-bold text-slate-900">{createdBooking?.bookingCode}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="inline-flex items-center justify-center p-4 bg-pink-50 rounded-full mb-6">
+                        <QrCode size={40} className="text-pink-600" />
+                      </div>
+                      <h2 className="text-2xl font-black text-slate-900 mb-2">Thanh toán qua MoMo</h2>
+                      <p className="text-sm font-medium text-slate-500 mb-8 max-w-md mx-auto">Vui lòng quét mã QR bên dưới bằng ứng dụng MoMo để hoàn tất việc đặt phòng của bạn. Phòng của bạn sẽ được giữ trong 15 phút.</p>
 
                   {momoPaymentQuery.isLoading ? (
                     <div className="h-64 flex flex-col items-center justify-center space-y-4">
@@ -676,12 +719,13 @@ const BookingPage = () => {
                         </div>
                       </div>
 
-                      <button onClick={() => window.open(momoPaymentQuery.data.payUrl, "_blank")} className="w-full inline-flex justify-center items-center gap-2 rounded-xl bg-pink-600 px-6 py-3.5 text-sm font-black text-white shadow-lg shadow-pink-500/30 transition hover:bg-pink-700 mb-4">
-                        <CreditCard size={18} /> Mở ứng dụng MoMo
-                      </button>
+                        <button onClick={() => window.open(momoPaymentQuery.data.payUrl, "_blank")} className="w-full inline-flex justify-center items-center gap-2 rounded-xl bg-pink-600 px-6 py-3.5 text-sm font-black text-white shadow-lg shadow-pink-500/30 transition hover:bg-pink-700 mb-4">
+                          <CreditCard size={18} /> Mở ứng dụng MoMo
+                        </button>
+                      </div>
+                    ) : null}
                     </div>
-                  ) : null}
-
+                  )}
                   <div className="mt-4 flex justify-between border-t border-slate-100 pt-6">
                     <button onClick={handleBackStep4} className="inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3.5 text-sm font-bold text-slate-600 ring-1 ring-slate-200 transition hover:bg-slate-50">
                       <ArrowLeft size={18} /> Quay lại
