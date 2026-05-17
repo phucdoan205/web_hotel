@@ -6,6 +6,8 @@ using backend.Security;
 using backend.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
+using System.IdentityModel.Tokens.Jwt;
 
 namespace backend.Controllers
 {
@@ -23,6 +25,23 @@ namespace backend.Controllers
             _auditLogViewService = auditLogViewService;
         }
 
+        private async Task<User?> ResolveCurrentUserAsync()
+        {
+            var userIdClaim = User.FindFirst(JwtRegisteredClaimNames.NameId)?.Value
+                ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                ?? Request.Headers["X-User-Id"].FirstOrDefault();
+
+            if (!int.TryParse(userIdClaim, out var userId))
+            {
+                return null;
+            }
+
+            return await _context.Users
+                .AsNoTracking()
+                .Include(u => u.Role)
+                .FirstOrDefaultAsync(u => u.Id == userId);
+        }
+
         [HttpGet]
         [Permission("VIEW_LOG")]
         public async Task<ActionResult<PagedResponse<AuditLogResponseDTO>>> GetAllLogs(
@@ -34,7 +53,8 @@ namespace backend.Controllers
             [FromQuery] DateTime? toDate = null,
             CancellationToken cancellationToken = default)
         {
-            var query = BuildLogQuery(employeeName, roleName, fromDate, toDate);
+            var currentUser = await ResolveCurrentUserAsync();
+            var query = BuildLogQuery(currentUser, employeeName, roleName, fromDate, toDate);
             var totalCount = await query.CountAsync(cancellationToken);
 
             var logs = await query
@@ -54,6 +74,43 @@ namespace backend.Controllers
             [FromQuery] int pageSize = 50,
             CancellationToken cancellationToken = default)
         {
+            var currentUser = await ResolveCurrentUserAsync();
+            if (currentUser == null)
+            {
+                return Unauthorized();
+            }
+
+            var targetUser = await _context.Users
+                .AsNoTracking()
+                .Include(u => u.Role)
+                .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+
+            if (targetUser == null)
+            {
+                return NotFound("Không tìm thấy người dùng.");
+            }
+
+            // Exclude User and Guest logs completely
+            if (targetUser.Role != null && 
+                (string.Equals(targetUser.Role.Name, "User", StringComparison.OrdinalIgnoreCase) || 
+                 string.Equals(targetUser.Role.Name, "Guest", StringComparison.OrdinalIgnoreCase)))
+            {
+                return Forbid();
+            }
+
+            var currentRole = currentUser.Role?.Name;
+            var isAuthorizeFull = string.Equals(currentRole, "Admin", StringComparison.OrdinalIgnoreCase) ||
+                                  string.Equals(currentRole, "Manager", StringComparison.OrdinalIgnoreCase);
+
+            if (!isAuthorizeFull)
+            {
+                // Non-Admin/non-Manager can only see logs of their own role
+                if (targetUser.Role == null || !string.Equals(targetUser.Role.Name, currentRole, StringComparison.OrdinalIgnoreCase))
+                {
+                    return Forbid();
+                }
+            }
+
             var query = _context.AuditLogs
                 .AsNoTracking()
                 .Include(a => a.User)
@@ -75,7 +132,8 @@ namespace backend.Controllers
         [Permission("VIEW_LOG")]
         public async Task<ActionResult<AuditLogFilterOptionsDTO>> GetFilterOptions(CancellationToken cancellationToken = default)
         {
-            var response = await _auditLogViewService.GetFilterOptionsAsync(cancellationToken);
+            var currentUser = await ResolveCurrentUserAsync();
+            var response = await _auditLogViewService.GetFilterOptionsAsync(currentUser, cancellationToken);
             return Ok(response);
         }
 
@@ -88,7 +146,8 @@ namespace backend.Controllers
             [FromQuery] DateTime? toDate = null,
             CancellationToken cancellationToken = default)
         {
-            var logs = await BuildLogQuery(employeeName, roleName, fromDate, toDate)
+            var currentUser = await ResolveCurrentUserAsync();
+            var logs = await BuildLogQuery(currentUser, employeeName, roleName, fromDate, toDate)
                 .ToListAsync(cancellationToken);
 
             var dtos = await _auditLogViewService.BuildResponseAsync(logs, cancellationToken);
@@ -144,6 +203,7 @@ namespace backend.Controllers
         }
 
         private IQueryable<AuditLog> BuildLogQuery(
+            User? currentUser,
             string? employeeName,
             string? roleName,
             DateTime? fromDate,
@@ -155,18 +215,36 @@ namespace backend.Controllers
                     .ThenInclude(u => u!.Role)
                 .AsQueryable();
 
-            query = query.Where(a => a.User == null || a.User.Role == null || a.User.Role.Name != HiddenUserRoleName);
+            // Exclude logs of "User" and "Guest" roles because they are not staff
+            query = query.Where(a => a.User == null || a.User.Role == null || 
+                (a.User.Role.Name != "User" && a.User.Role.Name != "Guest"));
+
+            if (currentUser == null)
+            {
+                return query.Where(a => false);
+            }
+
+            var currentRole = currentUser.Role?.Name;
+            var isAuthorizeFull = string.Equals(currentRole, "Admin", StringComparison.OrdinalIgnoreCase) ||
+                                  string.Equals(currentRole, "Manager", StringComparison.OrdinalIgnoreCase);
+
+            if (isAuthorizeFull)
+            {
+                if (!string.IsNullOrWhiteSpace(roleName))
+                {
+                    var normalizedRole = roleName.Trim();
+                    query = query.Where(a => a.User != null && a.User.Role != null && a.User.Role.Name == normalizedRole);
+                }
+            }
+            else
+            {
+                query = query.Where(a => a.User != null && a.User.Role != null && a.User.Role.Name == currentRole);
+            }
 
             if (!string.IsNullOrWhiteSpace(employeeName))
             {
                 var normalizedName = employeeName.Trim();
                 query = query.Where(a => a.User != null && a.User.FullName.Contains(normalizedName));
-            }
-
-            if (!string.IsNullOrWhiteSpace(roleName))
-            {
-                var normalizedRole = roleName.Trim();
-                query = query.Where(a => a.User != null && a.User.Role != null && a.User.Role.Name == normalizedRole);
             }
 
             if (fromDate.HasValue)

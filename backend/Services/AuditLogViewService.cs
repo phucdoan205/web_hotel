@@ -69,26 +69,65 @@ namespace backend.Services
             }).ToList();
         }
 
-        public async Task<AuditLogFilterOptionsDTO> GetFilterOptionsAsync(CancellationToken cancellationToken = default)
+        public async Task<AuditLogFilterOptionsDTO> GetFilterOptionsAsync(User? currentUser, CancellationToken cancellationToken = default)
         {
-            var roles = await _context.AuditLogs
+            if (currentUser == null)
+            {
+                return new AuditLogFilterOptionsDTO
+                {
+                    Roles = new List<string>(),
+                    Employees = new List<string>()
+                };
+            }
+
+            var currentRole = currentUser.Role?.Name;
+            var isAuthorizeFull = string.Equals(currentRole, "Admin", StringComparison.OrdinalIgnoreCase) ||
+                                  string.Equals(currentRole, "Manager", StringComparison.OrdinalIgnoreCase);
+
+            var baseRolesQuery = _context.AuditLogs
                 .AsNoTracking()
                 .Include(log => log.User)
                     .ThenInclude(user => user!.Role)
-                .Where(log => log.User != null && log.User.Role != null)
-                .Select(log => log.User!.Role!.Name)
-                .Where(name =>
-                    !string.Equals(name, "User", StringComparison.OrdinalIgnoreCase) &&
-                    !string.Equals(name, "Guest", StringComparison.OrdinalIgnoreCase))
+                .Where(log => log.User != null && log.User.Role != null);
+
+            // Exclude User and Guest roles
+            baseRolesQuery = baseRolesQuery.Where(log => 
+                log.User.Role.Name != "User" && 
+                log.User.Role.Name != "Guest");
+
+            if (!isAuthorizeFull)
+            {
+                // Non-Admin/non-Manager can only see their own role
+                baseRolesQuery = baseRolesQuery.Where(log => log.User.Role.Name == currentRole);
+            }
+
+            var roles = await baseRolesQuery
+                .Select(log => log.User.Role.Name)
                 .Distinct()
                 .OrderBy(name => name)
                 .ToListAsync(cancellationToken);
 
-            var employees = await _context.AuditLogs
+            var baseEmployeesQuery = _context.AuditLogs
                 .AsNoTracking()
                 .Include(log => log.User)
-                .Where(log => log.User != null && !string.IsNullOrWhiteSpace(log.User.FullName))
-                .Select(log => log.User!.FullName)
+                    .ThenInclude(user => user!.Role)
+                .Where(log => log.User != null && !string.IsNullOrWhiteSpace(log.User.FullName));
+
+            // Exclude User and Guest roles for employees
+            baseEmployeesQuery = baseEmployeesQuery.Where(log => 
+                log.User.Role != null && 
+                log.User.Role.Name != "User" && 
+                log.User.Role.Name != "Guest");
+
+            if (!isAuthorizeFull)
+            {
+                // Non-Admin/non-Manager can only see employees with their own role
+                baseEmployeesQuery = baseEmployeesQuery.Where(log => 
+                    log.User.Role != null && log.User.Role.Name == currentRole);
+            }
+
+            var employees = await baseEmployeesQuery
+                .Select(log => log.User.FullName)
                 .Distinct()
                 .OrderBy(name => name)
                 .ToListAsync(cancellationToken);
