@@ -63,4 +63,9 @@ export const userBookingsApi = {
     const response = await apiClient.post(`/user-bookings/${bookingId}/checkout-payments/momo`, payload);
     return response.data;
   },
+
+  applyVoucher: async (bookingId, voucherId) => {
+    const response = await apiClient.patch(`/user-bookings/${bookingId}/voucher`, { voucherId });
+    return response.data;
+  },
 };

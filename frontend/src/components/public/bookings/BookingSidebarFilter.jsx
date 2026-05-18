@@ -34,16 +34,16 @@ const BookingSidebarFilter = ({ filters, onChange, onClear, availableAmenities =
           <input 
             type="range" 
             min="200000" 
-            max="3000000" 
-            step="100000"
+            max="100000000" 
+            step="500000"
             value={maxPrice}
             onChange={(e) => onChange("maxPrice", Number(e.target.value))}
             className="mt-4 w-full accent-blue-600" 
           />
           <div className="mt-2 flex justify-between text-xs font-medium text-slate-400">
             <span>200k</span>
-            <span>1.5tr</span>
-            <span>3tr</span>
+            <span>50tr</span>
+            <span>100tr</span>
           </div>
         </div>
 

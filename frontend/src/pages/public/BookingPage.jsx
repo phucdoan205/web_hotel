@@ -56,7 +56,7 @@ const buildQueryParams = (filters) => ({
   adults: filters.adults,
   children: filters.children,
   page: 1,
-  pageSize: 20,
+  pageSize: 1000,
 });
 
 const groupRoomsByType = (rooms) => {
@@ -144,7 +144,7 @@ const BookingPage = () => {
   }, [location.state]);
 
   const [sidebarFilters, setSidebarFilters] = useState({
-    maxPrice: 2000000,
+    maxPrice: 100000000,
     bedTypes: [],
     amenities: [],
     minRating: 0
@@ -156,7 +156,7 @@ const BookingPage = () => {
 
   const handleClearSidebarFilters = () => {
     setSidebarFilters({
-      maxPrice: 2000000,
+      maxPrice: 100000000,
       bedTypes: [],
       amenities: [],
       minRating: 0
@@ -229,6 +229,20 @@ const BookingPage = () => {
     () => sortRoomTypes(filteredRoomTypes, sortBy, stayDays),
     [filteredRoomTypes, sortBy, stayDays],
   );
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const ROOMS_PER_PAGE = 6;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [appliedFilters, sidebarFilters, sortBy]);
+
+  const paginatedRoomTypes = useMemo(() => {
+    const start = (currentPage - 1) * ROOMS_PER_PAGE;
+    return sortedRoomTypes.slice(start, start + ROOMS_PER_PAGE);
+  }, [sortedRoomTypes, currentPage]);
+
+  const totalPages = Math.ceil(sortedRoomTypes.length / ROOMS_PER_PAGE);
 
   const handleFilterChange = (field, value) => {
     setFilters((current) => ({
@@ -366,7 +380,7 @@ const BookingPage = () => {
                 </div>
               ) : null}
 
-              {sortedRoomTypes.map((roomType, index) => (
+              {paginatedRoomTypes.map((roomType, index) => (
                 <motion.div
                   key={roomType.roomTypeId}
                   initial={{ opacity: 0, y: 30 }}
@@ -385,6 +399,44 @@ const BookingPage = () => {
                   />
                 </motion.div>
               ))}
+
+              {totalPages > 1 && (
+                <div className="mt-8 flex items-center justify-center gap-2">
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                    className="flex size-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm transition-all hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50 disabled:hover:bg-white disabled:hover:text-slate-600 active:scale-95"
+                  >
+                    <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                  </button>
+
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`flex size-10 items-center justify-center rounded-xl text-sm font-bold shadow-sm transition-all active:scale-95 ${
+                        currentPage === page
+                          ? "bg-[#0052cc] text-white ring-2 ring-[#0052cc]/20"
+                          : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-900"
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  ))}
+
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                    disabled={currentPage === totalPages}
+                    className="flex size-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm transition-all hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50 disabled:hover:bg-white disabled:hover:text-slate-600 active:scale-95"
+                  >
+                    <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                </div>
+              )}
             </div>
           </main>
         </div>

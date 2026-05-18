@@ -83,6 +83,7 @@ namespace backend.Controllers
                 .Include(item => item.Guest)
                 .Include(item => item.User)
                     .ThenInclude(u => u.Membership)
+                .Include(item => item.Voucher)
                 .Include(item => item.BookingDetails)
                     .ThenInclude(detail => detail.Room)
                 .Include(item => item.BookingDetails)
@@ -324,6 +325,19 @@ namespace backend.Controllers
                     membershipDiscountAmount = Math.Round(totalRoomAmount * membershipDiscountPercent / 100m);
                 }
 
+                var voucherDiscountAmount = 0m;
+                if (booking.Voucher != null && booking.Voucher.IsActive)
+                {
+                    if (booking.Voucher.DiscountType == "Fixed" || string.Equals(booking.Voucher.DiscountType, "AMOUNT", StringComparison.OrdinalIgnoreCase))
+                    {
+                        voucherDiscountAmount = booking.Voucher.DiscountValue;
+                    }
+                    else if (booking.Voucher.DiscountType == "Percent" || string.Equals(booking.Voucher.DiscountType, "PERCENT", StringComparison.OrdinalIgnoreCase))
+                    {
+                        voucherDiscountAmount = Math.Round(totalRoomAmount * booking.Voucher.DiscountValue / 100m);
+                    }
+                }
+
                 var totalServiceAmount = await _context.OrderServiceDetails
                     .AsNoTracking()
                     .Where(item =>
@@ -332,7 +346,7 @@ namespace backend.Controllers
                         item.OrderService.Status != "Paid")
                     .SumAsync(item => (decimal?)(item.Quantity * item.UnitPrice)) ?? 0;
 
-                var calculatedSubtotal = Math.Max(0, totalRoomAmount + totalServiceAmount - membershipDiscountAmount);
+                var calculatedSubtotal = Math.Max(0, totalRoomAmount + totalServiceAmount - membershipDiscountAmount - voucherDiscountAmount);
 
                 var totalDepositPaid = await _context.Invoices
                     .Where(i => i.BookingId == booking.Id && i.BookingDetailId == null && i.Status == "Completed")
@@ -365,10 +379,14 @@ namespace backend.Controllers
                     StayedDays = stayedDays,
                     TotalRoomAmount = totalRoomAmount,
                     TotalServiceAmount = totalServiceAmount,
-                    DiscountAmount = 0,
+                    DiscountAmount = voucherDiscountAmount,
                     TaxAmount = 0,
                     FinalTotal = finalTotal,
                     Status = "Paying",
+                    VoucherId = booking.VoucherId,
+                    VoucherCode = booking.Voucher?.Code,
+                    VoucherDiscountType = booking.Voucher?.DiscountType,
+                    VoucherDiscountValue = booking.Voucher?.DiscountValue,
                     MembershipTierName = membershipTierName,
                     MembershipDiscountPercent = membershipDiscountPercent,
                     MembershipDiscountAmount = membershipDiscountAmount,
@@ -665,6 +683,66 @@ namespace backend.Controllers
                 .FirstAsync(item => item.Id == booking.Id);
 
             return CreatedAtAction(nameof(GetMyBooking), new { id = booking.Id }, _mapper.Map<BookingResponseDTO>(created));
+        }
+
+        [HttpPatch("{id:int}/voucher")]
+        public async Task<ActionResult<BookingResponseDTO>> ApplyVoucher(int id, [FromBody] ApplyVoucherRequestDTO request)
+        {
+            var currentUser = await ResolveCurrentUserAsync();
+            if (currentUser == null) return Unauthorized(new { message = "Khong xac dinh duoc nguoi dung hien tai." });
+
+            var booking = await _context.Bookings
+                .Include(b => b.BookingDetails)
+                .FirstOrDefaultAsync(b => b.Id == id && b.UserId == currentUser.Id);
+            
+            if (booking == null) return NotFound(new { message = "Khong tim thay booking." });
+            if (booking.Status != "Pending" && booking.Status != "Confirmed" && booking.Status != "CheckedIn")
+            {
+                return BadRequest(new { message = "Khong the ap dung voucher cho booking o trang thai hien tai." });
+            }
+
+            if (request.VoucherId.HasValue)
+            {
+                var userVoucher = await _context.UserVouchers
+                    .Include(uv => uv.Voucher)
+                    .FirstOrDefaultAsync(uv => uv.UserId == currentUser.Id && uv.VoucherId == request.VoucherId.Value && !uv.IsUsed);
+
+                if (userVoucher == null || userVoucher.Voucher == null || !userVoucher.Voucher.IsActive)
+                {
+                    return BadRequest(new { message = "Voucher khong hop le hoac da duoc su dung." });
+                }
+
+                if (userVoucher.Voucher.ValidFrom.HasValue && userVoucher.Voucher.ValidFrom.Value > DateTime.UtcNow)
+                {
+                    return BadRequest(new { message = "Voucher chua den ngay ap dung." });
+                }
+
+                if (userVoucher.Voucher.ValidTo.HasValue && userVoucher.Voucher.ValidTo.Value < DateTime.UtcNow)
+                {
+                    return BadRequest(new { message = "Voucher da het han." });
+                }
+
+                var totalRoomAmount = booking.BookingDetails.Sum(d => d.PricePerNight * Math.Max(1, (d.CheckOutDate - d.CheckInDate).Days));
+                if (userVoucher.Voucher.MinBookingValue.HasValue && totalRoomAmount < userVoucher.Voucher.MinBookingValue.Value)
+                {
+                    return BadRequest(new { message = $"Gia tri don phong chua dat muc toi thieu de ap dung voucher ({userVoucher.Voucher.MinBookingValue.Value:N0} VND)." });
+                }
+
+                var alreadyApplied = await _context.Bookings.AnyAsync(b => b.UserId == currentUser.Id && b.Id != id && b.VoucherId == request.VoucherId.Value && b.Status != "Cancelled");
+                if (alreadyApplied)
+                {
+                    return BadRequest(new { message = "Voucher nay dang duoc ap dung cho mot don dat phong khac cua ban." });
+                }
+
+                booking.VoucherId = request.VoucherId.Value;
+            }
+            else
+            {
+                booking.VoucherId = null;
+            }
+
+            await _context.SaveChangesAsync();
+            return Ok(_mapper.Map<BookingResponseDTO>(booking));
         }
 
         [HttpPatch("{id:int}/unlock")]

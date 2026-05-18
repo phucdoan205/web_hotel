@@ -368,7 +368,7 @@ const BookingDetailPage = () => {
                   </div>
                   {Number(checkoutInvoice.discountAmount || 0) > 0 && (
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-white/80">Voucher</span>
+                      <span className="text-white/80">Voucher {checkoutInvoice.voucherCode ? `(${checkoutInvoice.voucherCode})` : ""}</span>
                       <span className="font-bold">- {formatCurrency(checkoutInvoice.discountAmount)}</span>
                     </div>
                   )}

@@ -5,6 +5,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 
 import { roomsApi } from "../../api/public/roomsApi";
 import { userBookingsApi } from "../../api/user/bookingsApi";
+import { getMyVouchers } from "../../api/user/userVouchersApi";
 import { getMyProfile } from "../../api/admin/profileApi";
 import { getMemberships } from "../../api/admin/membershipApi";
 import { getStoredAuth } from "../../utils/authStorage";
@@ -156,6 +157,8 @@ const BookingPage = () => {
   const [errorPopupMessage, setErrorPopupMessage] = useState(null);
   const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
 
+  const [selectedVoucherId, setSelectedVoucherId] = useState("");
+
   const profileQuery = useQuery({
     queryKey: ["user-profile"],
     queryFn: getMyProfile,
@@ -166,6 +169,15 @@ const BookingPage = () => {
     queryKey: ["memberships-list"],
     queryFn: getMemberships,
     enabled: !!auth?.token,
+  });
+
+  const userVouchersQuery = useQuery({
+    queryKey: ["my-vouchers"],
+    queryFn: async () => {
+      const res = await getMyVouchers();
+      return res.data;
+    },
+    enabled: !!auth?.token && step === 3,
   });
 
   useEffect(() => {
@@ -215,6 +227,17 @@ const BookingPage = () => {
     }
   });
 
+  const applyVoucherMutation = useMutation({
+    mutationFn: ({ bookingId, voucherId }) => userBookingsApi.applyVoucher(bookingId, voucherId),
+    onSuccess: (data) => {
+      setCreatedBooking(data);
+    },
+    onError: (error) => {
+      alert(error.response?.data?.message || "Lỗi khi áp dụng voucher");
+      setSelectedVoucherId("");
+    }
+  });
+
   const cancelBookingMutation = useMutation({
     mutationFn: (id) => userBookingsApi.cancelBooking(id),
     onSuccess: () => {
@@ -230,6 +253,14 @@ const BookingPage = () => {
       availableRoomsQuery.refetch();
     }
   });
+  
+  useEffect(() => {
+    if (createdBooking?.voucherId) {
+      setSelectedVoucherId(createdBooking.voucherId.toString());
+    } else {
+      setSelectedVoucherId("");
+    }
+  }, [createdBooking]);
 
   // Calculate totals
   const selectedTotalRooms = Object.values(selectedRooms).reduce((acc, ids) => acc + (ids?.length || 0), 0);
@@ -267,7 +298,33 @@ const BookingPage = () => {
     return (estimatedTotal * discountPercent) / 100;
   }, [estimatedTotal, discountPercent]);
 
-  const finalTotal = estimatedTotal - discountAmount;
+  const voucherDiscountAmount = useMemo(() => {
+    let voucherObj = null;
+    if (createdBooking?.voucher) {
+      voucherObj = createdBooking.voucher;
+    } else if (selectedVoucherId && userVouchersQuery.data) {
+      const uv = userVouchersQuery.data.find(v => v.voucherId.toString() === selectedVoucherId.toString());
+      if (uv) voucherObj = uv.voucher;
+    }
+
+    if (!voucherObj || !voucherObj.isActive) return 0;
+    
+    // Check min booking value
+    if (voucherObj.minBookingValue && estimatedTotal < voucherObj.minBookingValue) return 0;
+
+     let vAmount = 0;
+    if (voucherObj.discountType === "Fixed" || voucherObj.discountType === "AMOUNT") {
+      vAmount = voucherObj.discountValue || 0;
+    } else if (voucherObj.discountType === "Percent" || voucherObj.discountType === "PERCENT") {
+      vAmount = (estimatedTotal * (voucherObj.discountValue || 0)) / 100;
+      if (voucherObj.maxDiscountAmount && vAmount > voucherObj.maxDiscountAmount) {
+        vAmount = voucherObj.maxDiscountAmount;
+      }
+    }
+    return vAmount;
+  }, [createdBooking, selectedVoucherId, userVouchersQuery.data, estimatedTotal]);
+
+  const finalTotal = Math.max(0, estimatedTotal - discountAmount - voucherDiscountAmount);
 
   const summaryRooms = useMemo(() => {
     if (createdBooking) {
@@ -460,7 +517,16 @@ const BookingPage = () => {
     }
   };
 
-  const handleNextStep3 = () => setStep(4);
+  const handleNextStep3 = () => {
+    if (selectedVoucherId && createdBooking?.voucherId?.toString() !== selectedVoucherId.toString()) {
+      applyVoucherMutation.mutate(
+        { bookingId: createdBooking.id, voucherId: selectedVoucherId },
+        { onSuccess: () => setStep(4) }
+      );
+    } else {
+      setStep(4);
+    }
+  };
   const handleBackStep4 = () => setStep(3);
 
   const steps = [
@@ -647,6 +713,48 @@ const BookingPage = () => {
                 </div>
 
                 <div className="space-y-6">
+                  
+                  {/* Voucher Selection */}
+                  {auth?.token && (
+                    <div className="bg-white rounded-2xl p-5 border border-slate-200 ring-1 ring-slate-100 shadow-sm">
+                      <h3 className="text-sm font-black text-slate-900 mb-3 flex items-center gap-2">
+                         Mã ưu đãi của bạn
+                      </h3>
+                      {userVouchersQuery.isLoading ? (
+                        <p className="text-sm font-medium text-slate-500 animate-pulse">Đang tải mã ưu đãi...</p>
+                      ) : userVouchersQuery.data?.length > 0 ? (
+                        <select 
+                          className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 focus:border-[#0194f3] focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#0194f3]/10 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                          value={selectedVoucherId}
+                          disabled={applyVoucherMutation.isPending}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setSelectedVoucherId(val);
+                            if (createdBooking?.id) {
+                              applyVoucherMutation.mutate({
+                                bookingId: createdBooking.id,
+                                voucherId: val ? Number(val) : null
+                              });
+                            }
+                          }}
+                        >
+                          <option value="">-- Không sử dụng ưu đãi --</option>
+                          {userVouchersQuery.data.filter(uv => uv.voucher?.isActive && (!uv.voucher.validTo || new Date(uv.voucher.validTo) >= new Date())).map(uv => {
+                            const isEligible = !uv.voucher.minBookingValue || estimatedTotal >= uv.voucher.minBookingValue;
+                            return (
+                              <option key={uv.voucherId} value={uv.voucherId} disabled={!isEligible}>
+                                {uv.voucher.code} - Giảm {uv.voucher.discountType === "Fixed" || uv.voucher.discountType === "AMOUNT" ? formatCurrency(uv.voucher.discountValue) : `${uv.voucher.discountValue}%`} 
+                                {!isEligible ? ` (Đơn tối thiểu ${formatCurrency(uv.voucher.minBookingValue)})` : ""}
+                              </option>
+                            );
+                          })}
+                        </select>
+                      ) : (
+                        <p className="text-sm font-medium text-slate-500 italic">Bạn chưa lưu mã ưu đãi nào trong kho.</p>
+                      )}
+                    </div>
+                  )}
+
                   <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100">
                     <div className="flex justify-between items-center mb-4 pb-4 border-b border-slate-200 border-dashed">
                       <span className="text-sm font-bold text-slate-600">Tổng tiền phòng ({stayDays} đêm)</span>
@@ -656,6 +764,12 @@ const BookingPage = () => {
                       <span className="text-sm font-bold text-slate-600 flex items-center gap-1.5">Ưu đãi / Membership {discountPercent > 0 && <span className="px-2 py-0.5 rounded text-[10px] bg-emerald-100 text-emerald-700 font-black">-{discountPercent}%</span>} <Info size={14} className="text-slate-400" /></span>
                       <span className="text-base font-bold text-emerald-600">- {formatCurrency(discountAmount)}</span>
                     </div>
+                    {voucherDiscountAmount > 0 && (
+                      <div className="flex justify-between items-center mb-4 pb-4 border-b border-slate-200 border-dashed">
+                        <span className="text-sm font-bold text-slate-600 flex items-center gap-1.5">Mã ưu đãi / Voucher</span>
+                        <span className="text-base font-bold text-emerald-600">- {formatCurrency(voucherDiscountAmount)}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-black text-slate-900 uppercase tracking-wider">Tổng thanh toán</span>
                       <span className="text-2xl font-black text-[#0194f3]">{formatCurrency(finalTotal)}</span>
@@ -838,18 +952,24 @@ const BookingPage = () => {
                 )}
               </div>
 
-              <div className="mt-6 pt-4 border-t border-slate-100 border-dashed">
+              <div className="pt-4 border-t border-slate-100">
                 {discountAmount > 0 && (
                   <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm font-bold text-slate-500">Giảm giá ({discountPercent}%)</span>
-                    <span className="text-sm font-black text-emerald-600">- {formatCurrency(discountAmount)}</span>
+                    <span className="text-sm font-bold text-slate-500">Membership (-{discountPercent}%)</span>
+                    <span className="text-sm font-bold text-emerald-600">- {formatCurrency(discountAmount)}</span>
                   </div>
                 )}
-                <div className="flex justify-between items-center mb-1">
-                  <span className="text-sm font-bold text-slate-500">Tổng cộng</span>
+                {voucherDiscountAmount > 0 && (
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm font-bold text-slate-500">Voucher</span>
+                    <span className="text-sm font-bold text-emerald-600">- {formatCurrency(voucherDiscountAmount)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between items-center mt-2">
+                  <span className="text-sm font-black text-slate-900">Tổng cộng</span>
                   <span className="text-xl font-black text-[#0194f3]">{formatCurrency(finalTotal)}</span>
                 </div>
-                <p className="text-[10px] text-right font-medium text-slate-400 uppercase tracking-wider">Đã bao gồm thuế và phí</p>
+                <p className="text-[10px] font-bold text-slate-400 text-right mt-1 uppercase">Đã bao gồm thuế và phí</p>
               </div>
             </div>
           </div>
