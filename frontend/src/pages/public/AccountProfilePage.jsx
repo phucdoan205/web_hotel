@@ -89,28 +89,23 @@ const AccountProfilePage = () => {
       title: "Quản lý tài khoản",
       items: [
         { label: "Thông tin cá nhân", icon: User, path: "/profile/personal-info" },
-        { label: "Thành viên", icon: Shield, path: "/profile/membership" },
+        { label: "Cài đặt chung", icon: Pencil, path: "/profile/settings" },
         { label: "Cài đặt bảo mật", icon: Lock, path: "/profile/security" },
       ]
     },
     {
-      title: "Thông tin thanh toán",
+      title: "Ưu đãi",
       items: [
-        { label: "Phương thức thanh toán", icon: CreditCard, path: "/profile/payment-methods" },
-        { label: "Giao dịch", icon: History, path: "/booking-history" },
+        { label: "Thành viên", icon: Shield, path: "/profile/membership" },
+        { label: "Ưu đãi của bạn", icon: Ticket, path: "/vouchers" },
       ]
     },
     {
       title: "Hoạt động du lịch",
       items: [
         { label: "Chuyến đi và đơn đặt", icon: Briefcase, path: "/booking-history" },
+        { label: "Dịch vụ", icon: History, path: "/service-history" },
         { label: "Đánh giá của tôi", icon: MessageSquare, path: "/reviews" },
-      ]
-    },
-    {
-      title: "Cài đặt",
-      items: [
-        { label: "Cài đặt chung", icon: Pencil, path: "/profile/settings" },
       ]
     },
   ];

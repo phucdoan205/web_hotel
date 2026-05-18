@@ -900,10 +900,16 @@ const ReceptionistPOSServicePage = () => {
                     filteredHistoryItems.map((item) => (
                       <tr key={item.id}>
                         <td className="px-4 py-4">
-                          <p className="font-black text-slate-900">Phòng {item.roomNumber}</p>
-                          <p className="mt-1 text-sm text-slate-500">
-                            {item.guestName} • {item.bookingCode}
-                          </p>
+                          {!item.bookingDetailId || item.roomNumber === "--" ? (
+                            <p className="font-black text-slate-900">{item.guestName || "Khách đặt lẻ"}</p>
+                          ) : (
+                            <>
+                              <p className="font-black text-slate-900">Phòng {item.roomNumber}</p>
+                              <p className="mt-1 text-sm text-slate-500">
+                                {item.guestName} • {item.bookingCode}
+                              </p>
+                            </>
+                          )}
                         </td>
                         <td className="px-4 py-4">
                           <p className="font-bold text-slate-900">{item.serviceName}</p>

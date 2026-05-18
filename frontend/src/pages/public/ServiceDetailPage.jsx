@@ -12,9 +12,18 @@ import {
   Send,
   Star,
   X,
+  Check,
+  CreditCard,
+  QrCode,
+  AlertCircle,
+  Sparkles,
+  Building,
+  Loader2,
 } from "lucide-react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import publicServicesApi from "../../api/public/publicServicesApi";
+import { userServicesApi } from "../../api/user/servicesApi";
+import { getMyVouchers } from "../../api/user/userVouchersApi";
 import { getStoredAuth } from "../../utils/authStorage";
 
 const normalizeServiceContent = (content) => {
@@ -295,6 +304,7 @@ const CommentItem = ({
 const ServiceDetailPage = () => {
   const { slug } = useParams();
   const auth = getStoredAuth();
+  const navigate = useNavigate();
   const contentRef = useRef(null);
   const bookingBoxRef = useRef(null);
   const scrollContainerRef = useRef(null);
@@ -314,7 +324,106 @@ const ServiceDetailPage = () => {
   const [quantity, setQuantity] = useState(1);
   const [showFullCalendar, setShowFullCalendar] = useState(false);
   const [isMobileBookingOpen, setIsMobileBookingOpen] = useState(false);
-  
+
+  // Service Booking / Checkout States
+  const [activeRooms, setActiveRooms] = useState([]);
+  const [vouchers, setVouchers] = useState([]);
+  const [selectedRoomId, setSelectedRoomId] = useState("");
+  const [selectedVoucherId, setSelectedVoucherId] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("QR"); // QR or RoomCharge
+  const [showCheckoutModal, setShowCheckoutModal] = useState(false);
+  const [bookingSuccess, setBookingSuccess] = useState(false);
+  const [isBookingSubmitting, setIsBookingSubmitting] = useState(false);
+  const [bookingError, setBookingError] = useState("");
+  const [createdUsage, setCreatedUsage] = useState(null);
+
+  // Load user active stays & service vouchers on mount/auth
+  useEffect(() => {
+    if (auth) {
+      const loadUserData = async () => {
+        try {
+          const roomsData = await userServicesApi.getBookedRooms();
+          setActiveRooms(roomsData);
+          if (roomsData.length > 0) {
+            setSelectedRoomId(roomsData[0].bookingDetailId);
+            setPaymentMethod("RoomCharge"); // default to RoomCharge if checked in
+          } else {
+            setPaymentMethod("QR"); // default to QR if not checked in
+          }
+        } catch (err) {
+          console.error("Failed to load active rooms:", err);
+        }
+
+        try {
+          const vouchersRes = await getMyVouchers();
+          const list = vouchersRes.data || [];
+          const now = new Date();
+          const activeServiceVouchers = list.filter(uv => {
+            const v = uv.voucher;
+            const isExpired = v.validTo && new Date(v.validTo) < now;
+            return !uv.isUsed && !isExpired && v.voucherType === "Service";
+          });
+          setVouchers(activeServiceVouchers);
+        } catch (err) {
+          console.error("Failed to load user vouchers:", err);
+        }
+      };
+      loadUserData();
+    }
+  }, []);
+
+  const handleContinueToCheckout = () => {
+    if (!auth) {
+      navigate("/login", { state: { from: window.location.pathname } });
+      return;
+    }
+    setShowCheckoutModal(true);
+    setIsMobileBookingOpen(false);
+  };
+
+  const handleBookService = async () => {
+    setIsBookingSubmitting(true);
+    setBookingError("");
+    try {
+      const payload = {
+        serviceId: service.id,
+        quantity: quantity,
+        bookingDetailId: selectedRoomId ? Number(selectedRoomId) : null,
+        voucherId: selectedVoucherId ? Number(selectedVoucherId) : null,
+        isPaid: paymentMethod === "QR"
+      };
+      const res = await userServicesApi.applyService(payload);
+      setCreatedUsage(res);
+      setBookingSuccess(true);
+    } catch (err) {
+      setBookingError(err?.response?.data || err?.response?.data?.message || "Đặt dịch vụ không thành công. Vui lòng thử lại.");
+    } finally {
+      setIsBookingSubmitting(false);
+    }
+  };
+  const calculatedPrices = useMemo(() => {
+    if (!service) return { originalTotal: 0, discount: 0, finalPrice: 0 };
+    const originalTotal = service.price * quantity;
+    let discount = 0;
+    
+    if (selectedVoucherId) {
+      const selectedVoucher = vouchers.find(v => v.voucher.id === Number(selectedVoucherId))?.voucher;
+      if (selectedVoucher) {
+        if (selectedVoucher.discountType === "PERCENT") {
+          discount = originalTotal * (selectedVoucher.discountValue / 100);
+        } else {
+          discount = selectedVoucher.discountValue;
+        }
+      }
+    }
+    
+    return {
+      originalTotal,
+      discount,
+      finalPrice: Math.max(0, originalTotal - discount)
+    };
+  }, [service, quantity, selectedVoucherId, vouchers]);
+
   const renderBookingContent = () => (
     <div className="space-y-6">
       {/* Date Selector */}
@@ -475,7 +584,10 @@ const ServiceDetailPage = () => {
           </div>
         </div>
 
-        <button className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#0194f3] py-4 text-sm font-black text-white shadow-lg shadow-[#0194f3]/25 transition-all hover:scale-[1.02] hover:bg-[#017bc0] active:scale-95">
+        <button 
+          onClick={handleContinueToCheckout}
+          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#0194f3] py-4 text-sm font-black text-white shadow-lg shadow-[#0194f3]/25 transition-all hover:scale-[1.02] hover:bg-[#017bc0] active:scale-95"
+        >
           Tiếp tục
         </button>
       </div>
@@ -986,6 +1098,278 @@ const ServiceDetailPage = () => {
                     <img src={url} alt="" className="h-full w-full object-cover" />
                   </button>
                 ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Checkout and Payment Modal */}
+      {showCheckoutModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-md overflow-y-auto">
+          <div className="relative w-full max-w-4xl rounded-3xl bg-white shadow-2xl ring-1 ring-slate-100 flex flex-col md:flex-row overflow-hidden my-8 animate-in zoom-in-95 duration-200">
+            
+            {/* Left section: Order Summary & Payment info */}
+            <div className="flex-1 min-w-0 p-6 md:p-8 bg-slate-50 border-r border-slate-100">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-black text-slate-900">Chi tiết đặt dịch vụ</h3>
+                <button 
+                  onClick={() => { setShowCheckoutModal(false); setBookingSuccess(false); setBookingError(""); }}
+                  className="md:hidden p-2 rounded-full bg-slate-200 text-slate-600 hover:bg-slate-300"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {bookingSuccess ? (
+                <div className="flex flex-col items-center justify-center py-10 text-center">
+                  <div className="flex size-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 mb-4 animate-bounce">
+                    <Check size={32} strokeWidth={3} />
+                  </div>
+                  <h4 className="text-2xl font-black text-slate-900 mb-2">Đặt dịch vụ thành công!</h4>
+                  <p className="text-sm font-bold text-slate-500 max-w-sm mb-6">
+                    Yêu cầu của bạn đã được ghi nhận. Bạn có thể theo dõi trạng thái thực hiện trong lịch sử dịch vụ.
+                  </p>
+                  <div className="flex flex-col gap-3 w-full max-w-xs">
+                    <button
+                      onClick={() => {
+                        setShowCheckoutModal(false);
+                        setBookingSuccess(false);
+                        navigate("/service-history");
+                      }}
+                      className="w-full rounded-2xl bg-[#0194f3] py-3.5 text-sm font-black text-white shadow-md hover:bg-[#017bc0] active:scale-95 transition"
+                    >
+                      Xem lịch sử dịch vụ
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowCheckoutModal(false);
+                        setBookingSuccess(false);
+                      }}
+                      className="w-full rounded-2xl bg-white border border-slate-200 py-3 text-sm font-black text-slate-700 hover:bg-slate-50 transition"
+                    >
+                      Đóng
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {/* Service Card Detail */}
+                  <div className="flex gap-4 p-4 rounded-2xl bg-white border border-slate-100 shadow-sm">
+                    <img 
+                      src={service.thumbnailUrl || "https://placehold.co/150x150?text=Service"} 
+                      alt={service.name} 
+                      className="size-16 rounded-xl object-cover"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-black text-slate-900 truncate">{service.name}</h4>
+                      <p className="text-xs font-bold text-slate-400 mt-0.5">{service.categoryName || "Dịch vụ"}</p>
+                      <div className="flex items-center justify-between mt-2">
+                        <span className="text-xs font-black text-slate-500">SL: {quantity} x {new Intl.NumberFormat("vi-VN").format(service.price)}đ</span>
+                        <span className="text-sm font-black text-slate-900">{new Intl.NumberFormat("vi-VN").format(service.price * quantity)}đ</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Pricing break-down */}
+                  <div className="space-y-3 pt-4 border-t border-slate-200/60">
+                    <div className="flex justify-between text-sm font-bold text-slate-500">
+                      <span>Tạm tính</span>
+                      <span>{new Intl.NumberFormat("vi-VN").format(calculatedPrices.originalTotal)} VND</span>
+                    </div>
+
+                    {calculatedPrices.discount > 0 && (
+                      <div className="flex justify-between text-sm font-bold text-emerald-600">
+                        <span>Giảm giá (Voucher)</span>
+                        <span>-{new Intl.NumberFormat("vi-VN").format(calculatedPrices.discount)} VND</span>
+                      </div>
+                    )}
+
+                    <div className="flex justify-between pt-3 border-t border-dashed border-slate-200 text-base font-black text-slate-900">
+                      <span>Tổng cộng thanh toán</span>
+                      <span className="text-lg text-[#f12c2c]">{new Intl.NumberFormat("vi-VN").format(calculatedPrices.finalPrice)} VND</span>
+                    </div>
+                  </div>
+
+                  {/* Payment instructions / QR */}
+                  {paymentMethod === "QR" && (
+                    <div className="p-4 rounded-2xl bg-[#0194f3]/5 border border-[#0194f3]/10 flex flex-col items-center text-center">
+                      <div className="mb-2 flex size-10 items-center justify-center rounded-full bg-[#0194f3]/10 text-[#0194f3]">
+                        <QrCode size={20} />
+                      </div>
+                      <p className="text-xs font-black text-slate-800 uppercase tracking-wider">Thanh toán qua VietQR Ngân hàng</p>
+                      <p className="text-[11px] font-bold text-slate-500 mt-1 max-w-xs">
+                        Quét mã QR bằng app ngân hàng của bạn để chuyển khoản thanh toán trực tiếp cho khách sạn.
+                      </p>
+                      
+                      <div className="relative mt-4 size-48 rounded-2xl bg-white p-2 border border-slate-100 shadow-md overflow-hidden flex items-center justify-center">
+                        <img 
+                          src={`https://qr.sepay.vn/img?acc=96247GXSXM&bank=BIDV&amount=${calculatedPrices.finalPrice}&des=${encodeURIComponent('DICHVU' + service.id + 'U' + auth.id)}`}
+                          alt="SePay QR Code" 
+                          className="h-full w-full object-contain"
+                        />
+                      </div>
+                      
+                      <div className="mt-4 flex items-center gap-2 text-xs font-bold text-slate-500">
+                        <Loader2 className="size-3.5 animate-spin text-[#0194f3]" />
+                        <span>Hệ thống đang tự động kiểm tra giao dịch...</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {paymentMethod === "RoomCharge" && (
+                    <div className="p-4 rounded-2xl bg-orange-50 border border-orange-100 flex gap-3 text-left">
+                      <Building className="size-5 text-orange-600 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-xs font-black text-orange-800 uppercase tracking-wider">Ghi nợ vào phòng</p>
+                        <p className="text-[11px] font-bold text-orange-600 mt-1">
+                          Chi phí dịch vụ sẽ được cộng trực tiếp vào hóa đơn phòng và thanh toán khi bạn trả phòng (Check-out).
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Right section: Form & Confirmation */}
+            {!bookingSuccess && (
+              <div className="flex-1 min-w-0 p-6 md:p-8 flex flex-col justify-between relative">
+                <button 
+                  onClick={() => { setShowCheckoutModal(false); setBookingError(""); }}
+                  className="hidden md:flex absolute top-6 right-6 p-2 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition"
+                >
+                  <X size={20} />
+                </button>
+
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-2xl font-black text-slate-900">Đặt dịch vụ</h3>
+                    <p className="text-xs font-bold text-slate-400 mt-1">Hoàn thành thông tin bên dưới để thực hiện.</p>
+                  </div>
+
+                  {bookingError && (
+                    <div className="p-3.5 rounded-2xl bg-rose-50 text-xs font-bold text-rose-600 flex items-center gap-2">
+                      <AlertCircle size={16} className="shrink-0" />
+                      <span>{String(bookingError)}</span>
+                    </div>
+                  )}
+
+                  {/* Room Selection */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-black uppercase tracking-wider text-slate-400">Địa điểm nhận (Phòng lưu trú)</label>
+                    {activeRooms.length > 0 ? (
+                      <div className="relative">
+                        <select
+                          value={selectedRoomId}
+                          onChange={(e) => {
+                            setSelectedRoomId(e.target.value);
+                            if (!e.target.value) {
+                              setPaymentMethod("QR"); // standalone services must be QR code
+                            }
+                          }}
+                          className="w-full max-w-full rounded-2xl border border-slate-200 bg-white py-3.5 px-4 text-sm font-bold text-slate-700 outline-none focus:border-[#0194f3] focus:ring-4 focus:ring-[#0194f3]/10 transition-all appearance-none"
+                        >
+                          {activeRooms.map((room) => (
+                            <option key={room.bookingDetailId} value={room.bookingDetailId}>
+                              Phòng {room.roomNumber} ({room.roomName}) - Code: {room.bookingCode}
+                            </option>
+                          ))}
+                          <option value="">Đặt mua lẻ (Không lưu trú / Giao tận nơi)</option>
+                        </select>
+                        <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 size-4 text-slate-400 pointer-events-none" />
+                      </div>
+                    ) : (
+                      <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 text-xs font-bold text-slate-500">
+                        Bạn không có phòng đang lưu trú. Dịch vụ sẽ được xử lý dưới dạng mua lẻ giao hàng.
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Voucher Selection */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-black uppercase tracking-wider text-slate-400">Áp dụng mã ưu đãi (Voucher dịch vụ)</label>
+                    {vouchers.length > 0 ? (
+                      <div className="relative">
+                        <select
+                          value={selectedVoucherId}
+                          onChange={(e) => setSelectedVoucherId(e.target.value)}
+                          className="w-full max-w-full rounded-2xl border border-slate-200 bg-white py-3.5 px-4 text-sm font-bold text-slate-700 outline-none focus:border-[#0194f3] focus:ring-4 focus:ring-[#0194f3]/10 transition-all appearance-none"
+                        >
+                          <option value="">-- Không áp dụng voucher --</option>
+                          {vouchers.map((uv) => (
+                            <option key={uv.voucher.id} value={uv.voucher.id}>
+                              {uv.voucher.code} - Giảm {uv.voucher.discountType === "PERCENT" ? `${uv.voucher.discountValue}%` : `${new Intl.NumberFormat().format(uv.voucher.discountValue)} VND`} (Đơn tối thiểu: {new Intl.NumberFormat().format(uv.voucher.minBookingValue || 0)}đ)
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 size-4 text-slate-400 pointer-events-none" />
+                      </div>
+                    ) : (
+                      <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 text-xs font-bold text-slate-400 italic">
+                        Không có voucher dịch vụ khả dụng.
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Payment Method Selection */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-black uppercase tracking-wider text-slate-400">Phương thức thanh toán</label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setPaymentMethod("QR")}
+                        className={`flex items-center justify-center gap-2 rounded-2xl border-2 p-4 transition-all ${
+                          paymentMethod === "QR"
+                            ? "border-[#0194f3] bg-[#0194f3]/5 text-[#0194f3]"
+                            : "border-slate-100 bg-white text-slate-600 hover:border-slate-200"
+                        }`}
+                      >
+                        <QrCode size={18} />
+                        <span className="text-xs font-black">QR VietQR Pay</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={!selectedRoomId}
+                        onClick={() => setPaymentMethod("RoomCharge")}
+                        className={`flex items-center justify-center gap-2 rounded-2xl border-2 p-4 transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
+                          paymentMethod === "RoomCharge"
+                            ? "border-[#0194f3] bg-[#0194f3]/5 text-[#0194f3]"
+                            : "border-slate-100 bg-white text-slate-600 hover:border-slate-200"
+                        }`}
+                      >
+                        <CreditCard size={18} />
+                        <span className="text-xs font-black">Ghi nợ vào phòng</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-8 pt-6 border-t border-slate-100">
+                  <div className="flex gap-4">
+                    <button
+                      onClick={() => setShowCheckoutModal(false)}
+                      className="flex-1 rounded-2xl border border-slate-200 py-4 text-sm font-black text-slate-600 hover:bg-slate-50 active:scale-95 transition"
+                    >
+                      Hủy bỏ
+                    </button>
+                    <button
+                      onClick={handleBookService}
+                      disabled={isBookingSubmitting}
+                      className="flex-2 flex items-center justify-center gap-2 rounded-2xl bg-[#0194f3] px-8 py-4 text-sm font-black text-white shadow-lg shadow-[#0194f3]/25 hover:bg-[#017bc0] active:scale-95 transition-all disabled:opacity-50"
+                    >
+                      {isBookingSubmitting ? (
+                        <>
+                          <Loader2 className="size-4 animate-spin" />
+                          <span>Đang xử lý...</span>
+                        </>
+                      ) : (
+                        <span>Xác nhận & Đặt ngay</span>
+                      )}
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
           </div>

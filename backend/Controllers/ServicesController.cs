@@ -49,7 +49,7 @@ namespace backend.Controllers
             BookingCode = detail.OrderService?.BookingDetail?.Booking?.BookingCode ?? string.Empty,
             RoomNumber = detail.OrderService?.BookingDetail?.Room?.RoomNumber ?? "--",
             RoomName = detail.OrderService?.BookingDetail?.RoomType?.Name ?? "Phòng",
-            GuestName = detail.OrderService?.BookingDetail?.Booking?.Guest?.Name ?? "Khách",
+            GuestName = detail.OrderService?.BookingDetail?.Booking?.Guest?.Name ?? detail.OrderService?.User?.FullName ?? "Khách",
             ServiceId = detail.ServiceId ?? 0,
             ServiceName = detail.Service?.Name ?? "Dịch vụ",
             Quantity = detail.Quantity,

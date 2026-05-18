@@ -53,7 +53,7 @@ namespace backend.Controllers
             BookingCode = detail.OrderService?.BookingDetail?.Booking?.BookingCode ?? string.Empty,
             RoomNumber = detail.OrderService?.BookingDetail?.Room?.RoomNumber ?? "--",
             RoomName = detail.OrderService?.BookingDetail?.RoomType?.Name ?? "Phòng",
-            GuestName = detail.OrderService?.BookingDetail?.Booking?.Guest?.Name ?? "Khách",
+            GuestName = detail.OrderService?.BookingDetail?.Booking?.Guest?.Name ?? detail.OrderService?.User?.FullName ?? "Khách",
             ServiceId = detail.ServiceId ?? 0,
             ServiceName = detail.Service?.Name ?? "Dịch vụ",
             Quantity = detail.Quantity,
@@ -145,6 +145,8 @@ namespace backend.Controllers
                 .Include(detail => detail.OrderService)
                     .ThenInclude(order => order!.BookingDetail)
                         .ThenInclude(bookingDetail => bookingDetail!.RoomType)
+                .Include(detail => detail.OrderService)
+                    .ThenInclude(order => order!.User)
                 .Where(detail =>
                     (detail.OrderService != null &&
                      detail.OrderService.BookingDetail != null &&
@@ -244,13 +246,64 @@ namespace backend.Controllers
                 return NotFound("Không tìm thấy dịch vụ đang hoạt động.");
             }
 
+            decimal originalTotal = service.Price * request.Quantity;
+            decimal finalTotal = originalTotal;
+
+            if (request.VoucherId.HasValue)
+            {
+                var userVoucher = await _context.UserVouchers
+                    .Include(uv => uv.Voucher)
+                    .FirstOrDefaultAsync(uv =>
+                        uv.UserId == currentUserId.Value &&
+                        uv.VoucherId == request.VoucherId.Value &&
+                        !uv.IsUsed);
+
+                if (userVoucher == null)
+                {
+                    return BadRequest("Voucher không hợp lệ hoặc đã được sử dụng.");
+                }
+
+                var voucher = userVoucher.Voucher;
+                if (voucher == null || !voucher.IsActive || voucher.IsDeleted)
+                {
+                    return BadRequest("Voucher không hoạt động.");
+                }
+
+                if (!string.Equals(voucher.VoucherType, "Service", StringComparison.OrdinalIgnoreCase))
+                {
+                    return BadRequest("Voucher này không áp dụng cho đặt dịch vụ.");
+                }
+
+                if (voucher.MinBookingValue.HasValue && originalTotal < voucher.MinBookingValue.Value)
+                {
+                    return BadRequest($"Đơn hàng chưa đạt giá trị tối thiểu {voucher.MinBookingValue.Value.ToString("N0")} VND để áp dụng voucher.");
+                }
+
+                if (string.Equals(voucher.DiscountType, "PERCENT", StringComparison.OrdinalIgnoreCase))
+                {
+                    decimal discount = originalTotal * (voucher.DiscountValue / 100m);
+                    finalTotal = originalTotal - discount;
+                }
+                else
+                {
+                    finalTotal = originalTotal - voucher.DiscountValue;
+                }
+
+                if (finalTotal < 0)
+                {
+                    finalTotal = 0;
+                }
+
+                userVoucher.IsUsed = true;
+            }
+
             var orderService = new OrderService
             {
                 BookingDetailId = bookingDetail?.Id,
                 UserId = bookingDetail == null ? currentUserId.Value : null,
                 OrderDate = DateTime.UtcNow,
-                Status = "Unpaid",
-                TotalAmount = service.Price * request.Quantity
+                Status = request.IsPaid ? "Paid" : "Unpaid",
+                TotalAmount = finalTotal
             };
 
             var orderServiceDetail = new OrderServiceDetail

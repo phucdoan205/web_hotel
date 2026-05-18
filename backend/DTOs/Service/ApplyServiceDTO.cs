@@ -6,5 +6,6 @@ namespace backend.DTOs.Service
         public int? ServiceId { get; set; }
         public int Quantity { get; set; }
         public bool IsPaid { get; set; }
+        public int? VoucherId { get; set; }
     }
 }

@@ -58,6 +58,7 @@ import BookingWizardPage from "../pages/public/BookingWizardPage";
 import BookingDetailPage from "../pages/public/BookingDetailPage";
 import RoomDetailPage from "../pages/public/RoomDetailPage";
 import BookingHistoryPage from "../pages/public/BookingHistoryPage";
+import ServiceHistoryPage from "../pages/public/ServiceHistoryPage";
 import AccountPlaceholderPage from "../pages/public/AccountPlaceholderPage";
 import AccountProfilePage from "../pages/public/AccountProfilePage";
 import AccountFavoritesPage from "../pages/public/AccountFavoritesPage";
@@ -65,7 +66,6 @@ import AccountReviewsPage from "../pages/public/AccountReviewsPage";
 import PersonalDetailsPage from "../pages/public/account/PersonalDetailsPage";
 import SecuritySettingsPage from "../pages/public/account/SecuritySettingsPage";
 import GeneralSettingsPage from "../pages/public/account/GeneralSettingsPage";
-import PaymentMethodsPage from "../pages/public/account/PaymentMethodsPage";
 import MembershipPage from "../pages/public/account/MembershipPage";
 import AccountVouchersPage from "../pages/public/AccountVouchersPage";
 import SupportPage from "../pages/public/SupportPage";
@@ -99,6 +99,7 @@ const AppRoutes = () => {
         <Route path="booking-wizard" element={<BookingWizardPage />} />
         <Route path="booking/:id" element={<BookingDetailPage />} />
         <Route path="booking-history" element={<BookingHistoryPage />} />
+        <Route path="service-history" element={<ServiceHistoryPage />} />
         <Route path="room-types/:id" element={<RoomDetailPage />} />
         <Route path="profile">
           <Route index element={<AccountProfilePage />} />
@@ -107,7 +108,6 @@ const AppRoutes = () => {
             <Route path="personal-info" element={<PersonalDetailsPage />} />
             <Route path="security" element={<SecuritySettingsPage />} />
             <Route path="settings" element={<GeneralSettingsPage />} />
-            <Route path="payment-methods" element={<PaymentMethodsPage />} />
           </Route>
         </Route>
         <Route path="favorites" element={<AccountFavoritesPage />} />

@@ -28,7 +28,6 @@ const AccountLayout = () => {
       case "/profile/membership": return "Thành viên";
       case "/profile/security": return "Cài đặt bảo mật";
       case "/profile/settings": return "Cài đặt chung";
-      case "/profile/payment-methods": return "Phương thức thanh toán";
       default: return "Tài khoản";
     }
   };

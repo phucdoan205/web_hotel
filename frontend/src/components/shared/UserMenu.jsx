@@ -6,6 +6,7 @@ import {
   Star,
   Ticket,
   UserCircle,
+  History,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -24,6 +25,7 @@ const CUSTOMER_ROLE_NAMES = new Set([
 const customerMenuItems = [
   { label: "Hồ sơ cá nhân", path: "/profile", icon: UserCircle },
   { label: "Đặt chỗ", path: "/booking-history", icon: CalendarCheck },
+  { label: "Dịch vụ", path: "/service-history", icon: History },
   { label: "Đánh giá", path: "/reviews", icon: Star },
   { label: "Voucher", path: "/vouchers", icon: Ticket },
 ];
