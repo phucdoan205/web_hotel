@@ -243,10 +243,10 @@ export const openInvoicePrintWindow = ({
       </div>
 
       <div class="dash"></div>
-      <p class="section-title">${invoice.bookingDetailId ? "TIỀN PHÒNG" : "ĐẶT CỌC BOOKING"}</p>
+      <p class="section-title">${invoice.detailId ? "TIỀN PHÒNG" : "ĐẶT CỌC BOOKING"}</p>
       <div class="dash"></div>
 
-      ${invoice.bookingDetailId ? `
+      ${invoice.detailId ? `
       <div class="amount-block">
         <div class="amount-row"><span>Số ngày:</span><span>${escapeHtml(invoice.stayedDays)} ngày</span></div>
         <div class="amount-row"><span>Đơn giá:</span><span>${escapeHtml(formatAmount(invoice.roomRate))}</span></div>
@@ -325,8 +325,8 @@ export const openInvoicePrintWindow = ({
 
       <div class="amount-block">
         <div class="amount-row">
-          <span>${invoice.bookingDetailId ? "Tiền phòng" : "Tiền đặt cọc"}:</span>
-          <span>${escapeHtml(formatAmount(invoice.totalRoomAmount || invoice.subtotal || (invoice.bookingDetailId ? 0 : invoice.finalTotal || invoice.totalAmount)))}</span>
+          <span>${invoice.detailId ? "Tiền phòng" : "Tiền đặt cọc"}:</span>
+          <span>${escapeHtml(formatAmount(invoice.totalRoomAmount || invoice.subtotal || (invoice.detailId ? 0 : invoice.finalTotal || invoice.totalAmount)))}</span>
         </div>
         ${invoice.totalServiceAmount > 0 ? `
         <div class="amount-row"><span>Tiền dịch vụ:</span><span>${escapeHtml(

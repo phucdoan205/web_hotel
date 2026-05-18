@@ -1560,7 +1560,26 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
 
-              {/* Admin Row 4: Activity Logs */}
+              {/* Admin Row 4: Warehouse Statistics */}
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                <div className="lg:col-span-1">
+                  <LowStockList items={summary.warehouse?.lowStockItemsList} />
+                </div>
+                <div className="lg:col-span-1">
+                  {hasWh && <WarehouseStatusChart summary={summary.warehouse} />}
+                </div>
+                <div className="lg:col-span-1">
+                  {hasWh && <WarehouseSummary warehouseSummary={summary.warehouse} />}
+                </div>
+              </div>
+
+              {/* Admin Row 5: Service Management Center */}
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                <PopularServicesList items={summary.services?.topServices || []} />
+                <ServiceHistoryList items={summary.services?.recentHistory || []} />
+              </div>
+
+              {/* Admin Row 6: Activity Logs */}
               <div className="grid grid-cols-1 gap-6">
                 {summary.audit?.recentAudits?.length > 0 && (
                   <RecentAudits audits={summary.audit.recentAudits} />

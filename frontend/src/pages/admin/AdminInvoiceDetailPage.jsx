@@ -82,8 +82,9 @@ const AdminInvoiceDetailPage = () => {
   });
 
   const roomLossDamageReports = useMemo(() => {
+    if (!invoice?.detailId) return [];
     const reports = inventoryReportsQuery.data?.lossDamageReports || [];
-    return reports.filter((item) => item.bookingDetailId === invoice?.detailId);
+    return reports.filter((item) => item.bookingDetailId === invoice.detailId);
   }, [inventoryReportsQuery.data, invoice?.detailId]);
 
   if (invoiceQuery.isLoading) {
@@ -184,7 +185,7 @@ const AdminInvoiceDetailPage = () => {
             <div className="text-right">Thành tiền</div>
           </div>
 
-          {invoice.bookingDetailId ? (
+          {invoice.detailId ? (
             <div className="grid grid-cols-[1.7fr_1fr_1fr_1fr] gap-4 px-5 py-5 text-sm font-semibold text-slate-700">
               <div>Tiền phòng {invoice.roomName}</div>
               <div>{formatCurrency(invoice.roomRate)}</div>
@@ -258,10 +259,10 @@ const AdminInvoiceDetailPage = () => {
         <div className="mt-6 ml-auto max-w-md space-y-3 rounded-[1.75rem] bg-gradient-to-br from-sky-700 via-sky-600 to-cyan-500 p-5 text-white">
           <div className="flex items-center justify-between text-sm">
             <span className="text-white/80">
-              {invoice.bookingDetailId ? "Tổng tiền phòng" : "Tổng tiền đặt cọc"}
+              {invoice.detailId ? "Tổng tiền phòng" : "Tổng tiền đặt cọc"}
             </span>
             <span className="font-bold">
-              {formatCurrency(invoice.totalRoomAmount || invoice.subtotal || (invoice.bookingDetailId ? 0 : invoice.finalTotal || invoice.totalAmount))}
+              {formatCurrency(invoice.totalRoomAmount || invoice.subtotal || (invoice.detailId ? 0 : invoice.finalTotal || invoice.totalAmount))}
             </span>
           </div>
           <div className="flex items-center justify-between text-sm">

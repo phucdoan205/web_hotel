@@ -1061,6 +1061,27 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
                     roomRevenue = metrics.RoomRevenue,
                     serviceRevenue = metrics.ServiceRevenue,
                     topServices = metrics.TopServices
+                },
+                warehouse = new
+                {
+                    totalEquipmentTypes = metrics.TotalEquipmentTypes,
+                    inStockQuantity = metrics.InStockQuantity,
+                    inUseQuantity = metrics.InUseQuantity,
+                    currentDamagedQuantity = metrics.CurrentDamagedQuantity,
+                    liquidatedQuantity = metrics.LiquidatedQuantity,
+                    lowStockItems = metrics.LowStockItems,
+                    lowStockItemsList = metrics.LowStockItemsList,
+                    recentDamageReports = metrics.RecentDamageReports,
+                    damageReports = metrics.DamageReports,
+                    damagedQuantityInPeriod = metrics.DamagedQuantityInPeriod,
+                    recentEquipmentAudits = metrics.RecentEquipmentAudits,
+                    penaltyAmount = metrics.PenaltyAmount
+                },
+                services = new
+                {
+                    topServices = metrics.TopServices,
+                    pendingServices = metrics.PendingServiceRequests,
+                    recentHistory = metrics.RecentServices
                 }
             },
             "Manager" => (object)new
