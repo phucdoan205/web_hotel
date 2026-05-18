@@ -244,7 +244,7 @@ namespace backend.Controllers
 
         private static UserBookingPaymentSummaryDTO BuildPaymentSummary(Booking booking, IEnumerable<Invoice> invoices)
         {
-            var invoiceList = invoices.ToList();
+            var invoiceList = invoices.Where(i => i.BookingDetailId == null || i.TotalRoomAmount > 0).ToList();
             var invoiceItems = invoiceList
                 .OrderBy(item => item.Id)
                 .Select(item => new UserBookingPaymentInvoiceItemDTO
@@ -259,9 +259,9 @@ namespace backend.Controllers
                 })
                 .ToList();
 
-            var checkoutInvoices = invoiceList.Where(i => i.BookingDetailId != null).ToList();
+            var checkoutInvoices = invoiceList.Where(i => i.BookingDetailId != null && i.TotalRoomAmount > 0).ToList();
             var totalAmount = checkoutInvoices.Any()
-                ? checkoutInvoices.Sum(i => (i.TotalRoomAmount ?? 0) + (i.TotalServiceAmount ?? 0) - (i.DiscountAmount ?? 0) - (i.MembershipDiscountAmount ?? 0))
+                ? checkoutInvoices.Sum(i => i.FinalTotal ?? 0)
                 : invoiceList.Where(i => i.BookingDetailId == null && i.Status == "Completed").Sum(i => i.FinalTotal ?? 0);
 
             return new UserBookingPaymentSummaryDTO
@@ -292,7 +292,8 @@ namespace backend.Controllers
                     invoice.BookingId == booking.Id &&
                     invoice.BookingDetailId.HasValue &&
                     checkedOutDetailIds.Contains(invoice.BookingDetailId.Value) &&
-                    invoice.Status != "Completed")
+                    invoice.Status != "Completed" &&
+                    invoice.TotalRoomAmount > 0)
                 .ToListAsync();
 
             var existingByDetailId = existingInvoices
@@ -497,7 +498,8 @@ namespace backend.Controllers
 
             var invoice = await _context.Invoices
                 .AsNoTracking()
-                .FirstOrDefaultAsync(inv => inv.BookingId == id && inv.BookingDetailId != null && (inv.Status == "Completed" || inv.Status == "Paying"));
+                .OrderByDescending(inv => inv.Id)
+                .FirstOrDefaultAsync(inv => inv.BookingId == id && inv.BookingDetailId != null && inv.TotalRoomAmount > 0 && (inv.Status == "Completed" || inv.Status == "Paying"));
 
             if (invoice == null)
             {
