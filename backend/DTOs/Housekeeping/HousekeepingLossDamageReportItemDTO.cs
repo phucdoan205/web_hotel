@@ -4,6 +4,7 @@ namespace backend.DTOs.Housekeeping
     {
         public int Id { get; set; }
         public int RoomInventoryId { get; set; }
+        public int? BookingDetailId { get; set; }
         public int? RoomId { get; set; }
         public string RoomNumber { get; set; } = string.Empty;
         public int? EquipmentId { get; set; }

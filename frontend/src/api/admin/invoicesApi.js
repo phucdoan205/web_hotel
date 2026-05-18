@@ -16,6 +16,7 @@ const normalizeInvoice = (invoice = {}) => ({
   stayedDays: Number(invoice.stayedDays || 0),
   subtotal: Number(invoice.totalRoomAmount || 0),
   totalServiceAmount: Number(invoice.totalServiceAmount || 0),
+  totalLossDamageAmount: Number(invoice.totalLossDamageAmount || 0),
   discountAmount: Number(invoice.discountAmount || 0),
   membershipTierName: invoice.membershipTierName || "",
   membershipDiscountPercent: Number(invoice.membershipDiscountPercent || 0),

@@ -71,6 +71,8 @@ builder.Services.AddScoped<AuditSaveChangesInterceptor>();
 builder.Services.AddSingleton<AuditLogCleanupService>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<AuditLogCleanupService>());
 // Đã xóa DashboardRebuildBackgroundService để không chạy ngầm liên tục gây chậm hệ thống
+builder.Services.AddSingleton<RoomCleaningSchedulerService>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<RoomCleaningSchedulerService>());
 
 builder.Services.AddDbContext<AppDbContext>((sp, options) =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
@@ -146,6 +148,7 @@ IF COL_LENGTH('Invoices', 'VoucherDiscountValue') IS NULL ALTER TABLE Invoices A
 IF COL_LENGTH('Invoices', 'MembershipTierName') IS NULL ALTER TABLE Invoices ADD MembershipTierName nvarchar(255) NULL;
 IF COL_LENGTH('Invoices', 'MembershipDiscountPercent') IS NULL ALTER TABLE Invoices ADD MembershipDiscountPercent decimal(18,2) NULL;
 IF COL_LENGTH('Invoices', 'MembershipDiscountAmount') IS NULL ALTER TABLE Invoices ADD MembershipDiscountAmount decimal(18,2) NULL;
+IF COL_LENGTH('Invoices', 'TotalLossDamageAmount') IS NULL ALTER TABLE Invoices ADD TotalLossDamageAmount decimal(18,2) NULL;
 IF COL_LENGTH('Invoices', 'CreatedAt') IS NULL ALTER TABLE Invoices ADD CreatedAt datetime NULL;
 IF COL_LENGTH('Invoices', 'UpdatedAt') IS NULL ALTER TABLE Invoices ADD UpdatedAt datetime NULL;
 IF COL_LENGTH('Invoices', 'PaidAt') IS NULL ALTER TABLE Invoices ADD PaidAt datetime NULL;

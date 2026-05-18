@@ -97,6 +97,7 @@ namespace backend.Controllers
             StayedDays = invoice.StayedDays,
             TotalRoomAmount = invoice.TotalRoomAmount,
             TotalServiceAmount = invoice.TotalServiceAmount,
+            TotalLossDamageAmount = invoice.TotalLossDamageAmount,
             DiscountAmount = invoice.DiscountAmount,
             TaxAmount = invoice.TaxAmount,
             FinalTotal = invoice.FinalTotal,
@@ -225,6 +226,12 @@ namespace backend.Controllers
                     detail.OrderService.BookingDetailId == bookingDetail.Id &&
                     detail.OrderService.Status != "Paid")
                 .SumAsync(detail => (decimal?)(detail.Quantity * detail.UnitPrice)) ?? 0;
+
+            var totalLossDamageAmount = await _context.LossAndDamages
+                .AsNoTracking()
+                .Where(issue => issue.BookingDetailId == bookingDetail.Id)
+                .SumAsync(issue => (decimal?)issue.PenaltyAmount) ?? 0;
+
             var totalRoomAmount = dto.TotalRoomAmount ?? 0;
             var discountAmount = dto.DiscountAmount ?? 0;
 
@@ -237,7 +244,7 @@ namespace backend.Controllers
                 membershipDiscountAmount = Math.Round(totalRoomAmount * membershipDiscountPercent / 100m);
             }
 
-            var calculatedSubtotal = Math.Max(0, totalRoomAmount + totalServiceAmount - discountAmount - membershipDiscountAmount);
+            var calculatedSubtotal = Math.Max(0, totalRoomAmount + totalServiceAmount + totalLossDamageAmount - discountAmount - membershipDiscountAmount);
 
             var totalDepositPaid = await _context.Invoices
                 .AsNoTracking()
@@ -247,10 +254,10 @@ namespace backend.Controllers
             var usedInvoices = await _context.Invoices
                 .AsNoTracking()
                 .Where(i => i.BookingId == booking.Id && i.BookingDetailId != null && i.Status != "Cancelled")
-                .Select(i => new { i.TotalRoomAmount, i.TotalServiceAmount, i.DiscountAmount, i.MembershipDiscountAmount, i.FinalTotal })
+                .Select(i => new { i.TotalRoomAmount, i.TotalServiceAmount, i.TotalLossDamageAmount, i.DiscountAmount, i.MembershipDiscountAmount, i.FinalTotal })
                 .ToListAsync();
 
-            var depositAlreadyUsed = usedInvoices.Sum(i => Math.Max(0, (i.TotalRoomAmount ?? 0) + (i.TotalServiceAmount ?? 0) - (i.DiscountAmount ?? 0) - (i.MembershipDiscountAmount ?? 0)) - (i.FinalTotal ?? 0));
+            var depositAlreadyUsed = usedInvoices.Sum(i => Math.Max(0, (i.TotalRoomAmount ?? 0) + (i.TotalServiceAmount ?? 0) + (i.TotalLossDamageAmount ?? 0) - (i.DiscountAmount ?? 0) - (i.MembershipDiscountAmount ?? 0)) - (i.FinalTotal ?? 0));
 
             var remainingDeposit = Math.Max(0, totalDepositPaid - depositAlreadyUsed);
             var depositToApply = Math.Min(remainingDeposit, calculatedSubtotal);
@@ -273,6 +280,7 @@ namespace backend.Controllers
                 StayedDays = dto.StayedDays ?? 1,
                 TotalRoomAmount = totalRoomAmount,
                 TotalServiceAmount = totalServiceAmount,
+                TotalLossDamageAmount = totalLossDamageAmount,
                 DiscountAmount = discountAmount,
                 TaxAmount = 0,
                 FinalTotal = finalTotal,

@@ -346,7 +346,12 @@ namespace backend.Controllers
                         item.OrderService.Status != "Paid")
                     .SumAsync(item => (decimal?)(item.Quantity * item.UnitPrice)) ?? 0;
 
-                var calculatedSubtotal = Math.Max(0, totalRoomAmount + totalServiceAmount - membershipDiscountAmount - voucherDiscountAmount);
+                var totalLossDamageAmount = await _context.LossAndDamages
+                    .AsNoTracking()
+                    .Where(issue => issue.BookingDetailId == detail.Id)
+                    .SumAsync(issue => (decimal?)issue.PenaltyAmount) ?? 0;
+
+                var calculatedSubtotal = Math.Max(0, totalRoomAmount + totalServiceAmount + totalLossDamageAmount - membershipDiscountAmount - voucherDiscountAmount);
 
                 var totalDepositPaid = await _context.Invoices
                     .Where(i => i.BookingId == booking.Id && i.BookingDetailId == null && i.Status == "Completed")
@@ -354,10 +359,10 @@ namespace backend.Controllers
 
                 var usedInvoices = await _context.Invoices
                     .Where(i => i.BookingId == booking.Id && i.BookingDetailId != null && i.Status != "Cancelled")
-                    .Select(i => new { i.TotalRoomAmount, i.TotalServiceAmount, i.DiscountAmount, i.MembershipDiscountAmount, i.FinalTotal })
+                    .Select(i => new { i.TotalRoomAmount, i.TotalServiceAmount, i.TotalLossDamageAmount, i.DiscountAmount, i.MembershipDiscountAmount, i.FinalTotal })
                     .ToListAsync();
 
-                var depositAlreadyUsed = usedInvoices.Sum(i => Math.Max(0, (i.TotalRoomAmount ?? 0) + (i.TotalServiceAmount ?? 0) - (i.DiscountAmount ?? 0) - (i.MembershipDiscountAmount ?? 0)) - (i.FinalTotal ?? 0));
+                var depositAlreadyUsed = usedInvoices.Sum(i => Math.Max(0, (i.TotalRoomAmount ?? 0) + (i.TotalServiceAmount ?? 0) + (i.TotalLossDamageAmount ?? 0) - (i.DiscountAmount ?? 0) - (i.MembershipDiscountAmount ?? 0)) - (i.FinalTotal ?? 0));
 
                 var remainingDeposit = Math.Max(0, totalDepositPaid - depositAlreadyUsed);
                 var depositToApply = Math.Min(remainingDeposit, calculatedSubtotal);
@@ -379,6 +384,7 @@ namespace backend.Controllers
                     StayedDays = stayedDays,
                     TotalRoomAmount = totalRoomAmount,
                     TotalServiceAmount = totalServiceAmount,
+                    TotalLossDamageAmount = totalLossDamageAmount,
                     DiscountAmount = voucherDiscountAmount,
                     TaxAmount = 0,
                     FinalTotal = finalTotal,
@@ -541,6 +547,7 @@ namespace backend.Controllers
                 StayedDays = invoice.StayedDays,
                 TotalRoomAmount = invoice.TotalRoomAmount,
                 TotalServiceAmount = invoice.TotalServiceAmount,
+                TotalLossDamageAmount = invoice.TotalLossDamageAmount,
                 DiscountAmount = invoice.DiscountAmount,
                 TaxAmount = invoice.TaxAmount,
                 FinalTotal = invoice.FinalTotal,
@@ -554,8 +561,56 @@ namespace backend.Controllers
                 MembershipDiscountAmount = invoice.MembershipDiscountAmount,
                 CreatedAt = invoice.CreatedAt,
                 UpdatedAt = invoice.UpdatedAt,
-                PaidAt = invoice.PaidAt
             });
+        }
+
+        [HttpGet("{id:int}/loss-damages")]
+        public async Task<IActionResult> GetMyBookingLossDamages(int id)
+        {
+            var currentUser = await ResolveCurrentUserAsync();
+            if (currentUser == null)
+            {
+                return Unauthorized(new { message = "Khong xac dinh duoc nguoi dung hien tai." });
+            }
+
+            var booking = await BuildOwnedBookingsQuery(currentUser.Id)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(item => item.Id == id);
+
+            if (booking == null)
+            {
+                return NotFound(new { message = "Khong tim thay booking cua ban." });
+            }
+
+            var detailIds = booking.BookingDetails.Select(d => d.Id).ToList();
+
+            var lossDamages = await _context.LossAndDamages
+                .AsNoTracking()
+                .Include(issue => issue.RoomInventory)
+                    .ThenInclude(roomInventory => roomInventory!.Equipment)
+                .Where(issue => issue.BookingDetailId.HasValue && detailIds.Contains(issue.BookingDetailId.Value))
+                .ToListAsync();
+
+            var result = lossDamages.Select(issue => new {
+                id = issue.Id,
+                bookingDetailId = issue.BookingDetailId,
+                equipmentId = issue.RoomInventory != null ? issue.RoomInventory.EquipmentId : null,
+                equipmentName = issue.RoomInventory != null
+                    ? issue.RoomInventory.Equipment != null
+                        ? issue.RoomInventory.Equipment.Name
+                        : issue.RoomInventory.ItemType ?? "Vật tư"
+                    : "Vật tư",
+                quantity = issue.Quantity,
+                unitPenalty = issue.Quantity > 0
+                    ? decimal.Round(issue.PenaltyAmount / issue.Quantity, 2)
+                    : 0,
+                penaltyAmount = issue.PenaltyAmount,
+                description = issue.Description,
+                imageUrl = issue.ImageUrl,
+                createdAt = issue.CreatedAt
+            });
+
+            return Ok(result);
         }
 
         [HttpPost]

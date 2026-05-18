@@ -68,4 +68,9 @@ export const userBookingsApi = {
     const response = await apiClient.patch(`/user-bookings/${bookingId}/voucher`, { voucherId });
     return response.data;
   },
+
+  getLossDamages: async (bookingId) => {
+    const response = await apiClient.get(`/user-bookings/${bookingId}/loss-damages`);
+    return response.data;
+  },
 };

@@ -268,6 +268,7 @@ namespace backend.Controllers
                     Code = $"DVK-{DateTime.UtcNow:HHmmss}",
                     BookingCode = bookingDetail.Booking?.BookingCode,
                     RoomName = service.Name,
+                    GuestName = bookingDetail.Booking?.Guest?.Name,
                     TotalServiceAmount = orderService.TotalAmount,
                     FinalTotal = orderService.TotalAmount,
                     Status = "Completed",

@@ -20,5 +20,8 @@ namespace backend.DTOs.Housekeeping
         public string ResolutionType { get; set; } = "Pending";
         public int? ResolvedQuantity { get; set; }
         public DateTime? ResolvedAt { get; set; }
+        public string? ImageUrl { get; set; }
+        public decimal? UnitPenalty { get; set; }
+        public decimal? PenaltyAmount { get; set; }
     }
 }

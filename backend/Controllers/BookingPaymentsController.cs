@@ -297,6 +297,7 @@ namespace backend.Controllers
                 else if (int.TryParse(bookingIdStr, out var parsedBookingId))
                 {
                     var booking = await _context.Bookings
+                        .Include(b => b.Guest)
                         .Include(b => b.BookingDetails)
                         .FirstOrDefaultAsync(b => b.Id == parsedBookingId, cancellationToken);
 
@@ -316,6 +317,7 @@ namespace backend.Controllers
                             Code = $"CQC-{booking.BookingCode}-{paidAt:HHmmss}",
                             BookingCode = booking.BookingCode,
                             RoomName = "Đặt cọc Booking",
+                            GuestName = booking.Guest?.Name,
                             Status = "Completed",
                             FinalTotal = payload.Amount,
                             CreatedAt = paidAt,

@@ -14,6 +14,7 @@ export const openInvoicePrintWindow = ({
   invoice,
   booking,
   serviceItems,
+  lossDamageItems,
   receiptDateText,
   hotelName = "KHÁCH SẠN QL HPT",
   hotelAddress = "Địa chỉ: 3667 Lhu edu vn",
@@ -21,8 +22,8 @@ export const openInvoicePrintWindow = ({
   if (!invoice) return false;
 
   const invoiceCode = invoice.code || `HD${String(invoice.id || "").padStart(6, "0")}`;
-  const guestPhone = booking?.guestPhone || "--";
-  const guestEmail = booking?.guestEmail || "--";
+  const guestPhone = booking?.guest?.phone || booking?.guestPhone || "--";
+  const guestEmail = booking?.guest?.email || booking?.guestEmail || "--";
   const serviceRows =
     serviceItems?.length > 0
       ? serviceItems
@@ -44,11 +45,27 @@ export const openInvoicePrintWindow = ({
           .join("")
       : `<p class="empty-service">Không có dịch vụ</p>`;
 
-  const calculatedTotal = Math.max(0, (invoice.subtotal || 0) + (invoice.totalServiceAmount || 0) - (invoice.discountAmount || 0) - (invoice.membershipDiscountAmount || 0));
-  const finalTotal = invoice.totalAmount || 0;
+  const lossDamageRows =
+    lossDamageItems?.length > 0
+      ? lossDamageItems
+          .map(
+            (item) => `
+              <div class="service-row">
+                <div class="service-name">${escapeHtml(item.equipmentName)} (Thất thoát/Hư hỏng)</div>
+                <div class="service-center">${escapeHtml(item.quantity)}</div>
+                <div class="service-right">${escapeHtml(formatAmount(item.unitPenalty))}</div>
+                <div class="service-right">${escapeHtml(formatAmount(item.penaltyAmount))}</div>
+              </div>
+            `
+          )
+          .join("")
+      : "";
+
+  const calculatedTotal = Math.max(0, (invoice.totalRoomAmount || invoice.subtotal || 0) + (invoice.totalServiceAmount || 0) + (invoice.totalLossDamageAmount || 0) - (invoice.discountAmount || 0) - (invoice.membershipDiscountAmount || 0));
+  const finalTotal = invoice.finalTotal || invoice.totalAmount || 0;
   const depositDeducted = Math.max(0, calculatedTotal - finalTotal);
   
-  const roomTotalAfterDiscount = Math.max(0, (invoice.subtotal || 0) - (invoice.discountAmount || 0) - (invoice.membershipDiscountAmount || 0));
+  const roomTotalAfterDiscount = Math.max(0, (invoice.totalRoomAmount || invoice.subtotal || 0) + (invoice.totalLossDamageAmount || 0) - (invoice.discountAmount || 0) - (invoice.membershipDiscountAmount || 0));
   const rawDepositPct = roomTotalAfterDiscount > 0 ? (depositDeducted / roomTotalAfterDiscount) * 100 : 0;
   const depositPct = rawDepositPct <= 0 ? 0 : [30, 40, 50, 100].reduce((prev, curr) => Math.abs(curr - rawDepositPct) < Math.abs(prev - rawDepositPct) ? curr : prev);
 
@@ -226,16 +243,26 @@ export const openInvoicePrintWindow = ({
       </div>
 
       <div class="dash"></div>
-      <p class="section-title">TIỀN PHÒNG</p>
+      <p class="section-title">${invoice.bookingDetailId ? "TIỀN PHÒNG" : "ĐẶT CỌC BOOKING"}</p>
       <div class="dash"></div>
 
+      ${invoice.bookingDetailId ? `
       <div class="amount-block">
         <div class="amount-row"><span>Số ngày:</span><span>${escapeHtml(invoice.stayedDays)} ngày</span></div>
         <div class="amount-row"><span>Đơn giá:</span><span>${escapeHtml(formatAmount(invoice.roomRate))}</span></div>
         <div class="amount-row amount-strong"><span>Thành tiền:</span><span>${escapeHtml(
-          formatAmount(invoice.subtotal),
+          formatAmount(invoice.totalRoomAmount || invoice.subtotal),
         )}</span></div>
       </div>
+      ` : `
+      <div class="amount-block">
+        <div class="amount-row"><span>Hạng mục:</span><span>${escapeHtml(invoice.roomName || "Đặt cọc Booking")}</span></div>
+        <div class="amount-row"><span>Số lượng:</span><span>1 lần</span></div>
+        <div class="amount-row amount-strong"><span>Thành tiền:</span><span>${escapeHtml(
+          formatAmount(invoice.finalTotal || invoice.totalAmount),
+        )}</span></div>
+      </div>
+      `}
 
       ${invoice.totalServiceAmount > 0 ? `
       <div class="dash"></div>
@@ -250,9 +277,27 @@ export const openInvoicePrintWindow = ({
       </div>
       <div class="service-list">${serviceRows}</div>
 
-      <div class="dash"></div>
       <div class="amount-row amount-strong"><span>Tổng DV:</span><span>${escapeHtml(
         formatAmount(invoice.totalServiceAmount),
+      )}</span></div>
+      ` : ""}
+
+      ${invoice.totalLossDamageAmount > 0 && lossDamageItems?.length > 0 ? `
+      <div class="dash"></div>
+      <p class="section-title">THẤT THOÁT HƯ HỎNG</p>
+      <div class="dash"></div>
+
+      <div class="service-header">
+        <span>Tên vật tư</span>
+        <span class="service-center">SL</span>
+        <span class="service-right">Giá đền bù</span>
+        <span class="service-right">Tiền</span>
+      </div>
+      <div class="service-list">${lossDamageRows}</div>
+
+      <div class="dash"></div>
+      <div class="amount-row amount-strong"><span>Tổng thất thoát:</span><span>${escapeHtml(
+        formatAmount(invoice.totalLossDamageAmount),
       )}</span></div>
       ` : ""}
 
@@ -279,10 +324,18 @@ export const openInvoicePrintWindow = ({
       <div class="dash"></div>
 
       <div class="amount-block">
-        <div class="amount-row"><span>Tiền phòng:</span><span>${escapeHtml(formatAmount(invoice.subtotal))}</span></div>
+        <div class="amount-row">
+          <span>${invoice.bookingDetailId ? "Tiền phòng" : "Tiền đặt cọc"}:</span>
+          <span>${escapeHtml(formatAmount(invoice.totalRoomAmount || invoice.subtotal || (invoice.bookingDetailId ? 0 : invoice.finalTotal || invoice.totalAmount)))}</span>
+        </div>
         ${invoice.totalServiceAmount > 0 ? `
         <div class="amount-row"><span>Tiền dịch vụ:</span><span>${escapeHtml(
           formatAmount(invoice.totalServiceAmount),
+        )}</span></div>
+        ` : ""}
+        ${invoice.totalLossDamageAmount > 0 ? `
+        <div class="amount-row"><span>Thất thoát hư hỏng:</span><span>${escapeHtml(
+          formatAmount(invoice.totalLossDamageAmount),
         )}</span></div>
         ` : ""}
         ${invoice.discountAmount > 0 ? `
@@ -305,7 +358,7 @@ export const openInvoicePrintWindow = ({
 
       <div class="dash"></div>
       <div class="amount-row grand-total"><span>THÀNH TIỀN:</span><span>${escapeHtml(
-        formatAmount(invoice.totalAmount),
+        formatAmount(invoice.finalTotal || invoice.totalAmount),
       )}</span></div>
       <div class="dash"></div>
 

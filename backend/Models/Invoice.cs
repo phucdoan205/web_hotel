@@ -20,6 +20,7 @@ namespace backend.Models
         public int? StayedDays { get; set; }
         public decimal? TotalRoomAmount { get; set; }
         public decimal? TotalServiceAmount { get; set; }
+        public decimal? TotalLossDamageAmount { get; set; }
         public decimal? DiscountAmount { get; set; }
         public decimal? TaxAmount { get; set; }
         public decimal? FinalTotal { get; set; }

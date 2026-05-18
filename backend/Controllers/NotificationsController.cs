@@ -49,6 +49,7 @@ namespace backend.Controllers
 
             var query = _context.Notifications
                 .AsNoTracking()
+                .Where(n => n.Type != "InventoryShortage" && n.Type != "InventoryReportResolution")
                 .AsQueryable();
 
             if (resolvedUserId.HasValue)
@@ -176,6 +177,12 @@ namespace backend.Controllers
 
                 while (reader.TryRead(out var notification))
                 {
+                    // Exclude internal logistical/system-only notifications
+                    if (notification.Type == "InventoryShortage" || notification.Type == "InventoryReportResolution")
+                    {
+                        continue;
+                    }
+
                     // Filter logic:
                     // 1. If notification has a UserId, it must match the resolvedUserId.
                     // 2. If notification has NO UserId (Broadcast), it only goes to Staff.

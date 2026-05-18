@@ -5,6 +5,7 @@ import { ArrowLeft, Printer, Receipt } from "lucide-react";
 import { invoicesApi } from "../../api/admin/invoicesApi";
 import { bookingsApi } from "../../api/admin/bookingsApi";
 import { servicesApi } from "../../api/admin/servicesApi";
+import { housekeepingApi } from "../../api/admin/housekeepingApi";
 import { formatVietnamDate, formatVietnamDateTime } from "../../utils/vietnamTime";
 import { openInvoicePrintWindow } from "../../utils/invoicePrint";
 
@@ -75,6 +76,16 @@ const AdminInvoiceDetailPage = () => {
 
   const serviceItems = useMemo(() => serviceUsagesQuery.data || [], [serviceUsagesQuery.data]);
 
+  const inventoryReportsQuery = useQuery({
+    queryKey: ["admin-inventory-reports"],
+    queryFn: () => housekeepingApi.getInventoryReports(),
+  });
+
+  const roomLossDamageReports = useMemo(() => {
+    const reports = inventoryReportsQuery.data?.lossDamageReports || [];
+    return reports.filter((item) => item.bookingDetailId === invoice?.detailId);
+  }, [inventoryReportsQuery.data, invoice?.detailId]);
+
   if (invoiceQuery.isLoading) {
     return <div className="rounded-[2rem] bg-white p-8 text-center text-slate-500">Đang tải chi tiết hóa đơn...</div>;
   }
@@ -92,6 +103,7 @@ const AdminInvoiceDetailPage = () => {
       invoice,
       booking,
       serviceItems,
+      lossDamageItems: roomLossDamageReports,
       receiptDateText: invoice?.paidAt || invoice?.createdAt || invoice?.updatedAt
         ? formatVietnamDateTime(invoice.paidAt || invoice.createdAt || invoice.updatedAt)
         : "--",
@@ -172,12 +184,21 @@ const AdminInvoiceDetailPage = () => {
             <div className="text-right">Thành tiền</div>
           </div>
 
-          <div className="grid grid-cols-[1.7fr_1fr_1fr_1fr] gap-4 px-5 py-5 text-sm font-semibold text-slate-700">
-            <div>Tiền phòng {invoice.roomName}</div>
-            <div>{formatCurrency(invoice.roomRate)}</div>
-            <div>{invoice.stayedDays} ngày</div>
-            <div className="text-right font-black text-slate-900">{formatCurrency(invoice.subtotal)}</div>
-          </div>
+          {invoice.bookingDetailId ? (
+            <div className="grid grid-cols-[1.7fr_1fr_1fr_1fr] gap-4 px-5 py-5 text-sm font-semibold text-slate-700">
+              <div>Tiền phòng {invoice.roomName}</div>
+              <div>{formatCurrency(invoice.roomRate)}</div>
+              <div>{invoice.stayedDays} ngày</div>
+              <div className="text-right font-black text-slate-900">{formatCurrency(invoice.totalRoomAmount || invoice.subtotal)}</div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-[1.7fr_1fr_1fr_1fr] gap-4 px-5 py-5 text-sm font-semibold text-slate-700">
+              <div>{invoice.roomName || "Đặt cọc Booking"}</div>
+              <div>{formatCurrency(invoice.finalTotal || invoice.totalAmount)}</div>
+              <div>1 lần</div>
+              <div className="text-right font-black text-slate-900">{formatCurrency(invoice.finalTotal || invoice.totalAmount)}</div>
+            </div>
+          )}
 
           {serviceUsagesQuery.isLoading ? (
             <div className="border-t border-slate-100 px-5 py-5 text-sm text-slate-500">Đang tải chi tiết dịch vụ...</div>
@@ -210,17 +231,49 @@ const AdminInvoiceDetailPage = () => {
           ) : (
             <div className="border-t border-slate-100 px-5 py-5 text-sm text-slate-500">Không có dịch vụ nào trong hóa đơn này.</div>
           )}
+
+          {roomLossDamageReports.length > 0 && (
+            <>
+              <div className="grid grid-cols-[1.7fr_1fr_1fr_1fr] gap-4 border-t border-slate-200 bg-sky-50 px-5 py-4 text-xs font-black uppercase tracking-[0.2em] text-slate-500">
+                <div>Vật tư thất thoát / hư hỏng</div>
+                <div>Đơn giá đền bù</div>
+                <div>Số lượng</div>
+                <div className="text-right">Thành tiền</div>
+              </div>
+              {roomLossDamageReports.map((item) => (
+                <div
+                  key={item.id}
+                  className="grid grid-cols-[1.7fr_1fr_1fr_1fr] gap-4 border-t border-slate-100 px-5 py-5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                >
+                  <div>{item.equipmentName}</div>
+                  <div className="font-medium text-slate-600">{formatCurrency(item.unitPenalty)}</div>
+                  <div className="font-medium text-slate-600">{item.quantity}</div>
+                  <div className="text-right font-black text-slate-900">{formatCurrency(item.penaltyAmount)}</div>
+                </div>
+              ))}
+            </>
+          )}
         </div>
 
         <div className="mt-6 ml-auto max-w-md space-y-3 rounded-[1.75rem] bg-gradient-to-br from-sky-700 via-sky-600 to-cyan-500 p-5 text-white">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-white/80">Tổng tiền phòng</span>
-            <span className="font-bold">{formatCurrency(invoice.subtotal)}</span>
+            <span className="text-white/80">
+              {invoice.bookingDetailId ? "Tổng tiền phòng" : "Tổng tiền đặt cọc"}
+            </span>
+            <span className="font-bold">
+              {formatCurrency(invoice.totalRoomAmount || invoice.subtotal || (invoice.bookingDetailId ? 0 : invoice.finalTotal || invoice.totalAmount))}
+            </span>
           </div>
           <div className="flex items-center justify-between text-sm">
             <span className="text-white/80">Tổng tiền dịch vụ</span>
             <span className="font-bold">{formatCurrency(invoice.totalServiceAmount)}</span>
           </div>
+          {Number(invoice.totalLossDamageAmount || 0) > 0 && (
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-white/80">Thất thoát hư hỏng</span>
+              <span className="font-bold">{formatCurrency(invoice.totalLossDamageAmount)}</span>
+            </div>
+          )}
           {invoice.discountAmount > 0 && (
             <div className="flex items-center justify-between text-sm">
               <span className="text-white/80">Voucher {invoice.voucherCode ? `(${invoice.voucherCode})` : ""}</span>
@@ -235,11 +288,11 @@ const AdminInvoiceDetailPage = () => {
           )}
 
           {(() => {
-            const calculatedTotal = Math.max(0, (invoice.totalRoomAmount || invoice.subtotal || 0) + (invoice.totalServiceAmount || 0) - (invoice.discountAmount || 0) - (invoice.membershipDiscountAmount || 0));
+            const calculatedTotal = Math.max(0, (invoice.totalRoomAmount || invoice.subtotal || 0) + (invoice.totalServiceAmount || 0) + (invoice.totalLossDamageAmount || 0) - (invoice.discountAmount || 0) - (invoice.membershipDiscountAmount || 0));
             const finalTotal = invoice.finalTotal || invoice.totalAmount || 0;
             const depositDeducted = Math.max(0, calculatedTotal - finalTotal);
             if (depositDeducted > 0) {
-              const roomTotalAfterDiscount = Math.max(0, (invoice.totalRoomAmount || invoice.subtotal || 0) - (invoice.discountAmount || 0) - (invoice.membershipDiscountAmount || 0));
+              const roomTotalAfterDiscount = Math.max(0, (invoice.totalRoomAmount || invoice.subtotal || 0) + (invoice.totalLossDamageAmount || 0) - (invoice.discountAmount || 0) - (invoice.membershipDiscountAmount || 0));
               const rawDepositPct = roomTotalAfterDiscount > 0 ? (depositDeducted / roomTotalAfterDiscount) * 100 : 0;
               const depositPct = rawDepositPct <= 0 ? 0 : [30, 40, 50, 100].reduce((prev, curr) => Math.abs(curr - rawDepositPct) < Math.abs(prev - rawDepositPct) ? curr : prev);
               return (

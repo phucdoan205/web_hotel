@@ -243,11 +243,50 @@ namespace backend.Controllers
                 .OrderByDescending(notification => notification.CreatedAt)
                 .ToListAsync();
 
-            var shortageReports = shortageNotifications
-                .Select(MapShortageNotification)
-                .Where(item => item != null)
-                .Cast<HousekeepingShortageReportItemDTO>()
-                .ToList();
+            var equipments = await _context.Equipments
+                .AsNoTracking()
+                .ToListAsync();
+            var equipmentMap = equipments.ToDictionary(e => e.Id);
+
+            var lossAndDamages = await _context.LossAndDamages
+                .AsNoTracking()
+                .ToListAsync();
+
+            var shortageReports = new List<HousekeepingShortageReportItemDTO>();
+            foreach (var notification in shortageNotifications)
+            {
+                var shortage = MapShortageNotification(notification);
+                if (shortage == null) continue;
+
+                if (shortage.EquipmentId.HasValue && equipmentMap.TryGetValue(shortage.EquipmentId.Value, out var equipment))
+                {
+                    shortage.AvailableQuantity = equipment.InStockQuantity ?? 0;
+                    shortage.ImageUrl = equipment.ImageUrl;
+                    shortage.UnitPenalty = equipment.DefaultPriceIfLost;
+                    shortage.PenaltyAmount = equipment.DefaultPriceIfLost * shortage.ShortageQuantity;
+                }
+
+                if (shortage.Reason == "LossDamageReport")
+                {
+                    var matchedLd = lossAndDamages.FirstOrDefault(ld =>
+                        ld.Quantity == shortage.ShortageQuantity && 
+                        ld.CreatedAt.HasValue && shortage.CreatedAt.HasValue &&
+                        Math.Abs((ld.CreatedAt.Value - shortage.CreatedAt.Value).TotalMinutes) < 15
+                    );
+
+                    if (matchedLd != null)
+                    {
+                        if (!string.IsNullOrEmpty(matchedLd.ImageUrl))
+                        {
+                            shortage.ImageUrl = matchedLd.ImageUrl;
+                        }
+                        shortage.UnitPenalty = matchedLd.Quantity > 0 ? decimal.Round(matchedLd.PenaltyAmount / matchedLd.Quantity, 2) : 0;
+                        shortage.PenaltyAmount = matchedLd.PenaltyAmount;
+                    }
+                }
+
+                shortageReports.Add(shortage);
+            }
 
             var resolutionMap = await BuildResolutionMapAsync();
 
@@ -262,6 +301,7 @@ namespace backend.Controllers
                 {
                     Id = issue.Id,
                     RoomInventoryId = issue.RoomInventoryId ?? 0,
+                    BookingDetailId = issue.BookingDetailId,
                     RoomId = issue.RoomInventory != null ? issue.RoomInventory.RoomId : null,
                     RoomNumber = issue.RoomInventory != null && issue.RoomInventory.Room != null
                         ? issue.RoomInventory.Room.RoomNumber
@@ -456,8 +496,12 @@ namespace backend.Controllers
                 equipment.LiquidatedQuantity);
             equipment.UpdatedAt = DateTime.UtcNow;
 
+            var activeBookingDetail = await _context.BookingDetails
+                .FirstOrDefaultAsync(bd => bd.RoomId == roomInventory.Room.Id && bd.Status == "CheckedIn");
+
             var issue = new LossAndDamage
             {
+                BookingDetailId = activeBookingDetail?.Id,
                 RoomInventoryId = roomInventory.Id,
                 Quantity = quantity,
                 PenaltyAmount = totalPenalty,
@@ -467,6 +511,49 @@ namespace backend.Controllers
             };
 
             _context.LossAndDamages.Add(issue);
+
+            // Tu dong tao bao cao thieu hut vat tu (InventoryShortage) tuong ung de hien thi ben phan that thoat
+            var shortageDetails = new List<InventoryShortageDetailDTO>
+            {
+                new()
+                {
+                    EquipmentId = equipment.Id,
+                    EquipmentName = equipment.Name,
+                    EquipmentCode = equipment.ItemCode,
+                    RequestedQuantity = quantity,
+                    AvailableQuantity = 0,
+                    ShortageQuantity = quantity,
+                    Note = string.IsNullOrWhiteSpace(description) ? $"Vat tu bi hu hong / that thoat tai phong {roomInventory.Room.RoomNumber}." : description.Trim()
+                }
+            };
+
+            var shortagePayload = new InventoryShortageNotificationPayloadDTO
+            {
+                Reason = "LossDamageReport",
+                RoomId = roomInventory.Room.Id,
+                RoomNumber = roomInventory.Room.RoomNumber,
+                EquipmentId = equipment.Id,
+                EquipmentName = equipment.Name,
+                EquipmentCode = equipment.ItemCode,
+                RequestedQuantity = quantity,
+                AvailableQuantity = 0,
+                ShortageQuantity = quantity,
+                Note = string.IsNullOrWhiteSpace(description) ? $"Vat tu bi hu hong / that thoat tai phong {roomInventory.Room.RoomNumber}." : description.Trim(),
+                Items = shortageDetails
+            };
+
+            var shortageNotification = new Notification
+            {
+                Title = $"That thoat vat tu phong {roomInventory.Room.RoomNumber}",
+                Content = JsonSerializer.Serialize(shortagePayload),
+                Type = "InventoryShortage",
+                ReferenceLink = "/housekeeping/inventory?tab=processed",
+                IsRead = false,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.Notifications.Add(shortageNotification);
+
             await _context.SaveChangesAsync();
 
             return Ok(new ReportInventoryIssueResponseDTO

@@ -5,6 +5,7 @@ import { AlertTriangle, ArrowLeft, Receipt, Save, Tag, XCircle } from "lucide-re
 import { bookingsApi } from "../../api/admin/bookingsApi";
 import { invoicesApi } from "../../api/admin/invoicesApi";
 import { servicesApi } from "../../api/admin/servicesApi";
+import { housekeepingApi } from "../../api/admin/housekeepingApi";
 import { useVoucherData } from "../../hooks/useVoucherData";
 import { markBookingDetailInvoiced } from "../../utils/bookingRoomFlowState";
 import { calculateStayedDays, calculateVoucherDiscount, isVoucherApplicable } from "../../utils/invoiceState";
@@ -94,9 +95,23 @@ const AdminInvoiceCreatePage = () => {
     enabled: Boolean(detailId),
   });
 
+  const inventoryReportsQuery = useQuery({
+    queryKey: ["admin-inventory-reports"],
+    queryFn: () => housekeepingApi.getInventoryReports(),
+  });
+
   const allServiceItems = allServicesQuery.data || [];
   const unpaidServiceItems = allServiceItems.filter(s => s.paymentStatus !== "Paid");
   const serviceSubtotal = unpaidServiceItems.reduce((total, item) => total + Number(item.lineTotal || 0), 0);
+
+  const lossDamageReports = inventoryReportsQuery.data?.lossDamageReports || [];
+  const roomLossDamageReports = lossDamageReports.filter(
+    (item) => item.bookingDetailId === detailId && item.resolutionType === "Pending"
+  );
+  const totalLossDamageAmount = roomLossDamageReports.reduce(
+    (sum, item) => sum + Number(item.penaltyAmount || 0),
+    0
+  );
 
   const booking = bookingQuery.data;
   const detail = useMemo(
@@ -128,7 +143,7 @@ const AdminInvoiceCreatePage = () => {
     .reduce(
       (sum, inv) =>
         sum +
-        Math.max(0, (inv.subtotal || 0) + (inv.totalServiceAmount || 0) - (inv.discountAmount || 0) - (inv.membershipDiscountAmount || 0)) -
+        Math.max(0, (inv.subtotal || 0) + (inv.totalServiceAmount || 0) + (inv.totalLossDamageAmount || 0) - (inv.discountAmount || 0) - (inv.membershipDiscountAmount || 0)) -
         (inv.totalAmount || 0),
       0
     );
@@ -140,7 +155,7 @@ const AdminInvoiceCreatePage = () => {
     : 0;
 
   const remainingDeposit = Math.max(0, totalDepositPaid - depositAlreadyUsed);
-  const calculatedSubtotal = Math.max(0, subtotal + serviceSubtotal - discountAmount - membershipDiscountAmount);
+  const calculatedSubtotal = Math.max(0, subtotal + serviceSubtotal + totalLossDamageAmount - discountAmount - membershipDiscountAmount);
   const depositToApply = Math.min(remainingDeposit, calculatedSubtotal);
 
   const totalAmount = Math.max(0, calculatedSubtotal - depositToApply);
@@ -393,6 +408,44 @@ const AdminInvoiceCreatePage = () => {
                   )}
                 </div>
               </div>
+
+              {roomLossDamageReports.length > 0 && (
+                <div className="rounded-[1.75rem] border border-slate-200">
+                  <div className="border-b border-slate-200 px-5 py-4">
+                    <h3 className="text-lg font-black text-slate-900">Chi tiết thất thoát đền bù</h3>
+                    <p className="mt-1 text-sm font-medium text-slate-500">
+                      Hiển thị danh sách vật tư bị thất thoát, hỏng hóc trong phòng.
+                    </p>
+                  </div>
+
+                  <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 shadow-inner">
+                    <div className="grid grid-cols-4 gap-4 bg-slate-100 px-5 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">
+                      <div>Vật tư</div>
+                      <div>Đơn giá đền bù</div>
+                      <div>Số lượng</div>
+                      <div className="text-right">Thành tiền</div>
+                    </div>
+
+                    {roomLossDamageReports.map((item) => (
+                      <div
+                        key={item.id}
+                        className="grid grid-cols-4 items-center gap-4 border-t border-slate-200 px-5 py-4 text-sm transition hover:bg-slate-100"
+                      >
+                        <div className="font-semibold text-slate-800">
+                          {item.equipmentName}
+                        </div>
+                        <div className="font-medium text-slate-600">
+                          {formatCurrency(item.unitPenalty)}
+                        </div>
+                        <div className="font-medium text-slate-600">x {item.quantity}</div>
+                        <div className="text-right font-black text-slate-900">
+                          {formatCurrency(item.penaltyAmount)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="rounded-[1.75rem] border border-slate-200 p-5">
@@ -447,6 +500,12 @@ const AdminInvoiceCreatePage = () => {
               <p className="text-sm font-semibold text-white/80">Tiền dịch vụ</p>
               <p className="mt-2 text-3xl font-black">{formatCurrency(serviceSubtotal)}</p>
             </div>
+            {totalLossDamageAmount > 0 && (
+              <div className="rounded-[1.5rem] bg-white/15 p-4 backdrop-blur-sm">
+                <p className="text-sm font-semibold text-white/80">Thất thoát hư hỏng</p>
+                <p className="mt-2 text-3xl font-black">{formatCurrency(totalLossDamageAmount)}</p>
+              </div>
+            )}
             <div className="rounded-[1.5rem] bg-white/15 p-4 backdrop-blur-sm">
               <p className="text-sm font-semibold text-white/80">Giảm voucher</p>
               <p className="mt-2 text-3xl font-black text-cyan-100">- {formatCurrency(discountAmount)}</p>
@@ -461,7 +520,7 @@ const AdminInvoiceCreatePage = () => {
             )}
             <div className="rounded-[1.5rem] bg-white/15 p-4 backdrop-blur-sm">
               {(() => {
-                const roomTotalAfterDiscount = Math.max(0, subtotal - discountAmount - membershipDiscountAmount);
+                const roomTotalAfterDiscount = Math.max(0, subtotal + totalLossDamageAmount - discountAmount - membershipDiscountAmount);
                 const rawDepositPct = roomTotalAfterDiscount > 0 ? (totalDepositPaid / roomTotalAfterDiscount) * 100 : 0;
                 const depositPct = rawDepositPct <= 0 ? 0 : [30, 40, 50, 100].reduce((prev, curr) => Math.abs(curr - rawDepositPct) < Math.abs(prev - rawDepositPct) ? curr : prev);
                 return (

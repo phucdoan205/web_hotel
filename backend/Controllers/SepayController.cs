@@ -90,6 +90,8 @@ namespace backend.Controllers
                 // First try to find by InvoiceCode exactly
                 var invoices = await _context.Invoices
                     .Include(i => i.Booking)
+                        .ThenInclude(b => b.Guest)
+                    .Include(i => i.Booking)
                         .ThenInclude(b => b.BookingDetails)
                     .Where(i => i.Status != "Completed" && i.Status != "Cancelled")
                     .ToListAsync();
@@ -112,6 +114,7 @@ namespace backend.Controllers
                 if (matchedInvoice == null)
                 {
                     var bookings = await _context.Bookings
+                        .Include(b => b.Guest)
                         .Include(b => b.BookingDetails)
                         .Where(b => b.Status != "Cancelled")
                         .ToListAsync();
@@ -194,6 +197,7 @@ namespace backend.Controllers
                         Code = $"CQC-{matchedBooking.BookingCode}-{paidAt:HHmmss}",
                         BookingCode = matchedBooking.BookingCode,
                         RoomName = "Đặt cọc Booking",
+                        GuestName = matchedBooking.Guest?.Name,
                         Status = "Completed",
                         FinalTotal = payload.transferAmount,
                         CreatedAt = paidAt,

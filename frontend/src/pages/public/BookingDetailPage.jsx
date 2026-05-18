@@ -53,6 +53,14 @@ const BookingDetailPage = () => {
     enabled: Boolean(id),
   });
 
+  const lossDamagesQuery = useQuery({
+    queryKey: ["user-booking-loss-damages", id],
+    queryFn: () => userBookingsApi.getLossDamages(id),
+    enabled: Boolean(id),
+  });
+
+  const lossDamages = useMemo(() => lossDamagesQuery.data || [], [lossDamagesQuery.data]);
+
   const cancelMutation = useMutation({
     mutationFn: () => userBookingsApi.cancelBooking(id),
     onSuccess: () => {
@@ -100,6 +108,7 @@ const BookingDetailPage = () => {
           subtotal: Number(invoice.totalRoomAmount || 0),
           totalRoomAmount: Number(invoice.totalRoomAmount || 0),
           totalServiceAmount: Number(invoice.totalServiceAmount || 0),
+          totalLossDamageAmount: Number(invoice.totalLossDamageAmount || 0),
           discountAmount: Number(invoice.discountAmount || 0),
           membershipTierName: invoice.membershipTierName || "",
           membershipDiscountPercent: Number(invoice.membershipDiscountPercent || 0),
@@ -354,6 +363,28 @@ const BookingDetailPage = () => {
                     Chưa có dịch vụ nào trong booking này.
                   </div>
                 )}
+
+                {lossDamagesQuery.isLoading ? (
+                  <div className="border-t border-slate-100 px-5 py-4 text-sm text-slate-500">Đang tải thất thoát hư hỏng...</div>
+                ) : lossDamages.length ? (
+                  lossDamages.map((item) => (
+                    <div
+                      key={`loss-damage-${item.id}`}
+                      className="grid grid-cols-[1.8fr_1fr_1fr_1fr] gap-4 border-t border-slate-100 px-5 py-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-55"
+                    >
+                      <div className="flex flex-col">
+                        <span className="font-semibold text-rose-600">
+                          {item.equipmentName} (Thất thoát/Hư hỏng)
+                        </span>
+                      </div>
+                      <div className="font-medium text-slate-600">{formatCurrency(item.unitPenalty)}</div>
+                      <div className="font-medium text-slate-600">{item.quantity}</div>
+                      <div className="text-right font-black text-rose-700">
+                        {formatCurrency(item.penaltyAmount)}
+                      </div>
+                    </div>
+                  ))
+                ) : null}
               </div>
 
               {checkoutInvoice ? (
@@ -366,6 +397,12 @@ const BookingDetailPage = () => {
                     <span className="text-white/80">Tổng tiền dịch vụ</span>
                     <span className="font-bold">{formatCurrency(checkoutInvoice.totalServiceAmount)}</span>
                   </div>
+                  {Number(checkoutInvoice.totalLossDamageAmount || 0) > 0 && (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-white/80">Thất thoát hư hỏng</span>
+                      <span className="font-bold">{formatCurrency(checkoutInvoice.totalLossDamageAmount)}</span>
+                    </div>
+                  )}
                   {Number(checkoutInvoice.discountAmount || 0) > 0 && (
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-white/80">Voucher {checkoutInvoice.voucherCode ? `(${checkoutInvoice.voucherCode})` : ""}</span>
@@ -379,10 +416,10 @@ const BookingDetailPage = () => {
                     </div>
                   )}
                   {(() => {
-                    const calculatedTotal = Number(checkoutInvoice.totalRoomAmount || 0) + Number(checkoutInvoice.totalServiceAmount || 0) - Number(checkoutInvoice.discountAmount || 0) - Number(checkoutInvoice.membershipDiscountAmount || 0);
+                    const calculatedTotal = Number(checkoutInvoice.totalRoomAmount || 0) + Number(checkoutInvoice.totalServiceAmount || 0) + Number(checkoutInvoice.totalLossDamageAmount || 0) - Number(checkoutInvoice.discountAmount || 0) - Number(checkoutInvoice.membershipDiscountAmount || 0);
                     const depositDeducted = Math.max(0, calculatedTotal - Number(checkoutInvoice.finalTotal || 0));
                     if (depositDeducted > 0) {
-                      const roomTotalAfterDiscount = Math.max(0, Number(checkoutInvoice.totalRoomAmount || 0) - Number(checkoutInvoice.discountAmount || 0) - Number(checkoutInvoice.membershipDiscountAmount || 0));
+                      const roomTotalAfterDiscount = Math.max(0, Number(checkoutInvoice.totalRoomAmount || 0) + Number(checkoutInvoice.totalLossDamageAmount || 0) - Number(checkoutInvoice.discountAmount || 0) - Number(checkoutInvoice.membershipDiscountAmount || 0));
                       const rawDepositPct = roomTotalAfterDiscount > 0 ? (depositDeducted / roomTotalAfterDiscount) * 100 : 0;
                       const depositPct = rawDepositPct <= 0 ? 0 : [30, 40, 50, 100].reduce((prev, curr) => Math.abs(curr - rawDepositPct) < Math.abs(prev - rawDepositPct) ? curr : prev);
                       return (
