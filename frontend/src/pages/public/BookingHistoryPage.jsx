@@ -86,6 +86,12 @@ const BookingCard = ({ booking, onCancel, navigate }) => {
 
   const status = isHoldExpired && originalStatus === "Pending" ? "Cancelled" : originalStatus;
 
+  const paymentSummaryQuery = useQuery({
+    queryKey: ["booking-payment-summary", booking.id],
+    queryFn: () => userBookingsApi.getPaymentSummary(booking.id),
+    enabled: status === "Completed" || status === "Paying",
+  });
+
   useEffect(() => {
     if (originalStatus !== "Pending" || isHoldExpired || !booking.createdAt) return;
     const expire = new Date(booking.createdAt).getTime() + HOLD_MINUTES * 60 * 1000;
@@ -97,6 +103,12 @@ const BookingCard = ({ booking, onCancel, navigate }) => {
 
   const canPay = !isHoldExpired && canUserPayBooking(booking);
   const canCancel = !isHoldExpired && canUserCancelBooking(booking);
+
+  const displayTotal = paymentSummaryQuery.data
+    ? formatCurrency(paymentSummaryQuery.data.totalAmount)
+    : paymentSummaryQuery.isLoading
+    ? "Đang tải..."
+    : formatCurrency(totalAmount);
 
   return (
     <div className="rounded-[1.75rem] border border-slate-100 bg-slate-50 px-5 py-5">
@@ -127,9 +139,15 @@ const BookingCard = ({ booking, onCancel, navigate }) => {
               Số đêm: <span className="font-bold text-slate-900">{stayNights}</span>
             </p>
           </div>
-          <p className="text-sm font-semibold text-slate-500">
-            Tổng tiền tạm tính: <span className="text-slate-900">{formatCurrency(totalAmount)}</span>
-          </p>
+          {status === "Completed" || status === "Paying" ? (
+            <p className="text-sm font-semibold text-slate-500">
+              Tổng tiền: <span className="font-black text-blue-700">{displayTotal}</span>
+            </p>
+          ) : (
+            <p className="text-sm font-semibold text-slate-500">
+              Tổng tiền tạm tính: <span className="text-slate-900">{formatCurrency(totalAmount)}</span>
+            </p>
+          )}
         </div>
 
         <div className="flex flex-wrap items-center gap-3 xl:justify-end">

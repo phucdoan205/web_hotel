@@ -26,6 +26,8 @@ namespace backend.Mappers
                 .ForMember(dest => dest.GuestName, opt => opt.MapFrom(src => src.Guest != null ? src.Guest.Name : null))
                 .ForMember(dest => dest.GuestPhone, opt => opt.MapFrom(src => src.Guest != null ? src.Guest.Phone : null))
                 .ForMember(dest => dest.GuestEmail, opt => opt.MapFrom(src => src.Guest != null ? src.Guest.Email : null))
+                .ForMember(dest => dest.MembershipTierName, opt => opt.MapFrom(src => src.User != null && src.User.Membership != null ? src.User.Membership.TierName : null))
+                .ForMember(dest => dest.MembershipDiscountPercent, opt => opt.MapFrom(src => src.User != null && src.User.Membership != null ? src.User.Membership.DiscountPercent : null))
                 .ForMember(dest => dest.BookingDetails, opt => opt.MapFrom(src => src.BookingDetails));
             CreateMap<BookingCreateDTO, Booking>()
                 .ForMember(dest => dest.BookingDetails, opt => opt.Ignore());

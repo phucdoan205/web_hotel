@@ -221,6 +221,8 @@ namespace backend.Controllers
         {
             var booking = await _context.Bookings
                 .Include(b => b.Guest)
+                .Include(b => b.User)
+                    .ThenInclude(u => u.Membership)
                 .Include(b => b.BookingDetails)
                     .ThenInclude(bd => bd.Room)
                 .Include(b => b.BookingDetails)

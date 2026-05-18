@@ -221,19 +221,30 @@ const AdminInvoiceDetailPage = () => {
             <span className="text-white/80">Tổng tiền dịch vụ</span>
             <span className="font-bold">{formatCurrency(invoice.totalServiceAmount)}</span>
           </div>
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-white/80">Voucher {invoice.voucherCode ? `(${invoice.voucherCode})` : ""}</span>
-            <span className="font-bold text-cyan-100">- {formatCurrency(invoice.discountAmount)}</span>
-          </div>
+          {invoice.discountAmount > 0 && (
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-white/80">Voucher {invoice.voucherCode ? `(${invoice.voucherCode})` : ""}</span>
+              <span className="font-bold text-cyan-100">- {formatCurrency(invoice.discountAmount)}</span>
+            </div>
+          )}
+          {invoice.membershipDiscountAmount > 0 && (
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-white/80">Giảm giá Membership ({invoice.membershipTierName || `${invoice.membershipDiscountPercent}%`})</span>
+              <span className="font-bold text-cyan-100">- {formatCurrency(invoice.membershipDiscountAmount)}</span>
+            </div>
+          )}
 
           {(() => {
-            const calculatedTotal = Math.max(0, (invoice.totalRoomAmount || invoice.subtotal || 0) + (invoice.totalServiceAmount || 0) - (invoice.discountAmount || 0));
+            const calculatedTotal = Math.max(0, (invoice.totalRoomAmount || invoice.subtotal || 0) + (invoice.totalServiceAmount || 0) - (invoice.discountAmount || 0) - (invoice.membershipDiscountAmount || 0));
             const finalTotal = invoice.finalTotal || invoice.totalAmount || 0;
             const depositDeducted = Math.max(0, calculatedTotal - finalTotal);
             if (depositDeducted > 0) {
+              const roomTotalAfterDiscount = Math.max(0, (invoice.totalRoomAmount || invoice.subtotal || 0) - (invoice.discountAmount || 0) - (invoice.membershipDiscountAmount || 0));
+              const rawDepositPct = roomTotalAfterDiscount > 0 ? (depositDeducted / roomTotalAfterDiscount) * 100 : 0;
+              const depositPct = rawDepositPct <= 0 ? 0 : [30, 40, 50, 100].reduce((prev, curr) => Math.abs(curr - rawDepositPct) < Math.abs(prev - rawDepositPct) ? curr : prev);
               return (
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-white/80">Trừ tiền cọc</span>
+                  <span className="text-white/80">Trừ tiền cọc {depositPct > 0 ? `(${depositPct}%)` : ""}</span>
                   <span className="font-bold text-cyan-100">- {formatCurrency(depositDeducted)}</span>
                 </div>
               );

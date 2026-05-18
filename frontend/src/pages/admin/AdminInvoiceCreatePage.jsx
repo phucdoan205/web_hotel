@@ -121,20 +121,26 @@ const AdminInvoiceCreatePage = () => {
   
   const totalDepositPaid = allInvoices
     .filter((inv) => inv.detailId === null && inv.status === "Completed")
-    .reduce((sum, inv) => sum + (inv.finalTotal || 0), 0);
+    .reduce((sum, inv) => sum + (inv.totalAmount || 0), 0);
 
   const depositAlreadyUsed = allInvoices
     .filter((inv) => inv.detailId !== null && inv.status !== "Cancelled")
     .reduce(
       (sum, inv) =>
         sum +
-        Math.max(0, (inv.totalRoomAmount || 0) + (inv.totalServiceAmount || 0) - (inv.discountAmount || 0)) -
-        (inv.finalTotal || 0),
+        Math.max(0, (inv.subtotal || 0) + (inv.totalServiceAmount || 0) - (inv.discountAmount || 0) - (inv.membershipDiscountAmount || 0)) -
+        (inv.totalAmount || 0),
       0
     );
 
+  const membershipTierName = booking?.membershipTierName || null;
+  const membershipDiscountPercent = Number(booking?.membershipDiscountPercent || 0);
+  const membershipDiscountAmount = membershipDiscountPercent > 0 
+    ? Math.round(subtotal * membershipDiscountPercent / 100) 
+    : 0;
+
   const remainingDeposit = Math.max(0, totalDepositPaid - depositAlreadyUsed);
-  const calculatedSubtotal = Math.max(0, subtotal + serviceSubtotal - discountAmount);
+  const calculatedSubtotal = Math.max(0, subtotal + serviceSubtotal - discountAmount - membershipDiscountAmount);
   const depositToApply = Math.min(remainingDeposit, calculatedSubtotal);
 
   const totalAmount = Math.max(0, calculatedSubtotal - depositToApply);
@@ -445,13 +451,30 @@ const AdminInvoiceCreatePage = () => {
               <p className="text-sm font-semibold text-white/80">Giảm voucher</p>
               <p className="mt-2 text-3xl font-black text-cyan-100">- {formatCurrency(discountAmount)}</p>
             </div>
-            <div className="rounded-[1.5rem] bg-white/15 p-4 backdrop-blur-sm">
-              <p className="text-sm font-semibold text-white/80">Trừ tiền cọc</p>
-              <div className="mt-1 flex items-center justify-between text-xs font-semibold text-white/60">
-                <span>Tổng cọc: {formatCurrency(totalDepositPaid)}</span>
-                <span>Khả dụng: {formatCurrency(remainingDeposit)}</span>
+            {membershipDiscountAmount > 0 && (
+              <div className="rounded-[1.5rem] bg-white/15 p-4 backdrop-blur-sm">
+                <p className="text-sm font-semibold text-white/80">
+                  Giảm Membership ({membershipTierName} - {membershipDiscountPercent}%)
+                </p>
+                <p className="mt-2 text-3xl font-black text-cyan-100">- {formatCurrency(membershipDiscountAmount)}</p>
               </div>
-              <p className="mt-1 text-3xl font-black text-cyan-100">- {formatCurrency(depositToApply)}</p>
+            )}
+            <div className="rounded-[1.5rem] bg-white/15 p-4 backdrop-blur-sm">
+              {(() => {
+                const roomTotalAfterDiscount = Math.max(0, subtotal - discountAmount - membershipDiscountAmount);
+                const rawDepositPct = roomTotalAfterDiscount > 0 ? (totalDepositPaid / roomTotalAfterDiscount) * 100 : 0;
+                const depositPct = rawDepositPct <= 0 ? 0 : [30, 40, 50, 100].reduce((prev, curr) => Math.abs(curr - rawDepositPct) < Math.abs(prev - rawDepositPct) ? curr : prev);
+                return (
+                  <>
+                    <p className="text-sm font-semibold text-white/80">Trừ tiền cọc {depositPct > 0 ? `(${depositPct}%)` : ""}</p>
+                    <div className="mt-1 flex items-center justify-between text-xs font-semibold text-white/60">
+                      <span>Tổng cọc: {formatCurrency(totalDepositPaid)}</span>
+                      <span>Khả dụng: {formatCurrency(remainingDeposit)}</span>
+                    </div>
+                    <p className="mt-1 text-3xl font-black text-cyan-100">- {formatCurrency(depositToApply)}</p>
+                  </>
+                );
+              })()}
             </div>
             <div className="rounded-[1.5rem] bg-white p-4 text-sky-900">
               <p className="text-sm font-semibold text-sky-700">Cần thanh toán</p>

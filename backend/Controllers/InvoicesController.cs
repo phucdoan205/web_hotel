@@ -105,6 +105,9 @@ namespace backend.Controllers
             VoucherCode = invoice.VoucherCode,
             VoucherDiscountType = invoice.VoucherDiscountType,
             VoucherDiscountValue = invoice.VoucherDiscountValue,
+            MembershipTierName = invoice.MembershipTierName,
+            MembershipDiscountPercent = invoice.MembershipDiscountPercent,
+            MembershipDiscountAmount = invoice.MembershipDiscountAmount,
             CreatedAt = invoice.CreatedAt,
             UpdatedAt = invoice.UpdatedAt,
             PaidAt = invoice.PaidAt
@@ -180,6 +183,8 @@ namespace backend.Controllers
 
             var booking = await _context.Bookings
                 .Include(item => item.Guest)
+                .Include(item => item.User)
+                    .ThenInclude(u => u.Membership)
                 .Include(item => item.BookingDetails)
                     .ThenInclude(detail => detail.Room)
                 .Include(item => item.BookingDetails)
@@ -222,7 +227,17 @@ namespace backend.Controllers
                 .SumAsync(detail => (decimal?)(detail.Quantity * detail.UnitPrice)) ?? 0;
             var totalRoomAmount = dto.TotalRoomAmount ?? 0;
             var discountAmount = dto.DiscountAmount ?? 0;
-            var calculatedSubtotal = Math.Max(0, totalRoomAmount + totalServiceAmount - discountAmount);
+
+            var membershipTierName = booking.User?.Membership?.TierName;
+            var membershipDiscountPercent = booking.User?.Membership?.DiscountPercent ?? 0m;
+            var membershipDiscountAmount = 0m;
+
+            if (membershipDiscountPercent > 0m)
+            {
+                membershipDiscountAmount = Math.Round(totalRoomAmount * membershipDiscountPercent / 100m);
+            }
+
+            var calculatedSubtotal = Math.Max(0, totalRoomAmount + totalServiceAmount - discountAmount - membershipDiscountAmount);
 
             var totalDepositPaid = await _context.Invoices
                 .AsNoTracking()
@@ -232,10 +247,10 @@ namespace backend.Controllers
             var usedInvoices = await _context.Invoices
                 .AsNoTracking()
                 .Where(i => i.BookingId == booking.Id && i.BookingDetailId != null && i.Status != "Cancelled")
-                .Select(i => new { i.TotalRoomAmount, i.TotalServiceAmount, i.DiscountAmount, i.FinalTotal })
+                .Select(i => new { i.TotalRoomAmount, i.TotalServiceAmount, i.DiscountAmount, i.MembershipDiscountAmount, i.FinalTotal })
                 .ToListAsync();
 
-            var depositAlreadyUsed = usedInvoices.Sum(i => Math.Max(0, (i.TotalRoomAmount ?? 0) + (i.TotalServiceAmount ?? 0) - (i.DiscountAmount ?? 0)) - (i.FinalTotal ?? 0));
+            var depositAlreadyUsed = usedInvoices.Sum(i => Math.Max(0, (i.TotalRoomAmount ?? 0) + (i.TotalServiceAmount ?? 0) - (i.DiscountAmount ?? 0) - (i.MembershipDiscountAmount ?? 0)) - (i.FinalTotal ?? 0));
 
             var remainingDeposit = Math.Max(0, totalDepositPaid - depositAlreadyUsed);
             var depositToApply = Math.Min(remainingDeposit, calculatedSubtotal);
@@ -266,6 +281,9 @@ namespace backend.Controllers
                 VoucherCode = dto.VoucherCode,
                 VoucherDiscountType = dto.VoucherDiscountType,
                 VoucherDiscountValue = dto.VoucherDiscountValue,
+                MembershipTierName = membershipTierName,
+                MembershipDiscountPercent = membershipDiscountPercent,
+                MembershipDiscountAmount = membershipDiscountAmount,
                 CreatedAt = now,
                 UpdatedAt = now
             };

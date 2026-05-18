@@ -81,6 +81,8 @@ namespace backend.Controllers
             return _context.Bookings
                 .Where(item => item.UserId == userId)
                 .Include(item => item.Guest)
+                .Include(item => item.User)
+                    .ThenInclude(u => u.Membership)
                 .Include(item => item.BookingDetails)
                     .ThenInclude(detail => detail.Room)
                 .Include(item => item.BookingDetails)
@@ -242,7 +244,8 @@ namespace backend.Controllers
 
         private static UserBookingPaymentSummaryDTO BuildPaymentSummary(Booking booking, IEnumerable<Invoice> invoices)
         {
-            var invoiceItems = invoices
+            var invoiceList = invoices.ToList();
+            var invoiceItems = invoiceList
                 .OrderBy(item => item.Id)
                 .Select(item => new UserBookingPaymentInvoiceItemDTO
                 {
@@ -256,12 +259,17 @@ namespace backend.Controllers
                 })
                 .ToList();
 
+            var checkoutInvoices = invoiceList.Where(i => i.BookingDetailId != null).ToList();
+            var totalAmount = checkoutInvoices.Any()
+                ? checkoutInvoices.Sum(i => (i.TotalRoomAmount ?? 0) + (i.TotalServiceAmount ?? 0) - (i.DiscountAmount ?? 0) - (i.MembershipDiscountAmount ?? 0))
+                : invoiceList.Where(i => i.BookingDetailId == null && i.Status == "Completed").Sum(i => i.FinalTotal ?? 0);
+
             return new UserBookingPaymentSummaryDTO
             {
                 BookingId = booking.Id,
                 BookingCode = booking.BookingCode,
                 Status = booking.Status ?? "Pending",
-                TotalAmount = invoiceItems.Sum(item => item.TotalAmount),
+                TotalAmount = totalAmount,
                 Items = invoiceItems
             };
         }
@@ -305,6 +313,16 @@ namespace backend.Controllers
 
                 var stayedDays = CalculateStayedDays(detail);
                 var totalRoomAmount = detail.PricePerNight * stayedDays;
+                
+                var membershipTierName = booking.User?.Membership?.TierName;
+                var membershipDiscountPercent = booking.User?.Membership?.DiscountPercent ?? 0m;
+                var membershipDiscountAmount = 0m;
+
+                if (membershipDiscountPercent > 0m)
+                {
+                    membershipDiscountAmount = Math.Round(totalRoomAmount * membershipDiscountPercent / 100m);
+                }
+
                 var totalServiceAmount = await _context.OrderServiceDetails
                     .AsNoTracking()
                     .Where(item =>
@@ -313,7 +331,7 @@ namespace backend.Controllers
                         item.OrderService.Status != "Paid")
                     .SumAsync(item => (decimal?)(item.Quantity * item.UnitPrice)) ?? 0;
 
-                var calculatedSubtotal = totalRoomAmount + totalServiceAmount;
+                var calculatedSubtotal = Math.Max(0, totalRoomAmount + totalServiceAmount - membershipDiscountAmount);
 
                 var totalDepositPaid = await _context.Invoices
                     .Where(i => i.BookingId == booking.Id && i.BookingDetailId == null && i.Status == "Completed")
@@ -321,10 +339,10 @@ namespace backend.Controllers
 
                 var usedInvoices = await _context.Invoices
                     .Where(i => i.BookingId == booking.Id && i.BookingDetailId != null && i.Status != "Cancelled")
-                    .Select(i => new { i.TotalRoomAmount, i.TotalServiceAmount, i.DiscountAmount, i.FinalTotal })
+                    .Select(i => new { i.TotalRoomAmount, i.TotalServiceAmount, i.DiscountAmount, i.MembershipDiscountAmount, i.FinalTotal })
                     .ToListAsync();
 
-                var depositAlreadyUsed = usedInvoices.Sum(i => Math.Max(0, (i.TotalRoomAmount ?? 0) + (i.TotalServiceAmount ?? 0) - (i.DiscountAmount ?? 0)) - (i.FinalTotal ?? 0));
+                var depositAlreadyUsed = usedInvoices.Sum(i => Math.Max(0, (i.TotalRoomAmount ?? 0) + (i.TotalServiceAmount ?? 0) - (i.DiscountAmount ?? 0) - (i.MembershipDiscountAmount ?? 0)) - (i.FinalTotal ?? 0));
 
                 var remainingDeposit = Math.Max(0, totalDepositPaid - depositAlreadyUsed);
                 var depositToApply = Math.Min(remainingDeposit, calculatedSubtotal);
@@ -350,6 +368,9 @@ namespace backend.Controllers
                     TaxAmount = 0,
                     FinalTotal = finalTotal,
                     Status = "Paying",
+                    MembershipTierName = membershipTierName,
+                    MembershipDiscountPercent = membershipDiscountPercent,
+                    MembershipDiscountAmount = membershipDiscountAmount,
                     CreatedAt = createdAt,
                     UpdatedAt = createdAt
                 };
@@ -454,6 +475,67 @@ namespace backend.Controllers
             await ApplyInvoicePaymentStatusesAsync(new[] { booking });
 
             return Ok(_mapper.Map<BookingResponseDTO>(booking));
+        }
+
+        [HttpGet("{id:int}/invoice")]
+        public async Task<ActionResult<InvoiceResponseDTO>> GetMyBookingInvoice(int id)
+        {
+            var currentUser = await ResolveCurrentUserAsync();
+            if (currentUser == null)
+            {
+                return Unauthorized(new { message = "Khong xac dinh duoc nguoi dung hien tai." });
+            }
+
+            var booking = await BuildOwnedBookingsQuery(currentUser.Id)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(item => item.Id == id);
+
+            if (booking == null)
+            {
+                return NotFound(new { message = "Khong tim thay booking cua ban." });
+            }
+
+            var invoice = await _context.Invoices
+                .AsNoTracking()
+                .FirstOrDefaultAsync(inv => inv.BookingId == id && inv.BookingDetailId != null && (inv.Status == "Completed" || inv.Status == "Paying"));
+
+            if (invoice == null)
+            {
+                return NotFound(new { message = "Khong tim thay hoa don checkout cho booking nay." });
+            }
+
+            return Ok(new InvoiceResponseDTO
+            {
+                Id = invoice.Id,
+                BookingId = invoice.BookingId,
+                BookingDetailId = invoice.BookingDetailId,
+                VoucherId = invoice.VoucherId,
+                Code = invoice.Code,
+                BookingCode = invoice.BookingCode,
+                GuestName = invoice.GuestName,
+                RoomNumber = invoice.RoomNumber,
+                RoomName = invoice.RoomName,
+                RoomRate = invoice.RoomRate,
+                CheckInDate = invoice.CheckInDate,
+                CheckOutDate = invoice.CheckOutDate,
+                StayedDays = invoice.StayedDays,
+                TotalRoomAmount = invoice.TotalRoomAmount,
+                TotalServiceAmount = invoice.TotalServiceAmount,
+                DiscountAmount = invoice.DiscountAmount,
+                TaxAmount = invoice.TaxAmount,
+                FinalTotal = invoice.FinalTotal,
+                Status = invoice.Status,
+                Notes = invoice.Notes,
+                VoucherCode = invoice.VoucherCode,
+                VoucherDiscountType = invoice.VoucherDiscountType,
+                VoucherDiscountValue = invoice.VoucherDiscountValue,
+                MembershipTierName = invoice.MembershipTierName,
+                MembershipDiscountPercent = invoice.MembershipDiscountPercent,
+                MembershipDiscountAmount = invoice.MembershipDiscountAmount,
+                CreatedAt = invoice.CreatedAt,
+                UpdatedAt = invoice.UpdatedAt,
+                PaidAt = invoice.PaidAt
+            });
         }
 
         [HttpPost]

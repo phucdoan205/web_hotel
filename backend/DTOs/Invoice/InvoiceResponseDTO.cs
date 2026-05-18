@@ -25,6 +25,9 @@ namespace backend.DTOs.Invoice
         public string? VoucherCode { get; set; }
         public string? VoucherDiscountType { get; set; }
         public decimal? VoucherDiscountValue { get; set; }
+        public string? MembershipTierName { get; set; }
+        public decimal? MembershipDiscountPercent { get; set; }
+        public decimal? MembershipDiscountAmount { get; set; }
         public DateTime? CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
         public DateTime? PaidAt { get; set; }

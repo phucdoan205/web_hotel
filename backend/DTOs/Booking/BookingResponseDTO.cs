@@ -12,6 +12,8 @@ namespace backend.DTOs
         public int? VoucherId { get; set; }
         public string? Status { get; set; }
         public DateTime CreatedAt { get; set; }
+        public string? MembershipTierName { get; set; }
+        public decimal? MembershipDiscountPercent { get; set; }
 
         public List<BookingDetailResponseDTO> BookingDetails { get; set; } = new();
     }

@@ -143,6 +143,9 @@ IF COL_LENGTH('Invoices', 'Notes') IS NULL ALTER TABLE Invoices ADD Notes nvarch
 IF COL_LENGTH('Invoices', 'VoucherCode') IS NULL ALTER TABLE Invoices ADD VoucherCode nvarchar(50) NULL;
 IF COL_LENGTH('Invoices', 'VoucherDiscountType') IS NULL ALTER TABLE Invoices ADD VoucherDiscountType nvarchar(50) NULL;
 IF COL_LENGTH('Invoices', 'VoucherDiscountValue') IS NULL ALTER TABLE Invoices ADD VoucherDiscountValue decimal(18,2) NULL;
+IF COL_LENGTH('Invoices', 'MembershipTierName') IS NULL ALTER TABLE Invoices ADD MembershipTierName nvarchar(255) NULL;
+IF COL_LENGTH('Invoices', 'MembershipDiscountPercent') IS NULL ALTER TABLE Invoices ADD MembershipDiscountPercent decimal(18,2) NULL;
+IF COL_LENGTH('Invoices', 'MembershipDiscountAmount') IS NULL ALTER TABLE Invoices ADD MembershipDiscountAmount decimal(18,2) NULL;
 IF COL_LENGTH('Invoices', 'CreatedAt') IS NULL ALTER TABLE Invoices ADD CreatedAt datetime NULL;
 IF COL_LENGTH('Invoices', 'UpdatedAt') IS NULL ALTER TABLE Invoices ADD UpdatedAt datetime NULL;
 IF COL_LENGTH('Invoices', 'PaidAt') IS NULL ALTER TABLE Invoices ADD PaidAt datetime NULL;

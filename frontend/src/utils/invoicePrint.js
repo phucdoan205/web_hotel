@@ -27,19 +27,30 @@ export const openInvoicePrintWindow = ({
     serviceItems?.length > 0
       ? serviceItems
           .map(
-            (item) => `
-              <div class="service-row">
-                <div class="service-name">${escapeHtml(item.serviceName)}</div>
-                <div class="service-center">${escapeHtml(item.quantity)}</div>
-                <div class="service-right">${escapeHtml(formatAmount(item.unitPrice))}</div>
-                <div class="service-right">${escapeHtml(
-                  formatAmount(item.lineTotal || item.quantity * item.unitPrice),
-                )}</div>
-              </div>
-            `,
+            (item) => {
+              const isPaid = item.isPaidBeforeCheckout;
+              return `
+                <div class="service-row${isPaid ? " paid-service" : ""}">
+                  <div class="service-name">${escapeHtml(item.serviceName)}${isPaid ? " (Đã thanh toán)" : ""}</div>
+                  <div class="service-center">${escapeHtml(item.quantity)}</div>
+                  <div class="service-right">${escapeHtml(formatAmount(item.unitPrice))}</div>
+                  <div class="service-right">${escapeHtml(
+                    formatAmount(item.lineTotal || item.quantity * item.unitPrice),
+                  )}</div>
+                </div>
+              `;
+            }
           )
           .join("")
       : `<p class="empty-service">Không có dịch vụ</p>`;
+
+  const calculatedTotal = Math.max(0, (invoice.subtotal || 0) + (invoice.totalServiceAmount || 0) - (invoice.discountAmount || 0) - (invoice.membershipDiscountAmount || 0));
+  const finalTotal = invoice.totalAmount || 0;
+  const depositDeducted = Math.max(0, calculatedTotal - finalTotal);
+  
+  const roomTotalAfterDiscount = Math.max(0, (invoice.subtotal || 0) - (invoice.discountAmount || 0) - (invoice.membershipDiscountAmount || 0));
+  const rawDepositPct = roomTotalAfterDiscount > 0 ? (depositDeducted / roomTotalAfterDiscount) * 100 : 0;
+  const depositPct = rawDepositPct <= 0 ? 0 : [30, 40, 50, 100].reduce((prev, curr) => Math.abs(curr - rawDepositPct) < Math.abs(prev - rawDepositPct) ? curr : prev);
 
   const html = `<!doctype html>
 <html lang="vi">
@@ -159,6 +170,11 @@ export const openInvoicePrintWindow = ({
         text-align: right;
       }
 
+      .paid-service {
+        text-decoration: line-through;
+        opacity: 0.6;
+      }
+
       .empty-service {
         margin: 0;
         padding: 6px 0;
@@ -221,6 +237,7 @@ export const openInvoicePrintWindow = ({
         )}</span></div>
       </div>
 
+      ${invoice.totalServiceAmount > 0 ? `
       <div class="dash"></div>
       <p class="section-title">DỊCH VỤ</p>
       <div class="dash"></div>
@@ -237,14 +254,25 @@ export const openInvoicePrintWindow = ({
       <div class="amount-row amount-strong"><span>Tổng DV:</span><span>${escapeHtml(
         formatAmount(invoice.totalServiceAmount),
       )}</span></div>
+      ` : ""}
 
+      ${(invoice.discountAmount > 0 || invoice.membershipDiscountAmount > 0) ? `
       <div class="dash"></div>
       <p class="section-title">GIẢM GIÁ</p>
       <div class="dash"></div>
 
-      <div class="amount-row"><span>Voucher${invoice.voucher?.code ? ` (${escapeHtml(invoice.voucher.code)})` : ":"}</span><strong>- ${escapeHtml(
+      ${invoice.discountAmount > 0 ? `
+      <div class="amount-row"><span>Voucher${invoice.voucher?.code ? ` (${escapeHtml(invoice.voucher.code)})` : invoice.voucherCode ? ` (${escapeHtml(invoice.voucherCode)})` : ""}</span><strong>- ${escapeHtml(
         formatAmount(invoice.discountAmount),
       )}</strong></div>
+      ` : ""}
+      
+      ${invoice.membershipDiscountAmount > 0 ? `
+      <div class="amount-row"><span>Giảm giá Membership${invoice.membershipTierName ? ` (${escapeHtml(invoice.membershipTierName)})` : ""}</span><strong>- ${escapeHtml(
+        formatAmount(invoice.membershipDiscountAmount),
+      )}</strong></div>
+      ` : ""}
+      ` : ""}
 
       <div class="dash"></div>
       <p class="section-title">TỔNG THANH TOÁN</p>
@@ -252,12 +280,27 @@ export const openInvoicePrintWindow = ({
 
       <div class="amount-block">
         <div class="amount-row"><span>Tiền phòng:</span><span>${escapeHtml(formatAmount(invoice.subtotal))}</span></div>
+        ${invoice.totalServiceAmount > 0 ? `
         <div class="amount-row"><span>Tiền dịch vụ:</span><span>${escapeHtml(
           formatAmount(invoice.totalServiceAmount),
         )}</span></div>
-        <div class="amount-row"><span>Giảm giá:</span><span>- ${escapeHtml(
+        ` : ""}
+        ${invoice.discountAmount > 0 ? `
+        <div class="amount-row"><span>Giảm giá Voucher:</span><span>- ${escapeHtml(
           formatAmount(invoice.discountAmount),
         )}</span></div>
+        ` : ""}
+        ${invoice.membershipDiscountAmount > 0 ? `
+        <div class="amount-row"><span>Giảm giá Membership (${invoice.membershipDiscountPercent}%):</span><span>- ${escapeHtml(
+          formatAmount(invoice.membershipDiscountAmount),
+        )}</span></div>
+        ` : ""}
+        ${depositDeducted > 0 ? `
+        <div class="amount-row">
+          <span>Trừ tiền cọc ${depositPct > 0 ? `(${depositPct}%)` : ""}:</span>
+          <span>- ${escapeHtml(formatAmount(depositDeducted))}</span>
+        </div>
+        ` : ""}
       </div>
 
       <div class="dash"></div>
