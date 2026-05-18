@@ -13,6 +13,8 @@ const VoucherForm = ({ initial = {}, onSubmit, onCancel }) => {
     validTo: "",
     usageLimit: null,
     isPrivate: false,
+    voucherType: "Booking",
+    targetUserId: null,
     ...initial,
   });
 
@@ -65,6 +67,28 @@ const VoucherForm = ({ initial = {}, onSubmit, onCancel }) => {
             <option value="AMOUNT">Số tiền</option>
           </select>
         </div>
+
+        <div>
+          <label className="text-[11px] font-bold text-gray-400">Loại Voucher</label>
+          <select value={form.voucherType || "Booking"} onChange={(e) => onChange('voucherType', e.target.value)} className="w-full p-3 rounded-2xl bg-gray-50 text-sm font-bold mt-1">
+            <option value="Booking">Đặt phòng</option>
+            <option value="Service">Dịch vụ</option>
+            <option value="Birthday">Sinh nhật</option>
+          </select>
+        </div>
+
+        {form.voucherType === "Birthday" && (
+          <div>
+            <label className="text-[11px] font-bold text-gray-400">ID người nhận cụ thể (Nếu có)</label>
+            <input 
+              type="number" 
+              value={form.targetUserId ?? ''} 
+              onChange={(e) => onChange('targetUserId', e.target.value ? parseInt(e.target.value) : null)} 
+              className="w-full p-3 rounded-2xl bg-gray-50 text-sm font-bold mt-1" 
+              placeholder="VD: 5 (để trống nếu gửi hàng loạt)"
+            />
+          </div>
+        )}
 
         <div>
           <label className="text-[11px] font-bold text-gray-400">Giá trị ưu đãi</label>

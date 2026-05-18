@@ -306,6 +306,8 @@ namespace backend.Controllers
                     IsActive = v.IsActive,
                     IsDeleted = v.IsDeleted,
                     DeletedAt = v.DeletedAt,
+                    VoucherType = v.VoucherType,
+                    TargetUserId = v.TargetUserId
                 })
                 .AsNoTracking()
                 .ToListAsync();
@@ -344,6 +346,8 @@ namespace backend.Controllers
                 IsActive = voucher.IsActive,
                 IsDeleted = voucher.IsDeleted,
                 DeletedAt = voucher.DeletedAt,
+                VoucherType = voucher.VoucherType,
+                TargetUserId = voucher.TargetUserId
             };
             return Ok(dto);
         }
@@ -380,6 +384,8 @@ namespace backend.Controllers
                 IsActive = true,
                 IsDeleted = false,
                 DeletedAt = null,
+                VoucherType = dto.VoucherType ?? "Booking",
+                TargetUserId = dto.TargetUserId
             };
 
             _context.Vouchers.Add(voucher);
@@ -419,6 +425,8 @@ namespace backend.Controllers
             voucher.Description = dto.Description;
             voucher.IsPrivate = dto.IsPrivate;
             voucher.IsActive = dto.IsActive;
+            voucher.VoucherType = dto.VoucherType ?? voucher.VoucherType;
+            voucher.TargetUserId = dto.TargetUserId;
 
             await _context.SaveChangesAsync();
             return NoContent();
@@ -543,9 +551,31 @@ namespace backend.Controllers
             var failed = new List<string>();
             foreach (var user in users)
             {
-                var title = $"Chúc mừng sinh nhật - {voucher.Code}";
+                var uniqueCode = $"{voucher.Code}-{user.Id}-{Guid.NewGuid().ToString().Substring(0, 4).ToUpper()}";
+                var personalVoucher = new Voucher
+                {
+                    Code = uniqueCode,
+                    Name = voucher.Name + $" (Sinh nhật {user.FullName})",
+                    DiscountType = voucher.DiscountType,
+                    DiscountValue = voucher.DiscountValue,
+                    MinBookingValue = voucher.MinBookingValue,
+                    ValidFrom = voucher.ValidFrom ?? targetDate,
+                    ValidTo = voucher.ValidTo ?? targetDate.AddDays(30),
+                    UsageLimit = 1,
+                    UsageCount = 0,
+                    Description = voucher.Description,
+                    IsPrivate = true,
+                    IsActive = true,
+                    IsDeleted = false,
+                    VoucherType = "Birthday",
+                    TargetUserId = user.Id
+                };
+                _context.Vouchers.Add(personalVoucher);
+                await _context.SaveChangesAsync();
+
+                var title = $"Chúc mừng sinh nhật - {personalVoucher.Code}";
                 var content =
-                    $"Chúc mừng sinh nhật {user.FullName}! Tặng bạn mã {voucher.Code} - ưu đãi {FormatVoucherValue(voucher)}. Hạn dùng: {voucher.ValidFrom?.ToShortDateString()} - {voucher.ValidTo?.ToShortDateString()}";
+                    $"Chúc mừng sinh nhật {user.FullName}! Tặng bạn mã {personalVoucher.Code} - ưu đãi {FormatVoucherValue(personalVoucher)}. Hạn dùng: {personalVoucher.ValidFrom?.ToShortDateString()} - {personalVoucher.ValidTo?.ToShortDateString()}";
                 if (!string.IsNullOrWhiteSpace(request.Message))
                 {
                     content = request.Message + "\n\n" + content;
@@ -556,7 +586,7 @@ namespace backend.Controllers
                 try
                 {
                     var html = BuildVoucherEmailHtml(
-                        voucher,
+                        personalVoucher,
                         "Quà tặng sinh nhật dành riêng cho bạn",
                         "Khách sạn chúc bạn có một ngày sinh nhật thật trọn vẹn và gửi tặng bạn voucher ưu đãi này.",
                         request.Message
@@ -575,7 +605,7 @@ namespace backend.Controllers
                     _logger?.LogError(
                         ex,
                         "Failed to send voucher {VoucherId} to birthday user {Email}",
-                        voucher.Id,
+                        personalVoucher.Id,
                         user.Email
                     );
                 }

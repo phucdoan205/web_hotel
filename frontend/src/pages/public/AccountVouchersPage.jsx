@@ -90,7 +90,7 @@ const AccountVouchersPage = () => {
                       </h3>
                       <div className="mt-2 space-y-1">
                         <p className="text-xs font-medium opacity-90 line-clamp-1">
-                          Áp dụng cho: {v.name}
+                          Áp dụng cho: <span className="font-extrabold">{v.voucherType === "Service" ? "Dịch vụ" : v.voucherType === "Birthday" ? "Mừng sinh nhật" : "Đặt phòng"}</span> ({v.name})
                         </p>
                         <p className="text-xs font-medium opacity-90">
                           Hết hạn: {v.validTo ? new Date(v.validTo).toLocaleDateString("vi-VN", { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : "Vô thời hạn"}

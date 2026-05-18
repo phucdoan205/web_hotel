@@ -22,6 +22,8 @@ const normalizeVoucher = (voucher = {}) => ({
   isActive: voucher.isActive ?? voucher.IsActive ?? false,
   isDeleted: voucher.isDeleted ?? voucher.IsDeleted ?? false,
   deletedAt: voucher.deletedAt ?? voucher.DeletedAt ?? null,
+  voucherType: voucher.voucherType ?? voucher.VoucherType ?? "Booking",
+  targetUserId: voucher.targetUserId ?? voucher.TargetUserId ?? null,
 });
 
 export const useVoucherData = () => {

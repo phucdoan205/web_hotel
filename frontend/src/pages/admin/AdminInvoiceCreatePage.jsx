@@ -111,7 +111,7 @@ const AdminInvoiceCreatePage = () => {
   const stayedDays = calculateStayedDays(detail?.checkInDate, currentTime);
   const subtotal = roomRate * stayedDays;
   const availableVouchers = useMemo(
-    () => vouchers.filter((voucher) => isVoucherApplicable(voucher, subtotal, currentTime)),
+    () => vouchers.filter((voucher) => isVoucherApplicable(voucher, subtotal, currentTime) && voucher.voucherType !== "Service"),
     [currentTime, subtotal, vouchers],
   );
   const selectedVoucher =

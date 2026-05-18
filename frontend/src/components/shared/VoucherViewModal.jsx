@@ -41,6 +41,21 @@ const VoucherViewModal = ({ voucher, onClose }) => {
           </div>
 
           <div className="grid grid-cols-[180px_1fr] py-5">
+            <span className="text-sm font-bold text-slate-400">Loại áp dụng</span>
+            <div className="text-sm font-bold text-slate-900">
+              <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-black uppercase tracking-wider ${
+                voucher.voucherType === "Service"
+                  ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                  : voucher.voucherType === "Birthday"
+                    ? "bg-rose-50 text-rose-600 border border-rose-100"
+                    : "bg-blue-50 text-blue-600 border border-blue-100"
+              }`}>
+                {voucher.voucherType === "Service" ? "Dịch vụ" : voucher.voucherType === "Birthday" ? "Sinh nhật" : "Đặt phòng"}
+              </span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-[180px_1fr] py-5">
             <span className="text-sm font-bold text-slate-400">Thời gian hiệu lực</span>
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-sm font-bold text-slate-700">

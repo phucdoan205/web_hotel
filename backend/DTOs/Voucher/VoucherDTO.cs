@@ -17,5 +17,7 @@ namespace backend.DTOs
         public bool IsActive { get; set; }
         public bool IsDeleted { get; set; }
         public DateTime? DeletedAt { get; set; }
+        public string VoucherType { get; set; } = "Booking";
+        public int? TargetUserId { get; set; }
     }
 }

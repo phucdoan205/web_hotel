@@ -59,7 +59,9 @@ namespace backend.Controllers
                         ValidFrom = uv.Voucher.ValidFrom,
                         ValidTo = uv.Voucher.ValidTo,
                         Description = uv.Voucher.Description,
-                        IsActive = uv.Voucher.IsActive
+                        IsActive = uv.Voucher.IsActive,
+                        VoucherType = uv.Voucher.VoucherType,
+                        TargetUserId = uv.Voucher.TargetUserId
                     }
                 })
                 .ToListAsync();
@@ -75,6 +77,11 @@ namespace backend.Controllers
 
             var voucher = await _context.Vouchers.FindAsync(voucherId);
             if (voucher == null) return NotFound(new { message = "Voucher không tồn tại" });
+
+            if (voucher.TargetUserId.HasValue && voucher.TargetUserId.Value != userId)
+            {
+                return BadRequest(new { message = "Voucher này không dành cho bạn!" });
+            }
 
             var existing = await _context.UserVouchers
                 .FirstOrDefaultAsync(uv => uv.UserId == userId && uv.VoucherId == voucherId);

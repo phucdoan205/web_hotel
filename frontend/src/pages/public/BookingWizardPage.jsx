@@ -739,7 +739,7 @@ const BookingPage = () => {
                           }}
                         >
                           <option value="">-- Không sử dụng ưu đãi --</option>
-                          {userVouchersQuery.data.filter(uv => uv.voucher?.isActive && (!uv.voucher.validTo || new Date(uv.voucher.validTo) >= new Date())).map(uv => {
+                          {userVouchersQuery.data.filter(uv => uv.voucher?.isActive && (!uv.voucher?.voucherType || ["Booking", "Birthday"].includes(uv.voucher.voucherType)) && (!uv.voucher.validTo || new Date(uv.voucher.validTo) >= new Date())).map(uv => {
                             const isEligible = !uv.voucher.minBookingValue || estimatedTotal >= uv.voucher.minBookingValue;
                             return (
                               <option key={uv.voucherId} value={uv.voucherId} disabled={!isEligible}>

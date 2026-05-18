@@ -39,7 +39,18 @@ const VoucherTable = ({
             <div key={voucher.id ?? index} className="p-5 space-y-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-sm font-black text-blue-600 tracking-wider uppercase">{voucher.code}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-black text-blue-600 tracking-wider uppercase">{voucher.code}</p>
+                    <span className={`inline-block rounded-full px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider ${
+                      voucher.voucherType === "Service"
+                        ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                        : voucher.voucherType === "Birthday"
+                          ? "bg-rose-50 text-rose-600 border border-rose-100"
+                          : "bg-blue-50 text-blue-600 border border-blue-100"
+                    }`}>
+                      {voucher.voucherType === "Service" ? "Dịch vụ" : voucher.voucherType === "Birthday" ? "Sinh nhật" : "Đặt phòng"}
+                    </span>
+                  </div>
                   <p className="mt-1 text-base font-black text-slate-900 line-clamp-2 leading-snug">
                     {voucher.name || "Chưa đặt tên"}
                   </p>
@@ -181,6 +192,15 @@ const VoucherTable = ({
                 >
                   <td className="px-8 py-5">
                     <p className="text-sm font-bold text-gray-900">{voucher.code}</p>
+                    <span className={`inline-block rounded-full px-2 py-0.5 text-[9px] font-black uppercase mt-1 ${
+                      voucher.voucherType === "Service"
+                        ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                        : voucher.voucherType === "Birthday"
+                          ? "bg-rose-50 text-rose-600 border border-rose-100"
+                          : "bg-blue-50 text-blue-600 border border-blue-100"
+                    }`}>
+                      {voucher.voucherType === "Service" ? "Dịch vụ" : voucher.voucherType === "Birthday" ? "Sinh nhật" : "Đặt phòng"}
+                    </span>
                   </td>
                   <td className="px-6 py-5">
                     <p className="text-sm font-bold text-gray-900 line-clamp-1" title={voucher.name}>

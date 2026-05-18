@@ -287,6 +287,23 @@ namespace backend.Controllers
                 }
             }
 
+            if (dto.VoucherId.HasValue)
+            {
+                var v = await _context.Vouchers.FindAsync(dto.VoucherId.Value);
+                if (v == null || !v.IsActive || v.IsDeleted)
+                {
+                    return BadRequest("Voucher không tồn tại hoặc đã bị vô hiệu hóa.");
+                }
+                if (v.VoucherType == "Service")
+                {
+                    return BadRequest("Voucher dịch vụ không thể áp dụng cho đơn đặt phòng.");
+                }
+                if (v.TargetUserId.HasValue && v.TargetUserId.Value != dto.UserId)
+                {
+                    return BadRequest("Voucher này chỉ áp dụng cho một khách hàng cụ thể.");
+                }
+            }
+
             // ====================== TẠO BOOKING ======================
             var booking = new Booking
             {

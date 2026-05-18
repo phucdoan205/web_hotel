@@ -20,6 +20,12 @@ namespace backend.Models
         public bool IsActive { get; set; } = true;
         public bool IsDeleted { get; set; }
         public DateTime? DeletedAt { get; set; }
+        public string VoucherType { get; set; } = "Booking";
+        public int? TargetUserId { get; set; }
+        
+        [ForeignKey("TargetUserId")]
+        public User? TargetUser { get; set; }
+
         public ICollection<Booking> Bookings { get; set; } = new List<Booking>();
         public ICollection<UserVoucher> UserVouchers { get; set; } = new List<UserVoucher>();
     }

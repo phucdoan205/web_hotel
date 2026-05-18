@@ -712,6 +712,18 @@ namespace backend.Controllers
                     return BadRequest(new { message = "Voucher khong hop le hoac da duoc su dung." });
                 }
 
+                // Check Voucher Type: must be Booking or Birthday for room booking
+                if (userVoucher.Voucher.VoucherType == "Service")
+                {
+                    return BadRequest(new { message = "Voucher nay chi duoc ap dung cho cac dich vu." });
+                }
+
+                // Check TargetUserId: must match the current user if set
+                if (userVoucher.Voucher.TargetUserId.HasValue && userVoucher.Voucher.TargetUserId.Value != currentUser.Id)
+                {
+                    return BadRequest(new { message = "Voucher nay khong danh cho ban." });
+                }
+
                 if (userVoucher.Voucher.ValidFrom.HasValue && userVoucher.Voucher.ValidFrom.Value > DateTime.UtcNow)
                 {
                     return BadRequest(new { message = "Voucher chua den ngay ap dung." });
