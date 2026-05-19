@@ -437,5 +437,93 @@ namespace backend.Data
 
             base.OnModelCreating(modelBuilder);
         }
+
+        public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            return SaveChangesAsync(true, cancellationToken);
+        }
+
+        public override async Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+        {
+            var bookingsToProcess = ChangeTracker.Entries<Booking>()
+                .Where(e => e.State == EntityState.Added || e.State == EntityState.Modified)
+                .ToList();
+
+            var invoicesToProcess = ChangeTracker.Entries<Invoice>()
+                .Where(e => e.State == EntityState.Added || e.State == EntityState.Modified)
+                .ToList();
+
+            var vouchersToUpdate = new HashSet<int>();
+            var userVouchersToMarkUsed = new List<(int UserId, int VoucherId)>();
+
+            foreach (var entry in bookingsToProcess)
+            {
+                var booking = entry.Entity;
+                var originalStatus = entry.State == EntityState.Modified 
+                    ? entry.OriginalValues.GetValue<string>("Status") 
+                    : null;
+
+                if (booking.VoucherId.HasValue && booking.UserId.HasValue)
+                {
+                    bool isBecomingConfirmed = (booking.Status == "Confirmed" || booking.Status == "CheckedIn" || booking.Status == "Completed")
+                        && (originalStatus == "Pending" || originalStatus == null);
+
+                    if (isBecomingConfirmed)
+                    {
+                        userVouchersToMarkUsed.Add((booking.UserId.Value, booking.VoucherId.Value));
+                        vouchersToUpdate.Add(booking.VoucherId.Value);
+                    }
+                }
+            }
+
+            foreach (var entry in invoicesToProcess)
+            {
+                var invoice = entry.Entity;
+                var originalStatus = entry.State == EntityState.Modified
+                    ? entry.OriginalValues.GetValue<string>("Status")
+                    : null;
+
+                if (invoice.Status == "Completed" && (originalStatus == "Paying" || originalStatus == "Pending" || originalStatus == null))
+                {
+                    var booking = invoice.Booking;
+                    if (booking == null && invoice.BookingId.HasValue)
+                    {
+                        booking = await Bookings.FirstOrDefaultAsync(b => b.Id == invoice.BookingId.Value, cancellationToken);
+                    }
+
+                    if (booking != null && booking.VoucherId.HasValue && booking.UserId.HasValue)
+                    {
+                        userVouchersToMarkUsed.Add((booking.UserId.Value, booking.VoucherId.Value));
+                        vouchersToUpdate.Add(booking.VoucherId.Value);
+                    }
+                }
+            }
+
+            if (userVouchersToMarkUsed.Any())
+            {
+                foreach (var item in userVouchersToMarkUsed)
+                {
+                    var uv = await UserVouchers.FirstOrDefaultAsync(x => x.UserId == item.UserId && x.VoucherId == item.VoucherId && !x.IsUsed, cancellationToken);
+                    if (uv != null)
+                    {
+                        uv.IsUsed = true;
+                    }
+                }
+            }
+
+            if (vouchersToUpdate.Any())
+            {
+                foreach (var voucherId in vouchersToUpdate)
+                {
+                    var v = await Vouchers.FirstOrDefaultAsync(x => x.Id == voucherId, cancellationToken);
+                    if (v != null)
+                    {
+                        v.UsageCount += 1;
+                    }
+                }
+            }
+
+            return await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+        }
     }
 }

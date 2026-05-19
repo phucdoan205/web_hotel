@@ -47,6 +47,139 @@ const typeStyles = {
   Info: "bg-sky-50 text-sky-600",
 };
 
+const formatShortageNotification = (title, subtitle) => {
+  let formattedTitle = title || "";
+  let formattedSubtitle = subtitle || "";
+
+  let eqName = "";
+  let qty = 0;
+  let hasItems = false;
+  let itemsSummary = "";
+
+  if (subtitle && (subtitle.trim().startsWith("{") || subtitle.trim().startsWith("["))) {
+    try {
+      const data = JSON.parse(subtitle);
+      const items = data.Items ?? data.items;
+      if (items && Array.isArray(items) && items.length > 0) {
+        hasItems = true;
+        itemsSummary = items
+          .map(item => {
+            const name = item.EquipmentName ?? item.equipmentName ?? item.Name ?? item.name ?? 'Vật tư';
+            const q = item.ShortageQuantity ?? item.shortageQuantity ?? item.RequestedQuantity ?? item.requestedQuantity ?? item.Quantity ?? item.quantity ?? 0;
+            return `${name} (${q} cái)`;
+          })
+          .join(", ");
+
+        formattedSubtitle = items
+          .map(item => {
+            const name = item.EquipmentName ?? item.equipmentName ?? item.Name ?? item.name ?? 'Vật tư';
+            const q = item.ShortageQuantity ?? item.shortageQuantity ?? item.RequestedQuantity ?? item.requestedQuantity ?? item.Quantity ?? item.quantity ?? 0;
+            return `${name}: ${q} cái`;
+          })
+          .join(", ");
+      } else {
+        eqName = data.EquipmentName ?? data.equipmentName ?? data.Name ?? data.name ?? "";
+        qty = data.ShortageQuantity ?? data.shortageQuantity ?? data.RequestedQuantity ?? data.requestedQuantity ?? data.Quantity ?? data.quantity ?? 0;
+        
+        if (eqName) {
+          formattedSubtitle = `${eqName}: ${qty} cái`;
+        } else if (data.ReportType || data.reportType) {
+          const reportType = data.ReportType ?? data.reportType;
+          const resType = data.ResolutionType ?? data.resolutionType;
+          const typeStr = reportType === "loss-damage" ? "Thất thoát/Hư hỏng" : "Thiếu hụt";
+          const resStr = resType === "Restocked" ? "Đã bổ sung" : resType;
+          formattedSubtitle = `Xử lý báo cáo ${typeStr} #${data.ReportId ?? data.reportId}: ${resStr} ${qty ? `(${qty} cái)` : ""}`;
+        }
+      }
+    } catch (e) {
+      try {
+        const itemsMatch = subtitle.match(/"Items"\s*:\s*(\[.*?\])/);
+        if (itemsMatch && itemsMatch[1]) {
+          const decodedItemsStr = itemsMatch[1].replace(/\\u([0-9a-fA-F]{4})/g, (match, grp) =>
+            String.fromCharCode(parseInt(grp, 16))
+          );
+          const items = JSON.parse(decodedItemsStr);
+          if (Array.isArray(items) && items.length > 0) {
+            hasItems = true;
+            itemsSummary = items
+              .map(item => {
+                const name = item.EquipmentName ?? item.equipmentName ?? item.Name ?? item.name ?? 'Vật tư';
+                const q = item.ShortageQuantity ?? item.shortageQuantity ?? item.RequestedQuantity ?? item.requestedQuantity ?? item.Quantity ?? item.quantity ?? 0;
+                return `${name} (${q} cái)`;
+              })
+              .join(", ");
+
+            formattedSubtitle = items
+              .map(item => {
+                const name = item.EquipmentName ?? item.equipmentName ?? item.Name ?? item.name ?? 'Vật tư';
+                const q = item.ShortageQuantity ?? item.shortageQuantity ?? item.RequestedQuantity ?? item.requestedQuantity ?? item.Quantity ?? item.quantity ?? 0;
+                return `${name}: ${q} cái`;
+              })
+              .join(", ");
+          }
+        } else {
+          const nameMatch = subtitle.match(/"EquipmentName"\s*:\s*"([^"]+)"/);
+          const qtyMatch = subtitle.match(/"(?:ShortageQuantity|RequestedQuantity)"\s*:\s*(\d+)/);
+          if (nameMatch && nameMatch[1]) {
+            eqName = nameMatch[1].replace(/\\u([0-9a-fA-F]{4})/g, (match, grp) =>
+              String.fromCharCode(parseInt(grp, 16))
+            );
+            qty = qtyMatch ? Number(qtyMatch[1]) : 1;
+            formattedSubtitle = `${eqName}: ${qty} cái`;
+          }
+        }
+      } catch (err) {
+        formattedSubtitle = subtitle;
+      }
+    }
+  }
+
+  // 1. Format the Title first (add beautiful accents and item details)
+  const titleMatch = formattedTitle.match(/^That thoat vat tu phong\s+(.+)$/i);
+  if (titleMatch) {
+    const roomNumber = titleMatch[1];
+    if (eqName) {
+      formattedTitle = `Thất thoát: ${eqName} (${qty} cái) - Phòng ${roomNumber}`;
+    } else if (hasItems) {
+      formattedTitle = `Thất thoát: ${itemsSummary} - Phòng ${roomNumber}`;
+    } else {
+      formattedTitle = `Thất thoát vật tư phòng ${roomNumber}`;
+    }
+  }
+
+  const shortageMatch = formattedTitle.match(/^Bao thieu vat tu phong\s+(.+)$/i);
+  if (shortageMatch) {
+    const roomNumber = shortageMatch[1];
+    if (eqName) {
+      formattedTitle = `Báo thiếu: ${eqName} (${qty} cái) - Phòng ${roomNumber}`;
+    } else if (hasItems) {
+      formattedTitle = `Báo thiếu: ${itemsSummary} - Phòng ${roomNumber}`;
+    } else {
+      formattedTitle = `Báo thiếu vật tư phòng ${roomNumber}`;
+    }
+  }
+
+  const thieuMatch = formattedTitle.match(/^(?:Bao\s+)?Thieu vat tu phong\s+(.+)$/i);
+  if (thieuMatch) {
+    const roomNumber = thieuMatch[1];
+    if (eqName) {
+      formattedTitle = `Thiếu vật tư: ${eqName} (${qty} cái) - Phòng ${roomNumber}`;
+    } else if (hasItems) {
+      formattedTitle = `Thiếu vật tư: ${itemsSummary} - Phòng ${roomNumber}`;
+    } else {
+      formattedTitle = `Thiếu vật tư phòng ${roomNumber}`;
+    }
+  }
+
+  if (formattedSubtitle.startsWith("{")) {
+    formattedSubtitle = formattedSubtitle.replace(/\\u([0-9a-fA-F]{4})/g, (match, grp) =>
+      String.fromCharCode(parseInt(grp, 16))
+    );
+  }
+
+  return { title: formattedTitle, subtitle: formattedSubtitle };
+};
+
 const AdminNotificationBell = () => {
   const navigate = useNavigate();
   const menuRef = useRef(null);
@@ -185,37 +318,40 @@ const AdminNotificationBell = () => {
                 No notifications yet.
               </div>
             ) : (
-              notifications.map((notification) => (
-                <button
-                  key={notification.id}
-                  type="button"
-                  onClick={() => handleNotificationClick(notification)}
-                  className="flex w-full items-start gap-3 border-b border-gray-50 px-5 py-4 text-left transition-colors hover:bg-gray-50"
-                >
-                  <div
-                    className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl text-[11px] font-black ${
-                      typeStyles[notification.type] ?? typeStyles.Info
-                    }`}
+              notifications.map((notification) => {
+                const formatted = formatShortageNotification(notification.title, notification.content);
+                return (
+                  <button
+                    key={notification.id}
+                    type="button"
+                    onClick={() => handleNotificationClick(notification)}
+                    className="flex w-full items-start gap-3 border-b border-gray-50 px-5 py-4 text-left transition-colors hover:bg-gray-50"
                   >
-                    {(notification.type ?? "Info").slice(0, 1).toUpperCase()}
-                  </div>
-
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-start justify-between gap-3">
-                      <p className="text-sm font-bold text-gray-900">
-                        {notification.title}
-                      </p>
-                      <span className="shrink-0 text-[11px] font-semibold text-gray-400">
-                        {formatTimeAgo(notification.createdAt)}
-                      </span>
+                    <div
+                      className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl text-[11px] font-black ${
+                        typeStyles[notification.type] ?? typeStyles.Info
+                      }`}
+                    >
+                      {(notification.type ?? "Info").slice(0, 1).toUpperCase()}
                     </div>
 
-                    <p className="mt-1 text-xs leading-5 text-gray-500">
-                      {notification.content}
-                    </p>
-                  </div>
-                </button>
-              ))
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-3">
+                        <p className="text-sm font-bold text-gray-900">
+                          {formatted.title}
+                        </p>
+                        <span className="shrink-0 text-[11px] font-semibold text-gray-400">
+                          {formatTimeAgo(notification.createdAt)}
+                        </span>
+                      </div>
+
+                      <p className="mt-1 text-xs leading-5 text-gray-500">
+                        {formatted.subtitle}
+                      </p>
+                    </div>
+                  </button>
+                );
+              })
             )}
           </div>
         </div>

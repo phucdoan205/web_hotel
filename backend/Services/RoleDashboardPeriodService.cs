@@ -604,11 +604,17 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
             UnpaidInvoices = invoiceMetrics?.UnpaidInvoices ?? 0
         };
 
+        var checkedInRoomIds = await _context.BookingDetails
+            .Where(x => x.Status == "CheckedIn" && x.RoomId.HasValue)
+            .Select(x => x.RoomId!.Value)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
         var totalRooms = await _context.Rooms.CountAsync(cancellationToken);
-        var availableRooms = await _context.Rooms.CountAsync(x => x.Status == RoomStatuses.Available, cancellationToken);
-        var occupiedRooms = await _context.Rooms.CountAsync(x => x.Status == RoomStatuses.Occupied, cancellationToken);
-        var maintenanceRooms = await _context.Rooms.CountAsync(x => x.Status == RoomStatuses.Maintenance, cancellationToken);
-        var outOfOrderRooms = await _context.Rooms.CountAsync(x => x.Status == RoomStatuses.OutOfOrder, cancellationToken);
+        var availableRooms = await _context.Rooms.CountAsync(x => x.Status == RoomStatuses.Available && !checkedInRoomIds.Contains(x.Id), cancellationToken);
+        var occupiedRooms = await _context.Rooms.CountAsync(x => x.Status == RoomStatuses.Occupied || checkedInRoomIds.Contains(x.Id), cancellationToken);
+        var maintenanceRooms = await _context.Rooms.CountAsync(x => x.Status == RoomStatuses.Maintenance && !checkedInRoomIds.Contains(x.Id), cancellationToken);
+        var outOfOrderRooms = await _context.Rooms.CountAsync(x => x.Status == RoomStatuses.OutOfOrder && !checkedInRoomIds.Contains(x.Id), cancellationToken);
         var dirtyRooms = await _context.Rooms.CountAsync(x => x.CleaningStatus == "Dirty" || x.CleaningStatus == "dirty", cancellationToken);
         var cleaningRooms = await _context.Rooms.CountAsync(x => x.CleaningStatus == "InProgress" || x.CleaningStatus == "inprogress" || x.CleaningStatus == "Cleaning" || x.CleaningStatus == "cleaning" || x.Status == "Cleaning" || x.Status == "cleaning", cancellationToken);
         var cleanRooms = await _context.Rooms.CountAsync(x => x.CleaningStatus == "Clean" || x.CleaningStatus == "clean" || x.CleaningStatus == "Inspected" || x.CleaningStatus == "inspected" || x.CleaningStatus == null || x.CleaningStatus == "", cancellationToken);

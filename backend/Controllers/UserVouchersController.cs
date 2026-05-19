@@ -26,20 +26,12 @@ namespace backend.Controllers
         {
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
 
-            var rawVouchers = await _context.UserVouchers
-                .Where(uv => uv.UserId == userId)
-                .ToListAsync();
-            Console.WriteLine($"[DEBUG] Total UserVouchers for userId={userId}: {rawVouchers.Count}");
-            foreach (var uv in rawVouchers)
-            {
-                var isUsed = uv.IsUsed;
-                var hasActiveBooking = await _context.Bookings.AnyAsync(b => b.UserId == userId && b.VoucherId == uv.VoucherId && b.Status != "Cancelled");
-                Console.WriteLine($"[DEBUG] VoucherId={uv.VoucherId}, IsUsed={isUsed}, HasActiveBooking={hasActiveBooking}");
-            }
-
             var userVouchers = await _context.UserVouchers
                 .Include(uv => uv.Voucher)
-                .Where(uv => uv.UserId == userId && !uv.IsUsed && !_context.Bookings.Any(b => b.UserId == userId && b.VoucherId == uv.VoucherId && b.Status != "Cancelled"))
+                .Where(uv => uv.UserId == userId 
+                    && !uv.IsUsed 
+                    && (!uv.Voucher.ValidTo.HasValue || uv.Voucher.ValidTo.Value >= DateTime.UtcNow)
+                    && (!uv.Voucher.UsageLimit.HasValue || uv.Voucher.UsageCount < uv.Voucher.UsageLimit.Value))
                 .OrderByDescending(uv => uv.SavedAt)
                 .Select(uv => new UserVoucherDTO
                 {
@@ -66,7 +58,6 @@ namespace backend.Controllers
                 })
                 .ToListAsync();
 
-            Console.WriteLine($"[DEBUG] Returning {userVouchers.Count} vouchers.");
             return Ok(userVouchers);
         }
 

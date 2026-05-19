@@ -203,14 +203,31 @@ namespace backend.Controllers
         [Permission("CREATE_SERVICES")]
         public async Task<ActionResult<ServiceUsageResponseDTO>> ApplyService([FromBody] ApplyServiceDTO request)
         {
-            if (!request.ServiceId.HasValue)
+            var items = new List<ApplyServiceItemDTO>();
+            if (request.Items != null && request.Items.Count > 0)
             {
-                return BadRequest("Thiếu dịch vụ cần áp dụng.");
+                items.AddRange(request.Items);
+            }
+            else
+            {
+                if (!request.ServiceId.HasValue)
+                {
+                    return BadRequest("Thiếu dịch vụ cần áp dụng.");
+                }
+                if (request.Quantity <= 0)
+                {
+                    return BadRequest("Số lượng phải lớn hơn 0.");
+                }
+                items.Add(new ApplyServiceItemDTO
+                {
+                    ServiceId = request.ServiceId.Value,
+                    Quantity = request.Quantity
+                });
             }
 
-            if (request.Quantity <= 0)
+            if (items.Count == 0)
             {
-                return BadRequest("Số lượng phải lớn hơn 0.");
+                return BadRequest("Danh sách dịch vụ cần áp dụng không được rỗng.");
             }
 
             BookingDetail? bookingDetail = null;
@@ -234,10 +251,98 @@ namespace backend.Controllers
                 }
             }
 
-            var service = await _context.Services.FirstOrDefaultAsync(item => item.Id == request.ServiceId.Value);
-            if (service == null || !service.Status)
+            // Fetch and validate services
+            var serviceIds = items.Select(i => i.ServiceId).Distinct().ToList();
+            var services = await _context.Services
+                .Where(s => serviceIds.Contains(s.Id) && s.Status)
+                .ToDictionaryAsync(s => s.Id);
+
+            foreach (var item in items)
             {
-                return NotFound("Không tìm thấy dịch vụ đang hoạt động.");
+                if (!services.ContainsKey(item.ServiceId))
+                {
+                    return NotFound($"Không tìm thấy dịch vụ đang hoạt động với ID {item.ServiceId}.");
+                }
+                if (item.Quantity <= 0)
+                {
+                    return BadRequest("Số lượng của từng dịch vụ phải lớn hơn 0.");
+                }
+            }
+
+            // Calculate original total amount
+            decimal originalTotal = 0;
+            foreach (var item in items)
+            {
+                var s = services[item.ServiceId];
+                originalTotal += s.Price * item.Quantity;
+            }
+
+            decimal finalTotal = originalTotal;
+            Voucher? voucher = null;
+            UserVoucher? userVoucher = null;
+
+            if (request.VoucherId.HasValue)
+            {
+                if (bookingDetail?.Booking?.UserId != null)
+                {
+                    userVoucher = await _context.UserVouchers
+                        .Include(uv => uv.Voucher)
+                        .FirstOrDefaultAsync(uv =>
+                            uv.UserId == bookingDetail.Booking.UserId &&
+                            uv.VoucherId == request.VoucherId.Value &&
+                            !uv.IsUsed);
+                    
+                    if (userVoucher != null)
+                    {
+                        voucher = userVoucher.Voucher;
+                    }
+                }
+
+                if (voucher == null)
+                {
+                    voucher = await _context.Vouchers.FirstOrDefaultAsync(v =>
+                        v.Id == request.VoucherId.Value &&
+                        v.IsActive &&
+                        !v.IsDeleted);
+                }
+
+                if (voucher == null)
+                {
+                    return BadRequest("Voucher không tồn tại hoặc đã hết hạn/sử dụng.");
+                }
+
+                if (!string.Equals(voucher.VoucherType, "Service", StringComparison.OrdinalIgnoreCase))
+                {
+                    return BadRequest("Voucher này không áp dụng cho đặt dịch vụ.");
+                }
+
+                if (voucher.MinBookingValue.HasValue && originalTotal < voucher.MinBookingValue.Value)
+                {
+                    return BadRequest($"Đơn hàng chưa đạt giá trị tối thiểu {voucher.MinBookingValue.Value.ToString("N0")} VND để áp dụng voucher.");
+                }
+
+                if (string.Equals(voucher.DiscountType, "PERCENT", StringComparison.OrdinalIgnoreCase))
+                {
+                    decimal discount = originalTotal * (voucher.DiscountValue / 100m);
+                    finalTotal = originalTotal - discount;
+                }
+                else
+                {
+                    finalTotal = originalTotal - voucher.DiscountValue;
+                }
+
+                if (finalTotal < 0)
+                {
+                    finalTotal = 0;
+                }
+
+                if (userVoucher != null)
+                {
+                    userVoucher.IsUsed = true;
+                    userVoucher.UsedAt = DateTime.UtcNow;
+                }
+
+                voucher.UsageCount += 1;
             }
 
             var orderService = new OrderService
@@ -245,29 +350,52 @@ namespace backend.Controllers
                 BookingDetailId = bookingDetail?.Id,
                 OrderDate = DateTime.UtcNow,
                 Status = request.IsPaid ? "Paid" : "Unpaid",
-                TotalAmount = service.Price * request.Quantity
-            };
-
-            var orderServiceDetail = new OrderServiceDetail
-            {
-                ServiceId = service.Id,
-                Quantity = request.Quantity,
-                UnitPrice = service.Price,
-                OrderService = orderService
+                TotalAmount = finalTotal
             };
 
             _context.OrderServices.Add(orderService);
-            _context.OrderServiceDetails.Add(orderServiceDetail);
+
+            var firstDetail = new OrderServiceDetail();
+            var serviceNames = new List<string>();
+
+            for (int i = 0; i < items.Count; i++)
+            {
+                var item = items[i];
+                var s = services[item.ServiceId];
+                serviceNames.Add(s.Name);
+
+                var orderServiceDetail = new OrderServiceDetail
+                {
+                    ServiceId = s.Id,
+                    Quantity = item.Quantity,
+                    UnitPrice = s.Price,
+                    OrderService = orderService
+                };
+
+                _context.OrderServiceDetails.Add(orderServiceDetail);
+
+                if (i == 0)
+                {
+                    firstDetail = orderServiceDetail;
+                    firstDetail.Service = s;
+                }
+            }
 
             if (request.IsPaid && bookingDetail != null)
             {
+                var joinedServiceNames = string.Join(", ", serviceNames);
+                if (joinedServiceNames.Length > 200)
+                {
+                    joinedServiceNames = joinedServiceNames.Substring(0, 197) + "...";
+                }
+
                 var invoice = new Invoice
                 {
                     BookingId = bookingDetail.BookingId,
                     BookingDetailId = bookingDetail.Id,
                     Code = $"DVK-{DateTime.UtcNow:HHmmss}",
                     BookingCode = bookingDetail.Booking?.BookingCode,
-                    RoomName = service.Name,
+                    RoomName = joinedServiceNames,
                     GuestName = bookingDetail.Booking?.Guest?.Name,
                     TotalServiceAmount = orderService.TotalAmount,
                     FinalTotal = orderService.TotalAmount,
@@ -291,11 +419,10 @@ namespace backend.Controllers
             await _context.SaveChangesAsync();
 
             orderService.BookingDetail = bookingDetail;
-            orderServiceDetail.OrderServiceId = orderService.Id;
-            orderServiceDetail.OrderService = orderService;
-            orderServiceDetail.Service = service;
+            firstDetail.OrderServiceId = orderService.Id;
+            firstDetail.OrderService = orderService;
 
-            return Created($"/api/Services/history", MapUsage(orderServiceDetail));
+            return Created($"/api/Services/history", MapUsage(firstDetail));
         }
 
         [HttpPost]

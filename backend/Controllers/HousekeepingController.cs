@@ -197,7 +197,8 @@ namespace backend.Controllers
             room.CleaningStatus = RoomCleaningStatuses.Clean;
             if (room.Status == RoomStatuses.Cleaning)
             {
-                room.Status = RoomStatuses.Available;
+                var isOccupied = await _context.BookingDetails.AnyAsync(bd => bd.RoomId == room.Id && bd.Status == "CheckedIn");
+                room.Status = isOccupied ? RoomStatuses.Occupied : RoomStatuses.Available;
             }
 
             room.LastCleaningUpdatedAt = DateTime.UtcNow;

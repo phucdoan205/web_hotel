@@ -195,6 +195,17 @@ END
         }
         await db.SaveChangesAsync();
     }
+
+    // Auto-fix any rooms that have checked-in guests but are incorrectly marked as Available/other status
+    await db.Database.ExecuteSqlRawAsync(@"
+UPDATE Rooms
+SET Status = 'Occupied'
+WHERE Id IN (
+    SELECT DISTINCT RoomId
+    FROM BookingDetails
+    WHERE Status = 'CheckedIn' AND RoomId IS NOT NULL
+) AND Status <> 'Occupied'
+");
 }
 
 static string GenerateSlug(string value)

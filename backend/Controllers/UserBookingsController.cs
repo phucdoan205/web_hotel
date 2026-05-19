@@ -654,6 +654,43 @@ namespace backend.Controllers
             }
             
             await _context.SaveChangesAsync();
+            
+            if (dto.VoucherId.HasValue)
+            {
+                var userVoucher = await _context.UserVouchers
+                    .Include(uv => uv.Voucher)
+                    .FirstOrDefaultAsync(uv => uv.UserId == currentUser.Id && uv.VoucherId == dto.VoucherId.Value && !uv.IsUsed);
+
+                if (userVoucher == null || userVoucher.Voucher == null || !userVoucher.Voucher.IsActive)
+                {
+                    return BadRequest(new { message = "Voucher không hợp lệ hoặc đã được sử dụng." });
+                }
+
+                if (userVoucher.Voucher.VoucherType == "Service")
+                {
+                    return BadRequest(new { message = "Voucher này chỉ được áp dụng cho các dịch vụ." });
+                }
+
+                if (userVoucher.Voucher.TargetUserId.HasValue && userVoucher.Voucher.TargetUserId.Value != currentUser.Id)
+                {
+                    return BadRequest(new { message = "Voucher này không dành cho bạn." });
+                }
+
+                if (userVoucher.Voucher.ValidFrom.HasValue && userVoucher.Voucher.ValidFrom.Value > DateTime.UtcNow)
+                {
+                    return BadRequest(new { message = "Voucher chưa đến ngày áp dụng." });
+                }
+
+                if (userVoucher.Voucher.ValidTo.HasValue && userVoucher.Voucher.ValidTo.Value < DateTime.UtcNow)
+                {
+                    return BadRequest(new { message = "Voucher đã hết hạn." });
+                }
+
+                if (userVoucher.Voucher.UsageLimit.HasValue && userVoucher.Voucher.UsageCount >= userVoucher.Voucher.UsageLimit.Value)
+                {
+                    return BadRequest(new { message = "Voucher đã đạt giới hạn lượt sử dụng." });
+                }
+            }
 
             var booking = new Booking
             {
@@ -787,6 +824,11 @@ namespace backend.Controllers
                 if (userVoucher.Voucher.ValidTo.HasValue && userVoucher.Voucher.ValidTo.Value < DateTime.UtcNow)
                 {
                     return BadRequest(new { message = "Voucher da het han." });
+                }
+
+                if (userVoucher.Voucher.UsageLimit.HasValue && userVoucher.Voucher.UsageCount >= userVoucher.Voucher.UsageLimit.Value)
+                {
+                    return BadRequest(new { message = "Voucher đã đạt giới hạn lượt sử dụng." });
                 }
 
                 var totalRoomAmount = booking.BookingDetails.Sum(d => d.PricePerNight * Math.Max(1, (d.CheckOutDate - d.CheckInDate).Days));

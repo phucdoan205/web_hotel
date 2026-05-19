@@ -1,8 +1,9 @@
 import { useMemo, useState, useEffect } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ClipboardList, History, Layers, MoreVertical, Pencil, Plus, Search, Trash2, Wrench, X, CheckCircle2, AlertCircle, Image as ImageIcon, ImagePlus } from "lucide-react";
+import { ClipboardList, History, Layers, MoreVertical, Pencil, Plus, Minus, Search, Trash2, Wrench, X, CheckCircle2, AlertCircle, Image as ImageIcon, ImagePlus, ShoppingCart, Percent, CreditCard, Wallet, QrCode } from "lucide-react";
 import { servicesApi } from "../../api/admin/servicesApi";
+import { listVouchers } from "../../api/admin/vouchersApi";
 import { hasPermission } from "../../utils/permissions";
 import { formatVietnamDate, formatVietnamDateTime } from "../../utils/vietnamTime";
 
@@ -214,6 +215,12 @@ const ReceptionistPOSServicePage = () => {
     quantity: 1,
     isPaid: false,
   });
+  const [cart, setCart] = useState([]);
+  const [showCheckoutModal, setShowCheckoutModal] = useState(false);
+  const [selectedVoucherId, setSelectedVoucherId] = useState(null);
+  const [checkoutIsPaid, setCheckoutIsPaid] = useState(false);
+  const [catalogueSearch, setCatalogueSearch] = useState("");
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState("all");
   const [categoryForm, setCategoryForm] = useState(emptyCategoryForm);
   const [historyFilter, setHistoryFilter] = useState({
     paymentStatus: "all",
@@ -256,6 +263,9 @@ const ReceptionistPOSServicePage = () => {
       queryClient.invalidateQueries({ queryKey: ["service-history"] });
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
       setApplyForm((current) => ({ ...current, serviceId: "", quantity: 1, isPaid: false }));
+      setCart([]);
+      setSelectedVoucherId(null);
+      setShowCheckoutModal(false);
       setNotice({ type: "success", message: "Đã áp dụng dịch vụ cho phòng đang lưu trú." });
       setActiveTab("history");
       setSearchParams({ tab: "history" });
@@ -334,6 +344,119 @@ const ReceptionistPOSServicePage = () => {
   const services = useMemo(() => servicesQuery.data || [], [servicesQuery.data]);
   const categories = useMemo(() => categoriesQuery.data || [], [categoriesQuery.data]);
   const historyItems = useMemo(() => historyQuery.data || [], [historyQuery.data]);
+
+  // Cart Helper Actions
+  const addToCart = (service) => {
+    setCart((prev) => {
+      const existing = prev.find((item) => item.serviceId === service.id);
+      if (existing) {
+        return prev.map((item) =>
+          item.serviceId === service.id
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
+        );
+      }
+      return [
+        ...prev,
+        {
+          serviceId: service.id,
+          name: service.name,
+          price: service.price,
+          unit: service.unit,
+          thumbnailUrl: service.thumbnailUrl,
+          quantity: 1,
+        },
+      ];
+    });
+  };
+
+  const updateCartQuantity = (serviceId, quantity) => {
+    if (quantity <= 0) {
+      setCart((prev) => prev.filter((item) => item.serviceId !== serviceId));
+    } else {
+      setCart((prev) =>
+        prev.map((item) =>
+          item.serviceId === serviceId ? { ...item, quantity: Number(quantity) } : item
+        )
+      );
+    }
+  };
+
+  const removeFromCart = (serviceId) => {
+    setCart((prev) => prev.filter((item) => item.serviceId !== serviceId));
+  };
+
+  // Catalogue Filters
+  const filteredCatalogueServices = useMemo(() => {
+    const searchVal = catalogueSearch.trim().toLowerCase();
+    return activeServices.filter((s) => {
+      const matchesSearch = !searchVal || s.name.toLowerCase().includes(searchVal);
+      const matchesCategory =
+        selectedCategoryFilter === "all" ||
+        Number(s.categoryId) === Number(selectedCategoryFilter);
+      return matchesSearch && matchesCategory;
+    });
+  }, [activeServices, catalogueSearch, selectedCategoryFilter]);
+
+  // Vouchers Query for Service Discounts
+  const serviceVouchersQuery = useQuery({
+    queryKey: ["vouchers", "service-discount"],
+    queryFn: async () => {
+      const res = await listVouchers({ includeDeleted: false });
+      const raw = Array.isArray(res.data) ? res.data : [];
+      const today = new Date();
+      return raw.map(v => ({
+        id: v.id ?? v.Id,
+        code: v.code ?? v.Code,
+        name: v.name ?? v.Name,
+        discountType: v.discountType ?? v.DiscountType,
+        discountValue: Number(v.discountValue ?? v.DiscountValue ?? 0),
+        minBookingValue: v.minBookingValue ?? v.MinBookingValue,
+        validTo: v.validTo ?? v.ValidTo,
+        isActive: v.isActive ?? v.IsActive,
+        isDeleted: v.isDeleted ?? v.IsDeleted,
+        voucherType: v.voucherType ?? v.VoucherType,
+      })).filter(
+        (v) =>
+          v.isActive &&
+          !v.isDeleted &&
+          String(v.voucherType || "").toLowerCase() === "service" &&
+          (!v.validTo || new Date(v.validTo) >= today)
+      );
+    },
+  });
+  const serviceVouchers = serviceVouchersQuery.data || [];
+
+  // Checkout Calculations
+  const cartSubtotal = useMemo(() => {
+    return cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  }, [cart]);
+
+  const selectedVoucher = useMemo(() => {
+    if (!selectedVoucherId) return null;
+    return serviceVouchers.find((v) => Number(v.id) === Number(selectedVoucherId));
+  }, [selectedVoucherId, serviceVouchers]);
+
+  const isVoucherValid = useMemo(() => {
+    if (!selectedVoucher) return true;
+    if (selectedVoucher.minBookingValue && cartSubtotal < selectedVoucher.minBookingValue) {
+      return false;
+    }
+    return true;
+  }, [selectedVoucher, cartSubtotal]);
+
+  const cartDiscount = useMemo(() => {
+    if (!selectedVoucher || !isVoucherValid) return 0;
+    if (String(selectedVoucher.discountType).toUpperCase() === "PERCENT") {
+      return cartSubtotal * (selectedVoucher.discountValue / 100);
+    }
+    return selectedVoucher.discountValue;
+  }, [selectedVoucher, isVoucherValid, cartSubtotal]);
+
+  const cartTotal = useMemo(() => {
+    const total = cartSubtotal - cartDiscount;
+    return total < 0 ? 0 : total;
+  }, [cartSubtotal, cartDiscount]);
 
   const filteredServices = useMemo(() => {
     const normalizedSearch = serviceSearch.trim().toLowerCase();
@@ -486,104 +609,189 @@ const ReceptionistPOSServicePage = () => {
         </div>
 
         {activeTab === "apply" ? (
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_380px]">
-            <section>
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Áp dụng dịch vụ</p>
-              <h2 className="mt-2 text-2xl font-black text-slate-900">Chỉ áp dụng cho phòng đang lưu trú</h2>
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
+            {/* Left side: Room selection & Service catalog */}
+            <section className="space-y-6">
+              <div className="rounded-[2.5rem] border border-slate-100 bg-white p-6 shadow-sm">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <label className="grid gap-2">
+                    <span className="text-sm font-bold text-slate-700">Chọn phòng đang lưu trú</span>
+                    <select
+                      value={applyForm.bookingDetailId}
+                      onChange={(event) => setApplyForm((current) => ({ ...current, bookingDetailId: event.target.value }))}
+                      className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-sky-400 font-bold"
+                    >
+                      <option value="">-- Danh sách phòng đang lưu trú --</option>
+                      {inHouseRooms.map((room) => (
+                        <option key={room.bookingDetailId} value={room.bookingDetailId}>
+                          Phòng {room.roomNumber} - {room.guestName} ({room.bookingCode})
+                        </option>
+                      ))}
+                    </select>
+                  </label>
 
-              <form onSubmit={handleApplySubmit} className="mt-6 grid gap-4">
-                <label className="grid gap-2">
-                  <span className="text-sm font-bold text-slate-700">Chọn phòng</span>
-                  <select
-                    value={applyForm.bookingDetailId}
-                    onChange={(event) => setApplyForm((current) => ({ ...current, bookingDetailId: event.target.value }))}
-                    className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-sky-400"
+                  <label className="grid gap-2">
+                    <span className="text-sm font-bold text-slate-700">Tìm kiếm dịch vụ</span>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+                      <input
+                        type="text"
+                        value={catalogueSearch}
+                        onChange={(e) => setCatalogueSearch(e.target.value)}
+                        placeholder="Tìm tên dịch vụ..."
+                        className="w-full rounded-2xl border border-slate-200 bg-white py-3 pl-10 pr-4 text-sm text-slate-700 outline-none transition focus:border-sky-400"
+                      />
+                    </div>
+                  </label>
+                </div>
+
+                {/* Category tabs */}
+                <div className="mt-6 flex flex-wrap gap-2 border-t border-slate-50 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedCategoryFilter("all")}
+                    className={`rounded-xl px-4 py-2 text-xs font-bold transition ${
+                      selectedCategoryFilter === "all"
+                        ? "bg-sky-600 text-white shadow-md shadow-sky-100/60"
+                        : "bg-slate-50 text-slate-600 hover:bg-slate-100"
+                    }`}
                   >
-                    <option value="">Danh sách phòng đang lưu trú</option>
-                    {inHouseRooms.map((room) => (
-                      <option key={room.bookingDetailId} value={room.bookingDetailId}>
-                        Phòng {room.roomNumber} - {room.guestName} - {room.bookingCode}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                    Tất cả nhóm
+                  </button>
+                  {categories.filter(c => c.status).map((cat) => (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => setSelectedCategoryFilter(cat.id)}
+                      className={`rounded-xl px-4 py-2 text-xs font-bold transition ${
+                        Number(selectedCategoryFilter) === Number(cat.id)
+                          ? "bg-sky-600 text-white shadow-md shadow-sky-100/60"
+                          : "bg-slate-50 text-slate-600 hover:bg-slate-100"
+                      }`}
+                    >
+                      {cat.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
-                <label className="grid gap-2">
-                  <span className="text-sm font-bold text-slate-700">Chọn dịch vụ</span>
-                  <select
-                    value={applyForm.serviceId}
-                    onChange={(event) => setApplyForm((current) => ({ ...current, serviceId: event.target.value }))}
-                    className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-sky-400"
-                  >
-                    <option value="">Danh sách dịch vụ đang hoạt động</option>
-                    {activeServices.map((service) => (
-                      <option key={service.id} value={service.id}>
-                        {service.name} - {formatCurrency(service.price)}
-                        {service.unit ? ` / ${service.unit}` : ""}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+              {/* Service Catalog Grid */}
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Danh mục dịch vụ</p>
+                <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {filteredCatalogueServices.length === 0 ? (
+                    <div className="col-span-full rounded-3xl bg-slate-50 py-12 text-center text-slate-500 font-semibold">
+                      Không tìm thấy dịch vụ nào phù hợp.
+                    </div>
+                  ) : (
+                    filteredCatalogueServices.map((service) => (
+                      <div
+                        key={service.id}
+                        onClick={() => addToCart(service)}
+                        className="group flex items-center justify-between overflow-hidden rounded-3xl bg-white border border-slate-100 p-5 shadow-sm transition hover:shadow-md hover:border-sky-200 cursor-pointer"
+                      >
+                        <div className="flex-1 min-w-0 pr-3">
+                          <span className="text-[10px] font-bold text-sky-600 uppercase tracking-wider block mb-1">
+                            {service.categoryName || "Khác"}
+                          </span>
+                          <h4 className="font-black text-slate-800 text-sm group-hover:text-sky-600 transition truncate">
+                            {service.name}
+                          </h4>
+                          <div className="mt-2 flex items-center gap-2 text-xs text-slate-400 font-semibold">
+                            <span>ĐVT: {service.unit || "Lần"}</span>
+                            <span>•</span>
+                            <span className="text-slate-900 font-black">{formatCurrency(service.price)}</span>
+                          </div>
+                        </div>
 
-                <label className="grid gap-2">
-                  <span className="text-sm font-bold text-slate-700">Nhập số lượng</span>
-                  <input
-                    type="number"
-                    min="1"
-                    value={applyForm.quantity}
-                    onChange={(event) => setApplyForm((current) => ({ ...current, quantity: event.target.value }))}
-                    className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-sky-400"
-                  />
-                </label>
-
-                <label className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    checked={applyForm.isPaid}
-                    onChange={(event) => setApplyForm((current) => ({ ...current, isPaid: event.target.checked }))}
-                    className="h-5 w-5 rounded-md border-slate-300 text-sky-600 focus:ring-sky-500"
-                  />
-                  <span className="text-sm font-bold text-slate-700">Đã thu tiền mặt/chuyển khoản trực tiếp</span>
-                </label>
-
-                <button
-                  type="submit"
-                  disabled={applyServiceMutation.isPending || !canCreateService}
-                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-sky-600 px-5 py-3 text-sm font-black text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:bg-sky-300"
-                >
-                  <Plus size={16} />
-                  {applyServiceMutation.isPending ? "Đang áp dụng..." : "Áp dụng dịch vụ"}
-                </button>
-              </form>
-            </section>
-
-            <aside className="rounded-[2rem] bg-gradient-to-br from-slate-900 via-sky-900 to-cyan-700 p-6 text-white shadow-sm">
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-white/70">Danh sách phòng đang lưu trú</p>
-              <div className="mt-4 space-y-3">
-                {inHouseRoomsQuery.isLoading ? (
-                  <div className="rounded-[1.5rem] bg-white/10 px-4 py-5 text-sm text-white/80">Đang tải danh sách phòng...</div>
-                ) : inHouseRooms.length === 0 ? (
-                  <div className="rounded-[1.5rem] bg-white/10 px-4 py-5 text-sm text-white/80">Hiện chưa có phòng đang lưu trú.</div>
-                ) : (
-                  inHouseRooms.map((room) => (
-                    <div key={room.bookingDetailId} className="rounded-[1.5rem] bg-white/10 px-4 py-4 backdrop-blur-sm">
-                      <div className="flex items-center justify-between gap-3">
-                        <p className="text-lg font-black">Phòng {room.roomNumber}</p>
-                        <span className="rounded-full bg-emerald-400/20 px-3 py-1 text-xs font-bold text-emerald-100">
-                          CheckedIn
+                        <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-sky-50 text-sky-600 group-hover:bg-sky-600 group-hover:text-white transition">
+                          <Plus size={16} />
                         </span>
                       </div>
-                      <p className="mt-2 text-sm font-semibold text-white/85">{room.guestName}</p>
-                      <p className="mt-1 text-xs font-medium text-white/70">
-                        {room.bookingCode} • {room.roomName}
-                      </p>
-                      <p className="mt-2 text-xs font-medium text-white/70">
-                        {formatVietnamDate(room.checkInDate)} - {formatVietnamDate(room.checkOutDate)}
-                      </p>
+                    ))
+                  )}
+                </div>
+              </div>
+            </section>
+
+            {/* Right side: Shopping Cart */}
+            <aside className="rounded-[2rem] bg-sky-50/70 border border-sky-100/80 p-6 text-slate-800 shadow-xl shadow-sky-100/30 self-start sticky top-6">
+              <div className="flex items-center justify-between border-b border-sky-100 pb-4">
+                <div className="flex items-center gap-2">
+                  <ShoppingCart size={18} className="text-sky-600" />
+                  <h3 className="font-black text-base text-slate-950">Giỏ dịch vụ</h3>
+                </div>
+                <span className="rounded-full bg-sky-600/10 text-sky-700 px-2.5 py-0.5 text-xs font-black">
+                  {cart.reduce((sum, item) => sum + item.quantity, 0)} món
+                </span>
+              </div>
+
+              <div className="mt-4 space-y-4 max-h-[380px] overflow-y-auto pr-1">
+                {cart.length === 0 ? (
+                  <div className="py-12 text-center text-slate-400 flex flex-col items-center justify-center gap-3">
+                    <ShoppingCart size={40} className="text-sky-200" />
+                    <p className="text-xs font-semibold leading-relaxed">
+                      Chưa chọn dịch vụ nào.<br />Vui lòng nhấp vào các thẻ dịch vụ ở bên trái.
+                    </p>
+                  </div>
+                ) : (
+                  cart.map((item) => (
+                    <div key={item.serviceId} className="flex items-center gap-3 rounded-2xl bg-white border border-sky-100/50 p-3.5 shadow-sm">
+                      <div className="flex-1 min-w-0 pr-2">
+                        <h4 className="truncate text-xs font-black text-slate-800">{item.name}</h4>
+                        <p className="text-[10px] text-slate-500 font-bold mt-0.5">{formatCurrency(item.price)}</p>
+                      </div>
+                      <div className="flex items-center gap-1.5 bg-sky-50 rounded-xl p-1 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => updateCartQuantity(item.serviceId, item.quantity - 1)}
+                          className="h-7 w-7 flex items-center justify-center text-sky-700 hover:bg-sky-100 rounded-lg transition"
+                        >
+                          <Minus size={13} />
+                        </button>
+                        <span className="text-sm font-black text-slate-800 w-5 text-center">{item.quantity}</span>
+                        <button
+                          type="button"
+                          onClick={() => updateCartQuantity(item.serviceId, item.quantity + 1)}
+                          className="h-7 w-7 flex items-center justify-center text-sky-700 hover:bg-sky-100 rounded-lg transition"
+                        >
+                          <Plus size={13} />
+                        </button>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeFromCart(item.serviceId)}
+                        className="text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg p-1.5 shrink-0 transition"
+                      >
+                        <X size={15} />
+                      </button>
                     </div>
                   ))
                 )}
               </div>
+
+              {cart.length > 0 && (
+                <div className="mt-6 border-t border-sky-100 pt-4 space-y-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-bold text-slate-500">Tạm tính:</span>
+                    <span className="text-lg font-black text-slate-900">{formatCurrency(cartSubtotal)}</span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!applyForm.bookingDetailId) {
+                        setNotice({ type: "error", message: "Vui lòng chọn phòng để áp dụng dịch vụ." });
+                        return;
+                      }
+                      setShowCheckoutModal(true);
+                    }}
+                    className="w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-sky-500 py-3.5 text-sm font-black text-white hover:bg-sky-600 transition shadow-lg shadow-sky-500/20"
+                  >
+                    Tiến hành thanh toán
+                  </button>
+                </div>
+              )}
             </aside>
           </div>
         ) : null}
@@ -954,6 +1162,285 @@ const ReceptionistPOSServicePage = () => {
           isSubmitting={createCategoryMutation.isPending || updateCategoryMutation.isPending}
         />
       ) : null}
+
+      {showCheckoutModal ? (() => {
+        const activeRoom = inHouseRooms.find(r => Number(r.bookingDetailId) === Number(applyForm.bookingDetailId));
+        const roomNumber = activeRoom?.roomNumber || "--";
+        const guestName = activeRoom?.guestName || "Khách lẻ";
+
+        return (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm">
+            <style dangerouslySetInnerHTML={{__html: `
+              .no-scrollbar::-webkit-scrollbar {
+                display: none !important;
+              }
+              .no-scrollbar {
+                -ms-overflow-style: none !important;
+                scrollbar-width: none !important;
+              }
+            `}} />
+            <div
+              className={`w-full transition-all duration-350 rounded-[2.5rem] bg-white p-8 shadow-2xl overflow-y-auto max-h-[90vh] ring-1 ring-slate-100 animate-in fade-in zoom-in-95 duration-200 no-scrollbar ${
+                checkoutIsPaid ? "max-w-5xl" : "max-w-2xl"
+              }`}
+            >
+              <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-4">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Thanh toán & Áp dụng</p>
+                  <h2 className="mt-2 text-2xl font-black text-slate-900">Chi tiết hóa đơn dịch vụ</h2>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowCheckoutModal(false)}
+                  className="rounded-2xl bg-slate-100 p-3 text-slate-500 transition hover:bg-slate-200 hover:text-slate-700"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className={`mt-6 flex flex-col ${checkoutIsPaid ? "lg:flex-row gap-8" : "gap-4"}`}>
+                {/* Left Column (Details) */}
+                <div className="flex-1 min-w-0">
+                  {/* Room Info */}
+                  <div className="rounded-3xl bg-sky-50/70 p-5 border border-sky-100/50 flex items-center justify-between">
+                    <div>
+                      <span className="text-[10px] font-bold text-sky-600 uppercase tracking-wider block">Phòng áp dụng</span>
+                      <h3 className="text-xl font-black text-slate-800 mt-0.5">
+                        Phòng {roomNumber}
+                      </h3>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Khách hàng</span>
+                      <span className="font-extrabold text-slate-700 block mt-0.5">
+                        {guestName}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Itemized List */}
+                  <div className="mt-6">
+                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Danh sách dịch vụ đã chọn</h4>
+                    <div className="border border-slate-100 rounded-3xl overflow-hidden shadow-sm">
+                      <table className="min-w-full divide-y divide-slate-100">
+                        <thead className="bg-slate-50">
+                          <tr className="text-left text-[10px] font-bold text-slate-400 uppercase">
+                            <th className="px-5 py-3.5">Dịch vụ</th>
+                            <th className="px-5 py-3.5 text-center">Số lượng</th>
+                            <th className="px-5 py-3.5 text-right">Đơn giá</th>
+                            <th className="px-5 py-3.5 text-right">Thành tiền</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 bg-white">
+                          {cart.map((item) => (
+                            <tr key={item.serviceId} className="text-sm">
+                              <td className="px-5 py-4 font-bold text-slate-800">{item.name}</td>
+                              <td className="px-5 py-4 text-center text-slate-600 font-semibold">{item.quantity}</td>
+                              <td className="px-5 py-4 text-right text-slate-600 font-medium">{formatCurrency(item.price)}</td>
+                              <td className="px-5 py-4 text-right font-black text-slate-800">{formatCurrency(item.price * item.quantity)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* Voucher Section */}
+                  <div className="mt-6 space-y-2">
+                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider">
+                      Áp dụng Voucher dịch vụ
+                    </label>
+                    <select
+                      value={selectedVoucherId || ""}
+                      onChange={(e) => setSelectedVoucherId(e.target.value ? Number(e.target.value) : null)}
+                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-sky-400 font-bold"
+                    >
+                      <option value="">-- Không áp dụng voucher --</option>
+                      {serviceVouchers.map((v) => (
+                        <option key={v.id} value={v.id}>
+                          [{v.code}] - {v.name} (Giảm {v.discountType === "PERCENT" ? `${v.discountValue}%` : `${formatCurrency(v.discountValue)}`})
+                        </option>
+                      ))}
+                    </select>
+                    {selectedVoucher && !isVoucherValid && (
+                      <div className="rounded-xl bg-rose-50 px-3 py-2 text-xs text-rose-600 font-bold flex items-center gap-1.5 border border-rose-100/50">
+                        <AlertCircle size={14} className="shrink-0" />
+                        <span>Cần đạt giá trị đơn tối thiểu {formatCurrency(selectedVoucher.minBookingValue)} để dùng voucher này.</span>
+                      </div>
+                    )}
+                    {selectedVoucher && isVoucherValid && (
+                      <div className="rounded-xl bg-emerald-50 px-3 py-2 text-xs text-emerald-700 font-bold flex items-center gap-1.5 border border-emerald-100/50">
+                        <CheckCircle2 size={14} className="shrink-0" />
+                        <span>Đã áp dụng thành công voucher giảm giá!</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Payment Method Selector */}
+                  <div className="mt-6 space-y-3">
+                    <span className="block text-xs font-bold text-slate-400 uppercase tracking-wider">Hình thức ghi nhận</span>
+                    <div className="grid grid-cols-2 gap-4">
+                      {/* Ghi nợ */}
+                      <button
+                        type="button"
+                        onClick={() => setCheckoutIsPaid(false)}
+                        className={`flex flex-col items-start gap-2.5 rounded-3xl p-5 border text-left transition ${
+                          !checkoutIsPaid
+                            ? "border-sky-500 bg-sky-50/50 ring-2 ring-sky-500/10 shadow-sm"
+                            : "border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50/50"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between w-full">
+                          <div className={`p-2 rounded-xl transition ${!checkoutIsPaid ? "bg-sky-600 text-white" : "bg-slate-100 text-slate-500"}`}>
+                            <CreditCard size={18} />
+                          </div>
+                          <div className={`h-4 w-4 rounded-full border flex items-center justify-center transition ${!checkoutIsPaid ? "border-sky-500 bg-sky-500" : "border-slate-300 bg-white"}`}>
+                            {!checkoutIsPaid && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
+                          </div>
+                        </div>
+                        <div>
+                          <h5 className="font-black text-slate-800 text-sm">Ghi nợ vào phòng</h5>
+                          <p className="text-[11px] font-semibold text-slate-400 mt-1 leading-normal">
+                            Hóa đơn dịch vụ được ghi nợ vào phòng, thanh toán chung khi Checkout phòng.
+                          </p>
+                        </div>
+                      </button>
+
+                      {/* Thanh toán ngay */}
+                      <button
+                        type="button"
+                        onClick={() => setCheckoutIsPaid(true)}
+                        className={`flex flex-col items-start gap-2.5 rounded-3xl p-5 border text-left transition ${
+                          checkoutIsPaid
+                            ? "border-sky-500 bg-sky-50/50 ring-2 ring-sky-500/10 shadow-sm"
+                            : "border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50/50"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between w-full">
+                          <div className={`p-2 rounded-xl transition ${checkoutIsPaid ? "bg-sky-600 text-white" : "bg-slate-100 text-slate-500"}`}>
+                            <Wallet size={18} />
+                          </div>
+                          <div className={`h-4 w-4 rounded-full border flex items-center justify-center transition ${checkoutIsPaid ? "border-sky-500 bg-sky-500" : "border-slate-300 bg-white"}`}>
+                            {checkoutIsPaid && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
+                          </div>
+                        </div>
+                        <div>
+                          <h5 className="font-black text-slate-800 text-sm">Thanh toán ngay</h5>
+                          <p className="text-[11px] font-semibold text-slate-400 mt-1 leading-normal">
+                            Khách trả trực tiếp (Tiền mặt / Chuyển khoản), xuất hóa đơn hoàn tất lập tức.
+                          </p>
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Financial Breakdown */}
+                  <div className="mt-8 rounded-3xl bg-slate-50 p-6 space-y-3.5">
+                    <div className="flex justify-between text-sm text-slate-500 font-semibold">
+                      <span>Tạm tính:</span>
+                      <span>{formatCurrency(cartSubtotal)}</span>
+                    </div>
+                    {cartDiscount > 0 && (
+                      <div className="flex justify-between text-sm text-emerald-600 font-bold">
+                        <span>Giảm giá Voucher:</span>
+                        <span>-{formatCurrency(cartDiscount)}</span>
+                      </div>
+                    )}
+                    <div className="border-t border-slate-200 pt-3.5 flex justify-between items-center">
+                      <span className="text-base font-black text-slate-700">Tổng cộng:</span>
+                      <span className="text-2xl font-black text-sky-600">{formatCurrency(cartTotal)}</span>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="mt-8 flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!applyForm.bookingDetailId) {
+                          setNotice({ type: "error", message: "Vui lòng chọn phòng để áp dụng dịch vụ." });
+                          return;
+                        }
+                        if (cart.length === 0) {
+                          setNotice({ type: "error", message: "Giỏ dịch vụ đang trống." });
+                          return;
+                        }
+                        if (selectedVoucher && !isVoucherValid) {
+                          setNotice({ type: "error", message: "Voucher đã chọn không hợp lệ cho giá trị đơn hàng hiện tại." });
+                          return;
+                        }
+
+                        applyServiceMutation.mutate({
+                          bookingDetailId: Number(applyForm.bookingDetailId),
+                          isPaid: checkoutIsPaid,
+                          voucherId: selectedVoucherId ? Number(selectedVoucherId) : null,
+                          items: cart.map(item => ({
+                            serviceId: Number(item.serviceId),
+                            quantity: Number(item.quantity)
+                          }))
+                        });
+                      }}
+                      disabled={applyServiceMutation.isPending}
+                      className="flex-1 inline-flex items-center justify-center gap-2 rounded-2xl bg-sky-600 py-4 text-base font-black text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:bg-sky-300 shadow-lg shadow-sky-600/10"
+                    >
+                      {applyServiceMutation.isPending ? "Đang xử lý..." : "Xác nhận & Áp dụng"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowCheckoutModal(false)}
+                      className="rounded-2xl bg-slate-100 px-6 py-4 text-base font-bold text-slate-600 transition hover:bg-slate-200"
+                    >
+                      Hủy
+                    </button>
+                  </div>
+                </div>
+
+                {/* Right Column (VietQR Code Panel) */}
+                {checkoutIsPaid && (
+                  <div className="w-full lg:w-[420px] shrink-0 flex flex-col justify-between rounded-[2rem] border border-sky-100 bg-sky-50/50 p-6 text-center shadow-inner animate-in fade-in slide-in-from-right-8 duration-300">
+                    <div>
+                      <div className="flex items-center justify-between border-b border-sky-100 pb-3">
+                        <div className="text-left">
+                          <span className="text-[10px] font-bold text-sky-600 uppercase tracking-wider block">Ngân hàng thụ hưởng</span>
+                          <h4 className="font-black text-slate-800 text-sm mt-0.5">BIDV - HPT HOTEL</h4>
+                        </div>
+                        <div className="rounded-xl bg-sky-100 p-2.5 text-sky-700">
+                          <QrCode size={18} />
+                        </div>
+                      </div>
+
+                      <div className="mt-8 flex justify-center">
+                        <div className="relative flex h-[340px] w-[340px] items-center justify-center rounded-[2.5rem] border-[12px] border-white bg-white p-4 shadow-lg shadow-sky-100/60 transition hover:scale-[1.02] duration-350">
+                          <img
+                            src={`https://img.vietqr.io/image/BIDV-96247GXSXM-compact2.jpg?amount=${cartTotal}&addInfo=TT%20DV%20Phong%20${roomNumber}&accountName=HPT%20HOTEL`}
+                            alt="QR thanh toán chuyển khoản"
+                            className="h-full w-full object-contain rounded-2xl"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="mt-8 space-y-2 text-center">
+                        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Số tiền chuyển khoản</p>
+                        <p className="text-3xl font-black text-sky-600">{formatCurrency(cartTotal)}</p>
+                      </div>
+                    </div>
+
+                    <div className="mt-8 rounded-3xl bg-white border border-sky-100/40 p-5 text-left space-y-3 shadow-sm">
+                      <div className="flex justify-between items-center text-sm font-semibold">
+                        <span className="text-slate-400">Số tài khoản:</span>
+                        <span className="text-slate-800 font-extrabold text-base bg-slate-50 px-2.5 py-1 rounded-xl">96247GXSXM</span>
+                      </div>
+                      <div className="flex justify-between items-center text-sm font-semibold">
+                        <span className="text-slate-400">Nội dung chuyển:</span>
+                        <span className="text-sky-600 font-black text-sm bg-sky-50 px-2.5 py-1 rounded-xl">TT DV Phong {roomNumber}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })() : null}
     </>
   );
 };

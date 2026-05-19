@@ -99,6 +99,139 @@ const ROOM_STATUS_COLORS = {
   OutOfOrder: "#64748b",
 };
 
+const formatShortageNotification = (title, subtitle) => {
+  let formattedTitle = title || "";
+  let formattedSubtitle = subtitle || "";
+
+  let eqName = "";
+  let qty = 0;
+  let hasItems = false;
+  let itemsSummary = "";
+
+  if (subtitle && (subtitle.trim().startsWith("{") || subtitle.trim().startsWith("["))) {
+    try {
+      const data = JSON.parse(subtitle);
+      const items = data.Items ?? data.items;
+      if (items && Array.isArray(items) && items.length > 0) {
+        hasItems = true;
+        itemsSummary = items
+          .map(item => {
+            const name = item.EquipmentName ?? item.equipmentName ?? item.Name ?? item.name ?? 'Vật tư';
+            const q = item.ShortageQuantity ?? item.shortageQuantity ?? item.RequestedQuantity ?? item.requestedQuantity ?? item.Quantity ?? item.quantity ?? 0;
+            return `${name} (${q} cái)`;
+          })
+          .join(", ");
+
+        formattedSubtitle = items
+          .map(item => {
+            const name = item.EquipmentName ?? item.equipmentName ?? item.Name ?? item.name ?? 'Vật tư';
+            const q = item.ShortageQuantity ?? item.shortageQuantity ?? item.RequestedQuantity ?? item.requestedQuantity ?? item.Quantity ?? item.quantity ?? 0;
+            return `${name}: ${q} cái`;
+          })
+          .join(", ");
+      } else {
+        eqName = data.EquipmentName ?? data.equipmentName ?? data.Name ?? data.name ?? "";
+        qty = data.ShortageQuantity ?? data.shortageQuantity ?? data.RequestedQuantity ?? data.requestedQuantity ?? data.Quantity ?? data.quantity ?? 0;
+        
+        if (eqName) {
+          formattedSubtitle = `${eqName}: ${qty} cái`;
+        } else if (data.ReportType || data.reportType) {
+          const reportType = data.ReportType ?? data.reportType;
+          const resType = data.ResolutionType ?? data.resolutionType;
+          const typeStr = reportType === "loss-damage" ? "Thất thoát/Hư hỏng" : "Thiếu hụt";
+          const resStr = resType === "Restocked" ? "Đã bổ sung" : resType;
+          formattedSubtitle = `Xử lý báo cáo ${typeStr} #${data.ReportId ?? data.reportId}: ${resStr} ${qty ? `(${qty} cái)` : ""}`;
+        }
+      }
+    } catch (e) {
+      try {
+        const itemsMatch = subtitle.match(/"Items"\s*:\s*(\[.*?\])/);
+        if (itemsMatch && itemsMatch[1]) {
+          const decodedItemsStr = itemsMatch[1].replace(/\\u([0-9a-fA-F]{4})/g, (match, grp) =>
+            String.fromCharCode(parseInt(grp, 16))
+          );
+          const items = JSON.parse(decodedItemsStr);
+          if (Array.isArray(items) && items.length > 0) {
+            hasItems = true;
+            itemsSummary = items
+              .map(item => {
+                const name = item.EquipmentName ?? item.equipmentName ?? item.Name ?? item.name ?? 'Vật tư';
+                const q = item.ShortageQuantity ?? item.shortageQuantity ?? item.RequestedQuantity ?? item.requestedQuantity ?? item.Quantity ?? item.quantity ?? 0;
+                return `${name} (${q} cái)`;
+              })
+              .join(", ");
+
+            formattedSubtitle = items
+              .map(item => {
+                const name = item.EquipmentName ?? item.equipmentName ?? item.Name ?? item.name ?? 'Vật tư';
+                const q = item.ShortageQuantity ?? item.shortageQuantity ?? item.RequestedQuantity ?? item.requestedQuantity ?? item.Quantity ?? item.quantity ?? 0;
+                return `${name}: ${q} cái`;
+              })
+              .join(", ");
+          }
+        } else {
+          const nameMatch = subtitle.match(/"EquipmentName"\s*:\s*"([^"]+)"/);
+          const qtyMatch = subtitle.match(/"(?:ShortageQuantity|RequestedQuantity)"\s*:\s*(\d+)/);
+          if (nameMatch && nameMatch[1]) {
+            eqName = nameMatch[1].replace(/\\u([0-9a-fA-F]{4})/g, (match, grp) =>
+              String.fromCharCode(parseInt(grp, 16))
+            );
+            qty = qtyMatch ? Number(qtyMatch[1]) : 1;
+            formattedSubtitle = `${eqName}: ${qty} cái`;
+          }
+        }
+      } catch (err) {
+        formattedSubtitle = subtitle;
+      }
+    }
+  }
+
+  // 1. Format the Title first (add beautiful accents and item details)
+  const titleMatch = formattedTitle.match(/^That thoat vat tu phong\s+(.+)$/i);
+  if (titleMatch) {
+    const roomNumber = titleMatch[1];
+    if (eqName) {
+      formattedTitle = `Thất thoát: ${eqName} (${qty} cái) - Phòng ${roomNumber}`;
+    } else if (hasItems) {
+      formattedTitle = `Thất thoát: ${itemsSummary} - Phòng ${roomNumber}`;
+    } else {
+      formattedTitle = `Thất thoát vật tư phòng ${roomNumber}`;
+    }
+  }
+
+  const shortageMatch = formattedTitle.match(/^Bao thieu vat tu phong\s+(.+)$/i);
+  if (shortageMatch) {
+    const roomNumber = shortageMatch[1];
+    if (eqName) {
+      formattedTitle = `Báo thiếu: ${eqName} (${qty} cái) - Phòng ${roomNumber}`;
+    } else if (hasItems) {
+      formattedTitle = `Báo thiếu: ${itemsSummary} - Phòng ${roomNumber}`;
+    } else {
+      formattedTitle = `Báo thiếu vật tư phòng ${roomNumber}`;
+    }
+  }
+
+  const thieuMatch = formattedTitle.match(/^(?:Bao\s+)?Thieu vat tu phong\s+(.+)$/i);
+  if (thieuMatch) {
+    const roomNumber = thieuMatch[1];
+    if (eqName) {
+      formattedTitle = `Thiếu vật tư: ${eqName} (${qty} cái) - Phòng ${roomNumber}`;
+    } else if (hasItems) {
+      formattedTitle = `Thiếu vật tư: ${itemsSummary} - Phòng ${roomNumber}`;
+    } else {
+      formattedTitle = `Thiếu vật tư phòng ${roomNumber}`;
+    }
+  }
+
+  if (formattedSubtitle.startsWith("{")) {
+    formattedSubtitle = formattedSubtitle.replace(/\\u([0-9a-fA-F]{4})/g, (match, grp) =>
+      String.fromCharCode(parseInt(grp, 16))
+    );
+  }
+
+  return { title: formattedTitle, subtitle: formattedSubtitle };
+};
+
 // ─── KPI Stat Card ──────────────────────────────────────────────────────────
 function StatCard({ code, title, value, unit, growthRate, trendDir }) {
   const cfg = KPI_CONFIG[code] || KPI_CONFIG.fallback;
@@ -1448,16 +1581,26 @@ export default function AdminDashboardPage() {
   }, [kpiCards, cmp]);
 
   const mergedNotifications = useMemo(() => {
-    const global = summary.tasks?.notifications || [];
+    const global = (summary.tasks?.notifications || []).map(n => {
+      const formatted = formatShortageNotification(n.title, n.subtitle);
+      return {
+        ...n,
+        title: formatted.title,
+        subtitle: formatted.subtitle
+      };
+    });
     const personal = (personalNotifications || [])
       .filter(n => n.userId != null) // Avoid duplicating global ones if they are returned
-      .map(n => ({
-        id: n.id?.toString(),
-        title: n.title,
-        subtitle: n.content,
-        time: n.createdAt,
-        type: n.type || "Info"
-      }));
+      .map(n => {
+        const formatted = formatShortageNotification(n.title, n.content);
+        return {
+          id: n.id?.toString(),
+          title: formatted.title,
+          subtitle: formatted.subtitle,
+          time: n.createdAt,
+          type: n.type || "Info"
+        };
+      });
 
     let allNotifs = [...global, ...personal];
     if (role === "Receptionist" || role === "Manager" || role === "Admin") {

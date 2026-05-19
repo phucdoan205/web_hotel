@@ -302,6 +302,10 @@ namespace backend.Controllers
                 {
                     return BadRequest("Voucher này chỉ áp dụng cho một khách hàng cụ thể.");
                 }
+                if (v.UsageLimit.HasValue && v.UsageCount >= v.UsageLimit.Value)
+                {
+                    return BadRequest("Voucher đã đạt giới hạn lượt sử dụng.");
+                }
             }
 
             // ====================== TẠO BOOKING ======================
