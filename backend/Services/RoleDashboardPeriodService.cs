@@ -74,34 +74,8 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
 
         var realtimeDashboardJson = BuildDashboardJson(role.Name, dashboardCode, period, periodMetrics);
         var realtimeComparisonJson = BuildComparisonJson(role.Name, period, periodMetrics, previousMetrics);
-
-        if (cachedEntity != null)
-        {
-            try
-            {
-                var cachedObj = JsonNode.Parse(cachedEntity.DashboardJson)?.AsObject();
-                var realtimeObj = JsonNode.Parse(realtimeDashboardJson)?.AsObject();
-
-                if (cachedObj != null && realtimeObj != null)
-                {
-                    var cachedSummary = cachedObj["summary"]?.AsObject();
-                    var rtSummary = realtimeObj["summary"]?.AsObject();
-
-                    if (cachedSummary != null && cachedSummary["revenue"] != null && rtSummary != null)
-                    {
-                        rtSummary["revenue"] = cachedSummary["revenue"]?.DeepClone();
-                    }
-
-                    if (cachedObj["departmentOverview"] != null)
-                    {
-                        realtimeObj["departmentOverview"] = cachedObj["departmentOverview"]?.DeepClone();
-                    }
-
-                    realtimeDashboardJson = realtimeObj.ToJsonString(JsonOptions);
-                }
-            }
-            catch { }
-        }
+        // We do not override real-time calculated values (revenue, departmentOverview) with stale database cache.
+        // This ensures the dashboard always displays 100% real-time data automatically without requiring manual rebuilds.
 
         return new DashboardPeriodResponseDto
         {

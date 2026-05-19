@@ -4,6 +4,7 @@ import { AnimatePresence } from 'framer-motion';
 import Navbar from '../components/layout/Navbar';
 import Footer from '../components/layout/Footer';
 import PageTransition from '../components/layout/PageTransition';
+import PendingReviewsModal from '../components/layout/PendingReviewsModal';
 
 const MainLayout = () => {
   const location = useLocation();
@@ -19,6 +20,7 @@ const MainLayout = () => {
           </PageTransition>
         </AnimatePresence>
       </main>
+      <PendingReviewsModal />
       <Footer />
     </div>
   );

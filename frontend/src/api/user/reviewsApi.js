@@ -65,6 +65,10 @@ export const userReviewsApi = {
       date: item.createdAt ? new Date(item.createdAt).toLocaleDateString("vi-VN") : "Gần đây",
     }));
   },
+  async getPendingReviews() {
+    const response = await apiClient.get("/user-reviews/pending");
+    return Array.isArray(response.data) ? response.data : [];
+  },
 };
 
 export default userReviewsApi;

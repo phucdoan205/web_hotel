@@ -102,8 +102,38 @@ const AdminInvoiceCreatePage = () => {
 
   const allServiceItems = allServicesQuery.data || [];
   const unpaidServiceItems = allServiceItems.filter(s => s.paymentStatus !== "Paid");
-  const serviceSubtotal = unpaidServiceItems.reduce((total, item) => total + Number(item.lineTotal || 0), 0);
+  
+  const serviceSubtotal = useMemo(() => {
+    const ordersMap = new Map();
+    unpaidServiceItems.forEach(item => {
+      const orderId = item.orderServiceId;
+      if (!ordersMap.has(orderId)) {
+        ordersMap.set(orderId, {
+          totalAmount: item.orderTotalAmount,
+          itemSum: 0
+        });
+      }
+      ordersMap.get(orderId).itemSum += Number(item.lineTotal || 0);
+    });
 
+    let total = 0;
+    ordersMap.forEach(order => {
+      total += order.totalAmount !== null && order.totalAmount !== undefined
+        ? Number(order.totalAmount)
+        : order.itemSum;
+    });
+    return total;
+  }, [unpaidServiceItems]);
+
+  const originalServiceSubtotal = useMemo(() => {
+    return unpaidServiceItems.reduce((total, item) => total + Number(item.lineTotal || 0), 0);
+  }, [unpaidServiceItems]);
+
+  const serviceVoucherDiscount = useMemo(() => {
+    const diff = originalServiceSubtotal - serviceSubtotal;
+    return diff > 0 ? diff : 0;
+  }, [originalServiceSubtotal, serviceSubtotal]);
+ 
   const lossDamageReports = inventoryReportsQuery.data?.lossDamageReports || [];
   const roomLossDamageReports = lossDamageReports.filter(
     (item) => item.bookingDetailId === detailId && item.resolutionType === "Pending"
@@ -498,8 +528,14 @@ const AdminInvoiceCreatePage = () => {
             </div>
             <div className="rounded-[1.5rem] bg-white/15 p-4 backdrop-blur-sm">
               <p className="text-sm font-semibold text-white/80">Tiền dịch vụ</p>
-              <p className="mt-2 text-3xl font-black">{formatCurrency(serviceSubtotal)}</p>
+              <p className="mt-2 text-3xl font-black">{formatCurrency(originalServiceSubtotal)}</p>
             </div>
+            {serviceVoucherDiscount > 0 && (
+              <div className="rounded-[1.5rem] bg-white/15 p-4 backdrop-blur-sm">
+                <p className="text-sm font-semibold text-white/80">Giảm voucher dịch vụ</p>
+                <p className="mt-2 text-3xl font-black text-cyan-100">- {formatCurrency(serviceVoucherDiscount)}</p>
+              </div>
+            )}
             {totalLossDamageAmount > 0 && (
               <div className="rounded-[1.5rem] bg-white/15 p-4 backdrop-blur-sm">
                 <p className="text-sm font-semibold text-white/80">Thất thoát hư hỏng</p>
@@ -507,7 +543,7 @@ const AdminInvoiceCreatePage = () => {
               </div>
             )}
             <div className="rounded-[1.5rem] bg-white/15 p-4 backdrop-blur-sm">
-              <p className="text-sm font-semibold text-white/80">Giảm voucher</p>
+              <p className="text-sm font-semibold text-white/80">Giảm voucher phòng</p>
               <p className="mt-2 text-3xl font-black text-cyan-100">- {formatCurrency(discountAmount)}</p>
             </div>
             {membershipDiscountAmount > 0 && (

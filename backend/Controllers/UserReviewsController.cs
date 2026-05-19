@@ -96,17 +96,25 @@ namespace backend.Controllers
                 return BadRequest(new { message = "Khong xac dinh duoc loai phong de danh gia." });
             }
 
-            var hasCompletedStay = await _context.Bookings
-                .AsNoTracking()
-                .Where(item => item.UserId == userId.Value)
-                .AnyAsync(item =>
-                    item.BookingDetails.Any(detail =>
-                        detail.RoomTypeId == dto.RoomTypeId.Value &&
-                        detail.Status == "Completed"));
-
-            if (!hasCompletedStay)
+            if (!dto.BookingDetailId.HasValue)
             {
-                return BadRequest(new { message = "Ban chi co the danh gia sau khi hoan tat luu tru va thanh toan." });
+                return BadRequest(new { message = "Khong xac dinh duoc chi tiet dat phong de danh gia." });
+            }
+
+            // Check if there is a completed BookingDetail
+            var bookingDetail = await _context.BookingDetails
+                .FirstOrDefaultAsync(bd => bd.Id == dto.BookingDetailId.Value && bd.Booking != null && bd.Booking.UserId == userId.Value && bd.Status == "Completed");
+
+            if (bookingDetail == null)
+            {
+                return BadRequest(new { message = "Khong tim thay chi tiet dat phong hoan tat phu hop." });
+            }
+
+            // Check if already reviewed
+            var alreadyReviewed = await _context.Reviews.AnyAsync(r => r.BookingDetailId == bookingDetail.Id);
+            if (alreadyReviewed)
+            {
+                return BadRequest(new { message = "Ban da danh gia cho luot luu tru nay roi." });
             }
 
             // Calculate average rating if categories are provided
@@ -132,10 +140,36 @@ namespace backend.Controllers
                 LocationRating = dto.LocationRating,
                 Comment = dto.Comment?.Trim(),
                 CreatedAt = DateTime.UtcNow,
-                Status = true
+                Status = true,
+                BookingDetailId = bookingDetail.Id
             };
 
             _context.Reviews.Add(review);
+
+            // Handle service reviews/comments if provided
+            if (dto.ServiceReviews != null && dto.ServiceReviews.Any())
+            {
+                foreach (var sRev in dto.ServiceReviews)
+                {
+                    // Verify if the service was ordered during this stay
+                    var wasOrdered = await _context.OrderServices
+                        .AnyAsync(os => os.BookingDetailId == bookingDetail.Id && os.OrderServiceDetails.Any(osd => osd.ServiceId == sRev.ServiceId));
+
+                    if (wasOrdered)
+                    {
+                        var serviceComment = new ServiceComment
+                        {
+                            ServiceId = sRev.ServiceId,
+                            UserId = userId.Value,
+                            Rating = sRev.Rating,
+                            Content = !string.IsNullOrWhiteSpace(sRev.Comment) ? sRev.Comment.Trim() : "Nguoi dung da danh gia dich vu nay.",
+                            CreatedAt = DateTime.UtcNow
+                        };
+                        _context.ServiceComments.Add(serviceComment);
+                    }
+                }
+            }
+
             await _context.SaveChangesAsync();
 
             var roomType = await _context.RoomTypes
@@ -257,6 +291,56 @@ namespace backend.Controllers
                 Comment = review.Comment ?? string.Empty,
                 CreatedAt = review.CreatedAt
             });
+
+            return Ok(result);
+        }
+
+        [HttpGet("pending")]
+        [Permission]
+        public async Task<ActionResult<IEnumerable<object>>> GetPendingReviews()
+        {
+            var userId = ResolveCurrentUserId();
+            if (!userId.HasValue)
+            {
+                return Unauthorized(new { message = "Khong xac dinh duoc nguoi dung hien tai." });
+            }
+
+            var pendingStays = await _context.BookingDetails
+                .AsNoTracking()
+                .Include(bd => bd.RoomType)
+                .ThenInclude(rt => rt!.RoomImages)
+                .Where(bd => bd.Booking != null && bd.Booking.UserId == userId.Value && bd.Status == "Completed" && bd.RoomTypeId.HasValue)
+                .Where(bd => !_context.Reviews.Any(r => r.BookingDetailId == bd.Id))
+                .ToListAsync();
+
+            var result = new List<object>();
+            foreach (var stay in pendingStays)
+            {
+                // Fetch paid services ordered during this specific stay
+                var services = await _context.OrderServices
+                    .AsNoTracking()
+                    .Where(os => os.BookingDetailId == stay.Id && os.Status == "Paid")
+                    .SelectMany(os => os.OrderServiceDetails)
+                    .Select(osd => new
+                    {
+                        ServiceId = osd.Service!.Id,
+                        ServiceName = osd.Service.Name,
+                        ServiceImageUrl = osd.Service.ThumbnailUrl ?? ""
+                    })
+                    .Distinct()
+                    .ToListAsync();
+
+                result.Add(new
+                {
+                    BookingDetailId = stay.Id,
+                    RoomTypeId = stay.RoomTypeId,
+                    RoomTypeName = stay.RoomType?.Name ?? "Standard Room",
+                    RoomImageUrl = stay.RoomType?.RoomImages.FirstOrDefault()?.ImageUrl ?? "",
+                    CheckInDate = stay.CheckInDate,
+                    CheckOutDate = stay.CheckOutDate,
+                    Services = services
+                });
+            }
 
             return Ok(result);
         }

@@ -219,13 +219,12 @@ namespace backend.Controllers
             var roomNumber = bookingDetail.Room?.RoomNumber ?? "--";
             var roomName = bookingDetail.RoomType?.Name ?? "Phòng";
             var now = DateTime.UtcNow;
-            var totalServiceAmount = await _context.OrderServiceDetails
+            var totalServiceAmount = await _context.OrderServices
                 .AsNoTracking()
-                .Where(detail =>
-                    detail.OrderService != null &&
-                    detail.OrderService.BookingDetailId == bookingDetail.Id &&
-                    detail.OrderService.Status != "Paid")
-                .SumAsync(detail => (decimal?)(detail.Quantity * detail.UnitPrice)) ?? 0;
+                .Where(orderService =>
+                    orderService.BookingDetailId == bookingDetail.Id &&
+                    orderService.Status != "Paid")
+                .SumAsync(orderService => orderService.TotalAmount) ?? 0;
 
             var totalLossDamageAmount = await _context.LossAndDamages
                 .AsNoTracking()

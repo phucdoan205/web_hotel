@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Star, FileText } from "lucide-react";
 import { userReviewsApi } from "../../api/user/reviewsApi";
 import { getStoredAuth } from "../../utils/authStorage";
+import { getAvatarPreview } from "../../utils/avatar";
 
 const AccountReviewsPage = () => {
   const [activeTab, setActiveTab] = useState("all");
@@ -25,17 +26,12 @@ const AccountReviewsPage = () => {
         <div className="w-full md:w-80 shrink-0">
           <div className="rounded border border-slate-200 bg-white shadow-sm overflow-hidden">
             <div className="p-4 flex items-center gap-3 border-b border-slate-100">
-              {avatarUrl ? (
-                <img 
-                  src={avatarUrl.startsWith('http') ? avatarUrl : `http://localhost:5000${avatarUrl}`} 
-                  alt={userFullName} 
-                  className="h-12 w-12 rounded-full object-cover border border-slate-200" 
-                />
-              ) : (
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-lg font-bold text-slate-600 border border-slate-200">
-                  {userFullName.charAt(0)}
-                </div>
-              )}
+              <img 
+                src={getAvatarPreview({ avatarUrl, fullName: userFullName })} 
+                alt={userFullName} 
+                className="h-12 w-12 rounded-full object-cover border border-slate-200" 
+                referrerPolicy="no-referrer"
+              />
               <div>
                 <h3 className="font-bold text-slate-900 text-base">{userFullName}</h3>
                 <Link to="/profile" className="text-xs text-[#0194f3] hover:underline">

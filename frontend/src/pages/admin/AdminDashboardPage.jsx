@@ -1460,7 +1460,7 @@ function PendingServicesList({ items = [] }) {
     >
       <div className="mb-4 flex items-center gap-2">
         <Clock className="size-4 text-rose-500" />
-        <h3 className="font-black text-slate-800 uppercase tracking-tight text-sm">Dịch vụ chờ xử lý</h3>
+        <h3 className="font-black text-slate-800 uppercase tracking-tight text-sm">Dịch vụ chưa thanh toán</h3>
       </div>
       <div className="space-y-3">
         {items.map((item, i) => (

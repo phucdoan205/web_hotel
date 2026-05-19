@@ -120,10 +120,10 @@ const AccountProfilePage = () => {
             <div className="rounded-lg border border-slate-200 bg-white p-8 shadow-xl shadow-slate-200/40">
               <div className="relative group mx-auto mb-6 aspect-square w-full max-w-[200px]">
                 <img
-                  src={avatarLoadFailed ? "/default-avatar.png" : displayProfile.avatarUrl || "/default-avatar.png"}
+                  src={getAvatarPreview({ fullName: displayProfile.fullName, avatarUrl: displayProfile.avatarUrl })}
                   alt="Avatar"
                   className="size-full rounded-lg object-cover shadow-md border-4 border-slate-50"
-                  onError={() => setAvatarLoadFailed(true)}
+                  referrerPolicy="no-referrer"
                 />
               </div>
               <div className="text-center mb-8">

@@ -55,6 +55,7 @@ namespace backend.Controllers
             Quantity = detail.Quantity,
             UnitPrice = detail.UnitPrice,
             LineTotal = detail.UnitPrice * detail.Quantity,
+            OrderTotalAmount = detail.OrderService?.TotalAmount,
             UsedAt = detail.OrderService?.OrderDate,
             PaymentStatus = string.Equals(detail.OrderService?.Status, "Paid", StringComparison.OrdinalIgnoreCase)
                 ? "Paid"
@@ -397,8 +398,13 @@ namespace backend.Controllers
                     BookingCode = bookingDetail.Booking?.BookingCode,
                     RoomName = joinedServiceNames,
                     GuestName = bookingDetail.Booking?.Guest?.Name,
-                    TotalServiceAmount = orderService.TotalAmount,
-                    FinalTotal = orderService.TotalAmount,
+                    TotalServiceAmount = originalTotal,
+                    VoucherId = voucher?.Id,
+                    VoucherCode = voucher?.Code,
+                    VoucherDiscountType = voucher?.DiscountType,
+                    VoucherDiscountValue = voucher?.DiscountValue,
+                    DiscountAmount = originalTotal - finalTotal,
+                    FinalTotal = finalTotal,
                     Status = "Completed",
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow,
@@ -409,7 +415,7 @@ namespace backend.Controllers
                 var payment = new Payment
                 {
                     Invoice = invoice,
-                    AmountPaid = orderService.TotalAmount ?? 0,
+                    AmountPaid = finalTotal,
                     PaymentDate = DateTime.UtcNow,
                     Status = "Completed"
                 };

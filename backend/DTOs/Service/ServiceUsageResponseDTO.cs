@@ -15,6 +15,7 @@ namespace backend.DTOs.Service
         public int Quantity { get; set; }
         public decimal UnitPrice { get; set; }
         public decimal LineTotal { get; set; }
+        public decimal? OrderTotalAmount { get; set; }
         public DateTime? UsedAt { get; set; }
         public string PaymentStatus { get; set; } = "Unpaid";
     }

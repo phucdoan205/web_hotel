@@ -136,6 +136,7 @@ const PersonalDetailsPage = () => {
             src={getAvatarPreview({ fullName: profile.fullName, avatarUrl: profile.avatarUrl })} 
             alt="Avatar" 
             className="size-20 rounded-full object-cover border-2 border-slate-100 shadow-sm"
+            referrerPolicy="no-referrer"
           />
           <label className="absolute inset-0 bg-black/30 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
             <Camera className="size-5 text-white" />

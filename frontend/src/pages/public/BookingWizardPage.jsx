@@ -72,6 +72,7 @@ const groupRoomsByType = (rooms) => {
         id: room.id,
         roomNumber: room.roomNumber,
         status: room.status,
+        isTrulyAvailable: room.isTrulyAvailable ?? true,
       });
       return;
     }
@@ -91,6 +92,7 @@ const groupRoomsByType = (rooms) => {
           id: room.id,
           roomNumber: room.roomNumber,
           status: room.status,
+          isTrulyAvailable: room.isTrulyAvailable ?? true,
         },
       ],
     });
@@ -430,8 +432,9 @@ const BookingPage = () => {
   const handleAddRoom = (rt) => {
     setSelectedRooms(prev => {
       const currentSelected = prev[rt.roomTypeId] || [];
-      if (currentSelected.length >= rt.availableRooms.length) return prev;
-      const nextAvailable = rt.availableRooms.find(r => !currentSelected.includes(r.id));
+      const trulyAvailable = rt.availableRooms.filter(r => r.isTrulyAvailable !== false);
+      if (currentSelected.length >= trulyAvailable.length) return prev;
+      const nextAvailable = trulyAvailable.find(r => !currentSelected.includes(r.id));
       if (nextAvailable) {
         return { ...prev, [rt.roomTypeId]: [...currentSelected, nextAvailable.id] };
       }
@@ -448,6 +451,9 @@ const BookingPage = () => {
   };
 
   const handleToggleRoom = (rt, roomId) => {
+    const room = rt.availableRooms.find(r => r.id === roomId);
+    if (room && room.isTrulyAvailable === false) return; // ignore occupied
+
     setSelectedRooms(prev => {
       const currentSelected = prev[rt.roomTypeId] || [];
       if (currentSelected.includes(roomId)) {
@@ -616,7 +622,8 @@ const BookingPage = () => {
                 </div>
 
                 {roomTypes.map((rt) => {
-                  const availableCount = rt.availableRooms.length;
+                  const trulyAvailableRooms = rt.availableRooms.filter(r => r.isTrulyAvailable !== false);
+                  const availableCount = trulyAvailableRooms.length;
                   const rawSelected = selectedRooms[rt.roomTypeId];
                   const selectedIds = Array.isArray(rawSelected) ? rawSelected : [];
                   const selectedCount = selectedIds.length;
@@ -669,17 +676,25 @@ const BookingPage = () => {
                       </div>
 
                       {/* Room Numbers Selection */}
-                      {!isSoldOut && (
+                      {rt.availableRooms.length > 0 && (
                         <div className="mt-4 pt-3 border-t border-slate-100">
                           <p className="text-xs font-bold text-slate-500 mb-2">Chọn phòng cụ thể:</p>
                           <div className="flex flex-wrap gap-2">
                             {rt.availableRooms.map(room => {
                               const isSelected = selectedIds.includes(room.id);
+                              const isBooked = room.isTrulyAvailable === false;
                               return (
                                 <button
                                   key={room.id}
+                                  disabled={isBooked}
                                   onClick={() => handleToggleRoom(rt, room.id)}
-                                  className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-all ${isSelected ? "bg-[#0194f3] border-[#0194f3] text-white shadow-md shadow-blue-500/20" : "bg-white border-slate-200 text-slate-600 hover:border-blue-300 hover:bg-blue-50"}`}
+                                  className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-all ${
+                                    isBooked 
+                                      ? "bg-slate-100 border-slate-100 text-slate-400 cursor-not-allowed opacity-50"
+                                      : isSelected 
+                                      ? "bg-[#0194f3] border-[#0194f3] text-white shadow-md shadow-blue-500/20" 
+                                      : "bg-white border-slate-200 text-slate-600 hover:border-blue-300 hover:bg-blue-50"
+                                  }`}
                                 >
                                   {room.roomNumber}
                                 </button>

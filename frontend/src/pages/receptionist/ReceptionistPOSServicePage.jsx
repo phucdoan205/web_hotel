@@ -1267,12 +1267,6 @@ const ReceptionistPOSServicePage = () => {
                         <span>Cần đạt giá trị đơn tối thiểu {formatCurrency(selectedVoucher.minBookingValue)} để dùng voucher này.</span>
                       </div>
                     )}
-                    {selectedVoucher && isVoucherValid && (
-                      <div className="rounded-xl bg-emerald-50 px-3 py-2 text-xs text-emerald-700 font-bold flex items-center gap-1.5 border border-emerald-100/50">
-                        <CheckCircle2 size={14} className="shrink-0" />
-                        <span>Đã áp dụng thành công voucher giảm giá!</span>
-                      </div>
-                    )}
                   </div>
 
                   {/* Payment Method Selector */}

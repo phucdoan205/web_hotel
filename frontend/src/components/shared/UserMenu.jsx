@@ -124,6 +124,7 @@ const UserMenu = ({
             })}
             alt={user.name}
             className="size-11 rounded-full border-4 border-sky-100 object-cover shadow-sm"
+            referrerPolicy="no-referrer"
           />
           <span className="absolute bottom-0 right-0 size-3 rounded-full border-2 border-white bg-emerald-500"></span>
         </div>

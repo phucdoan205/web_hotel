@@ -8,6 +8,7 @@ import HorizontalSearchFilter from "../../components/public/bookings/HorizontalS
 import { userBookingsApi } from "../../api/user/bookingsApi";
 import { userReviewsApi } from "../../api/user/reviewsApi";
 import { getStoredAuth } from "../../utils/authStorage";
+import { getAvatarPreview } from "../../utils/avatar";
 
 import DatePicker, { registerLocale } from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
@@ -941,17 +942,12 @@ const RoomDetailPage = () => {
                     <div>
                       <div className="flex items-start justify-between mb-4">
                         <div className="flex items-center gap-3">
-                          {review.avatarUrl ? (
-                            <img
-                              src={review.avatarUrl.startsWith('http') ? review.avatarUrl : `http://localhost:5000${review.avatarUrl}`}
-                              alt={review.user}
-                              className="h-12 w-12 rounded-full object-cover border border-slate-200"
-                            />
-                          ) : (
-                            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-lg font-bold text-slate-600">
-                              {review.user.charAt(0)}
-                            </div>
-                          )}
+                          <img
+                            src={getAvatarPreview({ avatarUrl: review.avatarUrl, fullName: review.user })}
+                            alt={review.user}
+                            className="h-12 w-12 rounded-full object-cover border border-slate-200"
+                            referrerPolicy="no-referrer"
+                          />
                           <div>
                             <p className="text-base font-black text-slate-900">{review.user}</p>
                             <p className="text-xs font-bold text-slate-400">{review.date}</p>
@@ -1153,13 +1149,12 @@ const RoomDetailPage = () => {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                           <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-slate-100 border border-slate-200">
-                            {review.avatarUrl ? (
-                              <img src={review.avatarUrl.startsWith('http') ? review.avatarUrl : `http://localhost:5000${review.avatarUrl}`} alt={review.user} className="h-full w-full object-cover" />
-                            ) : (
-                              <div className="flex h-full w-full items-center justify-center bg-emerald-600 text-[11px] font-black text-white uppercase">
-                                {review.user?.[0] || 'U'}
-                              </div>
-                            )}
+                            <img 
+                              src={getAvatarPreview({ avatarUrl: review.avatarUrl, fullName: review.user })} 
+                              alt={review.user} 
+                              className="h-full w-full object-cover" 
+                              referrerPolicy="no-referrer"
+                            />
                           </div>
                           <div>
                             <p className="text-sm font-black text-slate-900">{review.user}</p>
@@ -1330,13 +1325,12 @@ const RoomDetailPage = () => {
                         </p>
                         <div className="flex items-center gap-3">
                           <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-slate-100 border border-slate-100">
-                            {review.avatarUrl ? (
-                              <img src={review.avatarUrl.startsWith('http') ? review.avatarUrl : `http://localhost:5000${review.avatarUrl}`} alt={review.user} className="h-full w-full object-cover" />
-                            ) : (
-                              <div className="flex h-full w-full items-center justify-center bg-green-600 text-[11px] font-black text-white uppercase">
-                                {review.user?.[0] || 'U'}
-                              </div>
-                            )}
+                            <img 
+                              src={getAvatarPreview({ avatarUrl: review.avatarUrl, fullName: review.user })} 
+                              alt={review.user} 
+                              className="h-full w-full object-cover" 
+                              referrerPolicy="no-referrer"
+                            />
                           </div>
                           <div className="flex flex-col">
                             <span className="text-[13px] font-bold text-slate-900">{review.user}</span>
