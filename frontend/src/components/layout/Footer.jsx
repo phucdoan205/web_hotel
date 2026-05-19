@@ -24,12 +24,11 @@ const Footer = () => {
         {/* Brand Section */}
         <div className="flex flex-col gap-6">
           <div className="flex items-center gap-2">
-            <Rocket className="text-blue-500 w-6 h-6 rotate-45" />
-            <span className="text-xl font-bold text-blue-500">Traveloka</span>
+            <Rocket className="text-[#1F649C] w-6 h-6 rotate-45" />
+            <span className="text-xl font-bold text-[#1F649C]">HPT Hotel</span>
           </div>
           <p className="text-slate-500 text-sm leading-relaxed">
-            Making travel accessible and delightful for everyone since 2012.
-            Your journey starts here.
+            HPT Hotel - Nâng tầm trải nghiệm nghỉ dưỡng của bạn. Chúng tôi mang đến không gian sang trọng, dịch vụ tinh tế và những khoảnh khắc thư giãn đích thực cho mỗi chuyến hành trình.
           </p>
           <div className="flex gap-4">
             <div className="p-2 bg-slate-50 rounded-full text-slate-600 hover:bg-blue-50 hover:text-blue-500 cursor-pointer transition-all">
@@ -50,8 +49,9 @@ const Footer = () => {
           links={[
             { label: "Khách sạn", to: "/" },
             { label: "Tìm phòng", to: "/booking" },
-            { label: "Ẩm thực", to: "/food" },
-            { label: "Hoạt động", to: "/articles" },
+            { label: "Dịch vụ", to: "/services" },
+            { label: "Ưu đãi", to: "/offers" },
+            { label: "Bài viết", to: "/articles" },
           ]}
         />
         <FooterColumn
@@ -88,7 +88,7 @@ const Footer = () => {
       {/* Copyright */}
       <div className="max-w-7xl mx-auto px-10 mt-16 pt-8 border-t border-slate-50 flex flex-col md:flex-row justify-between items-center gap-4">
         <p className="text-slate-400 text-xs">
-          © 2024 Traveloka. All rights reserved.
+          © 2026 HPT Hotel. All rights reserved.
         </p>
         <div className="flex gap-4 grayscale opacity-50">
           {/* Mockup logos for partners */}
