@@ -11,6 +11,7 @@ using backend.Security;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using backend.Services;
+using backend.DTOs.Housekeeping;
 
 namespace backend.Controllers
 {
@@ -173,6 +174,50 @@ namespace backend.Controllers
             return Ok(MapInvoice(invoice));
         }
 
+        [HttpGet("booking-detail/{detailId:int}/loss-damages")]
+        [Permission("VIEW_INVOICES")]
+        public async Task<ActionResult<IEnumerable<HousekeepingLossDamageReportItemDTO>>> GetLossDamagesByBookingDetail(int detailId)
+        {
+            var lossDamageReports = await _context.LossAndDamages
+                .AsNoTracking()
+                .Include(issue => issue.RoomInventory)
+                    .ThenInclude(roomInventory => roomInventory!.Room)
+                .Include(issue => issue.RoomInventory)
+                    .ThenInclude(roomInventory => roomInventory!.Equipment)
+                .Where(issue => issue.BookingDetailId == detailId)
+                .OrderByDescending(issue => issue.CreatedAt)
+                .Select(issue => new HousekeepingLossDamageReportItemDTO
+                {
+                    Id = issue.Id,
+                    RoomInventoryId = issue.RoomInventoryId ?? 0,
+                    BookingDetailId = issue.BookingDetailId,
+                    RoomId = issue.RoomInventory != null ? issue.RoomInventory.RoomId : null,
+                    RoomNumber = issue.RoomInventory != null && issue.RoomInventory.Room != null
+                        ? issue.RoomInventory.Room.RoomNumber
+                        : "-",
+                    EquipmentId = issue.RoomInventory != null ? issue.RoomInventory.EquipmentId : null,
+                    EquipmentName = issue.RoomInventory != null
+                        ? issue.RoomInventory.Equipment != null
+                            ? issue.RoomInventory.Equipment.Name
+                            : issue.RoomInventory.ItemType ?? "Vat tu"
+                        : "Vat tu",
+                    EquipmentCode = issue.RoomInventory != null && issue.RoomInventory.Equipment != null
+                        ? issue.RoomInventory.Equipment.ItemCode
+                        : null,
+                    Quantity = issue.Quantity,
+                    UnitPenalty = issue.Quantity > 0
+                        ? decimal.Round(issue.PenaltyAmount / issue.Quantity, 2)
+                        : 0,
+                    PenaltyAmount = issue.PenaltyAmount,
+                    Description = issue.Description,
+                    ImageUrl = issue.ImageUrl,
+                    CreatedAt = issue.CreatedAt
+                })
+                .ToListAsync();
+
+            return Ok(lossDamageReports);
+        }
+
         [HttpPost]
         [Permission("CREATE_INVOICES")]
         public async Task<ActionResult<InvoiceResponseDTO>> CreateInvoice([FromBody] InvoiceCreateDTO dto)
@@ -202,6 +247,30 @@ namespace backend.Controllers
             if (bookingDetail == null)
             {
                 return NotFound("Không tìm thấy chi tiết phòng của booking.");
+            }
+
+            if (bookingDetail.RoomId.HasValue)
+            {
+                var unassignedIssues = await _context.LossAndDamages
+                    .Include(issue => issue.RoomInventory)
+                    .Where(issue => issue.BookingDetailId == null &&
+                                     issue.RoomInventory != null &&
+                                     issue.RoomInventory.RoomId == bookingDetail.RoomId.Value)
+                    .ToListAsync();
+
+                if (unassignedIssues.Any())
+                {
+                    bool updated = false;
+                    foreach (var issue in unassignedIssues)
+                    {
+                        issue.BookingDetailId = bookingDetail.Id;
+                        updated = true;
+                    }
+                    if (updated)
+                    {
+                        await _context.SaveChangesAsync();
+                    }
+                }
             }
 
             if (!string.Equals(bookingDetail.Status, "CheckedOut", StringComparison.OrdinalIgnoreCase))

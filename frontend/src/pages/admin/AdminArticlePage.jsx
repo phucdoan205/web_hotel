@@ -21,6 +21,7 @@ const ArticleActionMenu = ({
   canEditContent,
   canPublishContent,
   canDeleteContent,
+  isDropdownUp = false,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -42,7 +43,9 @@ const ArticleActionMenu = ({
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 z-50 mt-2 w-52 origin-top-right rounded-2xl bg-white p-1.5 shadow-xl ring-1 ring-black/5 focus:outline-none">
+        <div className={`absolute right-0 z-50 w-52 rounded-2xl bg-white p-1.5 shadow-xl ring-1 ring-black/5 focus:outline-none ${
+          isDropdownUp ? "bottom-full mb-2 origin-bottom-right" : "top-full mt-2 origin-top-right"
+        }`}>
           <div className="py-1">
             <button
               onClick={() => {
@@ -333,7 +336,7 @@ const AdminArticlePage = () => {
           </div>
         ) : null}
 
-        <div className="rounded-[2rem] bg-white shadow-sm ring-1 ring-gray-100">
+        <div className="rounded-[2rem] bg-white shadow-sm ring-1 ring-gray-100 overflow-visible">
           {/* Mobile Card View */}
           <div className="block lg:hidden divide-y divide-gray-100">
             {loading ? (
@@ -403,7 +406,7 @@ const AdminArticlePage = () => {
           </div>
 
           {/* Desktop Table View */}
-          <div className="hidden lg:block overflow-x-auto no-scrollbar">
+          <div className="hidden lg:block overflow-visible">
             <table className="min-w-full table-fixed text-left">
               <thead className="bg-slate-50">
                 <tr>
@@ -432,7 +435,7 @@ const AdminArticlePage = () => {
                 ) : (
                   sortedArticles
                     .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
-                    .map((article) => (
+                    .map((article, index, arr) => (
                       <tr key={article.id}>
                         <td className="px-4 py-4 align-top">
                           <div className="flex items-start gap-3">
@@ -475,6 +478,7 @@ const AdminArticlePage = () => {
                             canEditContent={canEditContent}
                             canPublishContent={canPublishContent}
                             canDeleteContent={canDeleteContent}
+                            isDropdownUp={index >= arr.length - 2}
                           />
                         </td>
                       </tr>

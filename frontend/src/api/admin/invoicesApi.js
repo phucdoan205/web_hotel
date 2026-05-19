@@ -64,6 +64,11 @@ export const invoicesApi = {
     const response = await apiClient.post(`/Invoices/${id}/momo`);
     return response.data;
   },
+
+  async getLossDamagesByBookingDetail(detailId) {
+    const response = await apiClient.get(`/Invoices/booking-detail/${detailId}/loss-damages`);
+    return response.data;
+  },
 };
 
 export default invoicesApi;

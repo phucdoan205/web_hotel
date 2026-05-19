@@ -1038,6 +1038,7 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
                 {
                     totalRevenue = metrics.TotalRevenue,
                     revenueTrends = metrics.RevenueTrends,
+                    monthlyTrends = metrics.MonthlyTrends,
                     roomRevenue = metrics.RoomRevenue,
                     serviceRevenue = metrics.ServiceRevenue,
                     topServices = metrics.TopServices

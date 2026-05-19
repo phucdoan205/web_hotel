@@ -498,7 +498,10 @@ namespace backend.Controllers
             equipment.UpdatedAt = DateTime.UtcNow;
 
             var activeBookingDetail = await _context.BookingDetails
-                .FirstOrDefaultAsync(bd => bd.RoomId == roomInventory.Room.Id && bd.Status == "CheckedIn");
+                .Where(bd => bd.RoomId == roomInventory.Room.Id &&
+                             (bd.Status == "CheckedIn" || bd.Status == "CheckedOut" || bd.Status == "Paying"))
+                .OrderByDescending(bd => bd.Id)
+                .FirstOrDefaultAsync();
 
             var issue = new LossAndDamage
             {

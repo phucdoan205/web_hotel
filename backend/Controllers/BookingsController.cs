@@ -231,6 +231,38 @@ namespace backend.Controllers
 
             if (booking == null) return NotFound();
 
+            // Auto-link any unassigned LossAndDamage records for the rooms in this booking
+            var roomIds = booking.BookingDetails.Where(bd => bd.RoomId.HasValue).Select(bd => bd.RoomId!.Value).ToList();
+            if (roomIds.Any())
+            {
+                var unassignedIssues = await _context.LossAndDamages
+                    .Include(issue => issue.RoomInventory)
+                    .Where(issue => issue.BookingDetailId == null &&
+                                     issue.RoomInventory != null &&
+                                     issue.RoomInventory.RoomId.HasValue &&
+                                     roomIds.Contains(issue.RoomInventory.RoomId.Value))
+                    .ToListAsync();
+
+                if (unassignedIssues.Any())
+                {
+                    bool updated = false;
+                    foreach (var issue in unassignedIssues)
+                    {
+                        var matchingDetail = booking.BookingDetails
+                            .FirstOrDefault(bd => bd.RoomId == issue.RoomInventory!.RoomId);
+                        if (matchingDetail != null)
+                        {
+                            issue.BookingDetailId = matchingDetail.Id;
+                            updated = true;
+                        }
+                    }
+                    if (updated)
+                    {
+                        await _context.SaveChangesAsync();
+                    }
+                }
+            }
+
             await ApplyInvoicePaymentStatusesAsync(new[] { booking });
 
             return Ok(_mapper.Map<BookingResponseDTO>(booking));

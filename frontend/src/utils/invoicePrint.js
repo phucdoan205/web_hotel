@@ -65,9 +65,37 @@ export const openInvoicePrintWindow = ({
   const finalTotal = invoice.finalTotal || invoice.totalAmount || 0;
   const depositDeducted = Math.max(0, calculatedTotal - finalTotal);
   
-  const roomTotalAfterDiscount = Math.max(0, (invoice.totalRoomAmount || invoice.subtotal || 0) + (invoice.totalLossDamageAmount || 0) - (invoice.discountAmount || 0) - (invoice.membershipDiscountAmount || 0));
-  const rawDepositPct = roomTotalAfterDiscount > 0 ? (depositDeducted / roomTotalAfterDiscount) * 100 : 0;
-  const depositPct = rawDepositPct <= 0 ? 0 : [30, 40, 50, 100].reduce((prev, curr) => Math.abs(curr - rawDepositPct) < Math.abs(prev - rawDepositPct) ? curr : prev);
+  let depositPct = 0;
+  if (depositDeducted > 0) {
+    const detail = booking?.bookingDetails?.find((d) => d.id === invoice.detailId) || null;
+    if (detail && invoice.totalRoomAmount > 0) {
+      const checkIn = new Date(detail.checkInDate);
+      const checkOut = new Date(detail.checkOutDate);
+      if (!isNaN(checkIn.getTime()) && !isNaN(checkOut.getTime())) {
+        const MS_PER_DAY = 1000 * 60 * 60 * 24;
+        const diff = checkOut.getTime() - checkIn.getTime();
+        const originalNights = Math.max(1, Math.ceil(diff / MS_PER_DAY));
+        const originalSubtotal = invoice.roomRate * originalNights;
+        
+        const discountRate = invoice.discountAmount / invoice.totalRoomAmount;
+        const originalVoucherDiscount = originalSubtotal * discountRate;
+        
+        const membershipDiscountRate = (invoice.membershipDiscountAmount || 0) / invoice.totalRoomAmount;
+        const originalMembershipDiscount = originalSubtotal * membershipDiscountRate;
+        
+        const originalRoomTotalAfterDiscount = Math.max(0, originalSubtotal - originalVoucherDiscount - originalMembershipDiscount);
+        if (originalRoomTotalAfterDiscount > 0) {
+          const rawDepositPct = (depositDeducted / originalRoomTotalAfterDiscount) * 100;
+          depositPct = [30, 40, 50, 100].reduce((prev, curr) => Math.abs(curr - rawDepositPct) < Math.abs(prev - rawDepositPct) ? curr : prev);
+        }
+      }
+    }
+    if (depositPct === 0) {
+      const roomTotalAfterDiscount = Math.max(0, (invoice.totalRoomAmount || invoice.subtotal || 0) + (invoice.totalLossDamageAmount || 0) - (invoice.discountAmount || 0) - (invoice.membershipDiscountAmount || 0));
+      const rawDepositPct = roomTotalAfterDiscount > 0 ? (depositDeducted / roomTotalAfterDiscount) * 100 : 0;
+      depositPct = rawDepositPct <= 0 ? 0 : [30, 40, 50, 100].reduce((prev, curr) => Math.abs(curr - rawDepositPct) < Math.abs(prev - rawDepositPct) ? curr : prev);
+    }
+  }
 
   const html = `<!doctype html>
 <html lang="vi">

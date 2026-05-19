@@ -5,7 +5,6 @@ import { ArrowLeft, Printer, Receipt } from "lucide-react";
 import { invoicesApi } from "../../api/admin/invoicesApi";
 import { bookingsApi } from "../../api/admin/bookingsApi";
 import { servicesApi } from "../../api/admin/servicesApi";
-import { housekeepingApi } from "../../api/admin/housekeepingApi";
 import { formatVietnamDate, formatVietnamDateTime } from "../../utils/vietnamTime";
 import { openInvoicePrintWindow } from "../../utils/invoicePrint";
 
@@ -76,16 +75,15 @@ const AdminInvoiceDetailPage = () => {
 
   const serviceItems = useMemo(() => serviceUsagesQuery.data || [], [serviceUsagesQuery.data]);
 
-  const inventoryReportsQuery = useQuery({
-    queryKey: ["admin-inventory-reports"],
-    queryFn: () => housekeepingApi.getInventoryReports(),
+  const roomLossDamageReportsQuery = useQuery({
+    queryKey: ["invoice-loss-damages", invoice?.detailId],
+    queryFn: () => invoicesApi.getLossDamagesByBookingDetail(invoice.detailId),
+    enabled: Boolean(invoice?.detailId),
   });
 
   const roomLossDamageReports = useMemo(() => {
-    if (!invoice?.detailId) return [];
-    const reports = inventoryReportsQuery.data?.lossDamageReports || [];
-    return reports.filter((item) => item.bookingDetailId === invoice.detailId);
-  }, [inventoryReportsQuery.data, invoice?.detailId]);
+    return roomLossDamageReportsQuery.data || [];
+  }, [roomLossDamageReportsQuery.data]);
 
   if (invoiceQuery.isLoading) {
     return <div className="rounded-[2rem] bg-white p-8 text-center text-slate-500">Đang tải chi tiết hóa đơn...</div>;
@@ -293,9 +291,35 @@ const AdminInvoiceDetailPage = () => {
             const finalTotal = invoice.finalTotal || invoice.totalAmount || 0;
             const depositDeducted = Math.max(0, calculatedTotal - finalTotal);
             if (depositDeducted > 0) {
-              const roomTotalAfterDiscount = Math.max(0, (invoice.totalRoomAmount || invoice.subtotal || 0) + (invoice.totalLossDamageAmount || 0) - (invoice.discountAmount || 0) - (invoice.membershipDiscountAmount || 0));
-              const rawDepositPct = roomTotalAfterDiscount > 0 ? (depositDeducted / roomTotalAfterDiscount) * 100 : 0;
-              const depositPct = rawDepositPct <= 0 ? 0 : [30, 40, 50, 100].reduce((prev, curr) => Math.abs(curr - rawDepositPct) < Math.abs(prev - rawDepositPct) ? curr : prev);
+              let depositPct = 0;
+              const detail = booking?.bookingDetails?.find((d) => d.id === invoice.detailId) || null;
+              if (detail && invoice.totalRoomAmount > 0) {
+                const checkIn = new Date(detail.checkInDate);
+                const checkOut = new Date(detail.checkOutDate);
+                if (!isNaN(checkIn.getTime()) && !isNaN(checkOut.getTime())) {
+                  const MS_PER_DAY = 1000 * 60 * 60 * 24;
+                  const diff = checkOut.getTime() - checkIn.getTime();
+                  const originalNights = Math.max(1, Math.ceil(diff / MS_PER_DAY));
+                  const originalSubtotal = invoice.roomRate * originalNights;
+                  
+                  const discountRate = invoice.discountAmount / invoice.totalRoomAmount;
+                  const originalVoucherDiscount = originalSubtotal * discountRate;
+                  
+                  const membershipDiscountRate = (invoice.membershipDiscountAmount || 0) / invoice.totalRoomAmount;
+                  const originalMembershipDiscount = originalSubtotal * membershipDiscountRate;
+                  
+                  const originalRoomTotalAfterDiscount = Math.max(0, originalSubtotal - originalVoucherDiscount - originalMembershipDiscount);
+                  if (originalRoomTotalAfterDiscount > 0) {
+                    const rawDepositPct = (depositDeducted / originalRoomTotalAfterDiscount) * 100;
+                    depositPct = [30, 40, 50, 100].reduce((prev, curr) => Math.abs(curr - rawDepositPct) < Math.abs(prev - rawDepositPct) ? curr : prev);
+                  }
+                }
+              }
+              if (depositPct === 0) {
+                const roomTotalAfterDiscount = Math.max(0, (invoice.totalRoomAmount || invoice.subtotal || 0) + (invoice.totalLossDamageAmount || 0) - (invoice.discountAmount || 0) - (invoice.membershipDiscountAmount || 0));
+                const rawDepositPct = roomTotalAfterDiscount > 0 ? (depositDeducted / roomTotalAfterDiscount) * 100 : 0;
+                depositPct = rawDepositPct <= 0 ? 0 : [30, 40, 50, 100].reduce((prev, curr) => Math.abs(curr - rawDepositPct) < Math.abs(prev - rawDepositPct) ? curr : prev);
+              }
               return (
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-white/80">Trừ tiền cọc {depositPct > 0 ? `(${depositPct}%)` : ""}</span>

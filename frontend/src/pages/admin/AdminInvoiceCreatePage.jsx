@@ -5,7 +5,6 @@ import { AlertTriangle, ArrowLeft, Receipt, Save, Tag, XCircle } from "lucide-re
 import { bookingsApi } from "../../api/admin/bookingsApi";
 import { invoicesApi } from "../../api/admin/invoicesApi";
 import { servicesApi } from "../../api/admin/servicesApi";
-import { housekeepingApi } from "../../api/admin/housekeepingApi";
 import { useVoucherData } from "../../hooks/useVoucherData";
 import { markBookingDetailInvoiced } from "../../utils/bookingRoomFlowState";
 import { calculateStayedDays, calculateVoucherDiscount, isVoucherApplicable } from "../../utils/invoiceState";
@@ -95,9 +94,10 @@ const AdminInvoiceCreatePage = () => {
     enabled: Boolean(detailId),
   });
 
-  const inventoryReportsQuery = useQuery({
-    queryKey: ["admin-inventory-reports"],
-    queryFn: () => housekeepingApi.getInventoryReports(),
+  const roomLossDamageReportsQuery = useQuery({
+    queryKey: ["invoice-loss-damages", detailId],
+    queryFn: () => invoicesApi.getLossDamagesByBookingDetail(detailId),
+    enabled: Boolean(detailId),
   });
 
   const allServiceItems = allServicesQuery.data || [];
@@ -134,14 +134,13 @@ const AdminInvoiceCreatePage = () => {
     return diff > 0 ? diff : 0;
   }, [originalServiceSubtotal, serviceSubtotal]);
  
-  const lossDamageReports = inventoryReportsQuery.data?.lossDamageReports || [];
-  const roomLossDamageReports = lossDamageReports.filter(
-    (item) => item.bookingDetailId === detailId && item.resolutionType === "Pending"
-  );
-  const totalLossDamageAmount = roomLossDamageReports.reduce(
-    (sum, item) => sum + Number(item.penaltyAmount || 0),
-    0
-  );
+  const roomLossDamageReports = useMemo(() => {
+    return roomLossDamageReportsQuery.data || [];
+  }, [roomLossDamageReportsQuery.data]);
+
+  const totalLossDamageAmount = useMemo(() => {
+    return roomLossDamageReports.reduce((sum, item) => sum + Number(item.penaltyAmount || 0), 0);
+  }, [roomLossDamageReports]);
 
   const booking = bookingQuery.data;
   const detail = useMemo(
@@ -153,12 +152,32 @@ const AdminInvoiceCreatePage = () => {
   const roomNumber = getRoomEntryNumber(detail || {});
   const roomName = getRoomEntryName(booking || {}, detail || {});
   const roomRate = getRoomEntryPrice(booking || {}, detail || {});
+
+  useEffect(() => {
+    if (booking?.voucherId && !selectedVoucherId) {
+      setSelectedVoucherId(String(booking.voucherId));
+    }
+  }, [booking?.voucherId, selectedVoucherId]);
+
+  const bookingVoucher = useMemo(() => {
+    if (!booking?.voucherId) return null;
+    return vouchers.find((v) => String(v.id) === String(booking.voucherId)) || null;
+  }, [booking?.voucherId, vouchers]);
+
   const stayedDays = calculateStayedDays(detail?.checkInDate, currentTime);
   const subtotal = roomRate * stayedDays;
+
   const availableVouchers = useMemo(
-    () => vouchers.filter((voucher) => isVoucherApplicable(voucher, subtotal, currentTime) && voucher.voucherType !== "Service"),
-    [currentTime, subtotal, vouchers],
+    () => {
+      const list = vouchers.filter((voucher) => isVoucherApplicable(voucher, subtotal, currentTime) && voucher.voucherType !== "Service");
+      if (bookingVoucher && !list.some(v => String(v.id) === String(bookingVoucher.id))) {
+        list.push(bookingVoucher);
+      }
+      return list;
+    },
+    [currentTime, subtotal, vouchers, bookingVoucher],
   );
+
   const selectedVoucher =
     availableVouchers.find((voucher) => String(voucher.id) === String(selectedVoucherId)) || null;
   const discountAmount = calculateVoucherDiscount(selectedVoucher, subtotal);
@@ -187,6 +206,38 @@ const AdminInvoiceCreatePage = () => {
   const remainingDeposit = Math.max(0, totalDepositPaid - depositAlreadyUsed);
   const calculatedSubtotal = Math.max(0, subtotal + serviceSubtotal + totalLossDamageAmount - discountAmount - membershipDiscountAmount);
   const depositToApply = Math.min(remainingDeposit, calculatedSubtotal);
+
+  const depositPct = useMemo(() => {
+    if (depositToApply <= 0) return 0;
+    if (detail && roomRate && totalDepositPaid) {
+      const checkIn = new Date(detail.checkInDate);
+      const checkOut = new Date(detail.checkOutDate);
+      if (!isNaN(checkIn.getTime()) && !isNaN(checkOut.getTime())) {
+        const MS_PER_DAY = 1000 * 60 * 60 * 24;
+        const diff = checkOut.getTime() - checkIn.getTime();
+        const originalNights = Math.max(1, Math.ceil(diff / MS_PER_DAY));
+        const originalSubtotal = roomRate * originalNights;
+        
+        const bVoucher = vouchers.find(v => String(v.id) === String(booking?.voucherId)) || null;
+        const originalVoucherDiscount = calculateVoucherDiscount(bVoucher, originalSubtotal);
+        
+        const originalMembershipDiscount = membershipDiscountPercent > 0 
+          ? Math.round(originalSubtotal * membershipDiscountPercent / 100) 
+          : 0;
+          
+        const originalRoomTotalAfterDiscount = Math.max(0, originalSubtotal - originalVoucherDiscount - originalMembershipDiscount);
+        if (originalRoomTotalAfterDiscount > 0) {
+          const rawPct = (totalDepositPaid / originalRoomTotalAfterDiscount) * 100;
+          return [30, 40, 50, 100].reduce((prev, curr) => Math.abs(curr - rawPct) < Math.abs(prev - rawPct) ? curr : prev);
+        }
+      }
+    }
+    
+    // Fallback to dynamic computation
+    const roomTotalAfterDiscount = Math.max(0, subtotal + totalLossDamageAmount - discountAmount - membershipDiscountAmount);
+    const rawDepositPct = roomTotalAfterDiscount > 0 ? (totalDepositPaid / roomTotalAfterDiscount) * 100 : 0;
+    return rawDepositPct <= 0 ? 0 : [30, 40, 50, 100].reduce((prev, curr) => Math.abs(curr - rawDepositPct) < Math.abs(prev - rawDepositPct) ? curr : prev);
+  }, [detail, roomRate, totalDepositPaid, booking?.voucherId, vouchers, membershipDiscountPercent, depositToApply, subtotal, totalLossDamageAmount, discountAmount, membershipDiscountAmount]);
 
   const totalAmount = Math.max(0, calculatedSubtotal - depositToApply);
   const invoiceExists = allInvoices.some((inv) => inv.detailId === detailId && inv.status !== "Cancelled");
@@ -555,21 +606,12 @@ const AdminInvoiceCreatePage = () => {
               </div>
             )}
             <div className="rounded-[1.5rem] bg-white/15 p-4 backdrop-blur-sm">
-              {(() => {
-                const roomTotalAfterDiscount = Math.max(0, subtotal + totalLossDamageAmount - discountAmount - membershipDiscountAmount);
-                const rawDepositPct = roomTotalAfterDiscount > 0 ? (totalDepositPaid / roomTotalAfterDiscount) * 100 : 0;
-                const depositPct = rawDepositPct <= 0 ? 0 : [30, 40, 50, 100].reduce((prev, curr) => Math.abs(curr - rawDepositPct) < Math.abs(prev - rawDepositPct) ? curr : prev);
-                return (
-                  <>
-                    <p className="text-sm font-semibold text-white/80">Trừ tiền cọc {depositPct > 0 ? `(${depositPct}%)` : ""}</p>
-                    <div className="mt-1 flex items-center justify-between text-xs font-semibold text-white/60">
-                      <span>Tổng cọc: {formatCurrency(totalDepositPaid)}</span>
-                      <span>Khả dụng: {formatCurrency(remainingDeposit)}</span>
-                    </div>
-                    <p className="mt-1 text-3xl font-black text-cyan-100">- {formatCurrency(depositToApply)}</p>
-                  </>
-                );
-              })()}
+              <p className="text-sm font-semibold text-white/80">Trừ tiền cọc {depositPct > 0 ? `(${depositPct}%)` : ""}</p>
+              <div className="mt-1 flex items-center justify-between text-xs font-semibold text-white/60">
+                <span>Tổng cọc: {formatCurrency(totalDepositPaid)}</span>
+                <span>Khả dụng: {formatCurrency(remainingDeposit)}</span>
+              </div>
+              <p className="mt-1 text-3xl font-black text-cyan-100">- {formatCurrency(depositToApply)}</p>
             </div>
             <div className="rounded-[1.5rem] bg-white p-4 text-sky-900">
               <p className="text-sm font-semibold text-sky-700">Cần thanh toán</p>
