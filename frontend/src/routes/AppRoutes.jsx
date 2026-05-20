@@ -371,7 +371,7 @@ const AppRoutes = () => {
         <Route
           path="article-categories"
           element={
-            <RequirePermission permission="VIEW_CONTENT">
+            <RequirePermission permission="VIEW_ARTICLECATEGORIES">
               <AdminArticleCategoriesPage />
             </RequirePermission>
           }
@@ -403,7 +403,7 @@ const AppRoutes = () => {
         <Route
           path="memberships"
           element={
-            <RequirePermission permission="VIEW_SERVICES">
+            <RequirePermission permission="VIEW_MEMBERSHIPS">
               <AdminMembershipPage />
             </RequirePermission>
           }
@@ -411,7 +411,7 @@ const AppRoutes = () => {
         <Route
           path="reviews"
           element={
-            <RequirePermission permission="VIEW_SERVICES">
+            <RequirePermission permission="VIEW_REVIEWS">
               <AdminReviewsPage />
             </RequirePermission>
           }

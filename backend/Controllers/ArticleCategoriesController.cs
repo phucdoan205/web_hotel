@@ -1,5 +1,6 @@
 using backend.Data;
 using backend.DTOs.Article;
+using backend.Security;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,6 +18,7 @@ namespace backend.Controllers
         }
 
         [HttpGet]
+        [Permission("VIEW_ARTICLECATEGORIES")]
         public async Task<IActionResult> GetCategories()
         {
             var categories = await _context.ArticleCategories
@@ -35,6 +37,7 @@ namespace backend.Controllers
         }
 
         [HttpPost]
+        [Permission("CREATE_ARTICLECATEGORIES")]
         public async Task<IActionResult> CreateCategory([FromBody] CreateArticleCategoryDTO request)
         {
             if (string.IsNullOrWhiteSpace(request.Name))
@@ -61,6 +64,7 @@ namespace backend.Controllers
         }
 
         [HttpPut("{id}")]
+        [Permission("EDIT_ARTICLECATEGORIES")]
         public async Task<IActionResult> UpdateCategory(int id, [FromBody] CreateArticleCategoryDTO request)
         {
             var category = await _context.ArticleCategories.FindAsync(id);
@@ -84,6 +88,7 @@ namespace backend.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Permission("DELETE_ARTICLECATEGORIES")]
         public async Task<IActionResult> DeleteCategory(int id)
         {
             var category = await _context.ArticleCategories
@@ -104,6 +109,7 @@ namespace backend.Controllers
         }
 
         [HttpPatch("{id}/status")]
+        [Permission("EDIT_ARTICLECATEGORIES")]
         public async Task<IActionResult> ToggleStatus(int id)
         {
             var category = await _context.ArticleCategories.FindAsync(id);

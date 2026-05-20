@@ -1,6 +1,7 @@
 using backend.Data;
 using backend.DTOs.Membership;
 using backend.Models;
+using backend.Security;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -18,6 +19,7 @@ namespace backend.Controllers
         }
 
         [HttpGet]
+        [Permission("VIEW_MEMBERSHIPS")]
         public async Task<IActionResult> GetMemberships()
         {
             var memberships = await _context.Memberships
@@ -35,6 +37,7 @@ namespace backend.Controllers
         }
 
         [HttpPost]
+        [Permission("CREATE_MEMBERSHIPS")]
         public async Task<IActionResult> CreateMembership([FromBody] CreateMembershipDTO request)
         {
             if (string.IsNullOrWhiteSpace(request.TierName))
@@ -64,6 +67,7 @@ namespace backend.Controllers
         }
 
         [HttpPut("{id}")]
+        [Permission("EDIT_MEMBERSHIPS")]
         public async Task<IActionResult> UpdateMembership(int id, [FromBody] CreateMembershipDTO request)
         {
             var membership = await _context.Memberships.FindAsync(id);
@@ -92,6 +96,7 @@ namespace backend.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Permission("DELETE_MEMBERSHIPS")]
         public async Task<IActionResult> DeleteMembership(int id)
         {
             var membership = await _context.Memberships

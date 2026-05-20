@@ -28,7 +28,7 @@ namespace backend.Controllers
         };
 
         [HttpGet]
-        [Permission("VIEW_SERVICES")]
+        [Permission("VIEW_SERVICECATEGORIES")]
         public async Task<ActionResult<IEnumerable<ServiceCategoryResponseDTO>>> GetCategories()
         {
             var categories = await _context.ServiceCategories
@@ -41,7 +41,7 @@ namespace backend.Controllers
         }
 
         [HttpGet("{id:int}")]
-        [Permission("VIEW_SERVICES")]
+        [Permission("VIEW_SERVICECATEGORIES")]
         public async Task<ActionResult<ServiceCategoryResponseDTO>> GetCategory(int id)
         {
             var category = await _context.ServiceCategories
@@ -57,7 +57,7 @@ namespace backend.Controllers
         }
 
         [HttpPost]
-        [Permission("CREATE_SERVICES")]
+        [Permission("CREATE_SERVICECATEGORIES")]
         public async Task<ActionResult<ServiceCategoryResponseDTO>> CreateCategory([FromBody] ServiceCategoryUpsertDTO request)
         {
             var category = new ServiceCategory
@@ -74,7 +74,7 @@ namespace backend.Controllers
         }
 
         [HttpPut("{id:int}")]
-        [Permission("EDIT_SERVICES")]
+        [Permission("EDIT_SERVICECATEGORIES")]
         public async Task<ActionResult<ServiceCategoryResponseDTO>> UpdateCategory(int id, [FromBody] ServiceCategoryUpsertDTO request)
         {
             var category = await _context.ServiceCategories.FirstOrDefaultAsync(c => c.Id == id);
@@ -93,7 +93,7 @@ namespace backend.Controllers
         }
 
         [HttpDelete("{id:int}")]
-        [Permission("DELETE_SERVICES")]
+        [Permission("DELETE_SERVICECATEGORIES")]
         public async Task<IActionResult> DeleteCategory(int id)
         {
             var category = await _context.ServiceCategories

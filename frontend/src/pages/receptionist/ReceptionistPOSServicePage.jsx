@@ -26,13 +26,13 @@ const emptyCategoryForm = {
 };
 
 
-const StatusToggle = ({ status, onToggle, isPending }) => (
+const StatusToggle = ({ status, onToggle, isPending, disabled = false }) => (
   <button
     type="button"
     onClick={onToggle}
-    disabled={isPending}
-    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${status ? "bg-sky-600" : "bg-slate-200"
-      } ${isPending ? "opacity-50 cursor-not-allowed" : ""}`}
+    disabled={isPending || disabled}
+    className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${status ? "bg-sky-600" : "bg-slate-200"
+      } ${isPending || disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
   >
     <span
       className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${status ? "translate-x-5" : "translate-x-0"
@@ -200,6 +200,9 @@ const ReceptionistPOSServicePage = () => {
   const canCreateService = hasPermission("CREATE_SERVICES");
   const canEditService = hasPermission("EDIT_SERVICES");
   const canDeleteService = hasPermission("DELETE_SERVICES");
+  const canCreateCategory = hasPermission("CREATE_SERVICECATEGORIES");
+  const canEditCategory = hasPermission("EDIT_SERVICECATEGORIES");
+  const canDeleteCategory = hasPermission("DELETE_SERVICECATEGORIES");
 
   const [searchParams, setSearchParams] = useSearchParams();
   const initialTab = searchParams.get("tab") || "apply";
@@ -870,6 +873,7 @@ const ReceptionistPOSServicePage = () => {
                           <StatusToggle
                             status={service.status}
                             isPending={updateServiceMutation.isPending}
+                            disabled={!canEditService}
                             onToggle={() => {
                               const payload = {
                                 categoryId: service.categoryId,
@@ -917,7 +921,7 @@ const ReceptionistPOSServicePage = () => {
                   />
                 </div>
 
-                {canCreateService ? (
+                {canCreateCategory ? (
                   <button
                     type="button"
                     onClick={handleOpenCategoryCreateForm}
@@ -992,6 +996,7 @@ const ReceptionistPOSServicePage = () => {
                           <StatusToggle
                             status={cat.status}
                             isPending={updateCategoryMutation.isPending}
+                            disabled={!canEditCategory}
                             onToggle={() => {
                               const payload = {
                                 name: cat.name,
@@ -1004,8 +1009,8 @@ const ReceptionistPOSServicePage = () => {
                         </td>
                         <td className="px-5 py-4 text-right">
                           <ActionMenu
-                            canEdit={canEditService}
-                            canDelete={canDeleteService}
+                            canEdit={canEditCategory}
+                            canDelete={canDeleteCategory}
                             onEdit={() => handleOpenCategoryEditForm(cat)}
                             onDelete={() => deleteCategoryMutation.mutate(cat.id)}
                           />
@@ -1158,7 +1163,7 @@ const ReceptionistPOSServicePage = () => {
           setCategoryForm={setCategoryForm}
           onClose={() => setShowCategoryForm(false)}
           onSubmit={handleCategorySubmit}
-          canSubmit={categoryForm.id ? canEditService : canCreateService}
+          canSubmit={categoryForm.id ? canEditCategory : canCreateCategory}
           isSubmitting={createCategoryMutation.isPending || updateCategoryMutation.isPending}
         />
       ) : null}

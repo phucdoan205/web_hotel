@@ -64,7 +64,7 @@ const contentChildren = [
     icon: LayoutGrid,
     path: "/admin/article-categories",
     matchPaths: ["/admin/article-categories"],
-    permission: "VIEW_CONTENT",
+    permission: "VIEW_ARTICLECATEGORIES",
   },
   {
     name: "Bài viết",
@@ -119,9 +119,9 @@ const menuItems = [
     permission: "VIEW_INVOICES",
   },
   { name: "Dịch vụ", icon: Wrench, path: "/admin/pos", permission: "VIEW_SERVICES" },
-  { name: "Đánh giá", icon: Star, path: "/admin/reviews", permission: "VIEW_SERVICES" },
+  { name: "Đánh giá", icon: Star, path: "/admin/reviews", permission: "VIEW_REVIEWS" },
   { name: "Voucher", icon: Gift, path: "/admin/vouchers", permission: "VIEW_VOUCHERS" },
-  { name: "Thành viên", icon: Users, path: "/admin/memberships", permission: "VIEW_SERVICES" },
+  { name: "Thành viên", icon: Users, path: "/admin/memberships", permission: "VIEW_MEMBERSHIPS" },
   { name: "Nhật ký hệ thống", icon: History, path: "/admin/audit-log", permission: "VIEW_LOG" },
 ];
 
@@ -194,7 +194,7 @@ export default function Sidebar({ isOpen, onClose }) {
               hasPermission(child.permission, auth),
             );
 
-            if (visibleChildren.length === 0 || !hasPermission(item.permission, auth)) {
+            if (visibleChildren.length === 0) {
               return null;
             }
 
