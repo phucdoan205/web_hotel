@@ -91,5 +91,68 @@ namespace backend.Controllers
 
             return Ok(new { message = "Đã lưu voucher thành công" });
         }
+
+        [HttpPost("save-by-code/{code}")]
+        public async Task<IActionResult> SaveVoucherByCode(string code)
+        {
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
+
+            if (string.IsNullOrWhiteSpace(code)) 
+                return BadRequest(new { message = "Mã voucher không hợp lệ" });
+
+            var trimmedCode = code.Trim();
+            var voucher = await _context.Vouchers.FirstOrDefaultAsync(v => 
+                v.Code.ToLower() == trimmedCode.ToLower() && !v.IsDeleted);
+
+            if (voucher == null) 
+                return NotFound(new { message = "Voucher không tồn tại hoặc đã bị xóa" });
+
+            if (!voucher.IsActive) 
+                return BadRequest(new { message = "Voucher này hiện không hoạt động" });
+
+            var now = DateTime.UtcNow;
+            if (voucher.ValidFrom.HasValue && voucher.ValidFrom.Value > now)
+            {
+                return BadRequest(new { message = "Voucher chưa đến thời gian sử dụng" });
+            }
+            if (voucher.ValidTo.HasValue && voucher.ValidTo.Value < now)
+            {
+                return BadRequest(new { message = "Voucher đã hết hạn sử dụng" });
+            }
+
+            if (voucher.UsageLimit.HasValue && voucher.UsageCount >= voucher.UsageLimit.Value)
+            {
+                return BadRequest(new { message = "Voucher đã hết lượt sử dụng" });
+            }
+
+            if (voucher.TargetUserId.HasValue && voucher.TargetUserId.Value != userId)
+            {
+                return BadRequest(new { message = "Voucher này không dành cho bạn!" });
+            }
+
+            var existing = await _context.UserVouchers
+                .FirstOrDefaultAsync(uv => uv.UserId == userId && uv.VoucherId == voucher.Id);
+            
+            if (existing != null) 
+            {
+                if (existing.IsUsed)
+                {
+                    return BadRequest(new { message = "Bạn đã sử dụng voucher này rồi" });
+                }
+                return BadRequest(new { message = "Voucher này đã được lưu trong ví của bạn trước đó" });
+            }
+
+            var userVoucher = new UserVoucher
+            {
+                UserId = userId,
+                VoucherId = voucher.Id,
+                SavedAt = DateTime.UtcNow
+            };
+
+            _context.UserVouchers.Add(userVoucher);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Đã áp dụng voucher vào ví của bạn thành công!", voucherId = voucher.Id });
+        }
     }
 }

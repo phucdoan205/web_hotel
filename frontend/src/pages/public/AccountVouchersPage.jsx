@@ -1,13 +1,17 @@
 import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { getMyVouchers } from "../../api/user/userVouchersApi";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { getMyVouchers, saveVoucherByCode } from "../../api/user/userVouchersApi";
 import { Ticket, Search, Info, CheckCircle2, X } from "lucide-react";
 import VoucherViewModal from "../../components/shared/VoucherViewModal";
+import toast from "react-hot-toast";
 
 const AccountVouchersPage = () => {
   const [activeTab, setActiveTab] = useState("apply"); // apply, skip
-  const [search, setSearch] = useState("");
+  const [claimCode, setClaimCode] = useState("");
+  const [isApplying, setIsApplying] = useState(false);
   const [selectedVoucher, setSelectedVoucher] = useState(null);
+
+  const queryClient = useQueryClient();
 
   const { data: vouchersData, isLoading } = useQuery({
     queryKey: ["my-vouchers"],
@@ -18,17 +22,35 @@ const AccountVouchersPage = () => {
 
   const filtered = vouchers.filter(uv => {
     const v = uv.voucher;
-    const matchesSearch = !search || v.code.toLowerCase().includes(search.toLowerCase()) || v.name.toLowerCase().includes(search.toLowerCase());
-    
     const now = new Date();
     const isExpired = v.validTo && new Date(v.validTo) < now;
     
     if (activeTab === "apply") {
-      return matchesSearch && !uv.isUsed && !isExpired;
+      return !uv.isUsed && !isExpired;
     } else {
-      return matchesSearch && (uv.isUsed || isExpired);
+      return uv.isUsed || isExpired;
     }
   });
+
+  const handleApplyVoucher = async () => {
+    if (!claimCode.trim()) {
+      toast.error("Vui lòng nhập mã khuyến mãi");
+      return;
+    }
+
+    setIsApplying(true);
+    try {
+      const res = await saveVoucherByCode(claimCode.trim());
+      toast.success(res.data?.message || "Áp dụng voucher thành công!");
+      setClaimCode("");
+      queryClient.invalidateQueries({ queryKey: ["my-vouchers"] });
+    } catch (error) {
+      const errMsg = error.response?.data?.message || "Không thể áp dụng voucher này. Vui lòng kiểm tra lại.";
+      toast.error(errMsg);
+    } finally {
+      setIsApplying(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 px-5 py-10 lg:px-8">
@@ -40,12 +62,17 @@ const AccountVouchersPage = () => {
                 <input 
                   type="text"
                   placeholder="Nhập mã khuyến mãi"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="w-full rounded-2xl border border-slate-200 bg-white py-4 pl-5 pr-32 text-sm font-bold focus:border-orange-500 focus:outline-none focus:ring-4 focus:ring-orange-50 transition-all"
+                  value={claimCode}
+                  onChange={(e) => setClaimCode(e.target.value)}
+                  disabled={isApplying}
+                  className="w-full rounded-2xl border border-slate-200 bg-white py-4 pl-5 pr-32 text-sm font-bold focus:border-orange-500 focus:outline-none focus:ring-4 focus:ring-orange-50 transition-all disabled:opacity-75"
                 />
-                <button className="absolute right-2 top-2 bottom-2 rounded-xl bg-orange-600 px-6 text-sm font-black text-white transition hover:bg-orange-700 active:scale-95">
-                  Sử dụng
+                <button 
+                  onClick={handleApplyVoucher}
+                  disabled={isApplying}
+                  className="absolute right-2 top-2 bottom-2 rounded-xl bg-orange-600 px-6 text-sm font-black text-white transition hover:bg-orange-700 active:scale-95 disabled:opacity-50"
+                >
+                  {isApplying ? "Đang áp dụng..." : "Sử dụng"}
                 </button>
               </div>
             </div>
