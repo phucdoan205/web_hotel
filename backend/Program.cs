@@ -75,7 +75,9 @@ builder.Services.AddSingleton<RoomCleaningSchedulerService>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<RoomCleaningSchedulerService>());
 
 builder.Services.AddDbContext<AppDbContext>((sp, options) =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
+    options.UseSqlServer(
+        builder.Configuration.GetConnectionString("DefaultConnection"),
+        sqlOptions => sqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery))
     .AddInterceptors(new SoftDeleteInterceptor())
     .AddInterceptors(sp.GetRequiredService<AuditSaveChangesInterceptor>())); //Dùng cho AuditLog, không được xoá
 builder.Services.AddAutoMapper(typeof(AutoMapperProfile));

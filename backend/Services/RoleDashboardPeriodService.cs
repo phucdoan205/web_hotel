@@ -1142,17 +1142,27 @@ public sealed class RoleDashboardPeriodService : IRoleDashboardPeriodService
                 rooms = new
                 {
                     totalRooms = metrics.TotalRooms,
+                    availableRooms = metrics.AvailableRooms,
+                    occupiedRooms = metrics.OccupiedRooms,
+                    maintenanceRooms = metrics.MaintenanceRooms,
                     dirtyRooms = metrics.DirtyRooms,
                     cleaningRooms = metrics.CleaningRooms,
-                    availableRooms = metrics.AvailableRooms,
-                    maintenanceRooms = metrics.MaintenanceRooms,
+                    cleanRooms = metrics.CleanRooms,
+                    pickupRooms = metrics.PickupRooms,
+                    outOfOrderRooms = metrics.OutOfOrderRooms,
                     occupancyRate = metrics.OccupancyRate
                 },
                 warehouse = new
                 {
                     damageReports = metrics.DamageReports,
                     penaltyAmount = metrics.PenaltyAmount,
-                    damagedQuantityInPeriod = metrics.DamagedQuantityInPeriod
+                    damagedQuantityInPeriod = metrics.DamagedQuantityInPeriod,
+                    lowStockItemsList = metrics.LowStockItemsList,
+                    recentDamageReports = metrics.RecentDamageReports
+                },
+                tasks = new
+                {
+                    notifications = metrics.Notifications
                 }
             },
             "Receptionist" => (object)new

@@ -16,6 +16,8 @@ import {
 import { getNotifications } from "../../api/notifications/notificationApi";
 import { dashboardApi } from "../../api/admin/dashboardApi";
 import { useStoredAuth } from "../../hooks/useStoredAuth";
+import { useNavigate } from "react-router-dom";
+import { housekeepingApi } from "../../api/admin/housekeepingApi";
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 const vndFmt = new Intl.NumberFormat("vi-VN");
@@ -856,6 +858,185 @@ function DamageReportList({ reports = [] }) {
   );
 }
 
+// ─── Housekeeping Dashboard Tasks List ──────────────────────────────────────────
+function HousekeepingDashboardTasksList() {
+  const navigate = useNavigate();
+  const { data: taskData, isLoading, error } = useQuery({
+    queryKey: ["housekeeping-dashboard-tasks"],
+    queryFn: () => housekeepingApi.getTasks(),
+    refetchInterval: 15000,
+  });
+
+  const getPriorityWeight = (priority) => {
+    if (priority === "High") return 2;
+    if (priority === "Working") return 1;
+    return 0;
+  };
+
+  const getStatusWeight = (status) => {
+    if (status === "InProgress") return 2;
+    if (status === "Dirty") return 1;
+    if (status === "Pickup") return 0;
+    return -1;
+  };
+
+  const activeTasks = useMemo(() => {
+    const items = taskData?.items || [];
+    return items
+      .filter((task) => ["Dirty", "Pickup", "InProgress"].includes(task.cleaningStatus))
+      .sort((a, b) => {
+        const swA = getStatusWeight(a.cleaningStatus);
+        const swB = getStatusWeight(b.cleaningStatus);
+        if (swB !== swA) return swB - swA;
+        return getPriorityWeight(b.priority) - getPriorityWeight(a.priority);
+      });
+  }, [taskData]);
+
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case "Dirty":
+        return (
+          <span className="rounded-full bg-rose-50 px-3 py-1 text-[10px] font-black text-rose-600 uppercase tracking-wider ring-1 ring-rose-100">
+            Cần dọn
+          </span>
+        );
+      case "Pickup":
+        return (
+          <span className="rounded-full bg-sky-50 px-3 py-1 text-[10px] font-black text-sky-700 uppercase tracking-wider ring-1 ring-sky-100">
+            Dọn nhẹ
+          </span>
+        );
+      case "InProgress":
+        return (
+          <span className="rounded-full bg-amber-50 px-3 py-1 text-[10px] font-black text-amber-600 uppercase tracking-wider ring-1 ring-amber-100 animate-pulse">
+            Đang dọn
+          </span>
+        );
+      default:
+        return (
+          <span className="rounded-full bg-slate-50 px-3 py-1 text-[10px] font-black text-slate-600 uppercase tracking-wider ring-1 ring-slate-100">
+            {status}
+          </span>
+        );
+    }
+  };
+
+  const getPriorityBadge = (priority) => {
+    if (priority === "High") {
+      return (
+        <span className="rounded-full bg-red-50 px-3 py-1 text-[10px] font-black text-red-600 uppercase tracking-wider ring-1 ring-red-100">
+          Ưu tiên cao
+        </span>
+      );
+    }
+    return null;
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm h-full flex flex-col"
+    >
+      <div className="mb-6 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="flex size-10 items-center justify-center rounded-2xl bg-sky-50 text-sky-600 ring-1 ring-sky-100 shadow-sm shadow-sky-50">
+            <Brush className="size-5" />
+          </div>
+          <div>
+            <h3 className="text-base font-black text-slate-800 tracking-tight">Danh sách phòng cần dọn</h3>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Cập nhật thời gian thực</p>
+          </div>
+        </div>
+        <span className="rounded-full bg-sky-50 px-3 py-1 text-[10px] font-black text-sky-600 uppercase tracking-wider">
+          {activeTasks.length} phòng cần xử lý
+        </span>
+      </div>
+
+      <div className="space-y-4 overflow-y-auto pr-1 no-scrollbar max-h-[380px] flex-1">
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-12">
+            <div className="size-8 animate-spin rounded-full border-4 border-sky-600 border-t-transparent" />
+            <p className="mt-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Đang tải danh sách phòng...</p>
+          </div>
+        ) : activeTasks.length > 0 ? (
+          activeTasks.map((task, i) => (
+            <motion.div
+              key={task.roomId}
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: i * 0.05 }}
+              className="group relative flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-transparent bg-slate-50/50 p-4 transition-all hover:border-sky-200 hover:bg-white hover:shadow-md hover:shadow-sky-50"
+            >
+              <div className="flex items-center gap-4 min-w-0">
+                <div className="relative shrink-0">
+                  {task.previewImageUrl ? (
+                    <img
+                      src={task.previewImageUrl}
+                      alt={`Phòng ${task.roomNumber}`}
+                      className="size-12 rounded-xl object-cover ring-1 ring-slate-100 shadow-sm"
+                    />
+                  ) : (
+                    <div className="flex size-12 items-center justify-center rounded-xl bg-slate-100 text-slate-400 ring-1 ring-slate-100/50">
+                      <BedDouble className="size-6" />
+                    </div>
+                  )}
+                  <div className="absolute -right-1 -top-1 flex size-5 items-center justify-center rounded-lg bg-white text-[9px] font-black text-slate-800 shadow-sm ring-1 ring-slate-100">
+                    {task.floor ?? "?"}
+                  </div>
+                </div>
+
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-base font-black text-slate-800">Phòng {task.roomNumber}</p>
+                    {getStatusBadge(task.cleaningStatus)}
+                    {getPriorityBadge(task.priority)}
+                  </div>
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mt-0.5">
+                    {task.roomTypeName || "Tiêu chuẩn"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 self-end sm:self-center shrink-0">
+                {task.isAssignedToCurrentUser ? (
+                  <span className="text-[11px] font-extrabold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">
+                    Bạn đang dọn
+                  </span>
+                ) : task.isLockedByOther ? (
+                  <span className="text-[11px] font-extrabold text-slate-400 bg-slate-100 px-2 py-1 rounded-lg max-w-[100px] truncate">
+                    {task.assignedToName || "Đang dọn"}
+                  </span>
+                ) : null}
+
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => navigate(`/admin/housekeeping/tasks/${task.roomId}`)}
+                  className={`flex items-center justify-center gap-1 rounded-xl px-4 py-2 text-xs font-black transition ${
+                    task.cleaningStatus === "InProgress"
+                      ? "bg-amber-500 text-white shadow-md shadow-amber-200 hover:bg-amber-600"
+                      : "bg-sky-600 text-white shadow-md shadow-sky-200 hover:bg-sky-700"
+                  }`}
+                >
+                  {task.cleaningStatus === "InProgress" ? "Tiếp tục" : "Dọn dẹp"}
+                </motion.button>
+              </div>
+            </motion.div>
+          ))
+        ) : (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="mb-4 flex size-16 items-center justify-center rounded-3xl bg-emerald-50 text-emerald-500 shadow-inner">
+              <CheckCircle className="size-8" />
+            </div>
+            <p className="text-sm font-black text-slate-800">Tất cả các phòng đã sạch!</p>
+            <p className="mt-1 text-xs font-bold text-slate-400 uppercase tracking-widest">Không có phòng nào cần dọn dẹp</p>
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
 // ─── Recent Audits ────────────────────────────────────────────────────────────
 function RecentAudits({ audits }) {
   if (!audits?.length) return null;
@@ -1624,7 +1805,7 @@ export default function AdminDashboardPage() {
       {/* ── Period Selector ── */}
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-black text-slate-800 tracking-tight">
-          Bảng điều khiển <span className="text-slate-400 font-medium">/ {ROLE_LABEL[role] || role}</span>
+          Bảng điều khiển
         </h1>
         <div className="flex items-center gap-1 rounded-2xl bg-slate-100 p-1">
           {[
@@ -1805,6 +1986,9 @@ export default function AdminDashboardPage() {
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                 <div>
                   {hasRooms && <RoomStatusOverview roomsSummary={summary.rooms} role={role} />}
+                </div>
+                <div>
+                  <HousekeepingDashboardTasksList />
                 </div>
               </div>
             </div>
